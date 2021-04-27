@@ -37,6 +37,8 @@
     "the GA elements' sum.")
   (neg [this]
     "the GA element's additive inverse.")
+  (rev [this]
+    "the GA element's reversion.")
   (dif [this otha]
     "the second GA element subtracted from the first.")
   (prd [this otha]
@@ -51,16 +53,16 @@
     "the geometric product of the first GA element and the multiplicative
      inverse of the second... presuming of course that this latter exists.")
   (dot [this otha]
-    "the two GA elements' inner product in Hestenes's symmetric take on
-     such things. Defined as the abs(k-j) grade part of the geometric
-     product of the elements (assuming they are respectively of grades
-     j and k), or the distributively re-collected sum of all the pairwise
-     inner products between the bi-exploded components of multi-grade
+    "the two GA elements' inner product in the symmetric take on such
+     things: the abs(k-j) grade part of the geometric product of the
+     elements (assuming they are respectively of grades j and k), or
+     the distributively re-collected sum of all the pairwise inner
+     products between the bi-exploded components of multi-grade
      elements.")
   (wdg [this otha]
-    "the two GA elements' outer product. Defined as the j+k grade part of
-     the two elements' geometric product, if they're both single-grade
-     entities, or as the distributively re-collected sum of the pairwise
+    "the two GA elements' outer product. That is to say: the j+k grade part
+     of the two elements' geometric product, if they're both single-grade
+     entities, or the distributively re-collected sum of the pairwise
      outer products of all bi-exploded components of the two when multi-grade
      entities.")
   (lcn [this otha]
@@ -71,10 +73,16 @@
     "the two GA elements' right contraction: the grade j-k part of the
      geometric product, which, per the definition of grade selection,
      is zero for k>j.")
+  (hip [this otha]
+    "the two GA elements' Hestenes inner product, which is identical to
+     the conventional dot product unless either argument is a scalar
+     (i.e. of grade zero), whereupon the product vanishes.")
   (eq? [this otha]
     "equality test for GA elements.")
+  (scalar? [this]
+    "whether the thing is of grade zero, i.e. a real.")
   (grade-part [this n]
-    "the GA element's grade 'n' part/"))
+    "the GA element's grade 'n' part."))
 
 
 (comment  ;; wrapping a compacted (i.e. docstring-free) version of IHestenic
@@ -92,7 +100,9 @@
   (wdg [this otha])
   (lcn [this otha])
   (rcn [this otha])
+  (hip [this otha])
   (eq? [this otha])
+  (scalar? [this])
   (grade-part [this n]))
 
 )
@@ -120,10 +130,10 @@
 ;; representation.
 ;;
 
-(defn- accordion-down [hestish]
+(defn- accordion-down [hest-elmt]
   (downRungify
    (spankOutNothingness
-    hestish)))
+    hest-elmt)))
 
 
 ;;
@@ -219,7 +229,6 @@
                  "])")))
 
 (defn parse-bladoid [[wgt bss]]
-  (prn wgt bss)
   (bladoid wgt bss))
 
 
@@ -445,9 +454,11 @@
   (wdg [this otha] this)
   (lcn [this otha] this)
   (rcn [this otha] this)
+  (hip [this otha] this)
   (eq? [this otha]
     (or (instance? (class this) otha)
         (and (number? otha) (zero? otha))))
+  (scalar? [this] true)  ;; well, actually a conundrum
   (grade-part [this n] this))
 
 
@@ -539,6 +550,27 @@
           (for [l-grdl (gradelings l-emvy)
                 r-grdl (gradelings r-emvy)]
             (asMV (funq l-grdl r-grdl)))))
+
+
+;;
+;; and, finally, the glorious salon des refuses
+;;
+
+(defn- reversion-parity [k]
+  (if (even? (/ (* k (- k 1)) 2))  +1  -1))
+
+
+(defn pseudoscalar [dim]
+  (Bladoid. 1 (vec (range dim))))
+
+(defn inverse-pseudoscalar [dim]
+  (Bladoid. (reversion-parity dim) (vec (range dim))))
+
+
+(defn dua [hest-elmt dim]
+  (prd hest-elmt (inverse-pseudoscalar dim)))
+
+(def dual dua)
 
 
 ;;
@@ -688,6 +720,10 @@
            (MV. (sort-on-grades (vector (asGradeling this)
                                         (asGradeling otha)))))))))
   (neg [this] (Bladoid. (- (coef this)) (basis this)))
+  (rev [this]
+    (if (pos? (reversion-parity (grade this)))
+      this
+      (scl this -1)))
   (dif [this otha] (sum this (neg otha)))
   (prd [this otha]
     (if (different-rung? this otha)
@@ -719,16 +755,22 @@
           (grade-part (prd this otha) out-grade)))))
   (rcn [this otha]
     (if (different-rung? this otha)
-      (lcn (asMV this) (asMV otha))
+      (rcn (asMV this) (asMV otha))
       (let [out-grade (- (grade this) (grade otha))]
         (if (neg? out-grade)
           the-zero-element
           (grade-part (prd this otha) out-grade)))))
+  (hip [this otha]
+    (if (or (scalar? this) (scalar? otha))
+      the-zero-element
+      (dot this otha)))
   (eq? [this otha]
     (if (different-rung? this otha)
       (eq? (asMV this) otha)
       (and (= (coef this) (coef otha))
            (= (basis this) (basis otha)))))
+  (scalar? [this]
+    (= 0 (grade this)))
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -749,6 +791,10 @@
          (MV. (sort-on-grades (vector this otha)))))))
   (neg [this] (Gradeling. (grade this)
                           (map (fn [bl] (neg bl)) (bladoids this))))
+  (rev [this]
+    (if (pos? (reversion-parity (grade this)))
+      this
+      (scl this -1)))
   (dif [this otha] (sum this (neg otha)))
   (prd [this otha]
     (if (different-rung? this otha)
@@ -778,17 +824,23 @@
           (grade-part (prd this otha) out-grade)))))
   (rcn [this otha]
     (if (different-rung? this otha)
-      (lcn (asMV this) (asMV otha))
+      (rcn (asMV this) (asMV otha))
       (let [out-grade (- (grade this) (grade otha))]
         (if (neg? out-grade)
           the-zero-element
           (grade-part (prd this otha) out-grade)))))
+  (hip [this otha]
+    (if (or (scalar? this) (scalar? otha))
+      the-zero-element
+      (dot this otha)))
   (eq? [this otha]
     (if (different-rung? this otha)
       (eq? (asMV this) otha)
       (and (= (grade this) (grade otha))
            (every? true?
                    (map eq? (bladoids this) (bladoids otha))))))
+  (scalar? [this]
+    (= 0 (grade this)))
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -811,6 +863,10 @@
      (mv-absorb-mv this (asMV otha))))
   (neg [this]
     (MV. (map (fn [grdl] (neg grdl)) (gradelings this))))
+  (rev [this]
+    (reduce (fn [acc grdl] (mv-absorb-gradeling acc (rev grdl)))
+            the-empty-mv
+            (gradelings this)))
   (dif [this otha]
     (sum this (neg otha)))
   (prd [this otha]
@@ -825,12 +881,20 @@
   (wdg [this otha]
     (mv-bimap-via-gradelings wdg this (asMV otha)))
   (lcn [this otha]
-    (mv-bimap-via-gradelings (fn [a b] (lcn a b)) this (asMV otha)))
+    (mv-bimap-via-gradelings lcn this (asMV otha)))
   (rcn [this otha]
-    (mv-bimap-via-gradelings (fn [a b] (rcn a b)) this (asMV otha)))
+    (mv-bimap-via-gradelings rcn this (asMV otha)))
+  (hip [this otha]
+    (if (or (scalar? this) (scalar? otha))
+      the-zero-element
+      (dot this otha)))
   (eq? [this otha]
     (every? true?
             (map eq? (gradelings this) (gradelings (asMV otha)))))
+  (scalar? [this]
+    (let [grdls (gradelings this)]
+      (and (= 1 (count grdls))
+           (= 0 (grade (first grdls))))))
   (grade-part [this n]
     (let [grdl (filter (fn [g] (= (grade g) n))
                        (gradelings this))]
@@ -852,6 +916,7 @@
   (neg [this]
     (Vect. (vec (map (fn [co] (- co))
                      (coefs this)))))
+  (rev [this] this)
   (dif [this otha]
     (sum this (neg otha)))
   (prd [this otha]
@@ -875,7 +940,11 @@
       (dot this otha)))
   (rcn [this otha]
     (if (different-rung? this otha)
-      (lcn (asMV this) otha)
+      (rcn (asMV this) otha)
+      (dot this otha)))
+  (hip [this otha]
+    (if (scalar? otha)
+      the-zero-element
       (dot this otha)))
   (eq? [this otha]
     (if (different-rung? this otha)
@@ -884,6 +953,7 @@
             otc (coefs otha)]
         (and (= (count thc) (count otc))
              (every? true? (map == thc otc))))))
+  (scalar? [this] false)
   (grade-part [this n]
     (if (= n 1)
       this
@@ -923,7 +993,8 @@
       (+ this otha)
       (sum (asBladoid this) otha)))
   (neg [this]
-         (- this))
+    (- this))
+  (rev [this] this)
   (dif [this otha]
     (if (number? otha)
       (- this otha)
@@ -937,22 +1008,44 @@
   (quo [this otha]
     (prd this (inv otha)))
   (dot [this otha]
-    the-zero-element)
+    (scl otha this))
   (wdg [this otha]
     (scl otha this))
   (lcn [this otha]
-    the-zero-element)  ;; this represents Hestenes's nullful definition
+    (scl otha this))
   (rcn [this otha]
-    the-zero-element)  ;; ditto. ("Ditto, you provincial putz?")
+    (rcn (asMV this) (asMV otha)))
+  (hip [this otha]
+    the-zero-element)
   (eq? [this otha]
     (if-not (number? otha)
       (eq? (asMV this) otha)
       (== this otha)))
+  (scalar? [this] true)
   (grade-part [this n]
     (if (= n 0)
       this
       the-zero-element)))
 
+
+;;
+;; prolixful synonymery
+;;
+
+(def scale scl)
+;; can't really get any more summier: (def sum sum)
+(def negative neg)
+(def difference dif)
+(def product prd)
+(def inverse inv)
+(def quotient quo)
+(def inner-product dot)
+(def wedge-product wdg)
+(def left-contraction lcn)
+(def right-contraction rcn)
+(def hestenes-innter-product hip)
+
+(def dual dua)
 
 ;;
 ;; you know -- for kids.
