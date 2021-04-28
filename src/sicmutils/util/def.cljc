@@ -17,7 +17,8 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.util.def)
+(ns sicmutils.util.def
+  (:refer-clojure :rename {defmethod core-defmethod}))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -44,6 +45,14 @@
     (map #(into [] (take %) lowercase-symbols)
          arities)))
 
+(defn method-dispatched [multimethod & args]
+  (get (clojure.set/map-invert (.getMethodTable multimethod))
+       (.getMethod multimethod
+                   (apply (.dispatchFn multimethod) args))))
+
+(defn method-dispatch [multimethod & args]
+  (apply (.dispatchFn multimethod) args))
+
 (defmacro defgeneric
   "Defines a multifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either `[:exactly a]` or
@@ -67,7 +76,7 @@
         arity     (if b [:between a b] [:exactly a])
         docstring (if (string? (first options))
                     (str "generic " f ".\n\n" (first options))
-                    (str "generic " f ))
+                    (str "generic " f))
         options   (if (string? (first options))
                     (next options)
                     options)
@@ -83,8 +92,43 @@
          ~docstring
          {:arglists '~(arglists a b)}
          v/argument-kind ~@options)
-       (defmethod ~f [~kwd-klass] [k#]
-         (~attr k#)))))
+       (defn ~(symbol (str (name f) "-selected")) [& args#]
+         (apply method-dispatched ~f args#))
+       (core-defmethod ~f [~kwd-klass] [k#]
+                       (if (= :specifics k#)
+                         (keys (.getMethodTable ~f))
+                         (~attr k#))))))
+
+(def ^:dynamic *debug-generics* (= (System/getProperty "sicmutils.debug_generics") "true"))
+(def generic-call-id (atom 0))
+(def ^:dynamic *generic-call-chain* [])
+(def ^:dynamic *generic-call-tap?* (constantly false))
+(def ^:dynamic *on-generic-call* (constantly nil))
+
+(defmacro defmethod [multifn dispatch-val & fn-tail]
+  (if *debug-generics*
+    `(let [call-info# {:dispatch ~dispatch-val :name (if (method-dispatched ~multifn :name)
+                                                       (~multifn :name)
+                                                       '~multifn)}]
+       (core-defmethod ~multifn ~dispatch-val ~@(butlast fn-tail)
+                       (let [call-id# (swap! generic-call-id inc)
+                             call-info# (assoc call-info# :id call-id# :parent-id (:id (last *generic-call-chain*)))
+                             tap?# (*generic-call-tap?* call-info#)]
+                         (when tap?#
+                           (*on-generic-call*
+                            (assoc (try (assoc call-info#
+                                               :args ~(first fn-tail)
+                                               :dispatch-with (method-dispatch ~multifn ~@(first fn-tail)))
+                                        ;; If the function destructures I'm not going to try to figure that out.
+                                        (catch Exception e# call-info#))
+                                   :chain *generic-call-chain*)))
+                         (let [result#
+                               (binding [*generic-call-chain* (conj *generic-call-chain* call-info#)]
+                                 ~(last fn-tail))]
+                           (when tap?#
+                             (*on-generic-call* (assoc call-info# :result result#)))
+                           result#))))
+    `(core-defmethod ~multifn ~dispatch-val ~@fn-tail)))
 
 (defmacro import-def
   "Given a regular def'd var from another namespace, defined a new var with the
