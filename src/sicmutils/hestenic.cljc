@@ -5,7 +5,7 @@
 
 (ns hestenic
   "the superabsorbent and lint-free world of geometric algebra (and on into
-  geo'tric calculus)")
+   geo'tric calculus)")
 
 ;;
 ;; the approach we'll use here is protocol-rich... or -heavy, depending
@@ -16,7 +16,8 @@
 ;; heterogeneous grade ('MV', for multivector), sorted on grade; and
 ;; vector itself ('Vect'). in addition, for the moment we have a special
 ;; class to represent the zero element ('ZeroElement'), which is identical
-;; for all grades.
+;; for all grades. These different representations (or GA elements) are
+;; called here in the source file 'rungs'.
 ;;
 ;; the protocol immediately following is the (presently malnourished but
 ;; still growing) set of canonical operations applicable to each of the
@@ -39,6 +40,8 @@
     "the GA element's additive inverse.")
   (rev [this]
     "the GA element's reversion.")
+  (gri [this]
+    "the GA element's grade involution.")
   (dif [this otha]
     "the second GA element subtracted from the first.")
   (prd [this otha]
@@ -87,11 +90,12 @@
 
 (comment  ;; wrapping a compacted (i.e. docstring-free) version of IHestenic
           ;; thusly for visual convenience
-
 (defprotocol IHestenic
   (scl [this s])
   (sum [this otha])
   (neg [this])
+  (rev [this])
+  (gri [this])
   (dif [this otha])
   (prd [this otha])
   (inv [this])
@@ -104,7 +108,6 @@
   (eq? [this otha])
   (scalar? [this])
   (grade-part [this n]))
-
 )
 
 (defprotocol IGradable
@@ -391,7 +394,7 @@
 ;; In a strict sense this is a redundant type-entity, since one of these
 ;; could always be represented as a Gradeling of grade one. But because
 ;; vectors have a vaunted position in GA -- they are rightly the generators
-;; of the whole algebra, y' see-- it's very much worth representing them
+;; of the whole algebra, y' see -- it's very much worth representing them
 ;; explicitly.
 ;;
 
@@ -444,6 +447,8 @@
   (scl [this s] this)
   (sum [this otha] otha)
   (neg [this] this)
+  (rev [this] this)
+  (gri [this] this)
   (dif [this otha] (neg otha))
   (prd [this otha] this)
   (inv [this] (/ 1 0))
@@ -556,8 +561,11 @@
 ;; and, finally, the glorious salon des refuses
 ;;
 
-(defn- reversion-parity [k]
-  (if (even? (/ (* k (- k 1)) 2))  +1  -1))
+(defn reversion-parity [gr]
+  (if (even? (/ (* gr (- gr 1)) 2))  +1  -1))
+
+(defn grade-involution-parity [gr]
+  (if (even? gr)  +1  -1))
 
 
 (defn pseudoscalar [dim]
@@ -719,11 +727,15 @@
                        (sort-on-bases (vector this otha)))
            (MV. (sort-on-grades (vector (asGradeling this)
                                         (asGradeling otha)))))))))
-  (neg [this] (Bladoid. (- (coef this)) (basis this)))
+  (neg [this] (scl this -1))
   (rev [this]
     (if (pos? (reversion-parity (grade this)))
       this
-      (scl this -1)))
+      (neg this)))
+  (gri [this]
+    (if (pos? (grade-involution-parity (grade this)))
+      this
+      (neg this)))
   (dif [this otha] (sum this (neg otha)))
   (prd [this otha]
     (if (different-rung? this otha)
@@ -794,7 +806,11 @@
   (rev [this]
     (if (pos? (reversion-parity (grade this)))
       this
-      (scl this -1)))
+      (neg this)))
+  (gri [this]
+    (if (pos? (grade-involution-parity (grade this)))
+      this
+      (neg this)))
   (dif [this otha] (sum this (neg otha)))
   (prd [this otha]
     (if (different-rung? this otha)
@@ -867,6 +883,10 @@
     (reduce (fn [acc grdl] (mv-absorb-gradeling acc (rev grdl)))
             the-empty-mv
             (gradelings this)))
+  (gri [this]
+    (reduce (fn [acc grdl] (mv-absorb-gradeling acc (gri grdl)))
+            the-empty-mv
+            (gradelings this)))
   (dif [this otha]
     (sum this (neg otha)))
   (prd [this otha]
@@ -917,6 +937,7 @@
     (Vect. (vec (map (fn [co] (- co))
                      (coefs this)))))
   (rev [this] this)
+  (gri [this] (neg this))
   (dif [this otha]
     (sum this (neg otha)))
   (prd [this otha]
@@ -995,6 +1016,7 @@
   (neg [this]
     (- this))
   (rev [this] this)
+  (gri [this] this)
   (dif [this otha]
     (if (number? otha)
       (- this otha)
@@ -1035,6 +1057,8 @@
 (def scale scl)
 ;; can't really get any more summier: (def sum sum)
 (def negative neg)
+(def reversion rev)
+(def grade-involution gri)
 (def difference dif)
 (def product prd)
 (def inverse inv)
@@ -1043,7 +1067,7 @@
 (def wedge-product wdg)
 (def left-contraction lcn)
 (def right-contraction rcn)
-(def hestenes-innter-product hip)
+(def hestenes-inner-product hip)
 
 (def dual dua)
 
