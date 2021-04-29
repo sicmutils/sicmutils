@@ -32,7 +32,7 @@
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [borkdude/sci "0.1.1-alpha.8"]
                  [com.google.guava/guava "23.0"]
-                 [com.taoensso/timbre "4.11.0-alpha1"
+                 [com.taoensso/timbre "5.1.2"
                   :exclusions [org.clojure/clojurescript]]
                  [dm3/stopwatch "0.1.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
@@ -57,6 +57,7 @@
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]
+                                  [com.taoensso/tufte "2.2.0"]
                                   [com.gfredericks/test.chuck "0.2.10"]
                                   [same/ish "0.1.4"]
                                   [criterium "0.4.5"]

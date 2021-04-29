@@ -40,6 +40,8 @@
              :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
             [taoensso.timbre :as log]))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 ;; # Disclaimer (from @sritchie)
 ;;
 ;; I'm convinced that the scmutils code used to implement the ideas
@@ -475,25 +477,26 @@ codebase compatibility."}
    (reify
      ICoordinateSystem
      (check-coordinates [this coords]
-       (= (s/dimension coords)
-          (:dimension manifold)))
+       (p :check-coords (= (s/dimension coords)
+                           (:dimension manifold))))
 
      (check-point [this point]
-       (my-manifold-point? point manifold))
+       (p :check-point (my-manifold-point? point manifold)))
 
      (coords->point [this coords]
        (assert (check-coordinates this coords))
-       (make-manifold-point coords manifold this coords))
+       (p :coords->point
+          (make-manifold-point coords manifold this coords)))
 
      (point->coords [this point]
-       (assert (check-point this point))
-       (get-coordinates
-        point this
-        (fn []
-          (let [rep (manifold-point-representation point)]
-            (assert (= (s/dimension rep)
-                       (:embedding-dimension manifold)))
-            rep))))
+       (p :point->coords
+          (get-coordinates
+           point this
+           (fn []
+             (let [rep (manifold-point-representation point)]
+               (assert (= (s/dimension rep)
+                          (:embedding-dimension manifold)))
+               rep)))))
 
      (coordinate-prototype [this]
        coordinate-prototype)

@@ -291,16 +291,45 @@
                   (u/illegal (str "make-partials WTF " vv))))]
     (fd [] v)))
 
-(defn- literal-derivative [f xs]
-  (let [v (m/seq-> xs)
-        maxtag (apply d/max-order-tag (flatten v))
-        ve (s/mapr #(d/primal-part % maxtag) v)
-        dv (s/mapr #(d/tangent-part % maxtag) v)]
-    (d/d:+ (apply f ve)
-           (reduce d/d:+ (map (fn [partialx dx]
-                                (d/d:* (apply partialx ve) dx))
-                              (flatten (make-partials f v))
-                              (flatten dv))))))
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
+(defn- literal-partial [f path]
+  (let [fexp (if (= (f/arity f) [:exactly 1])  ; univariate
+               (if (= (first path) 0)
+                 (if (= (count path) 1)
+                   ;; Special-case the single argument case, or a unary function
+                   ;; that's provided with a structure of a single entry.
+                   (sym/derivative (name f))
+                   `((~'partial ~@(next path)) ~(name f)))
+                 (u/illegal "wrong indices"))
+               ;; If the function takes multiple arguments we DO need to index
+               ;; into that first layer. (else the first layer is added.)
+               `((~'partial ~@path) ~(name f)))]
+    (->Function
+     fexp (f/arity f) (domain-types f) (range-type f))))
+
+(defn- literal-derivative
+  "Chain rule! Note that `xs` comes in wrapped in an EXTRA layer, hence the
+  `apply`."
+  [f xs]
+  (let [v        (m/seq-> xs)
+        flat-v   (doall (flatten v))
+        tag      (apply d/max-order-tag flat-v)
+        ve       (s/mapr #(d/primal-part % tag) v)
+        partials (doall
+                  (s/map-chain
+                   (fn [x path _]
+                     (let [dx (d/tangent-part x tag)]
+                       (if (v/zero? dx)
+                         0
+                         (p :literal-derivative/partials
+                            (d/d:* (p :internal-apply
+                                      (literal-apply
+                                       (literal-partial f path) ve))
+                                   dx)))))
+                   v))]
+    (p :literal-derivative/result
+       (apply d/d:+ (apply f ve) (flatten partials)))))
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as
@@ -317,8 +346,10 @@
                            (= (count provided) (count expected)))
               (u/illegal (str "expected structure matching " expected
                               " but got " provided )))
-            (doseq [[provided expected sub-index] (map list provided expected (range))]
-              (check-argument-type f provided expected (conj indexes sub-index))))
+            (doall
+             (map (fn [provided expected sub-index]
+                    (check-argument-type f provided expected (conj indexes sub-index)))
+                  provided expected (range))))
         (keyword? expected) ;; a keyword has to match the argument's kind
         (when-not (= (v/kind provided) expected)
           (u/illegal (str "expected argument of type " expected " but got " (v/kind provided)
@@ -326,10 +357,12 @@
 
         :else (u/illegal (str "unexpected argument example. got " provided " want " expected))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn- literal-apply [f xs]
-  (check-argument-type f xs (domain-types f) [0])
+  (p :check-type (check-argument-type f xs (domain-types f) [0]))
   (if (some d/perturbed? xs)
-    (literal-derivative f xs)
+    (p :literal-derivative (literal-derivative f xs))
     (an/literal-number `(~(name f) ~@(map v/freeze xs)))))
 
 ;; ## Specific Generics

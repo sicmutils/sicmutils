@@ -397,8 +397,11 @@
 ;; A differential term is implemented as a pair whose first element is a set of
 ;; tags and whose second is the coefficient.
 
-(def ^:private tags first)
-(def ^:private coefficient peek)
+(defn- tags [term]
+  (get term 0))
+
+(defn- coefficient [term]
+  (get term 1))
 
 ;; The set of tags is implemented as a "vector set",
 ;; from [[sicmutils.util.vector-set]]. This is a sorted set data structure,
@@ -519,33 +522,44 @@
 ;; This final step is required by a number of different operations later, so we
 ;; break it out into its own [[collect-terms]] function:
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn- collect-terms
   "Build a term list up of pairs of tags => coefficients by grouping together and
   summing coefficients paired with the same term list.
 
   The result will be sorted by term list, and contain no duplicate term lists."
   [tags->coefs]
-  (let [terms (for [[tags tags-coefs] (group-by tags tags->coefs)
-                    :let [c (transduce (map coefficient) g/+ tags-coefs)]
-                    :when (not (v/zero? c))]
-                [tags c])]
-    (into [] (sort-by tags terms))))
+  (p :collect-terms
+     (let [terms (for [[tags tags-coefs] (group-by tags tags->coefs)
+                       :let [c (transduce (map coefficient) g/+ tags-coefs)]
+                       :when (not (v/zero? c))]
+                   [tags c])]
+       (into [] (sort-by tags terms)))))
 
 ;; [[terms:*]] implements the first three steps, and calls [[collect-terms]] on
 ;; the resulting sequence:
 
-(defn- terms:*
-  "Returns a vector of non-zero [[Differential]] terms that represent the product
-  of the differential term lists `xs` and `ys`."
-  ([] [])
-  ([xs] xs)
-  ([xs ys]
-   (collect-terms
-    (for [[x-tags x-coef] xs
-          [y-tags y-coef] ys
-          :when (empty? (uv/intersection x-tags y-tags))]
-      (make-term (uv/union x-tags y-tags)
-                 (g/* x-coef y-coef))))))
+(defn- t*ts [[tags coeff] terms]
+  (loop [acc []
+         terms terms]
+    (if (empty? terms)
+      acc
+	    (let [[tags1 coeff1] (first terms)]
+	      (if (empty? (uv/intersection tags tags1))
+		      (recur (conj acc (make-term
+		                        (uv/union tags tags1)
+		                        (g/* coeff coeff1)))
+		             (rest terms))
+		      (recur acc (rest terms)))))))
+
+(defn terms:* [xlist ylist]
+  (letfn [(call [xs]
+            (if (empty? xs)
+              []
+              (terms:+ (t*ts (first xs) ylist)
+	                     (call (next xs)))))]
+    (p :terms* (call xlist))))
 
 ;; ## Differential Type Implementation
 ;;
@@ -573,7 +587,7 @@
   (numerical? [_]
     (or (empty? terms)
         (v/numerical?
-         (coefficient (nth terms 0)))))
+         (coefficient (get terms 0)))))
 
   IPerturbed
   (perturbed? [_] true)
@@ -701,13 +715,10 @@
   If you pass a non-[[Differential]], [[->terms]] will return a singleton term
   list (or `[]` if the argument was zero)."
   [dx]
-  (cond (differential? dx)
-        (filterv (fn [term]
-                   (not (v/zero? (coefficient term))))
-                 (bare-terms dx))
-
-        (v/zero? dx) []
-        :else        [(make-term dx)]))
+  (p :->terms
+     (cond (differential? dx) (bare-terms dx)
+           (v/zero? dx)       []
+           :else              [(make-term dx)])))
 
 (defn- terms->differential
   "Returns a differential instance generated from a vector of terms. This method
@@ -723,8 +734,8 @@
   (cond (empty? terms) 0
 
         (and (= (count terms) 1)
-             (empty? (tags (nth terms 0))))
-        (coefficient (nth terms 0))
+             (empty? (tags (get terms 0))))
+        (coefficient (get terms 0))
 
         :else (->Differential terms)))
 
@@ -785,9 +796,10 @@
   ([] 0)
   ([dx] dx)
   ([dx dy]
-   (terms->differential
-    (terms:+ (->terms dx)
-             (->terms dy))))
+   (p :pair-sum
+      (terms->differential
+       (terms:+ (->terms dx)
+                (->terms dy)))))
   ([dx dy & more]
    (terms->differential
     (transduce (map ->terms)
@@ -864,7 +876,7 @@
   no non-zero tangent parts, or all non-[[Differential]]s), returns nil."
   ([dx]
    (when (differential? dx)
-     (let [last-term   (peek (->terms dx))
+     (let [last-term   (peek (bare-terms dx))
            highest-tag (peek (tags last-term))]
        highest-tag)))
   ([dx & dxs]
@@ -898,7 +910,7 @@
   ([dx tag]
    (if (differential? dx)
      (let [sans-tag? #(not (tag-in-term? % tag))]
-       (->> (->terms dx)
+       (->> (bare-terms dx)
             (filterv sans-tag?)
             (terms->differential)))
      dx)))
@@ -923,7 +935,7 @@
   ([dx] (tangent-part dx (max-order-tag dx)))
   ([dx tag]
    (if (differential? dx)
-     (->> (->terms dx)
+     (->> (bare-terms dx)
           (filterv #(tag-in-term? % tag))
           (terms->differential))
      0)))
@@ -944,7 +956,7 @@
      [dx 0]
      (let [[tangent-terms primal-terms]
            (us/separatev #(tag-in-term? % tag)
-                         (->terms dx))]
+                         (bare-terms dx))]
        [(terms->differential primal-terms)
         (terms->differential tangent-terms)]))))
 

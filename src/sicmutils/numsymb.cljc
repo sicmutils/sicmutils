@@ -460,8 +460,14 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- derivative
-  "Returns the symbolic derivative of the expression `expr`, which should
+(require '[pattern.rule :as r])
+
+(let [rule (r/choice
+            (r/rule (D ?f) r/=> ((expt D 2) ?f))
+            (r/rule ((expt D ?n) ?f) r/=> ((expt D (? #(inc (% '?n)))) ?f))
+            (r/rule ?f r/=> (D ?f)))]
+  (defn derivative
+    "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
 
   If the expression is already a derivative like `(D f)` or `((expt D 2) f)`,
@@ -474,19 +480,8 @@
   (derivative '(D f))          ;;=> ((expt D 2) f)
   (derivative '((expt D 2) f)) ;;=> ((expt D 3) f)
   ```"
-  [expr]
-  (cond (derivative? expr)
-        (let [f (first (operands expr))]
-          (list (expt g/derivative-symbol 2)
-                f))
-
-        (iterated-derivative? expr)
-        (let [pow (nth (operator expr) 2)
-              f   (first (operands expr))]
-          (list (expt g/derivative-symbol (inc pow))
-                f))
-        :else
-        (list g/derivative-symbol expr)))
+    [expr]
+    (rule expr)))
 
 ;; ## Boolean Operations
 

@@ -36,11 +36,11 @@
        (f z x y))))
 
 (defn check-bianchi [coordsys f]
-  (let [omega (e/literal-oneform-field 'omega-rect coordsys)
-        X (e/literal-vector-field 'X-rect coordsys)
-        Y (e/literal-vector-field 'Y-rect coordsys)
-        Z (e/literal-vector-field 'Z-rect coordsys)
-        V (e/literal-vector-field 'V-rect coordsys)]
+  (let [omega (e/literal-oneform-field 'omega coordsys)
+        X (e/literal-vector-field 'X coordsys)
+        Y (e/literal-vector-field 'Y coordsys)
+        Z (e/literal-vector-field 'Z coordsys)
+        V (e/literal-vector-field 'V coordsys)]
     (f omega X Y Z V)))
 
 (defn torsion-symmetric
@@ -57,6 +57,13 @@
        (((e/torsion del) omega X Y)
         (e/typical-point coordsys))))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+(tufte/add-basic-println-handler! {})
+
+;;; Let's define a couple dummy fns to simulate doing some expensive work
+(defn get-x [] (Thread/sleep 500)             "x val")
+(defn get-y [] (Thread/sleep (rand-int 1000)) "y val")
+
 (defn Bianchi1-symmetric
   "FDG, equation 8.32, page 130 - first Bianchi identity with a
   symmetric (torsion-free) connection."
@@ -65,14 +72,23 @@
            (e/literal-Cartan 'C coordsys))
         del (e/covariant-derivative C)
         R (e/Riemann del)]
-    (check-bianchi
-     coordsys
-     (fn [omega X Y Z _]
-       (((cyclic-sum
-          (fn [x y z]
-            (R omega x y z)))
-         X Y Z)
-        (e/typical-point coordsys))))))
+    (let [n (:dimension
+             (sicmutils.calculus.manifold/manifold coordsys))]
+      (check-bianchi
+       coordsys
+       (fn [omega X Y Z _]
+         (p :outer
+            (((cyclic-sum
+               (fn [x y z]
+                 (R omega x y z)))
+              X Y Z)
+             (e/typical-point coordsys))))))))
+
+(comment
+  (profile ; Profile any `p` forms called during body execution
+   {} ; Profiling options; we'll use the defaults for now
+   (dotimes [_ 5]
+     (Bianchi1-symmetric e/R2-rect))))
 
 (defn Bianchi1-general
   "[Bianchi's first
@@ -150,9 +166,9 @@
   ;; +----------+----------+-----------+
   ;; |          |Bianchi 1 | Bianchi 2 |
   ;; +----------+----------+-----------+
-  ;; |R2        |800ms     | 13s       |
+  ;; |R2        |300ms, 500ms     | 6.5s, 8.5s      |
   ;; +----------+----------+-----------+
-  ;; |R3        |10s       |1955s (32m)|
+  ;; |R3        |6.75s     |1955s (32m)|
   ;; +----------+----------+-----------+
   ;; |R4        |107s      |???        |
   ;; +----------+----------+-----------+
@@ -162,11 +178,11 @@
   ;; +----------+----------+-----------+
   ;; |          |Bianchi 1 | Bianchi 2 |
   ;; +----------+----------+-----------+
-  ;; |R2        |2.2s      |18s        |
+  ;; |R2        |860ms, 1.3s  |7.65s, 12.7s |
   ;; +----------+----------+-----------+
-  ;; |R3        |27s       |1521s (25m)|
+  ;; |R3        |5.8s, 14.6s |1521s (25m) |
   ;; +----------+----------+-----------+
-  ;; |R4        |235s      |???        |
+  ;; |R4        |26s, 180s |???        |
   ;; +----------+----------+-----------+
 
   (testing "A system with a symmetric connection is torsion-free."
