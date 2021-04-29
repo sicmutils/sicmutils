@@ -30,6 +30,8 @@
   #?(:clj
      (:import (java.util.concurrent TimeoutException))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn- unless-timeout
   "Returns a function that invokes f, but catches TimeoutException;
   if that exception is caught, then x is returned in lieu of (f x)."
@@ -84,11 +86,11 @@
    (a/expression-simplifier
     (poly-analyzer))))
 
-(def ^:dynamic *rf-simplify*
-  (unless-timeout
-   (memoize
-    (a/expression-simplifier
-     (rational-function-analyzer)))))
+(let [rfs (unless-timeout
+           (a/expression-simplifier
+            (rational-function-analyzer)))]
+  (defn ^:dynamic *rf-simplify* [x]
+    (p :rf-simplify (rfs x))))
 
 (defn hermetic-simplify-fixture
   "Returns the result of executing the supplied `thunk` in an environment where
@@ -101,27 +103,28 @@
     (thunk)))
 
 (defn- simplify-and-flatten [expr]
-  (*poly-simplify*
+  ((fn [x] (p :poly-simplify (*poly-simplify* x)))
    (*rf-simplify* expr)))
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]
   (fn [expr]
-    (let [new-expr (rule-simplify expr)]
+    (let [new-expr (p :rule-simplify-stable (rule-simplify expr))]
       (if (= expr new-expr)
         expr
         (let [canonicalized-expr (canonicalize new-expr)]
           (cond (= canonicalized-expr expr) expr
-                (v/zero?
-                 (*poly-simplify*
-                  (list '- expr canonicalized-expr)))
+                (p :check-zero
+                   (v/zero?
+                    (*poly-simplify*
+                     (list '- expr canonicalized-expr))))
                 canonicalized-expr
                 :else (recur canonicalized-expr)))))))
 
 (defn- simplify-and-canonicalize
   [rule-simplify canonicalize]
   (fn [expr]
-    (let [new-expr (rule-simplify expr)]
+    (let [new-expr (p :rule-simplify-1 (rule-simplify expr))]
       (if (= expr new-expr)
         expr
         (canonicalize new-expr)))))
@@ -137,6 +140,8 @@
   (if bool
     f
     identity))
+
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
 
 (let [universal-reductions (rules/universal-reductions #'*rf-simplify*)
       sqrt-contract (rules/sqrt-contract #'*rf-simplify*)
@@ -228,4 +233,5 @@
                          (-> rules/canonicalize-partials
                              (simplify-and-canonicalize simplify-and-flatten)))
                 simplify-and-flatten)]
-      (simple expr))))
+      (p :simplify
+         (simple expr)))))

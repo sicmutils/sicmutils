@@ -26,6 +26,8 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (def simplify
   (comp v/freeze e/simplify))
 
@@ -103,13 +105,13 @@
     (check-bianchi
      coordsys
      (fn [omega X Y Z _]
-       (((cyclic-sum
-          (fn [x y z]
-            (- (omega ((R x y) z))
-               (+ (omega (T (T x y) z))
-                  (((del x) TT) omega y z)))))
-         X Y Z)
-        (e/typical-point coordsys))))))
+       (p :outer (((cyclic-sum
+                    (fn [x y z]
+                      (- (omega ((R x y) z))
+                         (+ (omega (T (T x y) z))
+                            (((del x) TT) omega y z)))))
+                   X Y Z)
+                  (e/typical-point coordsys)))))))
 
 (defn Bianchi2-symmetric
   "FDG, equation 8.33, page 130 - second Bianchi identity with a
@@ -123,11 +125,12 @@
      coordsys
      (fn [omega X Y Z V]
        (let [R  (e/Riemann del)]
-         (((cyclic-sum
-            (fn [x y z]
-              (((del x) R) omega V y z)))
-           X Y Z)
-          (e/typical-point coordsys)))))))
+         (p :outer
+            (((cyclic-sum
+               (fn [x y z]
+                 (((del x) R) omega V y z)))
+              X Y Z)
+             (e/typical-point coordsys))))))))
 
 (defn Bianchi2-general
   "[Bianchi's second
@@ -143,12 +146,13 @@
     (check-bianchi
      coordsys
      (fn [omega X Y Z V]
-       (((cyclic-sum
-          (fn [x y z]
-            (+ (R omega V (T x y) z)
-               (((del x) R) omega V y z))))
-         X Y Z)
-        (e/typical-point coordsys))))))
+       (p :outer
+          (((cyclic-sum
+             (fn [x y z]
+               (+ (R omega V (T x y) z)
+                  (((del x) R) omega V y z))))
+            X Y Z)
+           (e/typical-point coordsys)))))))
 
 (deftest bianchi-identities
   ;; The default test suite comments out the second Bianchi identity for both
@@ -166,11 +170,11 @@
   ;; +----------+----------+-----------+
   ;; |          |Bianchi 1 | Bianchi 2 |
   ;; +----------+----------+-----------+
-  ;; |R2        |300ms, 500ms     | 6.5s, 8.5s      |
+  ;; |R2        |300ms, 500ms | 6.5s, 8.5s |
   ;; +----------+----------+-----------+
-  ;; |R3        |6.75s     |1955s (32m)|
+  ;; |R3        |             | 4.66m, 19.62m|
   ;; +----------+----------+-----------+
-  ;; |R4        |107s      |???        |
+  ;; |R4        |      |???        |
   ;; +----------+----------+-----------+
   ;;
   ;; With a general connection (with torsion):
@@ -180,10 +184,14 @@
   ;; +----------+----------+-----------+
   ;; |R2        |860ms, 1.3s  |7.65s, 12.7s |
   ;; +----------+----------+-----------+
-  ;; |R3        |5.8s, 14.6s |1521s (25m) |
+  ;; |R3        |5.8s, 14.6s |117s, old with simple: 1521s (25m) |
   ;; +----------+----------+-----------+
   ;; |R4        |26s, 180s |???        |
   ;; +----------+----------+-----------+
+
+  ;;
+  ;; TODO - next, instrument the GCD routine, see what is actually slow in the
+  ;; simplifier. Maybe bianchi 1, R4 is a good choice?
 
   (testing "A system with a symmetric connection is torsion-free."
     (is (= 0 (simplify
