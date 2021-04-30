@@ -475,6 +475,8 @@
 ;; NOTE: Clojure vectors already implement this ordering properly, so we can
 ;; use [[clojure.core/compare]] to determine an ordering on a tag list.
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn- terms:+
   "Returns the sum of the two supplied sequences of differential terms; any terms
   in the result with a zero coefficient will be removed.
@@ -484,32 +486,36 @@
   ([] [])
   ([xs] xs)
   ([xs ys]
-   (loop [xs xs
-          ys ys
-          result []]
-     (cond (empty? xs) (into result ys)
-           (empty? ys) (into result xs)
-           :else (let [[x-tags x-coef :as x] (first xs)
-                       [y-tags y-coef :as y] (first ys)
-                       compare-flag (v/compare x-tags y-tags)]
-                   (cond
-                     ;; If the terms have the same tag set, add the coefficients
-                     ;; together. Include the term in the result only if the new
-                     ;; coefficient is non-zero.
-                     (zero? compare-flag)
-                     (let [sum (g/+ x-coef y-coef)]
-                       (recur (rest xs)
-                              (rest ys)
-                              (if (v/numeric-zero? sum)
-                                result
-                                (conj result (make-term x-tags sum)))))
+   (p :terms+
+      (loop [i (long 0)
+             j (long 0)
+             result (transient [])]
+        (let [x (nth xs i nil)
+              y (nth ys j nil)]
+          (cond (not x) (into (persistent! result) (subvec ys j))
+                (not y) (into (persistent! result) (subvec xs i))
+                :else (let [[x-tags x-coef] x
+                            [y-tags y-coef] y
+                            ;; TODO why v/compare? especially given note above...
+                            compare-flag (v/compare x-tags y-tags)]
+                        (cond
+                          ;; If the terms have the same tag set, add the coefficients
+                          ;; together. Include the term in the result only if the new
+                          ;; coefficient is non-zero.
+                          (zero? compare-flag)
+                          (let [sum (g/add x-coef y-coef)]
+                            (recur (inc i)
+                                   (inc j)
+                                   (if (v/numeric-zero? sum)
+                                     result
+                                     (conj! result (make-term x-tags sum)))))
 
-                     ;; Else, pass the smaller term on unchanged and proceed.
-                     (neg? compare-flag)
-                     (recur (rest xs) ys (conj result x))
+                          ;; Else, pass the smaller term on unchanged and proceed.
+                          (neg? compare-flag)
+                          (recur (inc i) j (conj! result x))
 
-                     :else
-                     (recur xs (rest ys) (conj result y))))))))
+                          :else
+                          (recur i (inc j) (conj! result y))))))))))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:
@@ -523,8 +529,6 @@
 ;;
 ;; This final step is required by a number of different operations later, so we
 ;; break it out into its own [[collect-terms]] function:
-
-(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
 
 (defn- collect-terms
   "Build a term list up of pairs of tags => coefficients by grouping together and
@@ -871,7 +875,7 @@
    {:pre [(v/numerical? primal)]}
    (bundle-element primal 1 tag))
   ([primal tangent tag]
-   (let [term (make-term (uv/make [tag]) 1)]
+   (let [term (make-term [tag] 1)]
      (p :d/build
         (terms->differential
          (terms:+ (->terms primal)
@@ -1180,7 +1184,7 @@
              b (if (v/numeric-zero? dx)
                  a
                  (d:+* a (df:dx xe ye) dx))]
-         (if (v/numeric-zero? dx)
+         (if (v/numeric-zero? dy)
            b
            (d:+* b (df:dy xe ye) dy)))))))
 
