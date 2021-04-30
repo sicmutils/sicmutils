@@ -53,7 +53,7 @@
   :profiles {:dev {:plugins [~cljsbuild
                              [lein-cloverage "1.2.1"]
                              [lein-doo "0.1.11"]]
-                   :jvm-opts ["-Xmx4096m" "-server"]
+                   :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]

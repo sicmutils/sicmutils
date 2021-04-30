@@ -172,9 +172,9 @@
   ;; +----------+----------+-----------+
   ;; |R2        |300ms, 500ms | 6.5s, 8.5s |
   ;; +----------+----------+-----------+
-  ;; |R3        |             | 4.66m, 19.62m|
+  ;; |R3        | 1.5s, 4.4s  | 2.64m, 19.62m |
   ;; +----------+----------+-----------+
-  ;; |R4        |      |???        |
+  ;; |R4        |  6s, 45s    |44m, ??? |
   ;; +----------+----------+-----------+
   ;;
   ;; With a general connection (with torsion):
@@ -184,14 +184,10 @@
   ;; +----------+----------+-----------+
   ;; |R2        |860ms, 1.3s  |7.65s, 12.7s |
   ;; +----------+----------+-----------+
-  ;; |R3        |5.8s, 14.6s |117s, old with simple: 1521s (25m) |
+  ;; |R3        |5.8s, 14.6s | 117s, old with simple: 1521s (25m) |
   ;; +----------+----------+-----------+
   ;; |R4        |26s, 180s |???        |
   ;; +----------+----------+-----------+
-
-  ;;
-  ;; TODO - next, instrument the GCD routine, see what is actually slow in the
-  ;; simplifier. Maybe bianchi 1, R4 is a good choice?
 
   (testing "A system with a symmetric connection is torsion-free."
     (is (= 0 (simplify

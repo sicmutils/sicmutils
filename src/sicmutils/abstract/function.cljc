@@ -308,7 +308,7 @@
     (->Function
      fexp (f/arity f) (domain-types f) (range-type f))))
 
-(defn- literal-derivative
+(defn- literal-derivative*
   "Chain rule! Note that `xs` comes in wrapped in an EXTRA layer, hence the
   `apply`."
   [f xs]
@@ -316,20 +316,24 @@
         flat-v   (doall (flatten v))
         tag      (apply d/max-order-tag flat-v)
         ve       (s/mapr #(d/primal-part % tag) v)
-        partials (doall
-                  (s/map-chain
-                   (fn [x path _]
-                     (let [dx (d/tangent-part x tag)]
-                       (if (v/zero? dx)
-                         0
-                         (p :literal-derivative/partials
-                            (d/d:* (p :internal-apply
-                                      (literal-apply
-                                       (literal-partial f path) ve))
-                                   dx)))))
-                   v))]
+        partials (p :litfun/partials
+                    (doall (flatten
+                            (s/map-chain
+                             (fn [x path _]
+                               (let [dx (d/tangent-part x tag)]
+                                 (if (v/zero? dx)
+                                   0
+                                   (p :litfun/gutskies
+                                      (d/d:* (p :internal-apply
+                                                (literal-apply
+                                                 (literal-partial f path) ve))
+                                             dx)))))
+                             v))))]
     (p :literal-derivative/result
-       (apply d/d:+ (apply f ve) (flatten partials)))))
+       (apply d/d:+ (apply f ve) partials))))
+
+(def literal-derivative
+  (memoize literal-derivative*))
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as
@@ -342,8 +346,10 @@
                           " but got " provided)))
         (s/structure? expected)
         (do (when-not (and (or (s/structure? provided) (sequential? provided))
-                           (= (s/orientation provided) (s/orientation expected))
-                           (= (count provided) (count expected)))
+                           (= (s/orientation provided)
+                              (s/orientation expected))
+                           (= (count provided)
+                              (count expected)))
               (u/illegal (str "expected structure matching " expected
                               " but got " provided )))
             (doall
