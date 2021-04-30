@@ -332,8 +332,11 @@
     (p :literal-derivative/result
        (apply d/d:+ (apply f ve) partials))))
 
+;; not a TOTALLY insane help anymore... 6 vs 10 seconds for some seriously
+;; monster equations. Saves 30k evaluations or so. Maybe not worth it to fill up
+;; the cache.
 (def literal-derivative
-  (memoize literal-derivative*))
+  literal-derivative*)
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as

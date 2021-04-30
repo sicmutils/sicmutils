@@ -89,18 +89,23 @@
   "Returns true if x is an integral number that Clojure's math operations work
   with, false otherwise."
   [x]
+  ;; TODO special case for clojure...
   (isa? (kind x) ::native-integral))
+
+;; TODO so NOW WE KNOW that the number clause is EXTREMELY slow!! Not good!
 
 (defn integral?
   "Returns true if x is an integral number, false otherwise."
   [x]
-  (isa? (kind x) ::integral))
+  (p :v/integral? (isa? (kind x) ::integral)))
 
 (defn real?
   "Returns true if `x` is either an integral number or a floating point number (ie,
   in the numeric tower but not complex), false otherwise."
   [x]
   (isa? (kind x) ::real))
+
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
 
 (defn number?
   "Returns true if `x` is any number type in the numeric tower:
@@ -111,11 +116,14 @@
 
   false otherwise."
   [x]
-  (isa? (kind x) ::number))
+  ;; TODO straighten out what the heck was going on here, and WHY we did not
+  ;; just use this in the first place!! Can I just... rename it??
+  (numerical? x))
 
 (defn numeric-zero? [x]
-  (and (number? x)
-       (zero? x)))
+  (p :v/numeric-zero?
+     (and (number? x)
+          (zero? x))))
 
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.

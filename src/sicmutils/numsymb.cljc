@@ -92,19 +92,17 @@
   ([a] a)
   ([a b]
    (p :sym:add
-      (let [a? (p :numa?? (v/number? a))
-            b? (p :numb?? (v/number? b))]
-        (cond (and a? b?) (p :numadd (g/add a b))
-              a? (cond (v/zero? a) b
-                       (sum? b) `(~'+ ~a ~@(operands b))
-                       :else `(~'+ ~a ~b))
-              b? (cond (v/zero? b) a
-                       (sum? a) `(~'+ ~@(operands a) ~b)
-                       :else `(~'+ ~a ~b))
-              (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
-                             :else `(~'+ ~@(operands a) ~b))
-              (sum? b) `(~'+ ~a ~@(operands b))
-              :else `(~'+ ~a ~b)))))
+      (cond #_#_#_#_#_#_(and (v/number? a) (v/number? b)) (g/add a b)
+            (v/number? a) (cond (v/zero? a) b
+                                (sum? b) `(~'+ ~a ~@(operands b))
+                                :else `(~'+ ~a ~b))
+            (v/number? b) (cond (v/zero? b) a
+                                (sum? a) `(~'+ ~@(operands a) ~b)
+                                :else `(~'+ ~a ~b))
+            (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
+                           :else `(~'+ ~@(operands a) ~b))
+            (sum? b) `(~'+ ~a ~@(operands b))
+            :else `(~'+ ~a ~b))))
   ([a b & more]
    (reduce add (add a b) more)))
 
@@ -127,7 +125,7 @@
   ([a] a)
   ([a b]
    (p :sym:mul
-      (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+      (cond #_#_#_#_#_#_(and (v/number? a) (v/number? b)) (g/mul a b)
             (v/number? a) (cond (v/zero? a) a
                                 (v/one? a) b
                                 (product? b) `(~'* ~a ~@(operands b))
