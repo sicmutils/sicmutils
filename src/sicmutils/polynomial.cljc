@@ -156,8 +156,8 @@
 (defn polynomial?
   "Returns true if the supplied argument is an instance of Polynomial, false
   otherwise."
-  [p]
-  (instance? Polynomial p))
+  [p1]
+  (instance? Polynomial p1))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -241,16 +241,19 @@
                   (conj empty-coefficients
                         [(vec (repeat arity 0)) c]))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn add
   "Adds the polynomials p and q"
-  [^Polynomial p ^Polynomial q]
-  {:pre [(polynomial? p)
+  [^Polynomial p1 ^Polynomial q]
+  {:pre [(polynomial? p1)
          (polynomial? q)]}
-  (cond (v/zero? p) q
-        (v/zero? q) p
-        :else (make (check-same-arity p q)
-                    (concat (.-xs->c ^Polynomial p)
-                            (.-xs->c ^Polynomial q)))))
+  (p :poly/add-guts
+     (cond (v/zero? p1) q
+           (v/zero? q)  p1
+           :else (make (check-same-arity p1 q)
+                       (into (.-xs->c ^Polynomial p1)
+                             (.-xs->c ^Polynomial q))))))
 
 (defn sub
   "Subtract the polynomial q from the polynomial p."
@@ -525,38 +528,41 @@
                     1]]))))
 
 ;; ## Generic Implementations
+(do
+  (defmethod g/add [::polynomial ::polynomial] [a b] (p :poly/add (add a b)))
+  (defmethod g/mul [::polynomial ::polynomial] [a b] (p :poly/mul (mul a b)))
+  (defmethod g/sub [::polynomial ::polynomial] [a b] (p :poly/sub (sub a b)))
+  (defmethod g/exact-divide [::polynomial ::polynomial] [p q]
+    (p :poly/exact-divide (evenly-divide p q)))
 
-(defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
-(defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
-(defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-(defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
-(defmethod g/square [::polynomial] [a] (mul a a))
-(defmethod g/abs [::polynomial] [a] (abs a))
+  (defmethod g/square [::polynomial] [a] (mul a a))
+  (defmethod g/abs [::polynomial] [a] (abs a))
 
-(defmethod g/mul [::v/number ::polynomial] [c p]
-  (map-coefficients #(g/* c %) p))
+  (defmethod g/mul [::v/number ::polynomial] [c p]
+    (map-coefficients #(g/* c %) p))
 
-(defmethod g/mul [::polynomial ::v/number] [p c]
-  (map-coefficients #(g/* % c) p))
+  (defmethod g/mul [::polynomial ::v/number] [p c]
+    (map-coefficients #(g/* % c) p))
 
-(defmethod g/add [::v/number ::polynomial] [c p]
-  (add (make-constant (.-arity ^Polynomial p) c) p))
+  (defmethod g/add [::v/number ::polynomial] [c p]
+    (p :poly/addl (add (make-constant (.-arity ^Polynomial p) c) p)))
 
-(defmethod g/add [::polynomial ::v/number] [p c]
-  (add p (make-constant (.-arity ^Polynomial p) c)))
+  (defmethod g/add [::polynomial ::v/number] [p c]
+    (p :poly/addr (add p (make-constant (.-arity ^Polynomial p) c))))
 
-(defmethod g/sub [::v/number ::polynomial] [c p]
-  (sub (make-constant (.-arity ^Polynomial p) c) p))
+  (defmethod g/sub [::v/number ::polynomial] [c p]
+    (sub (make-constant (.-arity ^Polynomial p) c) p))
 
-(defmethod g/sub [::polynomial ::v/number] [p c]
-  (sub p (make-constant (.-arity ^Polynomial p) c)))
+  (defmethod g/sub [::polynomial ::v/number] [p c]
+    (sub p (make-constant (.-arity ^Polynomial p) c)))
 
-(defmethod g/div [::polynomial ::v/number] [p c]
-  (map-coefficients #(g/divide % c) p))
+  (defmethod g/div [::polynomial ::v/number] [p c]
+    (map-coefficients #(g/divide % c) p))
 
-(defmethod g/div [::v/integral ::polynomial] [c p]
-  (make (make-constant (.-arity ^Polynomial p) c) p))
+  (defmethod g/div [::v/integral ::polynomial] [c p]
+    (make (make-constant (.-arity ^Polynomial p) c) p))
 
-(defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
+  (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
 
-(defmethod g/negate [::polynomial] [a] (negate a))
+  (defmethod g/negate [::polynomial] [a] (negate a))
+  )

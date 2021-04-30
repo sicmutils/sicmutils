@@ -126,21 +126,22 @@
   ([] 1)
   ([a] a)
   ([a b]
-   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
-         (v/number? a) (cond (v/zero? a) a
-                             (v/one? a) b
-                             (product? b) `(~'* ~a ~@(operands b))
-                             :else `(~'* ~a ~b)
-                             )
-         (v/number? b) (cond (v/zero? b) b
-                             (v/one? b) a
-                             (product? a) `(~'* ~@(operands a) ~b)
-                             :else `(~'* ~a ~b)
-                             )
-         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
-                            :else `(~'* ~@(operands a) ~b))
-         (product? b) `(~'* ~a ~@(operands b))
-         :else `(~'* ~a ~b)))
+   (p :sym:mul
+      (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+            (v/number? a) (cond (v/zero? a) a
+                                (v/one? a) b
+                                (product? b) `(~'* ~a ~@(operands b))
+                                :else `(~'* ~a ~b)
+                                )
+            (v/number? b) (cond (v/zero? b) b
+                                (v/one? b) a
+                                (product? a) `(~'* ~@(operands a) ~b)
+                                :else `(~'* ~a ~b)
+                                )
+            (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
+                               :else `(~'* ~@(operands a) ~b))
+            (product? b) `(~'* ~a ~@(operands b))
+            :else `(~'* ~a ~b))))
   ([a b & more]
    (reduce mul (mul a b) more)))
 

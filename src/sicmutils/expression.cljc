@@ -209,6 +209,8 @@
         (literal? expr) (recur (expression-of expr))
         :else (into #{} (filter symbol?) (flatten expr))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defn evaluate
   "Walk the unwrapped expression `expr` in postorder, replacing symbols found
   there with their values in the `sym->var` mapping, if present.

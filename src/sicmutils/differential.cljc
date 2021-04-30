@@ -486,36 +486,35 @@
   ([] [])
   ([xs] xs)
   ([xs ys]
-   (p :terms+
-      (loop [i (long 0)
-             j (long 0)
-             result (transient [])]
-        (let [x (nth xs i nil)
-              y (nth ys j nil)]
-          (cond (not x) (into (persistent! result) (subvec ys j))
-                (not y) (into (persistent! result) (subvec xs i))
-                :else (let [[x-tags x-coef] x
-                            [y-tags y-coef] y
-                            ;; TODO why v/compare? especially given note above...
-                            compare-flag (v/compare x-tags y-tags)]
-                        (cond
-                          ;; If the terms have the same tag set, add the coefficients
-                          ;; together. Include the term in the result only if the new
-                          ;; coefficient is non-zero.
-                          (zero? compare-flag)
-                          (let [sum (g/add x-coef y-coef)]
-                            (recur (inc i)
-                                   (inc j)
-                                   (if (v/numeric-zero? sum)
-                                     result
-                                     (conj! result (make-term x-tags sum)))))
+   (loop [i (long 0)
+          j (long 0)
+          result (transient [])]
+     (let [x (nth xs i nil)
+           y (nth ys j nil)]
+       (cond (not x) (into (persistent! result) (subvec ys j))
+             (not y) (into (persistent! result) (subvec xs i))
+             :else (let [[x-tags x-coef] x
+                         [y-tags y-coef] y
+                         ;; TODO why v/compare? especially given note above...
+                         compare-flag (v/compare x-tags y-tags)]
+                     (cond
+                       ;; If the terms have the same tag set, add the coefficients
+                       ;; together. Include the term in the result only if the new
+                       ;; coefficient is non-zero.
+                       (zero? compare-flag)
+                       (let [sum (g/add x-coef y-coef)]
+                         (recur (inc i)
+                                (inc j)
+                                (if (v/numeric-zero? sum)
+                                  result
+                                  (conj! result (make-term x-tags sum)))))
 
-                          ;; Else, pass the smaller term on unchanged and proceed.
-                          (neg? compare-flag)
-                          (recur (inc i) j (conj! result x))
+                       ;; Else, pass the smaller term on unchanged and proceed.
+                       (neg? compare-flag)
+                       (recur (inc i) j (conj! result x))
 
-                          :else
-                          (recur i (inc j) (conj! result y))))))))))
+                       :else
+                       (recur i (inc j) (conj! result y)))))))))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:
@@ -546,27 +545,32 @@
 ;; [[terms:*]] implements the first three steps, and calls [[collect-terms]] on
 ;; the resulting sequence:
 
+;; TODO tidy up!
+
 (defn- t*ts [[tags coeff] terms]
   (loop [acc []
-         terms terms]
-    (if (empty? terms)
-      acc
-	    (let [[tags1 coeff1] (first terms)]
-	      (if (empty? (uv/intersection tags tags1))
-		      (recur (conj acc (make-term
-		                        (uv/union tags tags1)
-		                        (g/* coeff coeff1)))
-		             (rest terms))
-		      (recur acc (rest terms)))))))
+         i 0]
+    (let [t (nth terms i nil)]
+      (if (nil? t)
+        acc
+	      (let [[tags1 coeff1] t]
+	        (if (empty? (uv/intersection tags tags1))
+		        (recur (conj acc (make-term
+		                          (uv/union tags tags1)
+		                          (g/* coeff coeff1)))
+		               (inc i))
+		        (recur acc (inc i))))))))
 
-;; TODO NOTE in the narrative above THAT we don't need any BS... because of the plus calls.
+;; TODO NOTE in the narrative above THAT we don't need any BS... because of the
+;; plus calls.
 (defn terms:* [xlist ylist]
-  (letfn [(call [xs]
-            (if (empty? xs)
-              []
-              (terms:+ (t*ts (first xs) ylist)
-	                     (call (next xs)))))]
-    (p :terms* (call xlist))))
+  (letfn [(call [i]
+            (let [x (nth xlist i nil)]
+              (if (nil? x)
+                []
+                (terms:+ (t*ts x ylist)
+	                       (call (inc i))))))]
+    (call 0)))
 
 ;; ## Differential Type Implementation
 ;;
@@ -876,12 +880,11 @@
    (bundle-element primal 1 tag))
   ([primal tangent tag]
    (let [term (make-term [tag] 1)]
-     (p :d/build
-        (terms->differential
-         (terms:+ (->terms primal)
-                  (terms:*
-                   (->terms tangent)
-                   [term])))))))
+     (terms->differential
+      (terms:+ (->terms primal)
+               (terms:*
+                (->terms tangent)
+                [term]))))))
 
 ;; ## Differential Parts API
 ;;
