@@ -41,41 +41,49 @@
             (str "simplifier timed out: must have been a complicated expression"))
            x))))
 
-(defn- poly-analyzer
-  "An analyzer capable of simplifying sums and products, but unable to
-  cancel across the fraction bar"
+(defn ^:no-doc poly-analyzer
+  "An analyzer capable of simplifying sums and products, but unable to cancel
+  across the fraction bar.
+  NOTE: I think this is fpf:analyzer in the scheme code."
   []
-  (a/make-analyzer
-   (poly/->PolynomialAnalyzer)
-   (a/monotonic-symbol-generator "-s-")))
+  (let [backend (poly/->PolynomialAnalyzer)
+        gensym  (a/monotonic-symbol-generator "-s-")]
+    (a/make-analyzer backend gensym)))
 
-(defn- rational-function-analyzer
+(defn ^:no-doc rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
-  functions."
+  functions.
+  NOTE: This is rcf:analyzer."
   []
-  (a/make-analyzer
-   (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer))
-   (a/monotonic-symbol-generator "-r-")))
+  (let [backend (rf/->RationalFunctionAnalyzer
+                 (poly/->PolynomialAnalyzer))
+        gensym  (a/monotonic-symbol-generator "-r-")]
+    (a/make-analyzer backend gensym)))
 
-(def ^:dynamic *rf-analyzer*
+(def ^:dynamic *poly-simplify*
+  (memoize
+   (a/expression-simplifier
+    (poly-analyzer))))
+
+(def ^:dynamic *rf-simplify*
   (unless-timeout
    (memoize
-    (rational-function-analyzer))))
-
-(def ^:dynamic *poly-analyzer*
-  (memoize
-   (poly-analyzer)))
+    (a/expression-simplifier
+     (rational-function-analyzer)))))
 
 (defn hermetic-simplify-fixture
   "Returns the result of executing the supplied `thunk` in an environment where
-  the [[*rf-analyzer*]] and [[*poly-analyzer*]] are not memoized."
+  the [[*rf-simplify*]] and [[*poly-simplify*]] are not memoized."
   [thunk]
-  (binding [*rf-analyzer*   (rational-function-analyzer)
-            *poly-analyzer* (poly-analyzer)]
+  (binding [*rf-simplify* (a/expression-simplifier
+                           (rational-function-analyzer))
+            *poly-simplify* (a/expression-simplifier
+                             (poly-analyzer))]
     (thunk)))
 
 (defn- simplify-and-flatten [expr]
-  (*rf-analyzer* expr))
+  (*poly-simplify*
+   (*rf-simplify* expr)))
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]
@@ -86,7 +94,7 @@
         (let [canonicalized-expr (canonicalize new-expr)]
           (cond (= canonicalized-expr expr) expr
                 (v/zero?
-                 (*poly-analyzer*
+                 (*poly-simplify*
                   (list '- expr canonicalized-expr)))
                 canonicalized-expr
                 :else (recur canonicalized-expr)))))))
@@ -100,7 +108,7 @@
         (canonicalize new-expr)))))
 
 (def ^:private clear-square-roots-of-perfect-squares
-  (-> (comp (rules/universal-reductions #'*rf-analyzer*)
+  (-> (comp (rules/universal-reductions #'*rf-simplify*)
             factor/root-out-squares)
       (simplify-and-canonicalize simplify-and-flatten)))
 
@@ -111,12 +119,12 @@
     f
     identity))
 
-(let [universal-reductions (rules/universal-reductions #'*rf-analyzer*)
-      sqrt-contract (rules/sqrt-contract #'*rf-analyzer*)
-      sqrt-expand (rules/sqrt-expand #'*rf-analyzer*)
-      log-contract (rules/log-contract #'*rf-analyzer*)
-      sincos-random (rules/sincos-random #'*rf-analyzer*)
-      sincos-flush-ones (rules/sincos-flush-ones #'*rf-analyzer*)]
+(let [universal-reductions (rules/universal-reductions #'*rf-simplify*)
+      sqrt-contract (rules/sqrt-contract #'*rf-simplify*)
+      sqrt-expand (rules/sqrt-expand #'*rf-simplify*)
+      log-contract (rules/log-contract #'*rf-simplify*)
+      sincos-random (rules/sincos-random #'*rf-simplify*)
+      sincos-flush-ones (rules/sincos-flush-ones #'*rf-simplify*)]
 
   (defn simplify-expression
     "Simplifies an expression representing a complex number. TODO say more!"

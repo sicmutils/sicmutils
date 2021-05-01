@@ -101,22 +101,22 @@
 
 (defn unsupported [s]
   (throw
-   #?(:clj (UnsupportedOperationException. s)
+   #?(:clj (UnsupportedOperationException. ^String s)
       :cljs (js/Error s))))
 
 (defn exception [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
 
 (defn illegal [s]
   (throw
-   #?(:clj (IllegalArgumentException. s)
+   #?(:clj (IllegalArgumentException. ^String s)
       :cljs (js/Error s))))
 
 (defn illegal-state [s]
   (throw
-   #?(:clj (IllegalStateException. s)
+   #?(:clj (IllegalStateException. ^String s)
       :cljs (js/Error s))))
 
 (defn arithmetic-ex [s]
@@ -131,5 +131,5 @@
 
 (defn failure-to-converge [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
