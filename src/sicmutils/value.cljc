@@ -102,16 +102,22 @@
   [x]
   (isa? (kind x) ::real))
 
-(defn number?
-  "Returns true if `x` is any number type in the numeric tower:
+(do
+  (import '(org.apache.commons.math3.complex Complex))
+
+  (defn number?
+    "Returns true if `x` is any number type in the numeric tower:
 
   - integral
   - floating point
   - complex
 
   false otherwise."
-  [x]
-  (isa? (kind x) ::number))
+    [x]
+    #?(:clj
+       (or (instance? Number x)
+           (instance? Complex x))
+       :cljs (isa? (kind x) ::number))))
 
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.
