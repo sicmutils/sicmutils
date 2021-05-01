@@ -398,10 +398,10 @@
 ;; tags and whose second is the coefficient.
 
 (defn- tags [term]
-  (get term 0))
+  (nth term 0))
 
 (defn- coefficient [term]
-  (get term 1))
+  (nth term 1))
 
 ;; The set of tags is implemented as a "vector set",
 ;; from [[sicmutils.util.vector-set]]. This is a sorted set data structure,
@@ -598,7 +598,7 @@
   (numerical? [_]
     (or (empty? terms)
         (v/numerical?
-         (coefficient (get terms 0)))))
+         (coefficient (nth terms 0)))))
 
   IPerturbed
   (perturbed? [_] true)
@@ -727,10 +727,9 @@
   list (or `[]` if the argument was zero)."
   [dx]
   (p :->terms
-     (cond (differential? dx) (bare-terms dx)
-           (p :zero?
-              (v/numeric-zero? dx))
-           []
+     (cond (differential? dx)   (bare-terms dx)
+           (vector? dx)         dx
+           (v/numeric-zero? dx) []
            :else [(make-term dx)])))
 
 (defn- terms->differential
@@ -747,8 +746,8 @@
   (cond (empty? terms) 0
 
         (and (= (count terms) 1)
-             (empty? (tags (get terms 0))))
-        (coefficient (get terms 0))
+             (empty? (tags (nth terms 0))))
+        (coefficient (nth terms 0))
 
         :else (->Differential terms)))
 
@@ -810,7 +809,7 @@
   ([dx] dx)
   ([dx dy]
    (terms->differential
-    (terms:+ (p :dl-> (->terms dx))
+    (terms:+ (->terms dx)
              (->terms dy))))
   ([dx dy & more]
    (terms->differential
@@ -837,7 +836,7 @@
              (->terms dy)))))
 
 (defn d:+*
-  "TODO extend this trick for lift-2 so we can do it twice..."
+  "TODO extend this trick for lift-2 so we can do it twice??"
   [a b c]
   (terms->differential
    (terms:+ (->terms a)
@@ -880,11 +879,7 @@
    (bundle-element primal 1 tag))
   ([primal tangent tag]
    (let [term (make-term [tag] 1)]
-     (terms->differential
-      (terms:+ (->terms primal)
-               (terms:*
-                (->terms tangent)
-                [term]))))))
+     (d:+* primal tangent [term]))))
 
 ;; ## Differential Parts API
 ;;

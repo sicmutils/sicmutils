@@ -41,12 +41,9 @@
 
 ;; The traditional Riemann tensor R^i_jkl:
 
-(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
-
 (defn Riemann [nabla]
   (letfn [(Riemann-tensor [w x u v]
-            (p :riemman-tensor
-               (w (((Riemann-curvature nabla) u v) x))))]
+            (w (((Riemann-curvature nabla) u v) x)))]
     (ci/with-argument-types
       Riemann-tensor
       [::ff/oneform-field

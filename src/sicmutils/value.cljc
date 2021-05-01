@@ -38,6 +38,8 @@
      (:import
       (clojure.lang BigInt Sequential Var))))
 
+(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
+
 (defprotocol Numerical
   (numerical? [_]))
 
@@ -97,15 +99,13 @@
 (defn integral?
   "Returns true if x is an integral number, false otherwise."
   [x]
-  (p :v/integral? (isa? (kind x) ::integral)))
+  (isa? (kind x) ::integral))
 
 (defn real?
   "Returns true if `x` is either an integral number or a floating point number (ie,
   in the numeric tower but not complex), false otherwise."
   [x]
   (isa? (kind x) ::real))
-
-(require '[taoensso.tufte :as tufte :refer [defnp p profiled profile]])
 
 (defn number?
   "Returns true if `x` is any number type in the numeric tower:
@@ -118,7 +118,8 @@
   [x]
   ;; TODO straighten out what the heck was going on here, and WHY we did not
   ;; just use this in the first place!! Can I just... rename it??
-  (numerical? x))
+  (isa? (kind x) ::number)
+  #_(numerical? x))
 
 (defn numeric-zero? [x]
   (p :v/numeric-zero?

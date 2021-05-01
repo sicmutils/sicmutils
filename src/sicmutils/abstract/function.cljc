@@ -313,22 +313,22 @@
   `apply`."
   [f xs]
   (let [v        (m/seq-> xs)
-        flat-v   (doall (flatten v))
+        flat-v   (flatten v)
         tag      (apply d/max-order-tag flat-v)
         ve       (s/mapr #(d/primal-part % tag) v)
         partials (p :litfun/partials
-                    (doall (flatten
-                            (s/map-chain
-                             (fn [x path _]
-                               (let [dx (d/tangent-part x tag)]
-                                 (if (v/zero? dx)
-                                   0
-                                   (p :litfun/gutskies
-                                      (d/d:* (p :internal-apply
-                                                (literal-apply
-                                                 (literal-partial f path) ve))
-                                             dx)))))
-                             v))))]
+                    (flatten
+                     (s/map-chain
+                      (fn [x path _]
+                        (let [dx (d/tangent-part x tag)]
+                          (if (v/zero? dx)
+                            0
+                            (p :litfun/gutskies
+                               (d/d:* (p :internal-apply
+                                         (literal-apply
+                                          (literal-partial f path) ve))
+                                      dx)))))
+                      v)))]
     (p :literal-derivative/result
        (apply d/d:+ (apply f ve) partials))))
 

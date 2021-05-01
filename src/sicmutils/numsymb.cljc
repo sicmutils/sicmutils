@@ -92,7 +92,7 @@
   ([a] a)
   ([a b]
    (p :sym:add
-      (cond #_#_#_#_#_#_(and (v/number? a) (v/number? b)) (g/add a b)
+      (cond (and (v/number? a) (v/number? b)) (g/add a b)
             (v/number? a) (cond (v/zero? a) b
                                 (sum? b) `(~'+ ~a ~@(operands b))
                                 :else `(~'+ ~a ~b))
@@ -125,7 +125,7 @@
   ([a] a)
   ([a b]
    (p :sym:mul
-      (cond #_#_#_#_#_#_(and (v/number? a) (v/number? b)) (g/mul a b)
+      (cond (and (v/number? a) (v/number? b)) (g/mul a b)
             (v/number? a) (cond (v/zero? a) a
                                 (v/one? a) b
                                 (product? b) `(~'* ~a ~@(operands b))
