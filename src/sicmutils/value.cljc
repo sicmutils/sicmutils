@@ -113,12 +113,9 @@
   [x]
   (isa? (kind x) ::number))
 
-(defn numeric-zero? [x]
-  (and (number? x)
-       (zero? x)))
-
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.
+
 (derive ::number ::scalar)
 
 (defn scalar?

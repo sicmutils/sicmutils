@@ -64,8 +64,7 @@
                                   [cider/piggieback "0.5.0"]
                                   [lein-doo "0.1.11"]
                                   [thheller/shadow-cljs "2.11.6"]]}
-             :test {:jvm-opts ["-Xmx4096m"]
-                    :dependencies [[org.clojure/test.check "1.0.0"]
+             :test {:dependencies [[org.clojure/test.check "1.0.0"]
                                    [criterium "0.4.5"]]}}
   :aliases {"test-cljs"
             ["doo" "node" "test" "once"]}

@@ -88,8 +88,8 @@
   ([] 0)
   ([x] x)
   ([x y]
-   (cond (v/numeric-zero? x) y
-         (v/numeric-zero? y) x
+   (cond (v/zero? x) y
+         (v/zero? y) x
          :else (add x y)))
   ([x y & more]
    (reduce + (+ x y) more)))
