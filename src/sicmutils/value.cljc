@@ -258,7 +258,7 @@
                 (get @object-name-map o o)))
   (kind [o] (:type o (type o))))
 
-(defn ^boolean exact-zero?
+(defn exact-zero?
   "Returns true if the supplied argument is an exact numerical zero, false
   otherwise."
   [n]
