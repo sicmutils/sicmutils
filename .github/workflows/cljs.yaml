@@ -27,9 +27,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: lein deps
+        run: npm install
 
       - name: Clojurescript tests
-        run: lein test-cljs
+        run: npm run-script test
         env:
           NODE_OPTIONS: --max-old-space-size=8192

@@ -104,11 +104,25 @@
 
      :cljs (fn [s] `(complex ~s))))
 
+(comment
+  ;; true
+  (= #sicm/complex "1+0i" #sicm/bigint 1)
+
+  ;; false
+  (= #sicm/complex "1+2i" #sicm/ratio "1/2"))
+
 #?(:cljs
    (extend-type Complex
      IEquiv
      (-equiv [this other]
-       (.equals this other))
+       (cond (complex? other)
+             (.equals this other)
+
+             (v/real? other)
+             (and (zero? (imaginary this))
+                  (v/= (real this) other))
+
+             :else false))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
