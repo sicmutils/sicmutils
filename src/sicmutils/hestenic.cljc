@@ -578,7 +578,8 @@
 (defn dua [hest-elmt dim]
   (prd hest-elmt (inverse-pseudoscalar dim)))
 
-(def dual dua)
+(defn scp [hest-elmt otha]
+  (grade-part (prd hest-elmt otha) 0))
 
 
 ;;
@@ -1070,6 +1071,7 @@
 (def hestenes-inner-product hip)
 
 (def dual dua)
+(def scalar-product scp)
 
 ;;
 ;; you know -- for kids.
