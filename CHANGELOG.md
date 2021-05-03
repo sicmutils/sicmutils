@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+- #360 introduces a number of performance improvements to the
+  `sicmutils.differential.Differential` implementation, primarily in `terms:+`
+  and `terms:*`. thanks again to @ptaoussanis and the
+  [Tufte](https://github.com/ptaoussanis/tufte) profiling library for helping me
+  track these down.
+
 - #358:
 
   - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
