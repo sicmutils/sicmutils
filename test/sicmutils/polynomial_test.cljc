@@ -419,9 +419,10 @@
              (p/evaluate (g/mul p q) xs))))))
 
 (deftest analyzer-test
-  (let [new-analyzer (fn [] (a/make-analyzer
-                            (p/->PolynomialAnalyzer)
-                            (a/monotonic-symbol-generator "k%08d")))
+  (let [new-analyzer (fn [] (a/expression-simplifier
+                            (a/make-analyzer
+                             (p/->PolynomialAnalyzer)
+                             (a/monotonic-symbol-generator "k%08d"))))
         A #((new-analyzer) %)]
     (is (= '(+ x 1) (A '(+ 1 x))))
     (is (= '(+ x 1) (A '[+ 1 x])))

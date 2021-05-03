@@ -78,14 +78,14 @@
             iT3 (ci/outer-product iT1 iT2)]
         (testing "outer-product"
           (is (= '(+ (* a (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
-                     (* a (w3_1 (up x y)) (w2_1 (up x y)) (w4_0 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
-                     (* a (w2_1 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
-                     (* b (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
-                     (* b (v1↑1 (up x y)) (w3_1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)) (w4_0 (up x y)))
-                     (* b (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)))
-                     (* c (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)))
-                     (* c (v1↑1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)) (w4_0 (up x y)))
-                     (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)) (w4_0 (up x y)) (w3_0 (up x y))))
+                     (* a (w3_1 (up x y)) (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)) (w4_0 (up x y)))
+                     (* a (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)))
+                     (* b (w4_1 (up x y)) (w3_1 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
+                     (* b (w3_1 (up x y)) (w4_0 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
+                     (* b (w4_0 (up x y)) (w3_0 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
+                     (* c (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y)))
+                     (* c (w3_1 (up x y)) (w2_1 (up x y)) (w4_0 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y)))
+                     (* c (w2_1 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y))))
                  (simplify
                   (((ci/indexed->typed iT3 (b/coordinate-system->basis R2-rect))
                     (ff/literal-oneform-field 'w1 R2-rect)
@@ -138,7 +138,7 @@
         (testing "Outer index is first argument.  Inner index is last argument."
           (is (= '(+ (* a (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
                      (* b (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
-                     (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y))))
+                     (* c (w2_1 (up x y)) (v1↑1 (up x y)) (w1_1 (up x y))))
                  (simplify
                   (((ci/structure->typed
                      (ci/typed->structure T (b/coordinate-system->basis R2-rect))

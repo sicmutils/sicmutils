@@ -91,7 +91,7 @@
    '/ /
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
-   'abs #(Math/abs %)
+   'abs #(Math/abs ^double %)
    'log #(Math/log %)
    'exp #(Math/exp %)
    'cos #(Math/cos %)

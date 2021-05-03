@@ -106,8 +106,11 @@
         x-1 (p/make [-1 1])]
     (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
 
-(def ^:private rf-analyzer (rf/->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
-(def ^:private rf-simp #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))
+(def ^:private rf-analyzer
+  (rf/->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
+
+(def ^:private rf-simp
+  #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))
 
 (deftest rf-as-simplifier
   (testing "expr"
