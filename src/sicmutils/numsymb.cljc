@@ -28,7 +28,13 @@
             [sicmutils.value :as v]
             [sicmutils.util :as u]))
 
-(def ^:dynamic *incremental-simplifier* nil)
+(def ^{:dynamic true
+       :doc "When bound to a simplifier (a function from symbolic expression =>
+  symbolic expression), this simplifier will be called after every operation
+  performed on `sicmutils.abstract.number` instances.
+
+  `nil` by default."}
+  *incremental-simplifier* nil)
 
 (def operator first)
 (def operands rest)
@@ -460,7 +466,7 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- derivative
+(defn ^:no-doc derivative
   "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
 

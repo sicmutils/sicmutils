@@ -121,7 +121,14 @@
    (extend-type Complex
      IEquiv
      (-equiv [this other]
-       (.equals this other))
+       (cond (complex? other)
+             (.equals this other)
+
+             (v/real? other)
+             (and (zero? (imaginary this))
+                  (v/= (real this) other))
+
+             :else false))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
@@ -168,12 +175,17 @@
   (and (zero? (imaginary a))
        (v/= n (real a))))
 
-(defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
-(defmethod g/add [::complex ::v/real] [^Complex a n] (.add a (u/double n)))
-(defmethod g/add [::v/real ::complex] [n ^Complex a] (.add a (u/double n)))
+(defmethod g/add [::complex ::complex] [^Complex a ^Complex b]
+  (.add a b))
+
+(defmethod g/add [::complex ::v/real] [^Complex a n]
+  (.add a ^double (u/double n)))
+
+(defmethod g/add [::v/real ::complex] [n ^Complex a]
+  (.add a ^double (u/double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a (u/double n)))
+(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a ^double (u/double n)))
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))

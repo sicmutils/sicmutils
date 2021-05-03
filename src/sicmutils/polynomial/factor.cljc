@@ -94,15 +94,16 @@
 (def factor
   (let [poly-analyzer (poly/->PolynomialAnalyzer)
         poly-> (partial a/->expression poly-analyzer)]
-    (a/make-analyzer
-     (reify a/ICanonicalize
-       (expression-> [_ expr cont v-compare]
-         (a/expression-> poly-analyzer expr cont v-compare))
-       (->expression [_ p vars]
-         (->factors p poly-> vars))
-       (known-operation? [_ o]
-         (a/known-operation? poly-analyzer o)))
-     (a/monotonic-symbol-generator "-f-"))))
+    (a/default-simplifier
+     (a/make-analyzer
+      (reify a/ICanonicalize
+        (expression-> [_ expr cont v-compare]
+          (a/expression-> poly-analyzer expr cont v-compare))
+        (->expression [_ p vars]
+          (->factors p poly-> vars))
+        (known-operation? [_ o]
+          (a/known-operation? poly-analyzer o)))
+      (a/monotonic-symbol-generator "-f-")))))
 
 (defn- process-sqrt [expr]
   (let [fact-exp (factor (first (sym/operands expr)))

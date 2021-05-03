@@ -118,19 +118,18 @@
                   (vf/literal-vector-field 'u R2-rect)
                   (vf/literal-vector-field 'v R2-rect))
                  ((m/point R2-rect) (up 'x0 'y0))))))
-
         (is (= '(down
                  (down
                   (down (* (/ 1 2) (((partial 0) a) (up x0 y0)))
-                        (+ (* (/ -1 2) (((partial 1) a) (up x0 y0)))
-                           (((partial 0) b) (up x0 y0))))
+                        (+ (((partial 0) b) (up x0 y0))
+                           (* (/ -1 2) (((partial 1) a) (up x0 y0)))))
                   (down (* (/ 1 2) (((partial 1) a) (up x0 y0)))
                         (* (/ 1 2) (((partial 0) c) (up x0 y0)))))
                  (down
                   (down (* (/ 1 2) (((partial 1) a) (up x0 y0)))
                         (* (/ 1 2) (((partial 0) c) (up x0 y0))))
-                  (down (+ (((partial 1) b) (up x0 y0))
-                           (* (/ -1 2) (((partial 0) c) (up x0 y0))))
+                  (down (+ (* (/ -1 2) (((partial 0) c) (up x0 y0)))
+                           (((partial 1) b) (up x0 y0)))
                         (* (/ 1 2) (((partial 1) c) (up x0 y0))))))
                (simplify
                 ((cov/Christoffel->symbols
@@ -200,7 +199,8 @@
                    (down (up 0 0 (/ 1 r))
                          (up 0 0 (/ (cos theta) (sin theta)))
                          (up (* -1 r (expt (sin theta) 2))
-                             (* -1 (sin theta) (cos theta)) 0)))
+                             (* -1 (cos theta) (sin theta))
+                             0)))
                  (simplify
                   ((cov/Christoffel->symbols
                     (conn/metric->Christoffel-2 spherical-metric spherical-basis))

@@ -63,7 +63,7 @@
                 "  var _0003 = Math.pow(l, 2);\n"
                 "  var _0005 = Math.sin(theta);\n"
                 "  var _0006 = Math.sin(_0001);\n"
-                "  return [1, (a * l * m * omega * _0006 * _0005 + p_theta) / (_0003 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0002 * _0005 - a * omega * p_theta * _0006 * _0002 - g * _0003 * m * _0005) / l];\n"
+                "  return [1, (a * l * m * omega * _0005 * _0006 + p_theta) / (_0003 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * _0005 * Math.pow(_0006, 2) * _0002 - a * omega * p_theta * _0006 * _0002 - g * _0003 * m * _0005) / l];\n"
                 "}")
            (e/->JavaScript eq
                            :parameter-order '[t theta p_theta]

@@ -230,8 +230,9 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
+
         (is (= '(+ (* (/ 1 2) (expt l 2) m (expt θdot 2))
-                   (* l m θdot ((D y_s) t) (sin θ))
+                   (* l m θdot (sin θ) ((D y_s) t))
                    (* g l m (cos θ))
                    (* -1 g m (y_s t))
                    (* (/ 1 2) m (expt ((D y_s) t) 2)))

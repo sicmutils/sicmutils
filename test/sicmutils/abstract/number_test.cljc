@@ -23,6 +23,8 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
+            [pattern.rule :as rule :refer [=>]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
@@ -30,6 +32,7 @@
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
+            [sicmutils.simplify :as simpl]
             [sicmutils.value :as v]))
 
 (def gen-literal-element
@@ -186,8 +189,6 @@
     (is (= "(* x 2)"
            (pr-str
             (an/literal-number (lazy-seq ['* 'x 2])))))))
-
-;; Generators
 
 (deftest literal-number-arithmetic-tests
   (letfn [(check [op l r]
@@ -864,3 +865,24 @@
 
       (is (= '((expt D 3) f)
              (derivative '((expt D 2) f)))))))
+
+(deftest incremental-simplifier-tests
+  (testing "incremental simplifier works for unary, binary"
+    (binding [sym/*incremental-simplifier* simpl/simplify-expression]
+      (is (= 1 (v/freeze
+                (g/+ (g/square (g/cos 'x))
+                     (g/square (g/sin 'x)))))))
+
+    (let [flip (rule/ruleset*
+                (rule/rule (+ ?a ?a) => (* 2 ?a))
+                (rule/rule (cos x) => 12))]
+      (binding [sym/*incremental-simplifier* flip]
+        (is (= '(* 2 (cos theta))
+               (v/freeze
+                (g/+ (g/cos 'theta) (g/cos 'theta))))
+            "The rule applies a single simplification.")
+
+        (is (= 24 (v/freeze
+                   (g/+ (g/cos 'x) (g/cos 'x))))
+            "rule here maps `(g/cos 'x)` to 12 internally, then `g/+` actually
+            performs the addition.")))))

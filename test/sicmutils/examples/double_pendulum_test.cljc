@@ -55,16 +55,17 @@
             (e/simplify (L state)))))
 
     (e/with-literal-functions [θ φ]
-      (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
-                       (* l1 l2 m2 (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) φ) t))
-                       (* g l1 m1 (sin (θ t)))
-                       (* g l1 m2 (sin (θ t)))
-                       (* (expt l1 2) m1 (((expt D 2) θ) t))
-                       (* (expt l1 2) m2 (((expt D 2) θ) t)))
-                    (+ (* -1 l1 l2 m2 (sin (+ (θ t) (* -1 (φ t)))) (expt ((D θ) t) 2))
-                       (* l1 l2 m2 (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))))
-                       (* g l2 m2 (sin (φ t)))
-                       (* (expt l2 2) m2 (((expt D 2) φ) t))))
+      (is (= '(down
+               (+ (* l1 l2 m2 (sin (+ (θ t) (* -1 (φ t)))) (expt ((D φ) t) 2))
+                  (* l1 l2 m2 (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) φ) t))
+                  (* g l1 m1 (sin (θ t)))
+                  (* g l1 m2 (sin (θ t)))
+                  (* (expt l1 2) m1 (((expt D 2) θ) t))
+                  (* (expt l1 2) m2 (((expt D 2) θ) t)))
+               (+ (* -1 l1 l2 m2 (sin (+ (θ t) (* -1 (φ t)))) (expt ((D θ) t) 2))
+                  (* l1 l2 m2 (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) θ) t))
+                  (* g l2 m2 (sin (φ t)))
+                  (* (expt l2 2) m2 (((expt D 2) φ) t))))
              (v/freeze
               (e/simplify (((e/Lagrange-equations
                              (double/L 'm1 'm2 'l1 'l2 'g))

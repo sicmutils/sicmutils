@@ -102,7 +102,7 @@
         "expts with singletons mixed in")))
 
 (deftest logexp-tests
-  (let [rule (fn [] (r/logexp s/*rf-analyzer*))]
+  (let [rule (fn [] (r/logexp s/*rf-simplify*))]
     (is (= '(expt x 3)
            ((rule) '(exp (* 3 (log x)))))
         "(log x) in the power cancels out the e base.")
@@ -160,7 +160,7 @@
       pulled apart."))
 
 (deftest simplify-square-roots-test
-  (let [s (r/simplify-square-roots  s/*rf-analyzer*)]
+  (let [s (r/simplify-square-roots  s/*rf-simplify*)]
     (testing "even powers"
       (is (= '(expt x 4)
              (s '(expt (sqrt x) 8)))
@@ -211,13 +211,13 @@
 
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
-    (let [expand (r/sqrt-expand  s/*rf-analyzer*)]
+    (let [expand (r/sqrt-expand  s/*rf-simplify*)]
       (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
              (expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
       (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
              (expand '(- (sqrt (/ a b)) (sqrt (/ c b))))))))
 
-  (let [sqrt-contract (r/sqrt-contract  s/*rf-analyzer*)]
+  (let [sqrt-contract (r/sqrt-contract  s/*rf-simplify*)]
     (testing "cancels square roots if the values are equal"
       (is (= '(* a (sqrt (* b d)) c e)
              (sqrt-contract
@@ -252,7 +252,7 @@
 
 (deftest triginv-tests
   (testing "arctan"
-    (let [triginv (r/triginv s/*rf-analyzer*)]
+    (let [triginv (r/triginv s/*rf-simplify*)]
       (is (= '(atan y x)
              (triginv '(atan y x))))
 
@@ -286,7 +286,7 @@
                    (* y (cos z) x))))))))
 
 (deftest sincos-flush-ones-test
-  (let [s (r/sincos-flush-ones s/*rf-analyzer*)]
+  (let [s (r/sincos-flush-ones s/*rf-simplify*)]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
 
@@ -299,7 +299,7 @@
 
 (deftest trig-tests
   (testing "the eight covered cases from sincos-random"
-    (let [rule (r/sincos-random s/*rf-analyzer*)]
+    (let [rule (r/sincos-random s/*rf-simplify*)]
       (is (= '(+ 2 3 (* (- (expt (sin x) 2)) (expt (cos x) 2)))
              (rule '(+ 2 (- (expt (sin x) 2)) 3 (expt (sin x) 4)))
              (rule '(+ 2 (expt (sin x) 4) 3 (- (expt (sin x) 2))))))

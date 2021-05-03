@@ -133,7 +133,12 @@
 (defn- defunary [generic-op op-sym]
   (if-let [op (sym/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
-      (literal-number (op (x/expression-of a))))
+      (let [newexp (op (x/expression-of a))]
+        (literal-number
+         (if-let [simplify sym/*incremental-simplifier*]
+           (simplify newexp)
+           newexp))))
+
     (defmethod generic-op [::x/numeric] [a]
       (x/literal-apply ::x/numeric op-sym [a]))))
 
@@ -144,9 +149,12 @@
     (if-let [op (sym/symbolic-operator op-sym)]
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
-          (literal-number
-           (op (x/expression-of a)
-               (x/expression-of b)))))
+          (let [newexp (op (x/expression-of a)
+                           (x/expression-of b))]
+            (literal-number
+             (if-let [simplify sym/*incremental-simplifier*]
+               (simplify newexp)
+               newexp)))))
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]

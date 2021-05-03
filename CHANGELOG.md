@@ -2,6 +2,64 @@
 
 ## [unreleased]
 
+- #360 introduces a number of performance improvements to the
+  `sicmutils.differential.Differential` implementation, primarily in `terms:+`
+  and `terms:*`. thanks again to @ptaoussanis and the
+  [Tufte](https://github.com/ptaoussanis/tufte) profiling library for helping me
+  track these down.
+
+- #358:
+
+  - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
+    to `shadow-cljs`. This enables more formerly-slow tests for Clojurescript;
+    these are now fast enough to run, thanks to the performance improvements
+    described below.
+
+  - Upgrades our [Timbre](https://github.com/ptaoussanis/timbre) logging
+    dependency to version 5.1.2, and [SCI](https://github.com/borkdude/sci) to
+    0.2.5
+
+  - Adds a more efficient `literal-derivative` implementation to
+    `sicmutils.abstract.function`, making the Bianchi identity benchmarks run
+    40% faster.
+
+  - In Clojurescript, `Range` instances now implement `sicmutils.value.Value`
+    and `sicmutils.differential.IPerturbed`, allowing them to be returned from
+    derivative-taking functions
+
+  - Major, unexpected performance improvement - it turns out
+    `sicmutils.value/number?` was quite slow in Clojure (less so in
+    Clojurescript). Changing this function from an `isa?` check to a series of
+    explicit `instance?` checks cut the build time in half. This makes the
+    numeric tower less extensible... but it wasn't terribly extensible to start
+    with, and needs some attention to make it so. A big win!
+
+  - The Bianchi identity benchmarks have all been updated to reflect the big
+    performance improvements achieved here, thanks to the wonderful
+    [Tufte](https://github.com/ptaoussanis/tufte) profiling library from
+    @ptaoussanis. The remaining very slow piece in the simplifier is the
+    implementation of `g/add` for polynomial instances. #341 will improve this
+    situation.
+
+- #357:
+
+  - Adds the ability to do incremental simplification, every time an operation
+    is performed involving a symbolic expression. Bind
+    `sicmutils.numsymb/*incremental-simplifier*` to a function from raw
+    expression -> raw expression, like `sicmutils.simplify/simplify-expression`
+    or any of the rules in `sicmutils.simplify.rules` to enable this behavior.
+
+  - Expands the `sicmutils.expression.analyze` API with the functions
+    `default-simplifier`, `expression-simplifier`, `initializer`,
+    `expression-analyzer` and `auxiliary-variable-fetcher`. See the [API
+    documentation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.expression.analyze)
+    for detailed notes on how to do interactive expression analysis and
+    simplification with these new tools.
+
+  - by default, each simplification pass uses both rational function _and_
+    polynomial canonicalization. This brings the simplifier into line with the
+    scmutils simplifier.
+
 - #353 introduces a powerful new simplifier, ported from the `new-simplify`
   procedure in `simplify/rules.scm` of the scmutils library. There are now a
   BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!

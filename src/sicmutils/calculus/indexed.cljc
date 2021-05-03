@@ -331,7 +331,7 @@
                                 t (case shape
                                     ::s/up ::vf/vector-field
                                     ::s/down ::ff/oneform-field)]
-                            (recur (get cf 0)
+                            (recur (nth cf 0)
                                    (conj acc t)))))]
     (-> (fn indexed-fn [& args]
           (assert (= (count args)
