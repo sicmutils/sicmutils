@@ -164,10 +164,14 @@
   (let [emm (get *hestenic-metric* ind)]
     (if (nil? emm)  1  emm)))
 
+(defn cumu-metric-factor-for-bases [basis-arr]
+  (reduce (fn [acc ind] (* acc (metric-for-basis-index ind)))
+          1  basis-arr))
+
 (defmacro with-metric
   [tric & formses]
   `(binding [*hestenic-metric* ~tric]
-     ~(conj formses 'do)))
+     ~@formses))
 
 (defn set-metric! [tric]
   (alter-var-root (var *hestenic-metric*)
@@ -246,15 +250,11 @@
      blds
      (confirm-grades! blds (grade (first blds)))))
   ([blds gra]  ;; ar/2: with grade specified
-   (if (empty? blds)
-     blds
-     (loop [head (first blds)
-            body (rest blds)]
-       (if (not= gra (grade head))
-         (throw (Exception. (str "incompatible grade: "
-                                 head " but should be " gra)))
-         (if (not (empty? body))
-           (recur (first body) (rest body))))))
+   (if (not (empty? blds))
+     (doseq [bld blds]
+       (if (not= gra (grade bld))
+         (throw (Exception. (str "incompatible element: "
+                                 bld " wants to be of grade " gra))))))
    blds))
 
 (defn- basis-prod [bas1 bas2]
@@ -287,10 +287,10 @@
   (if (even? (order-swap-count basl basr)) +1 -1))
 
 (defn- metric-factor [basl basr]
-  (reduce (fn [acc b] (* acc (metric-for-basis-index (first b))))
-          1
-          (filter (fn [basind] (> (count basind) 1))
-                  (partition-by identity (sort (concat basl basr))))))
+  (cumu-metric-factor-for-bases
+   (map first
+        (filter (fn [basind] (> (count basind) 1))
+                (partition-by identity (sort (concat basl basr)))))))
 
 (defn- sort-on-bases [bldds]
   (vec (sort-by basis bldds)))
@@ -747,7 +747,9 @@
        (bladoid-mult-bladoid this otha))))
   (inv [this]
     (let [bas (basis this)]
-      (Bladoid. (* (/ 1 (coef this)) (square-sign this)) (basis this))))
+      (Bladoid. (* (/ 1 (coef this) (cumu-metric-factor-for-bases bas))
+                   (square-sign this))
+                (basis this))))
   (quo [this otha] (prd this (inv otha)))
   (dot [this otha]
     (if (different-rung? this otha)
@@ -945,7 +947,8 @@
     (prd (asMV this) (asMV otha)))
   (inv [this]
     (let [sq (dot this this)]
-      (scl this (/ 1.0 sq))))
+      (scl this (/ 1.0 sq (cumu-metric-factor-for-bases
+                           (range (grade this)))))))
   (quo [this otha]
     (prd this (inv otha)))
   (dot [this otha]
