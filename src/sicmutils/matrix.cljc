@@ -865,7 +865,7 @@
   "Computes a block matrix by mapping over the left matrix, multiplying elementwise
 by the right matrix."
   [matrix-A matrix-B]
-  (fmap (fn [x] (* x matrix-B)) matrix-A))
+  (fmap (fn [x] (g/* x matrix-B)) matrix-A))
 
 (defn dim-sum
   "Initial implementation of Direct Sum"
