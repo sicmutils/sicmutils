@@ -2,6 +2,39 @@
 
 ## [unreleased]
 
+- #358:
+
+  - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
+    to `shadow-cljs`. This enables more formerly-slow tests for Clojurescript;
+    these are now fast enough to run, thanks to the performance improvements
+    described below.
+
+  - Upgrades our [Timbre](https://github.com/ptaoussanis/timbre) logging
+    dependency to version 5.1.2, and [SCI](https://github.com/borkdude/sci) to
+    0.2.5
+
+  - Adds a more efficient `literal-derivative` implementation to
+    `sicmutils.abstract.function`, making the Bianchi identity benchmarks run
+    40% faster.
+
+  - In Clojurescript, `Range` instances now implement `sicmutils.value.Value`
+    and `sicmutils.differential.IPerturbed`, allowing them to be returned from
+    derivative-taking functions
+
+  - Major, unexpected performance improvement - it turns out
+    `sicmutils.value/number?` was quite slow in Clojure (less so in
+    Clojurescript). Changing this function from an `isa?` check to a series of
+    explicit `instance?` checks cut the build time in half. This makes the
+    numeric tower less extensible... but it wasn't terribly extensible to start
+    with, and needs some attention to make it so. A big win!
+
+  - The Bianchi identity benchmarks have all been updated to reflect the big
+    performance improvements achieved here, thanks to the wonderful
+    [Tufte](https://github.com/ptaoussanis/tufte) profiling library from
+    @ptaoussanis. The remaining very slow piece in the simplifier is the
+    implementation of `g/add` for polynomial instances. #341 will improve this
+    situation.
+
 - #357:
 
   - Adds the ability to do incremental simplification, every time an operation

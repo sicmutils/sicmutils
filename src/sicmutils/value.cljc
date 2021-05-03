@@ -511,7 +511,7 @@
 (def ^:no-doc relative-integer-tolerance (* 100 machine-epsilon))
 (def ^:no-doc absolute-integer-tolerance 1e-20)
 
-(defn ^boolean almost-integral?
+(defn almost-integral?
   "Returns true if `x` is either:
 
   - [[integral?]],

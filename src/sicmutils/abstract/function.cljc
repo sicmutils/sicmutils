@@ -246,7 +246,7 @@
 ;; ## Differentiation of literal functions
 
 (defn- literal-partial [f path]
-  (let [fexp (if (= (f/arity f) [:exactly 1])  ; univariate
+  (let [fexp (if (= (f/arity f) [:exactly 1]) ;; univariate
                (if (= (first path) 0)
                  (if (= (count path) 1)
                    ;; Special-case the single argument case, or a unary function
@@ -261,8 +261,9 @@
      fexp (f/arity f) (domain-types f) (range-type f))))
 
 (defn- literal-derivative
-  "Chain rule! Note that `xs` comes in wrapped in an EXTRA layer, hence the
-   `apply`."
+  "Takes a literal function `f` and a sequence of arguments `xs`, and generates an
+  expanded `((D f) xs)` by applying the chain rule and summing the partial
+  derivatives for each differential argument in the input structure."
   [f xs]
   (let [v        (m/seq-> xs)
         flat-v   (flatten v)
