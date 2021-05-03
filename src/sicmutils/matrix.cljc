@@ -862,13 +862,14 @@
     (determinant (g/- (g/* x (I r)) m))))
 
 (defn kronecker-product
-  [matrix-A matrix-B]
   "Computes a block matrix by mapping over the left matrix, multiplying elementwise
 by the right matrix."
+  [matrix-A matrix-B]
   (fmap (fn [x] (* x matrix-B)) matrix-A))
 
-(defn dim-sum [matrix-A matrix-B]
- "Initial implementation of Direct Sum"
+(defn dim-sum
+  "Initial implementation of Direct Sum"
+  [matrix-A matrix-B]
   (let [new-row-count (+ (num-rows matrix-A) (num-rows matrix-B))
         new-col-count (+ (num-cols matrix-A) (num-cols matrix-B))
         B-row-offset  (- new-row-count (num-rows matrix-B))
@@ -876,15 +877,15 @@ by the right matrix."
     (fmap (fn [x] (if (nil? x)
                     0
                     x))
-                 (generate new-row-count
-                           new-col-count
-                           (fn [i j]
-                             (if (or
-                                  (< i B-row-offset)
-                                  (< j B-col-offset))
-                               (get-in matrix-A [i j])
-                               (get-in matrix-B [(- i B-row-offset)
-                                                 (- j B-col-offset)])))))))
+          (generate new-row-count
+                    new-col-count
+                    (fn [i j]
+                      (if (or
+                           (< i B-row-offset)
+                           (< j B-col-offset))
+                        (get-in matrix-A [i j])
+                        (get-in matrix-B [(- i B-row-offset)
+                                          (- j B-col-offset)])))))))
 
 ;; ## Generic Operation Installation
 
