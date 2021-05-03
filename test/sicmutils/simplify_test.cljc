@@ -23,10 +23,12 @@
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.simplify :refer [hermetic-simplify-fixture
-                                        simplify-expression]]
+                                        simplify-expression
+                                        rational-function-analyzer]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v :refer [=]]))
 
@@ -63,6 +65,13 @@
   (is (= nil (g/simplify nil)))
   (is (= '(* 2 x) (g/simplify (g/+ 'x 'x))))
   (is (= '(+ x 1) (g/simplify (g/+ 1 'x)))))
+
+(deftest analyzer-test
+  (is (symbol?
+       ((a/expression-analyzer
+         (rational-function-analyzer))
+        '(exp (/ (- v3 v2) (- Vt)))))
+      "non-RF-able expression turns into a sym"))
 
 (deftest divide-numbers-through
   (is (= 'x (simplify-expression '(* 1 x))))
@@ -226,11 +235,12 @@
         rational-function namespace.")))
 
 (deftest radicals
-  (testing "sums of square roots of quotients are collected if denominators match")
-  (is (= '(/ (+ (sqrt a) (sqrt c)) (sqrt b))
-         (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
-  (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
-         (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (testing "sums of square roots of quotients are collected if denominators match"
+    (is (= '(/ (+ (sqrt a) (sqrt c)) (sqrt b))
+           (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+    (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
+           (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b)))))))
+
   (testing "issue #156"
     (is (= '(* y_1 (sqrt (+ (expt x_2 2) (expt y_1 2) (* 2 y_1 y_2) (expt y_2 2))))
            (g/simplify

@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- new PR:
+
+   - polynomials have metadata, can be evaluated
+   - rational functions have metadata, can be evaluated
+
 - #360 introduces a number of performance improvements to the
   `sicmutils.differential.Differential` implementation, primarily in `terms:+`
   and `terms:*`. thanks again to @ptaoussanis and the

@@ -61,6 +61,11 @@
      ;; this is covered by sg/long in clj.
      (l/field 100 sg/native-integral "integral js/Number")))
 
+#?(:clj
+   ;; Same note here about no bigint/biginteger distinction in cljs.
+   (deftest biginteger-generics
+     (gt/integral-tests u/biginteger)))
+
 (deftest floating-point-laws
   ;; Doubles form a field too.
   (with-comparator (v/within 1e-3)
@@ -148,10 +153,6 @@
     (testing "g/expt with floating point"
       (is (ish? 316.2277660168379 (g/expt (u/bigint 10) 2.5)))
       (is (ish? 9536.7431640625 (g/expt 2.5 (u/bigint 10)))))))
-
-#?(:clj
-   (deftest biginteger-generics
-     (gt/integral-tests u/biginteger)))
 
 (deftest double-generics
   (gt/integral-tests double

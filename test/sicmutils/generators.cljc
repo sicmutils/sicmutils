@@ -15,6 +15,7 @@
             [sicmutils.matrix :as m]
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
+            [sicmutils.polynomial :as poly]
             [sicmutils.ratio :as r]
             [sicmutils.series :as ss]
             [sicmutils.structure :as s]
@@ -22,12 +23,12 @@
             [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (org.apache.commons.math3.complex Complex))))
+     (:import [org.apache.commons.math3.complex Complex])))
 
 (def bigint
   "js/BigInt in cljs, clojure.lang.BigInt in clj."
   #?(:cljs
-     (gen/fmap u/bigint gen/large-integer)
+     (gen/fmap u/bigint gen/small-integer)
      :clj
      gen/size-bounded-bigint))
 
@@ -73,11 +74,13 @@
                       (+ x 0.5)
                       x))))))
 
+(def small-integral
+  (gen/one-of [native-integral long integer]))
+
 (def any-integral
-  (gen/one-of [native-integral
+  (gen/one-of [small-integral
                bigint
-               long
-               integer]))
+               #?@(:clj [biginteger])]))
 
 (def ratio
   "Generates a small ratio (or integer) using gen/small-integer. Shrinks
@@ -284,6 +287,33 @@
                (d/differential? tangent-part) tangent-part
                :else (d/from-terms [(#'d/make-term [] primal)
                                     (#'d/make-term [0] 1)])))))))
+
+;; ## Polynomials
+
+(defn polynomial
+  "Returns a generator that produces instances of [[polynomial.Polynomial]].
+
+  `arity` can be a number or a generator."
+  [& {:keys [arity coefs nonzero?]
+      :or {nonzero? true
+           arity gen/nat
+           coefs small-integral}}]
+  (letfn [(poly-gen [arity]
+            (let [expts (gen/vector gen/nat arity)
+                  term  (gen/tuple expts coefs)
+                  pgen  (gen/fmap (fn [terms]
+                                    (let [p (poly/make arity terms)]
+                                      (if (poly/explicit-polynomial? p)
+                                        p
+                                        (poly/make-constant arity p))))
+                                  (gen/vector term))]
+              (if nonzero?
+                (gen/such-that (complement v/zero?) pgen)
+                pgen)))]
+    (let [arity (if (integer? arity)
+                  (gen/return arity)
+                  arity)]
+      (gen/bind arity poly-gen))))
 
 ;; ## Custom Almost-Equality
 
