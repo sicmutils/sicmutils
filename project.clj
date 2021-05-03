@@ -27,7 +27,7 @@
                  [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [borkdude/sci "0.1.1-alpha.8"]
+                 [borkdude/sci "0.2.5"]
                  [com.google.guava/guava "23.0"]
                  [com.taoensso/timbre "5.1.2"
                   :exclusions [org.clojure/clojurescript]]
@@ -49,6 +49,8 @@
                    :benchmark :benchmark}
   :profiles {:dev {:plugins [[lein-cloverage "1.2.1"]]
                    :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
+                   :repl-options {:nrepl-middleware
+                                  [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]
                                   [com.taoensso/tufte "2.2.0"]
                                   [com.gfredericks/test.chuck "0.2.10"]
