@@ -108,7 +108,14 @@
    (extend-type Complex
      IEquiv
      (-equiv [this other]
-       (.equals this other))
+       (cond (complex? other)
+             (.equals this other)
+
+             (v/real? other)
+             (and (zero? (imaginary this))
+                  (v/= (real this) other))
+
+             :else false))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]

@@ -31,28 +31,31 @@
                            compare core-compare}
                   #?@(:cljs [:exclude [zero? number? = compare]]))
   (:require [sicmutils.util :as u]
-            #?@(:cljs [[goog.array :as garray]
+            #?@(:cljs [["complex.js" :as Complex]
+                       ["fraction.js/bigfraction.js" :as Fraction]
+                       [goog.array :as garray]
                        [goog.math.Long]
                        [goog.math.Integer]]))
   #?(:clj
      (:import
-      (clojure.lang BigInt Sequential Var))))
+      (clojure.lang BigInt Sequential Var)
+      (org.apache.commons.math3.complex Complex))))
 
 (defprotocol Numerical
-  (numerical? [_]))
+  (^boolean numerical? [_]))
 
 (extend-protocol Numerical
   #?(:clj Object :cljs default)
   (numerical? [_] false))
 
 (defprotocol Value
-  (zero? [this])
-  (one? [this])
-  (identity? [this])
+  (^boolean zero? [this])
+  (^boolean one? [this])
+  (^boolean identity? [this])
   (zero-like [this])
   (one-like [this])
   (identity-like [this])
-  (exact? [this])
+  (^boolean exact? [this])
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
   subexpressions, so that the result is basically a pure S-expression with the
@@ -75,7 +78,8 @@
      (derive IndexedSeq ::seq)
      (derive PersistentVector ::seq)
      (derive LazySeq ::seq)
-     (derive List ::seq)))
+     (derive List ::seq)
+     (derive Range ::seq)))
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.
@@ -89,18 +93,25 @@
   "Returns true if x is an integral number that Clojure's math operations work
   with, false otherwise."
   [x]
-  (isa? (kind x) ::native-integral))
+  (integer? x))
 
 (defn integral?
   "Returns true if x is an integral number, false otherwise."
   [x]
-  (isa? (kind x) ::integral))
+  #?(:clj (integer? x)
+     :cljs (or (int? x)
+               (core= "bigint" (goog/typeOf x)))))
 
 (defn real?
   "Returns true if `x` is either an integral number or a floating point number (ie,
   in the numeric tower but not complex), false otherwise."
   [x]
-  (isa? (kind x) ::real))
+  #?(:clj (instance? Number x)
+     :cljs (or (cljs.core/number? x)
+               (instance? goog.math.Integer x)
+               (instance? goog.math.Long x)
+               (core= "bigint" (goog/typeOf x))
+               (instance? Fraction x))))
 
 (defn number?
   "Returns true if `x` is any number type in the numeric tower:
@@ -111,7 +122,15 @@
 
   false otherwise."
   [x]
-  (isa? (kind x) ::number))
+  #?(:clj
+     (or (instance? Number x)
+         (instance? Complex x))
+     :cljs (or (cljs.core/number? x)
+               (core= "bigint" (goog/typeOf x))
+               (instance? Fraction x)
+               (instance? goog.math.Integer x)
+               (instance? goog.math.Long x)
+               (instance? Complex x))))
 
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.
@@ -486,7 +505,8 @@
 (defn within
   "Returns a function that tests whether two values are within ε of each other."
   [^double ε]
-  (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
+  (fn [^double x ^double y]
+    (< (Math/abs (- x y)) ε)))
 
 (def ^:no-doc relative-integer-tolerance (* 100 machine-epsilon))
 (def ^:no-doc absolute-integer-tolerance 1e-20)
