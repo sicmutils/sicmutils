@@ -877,7 +877,7 @@
                 (rule/rule (+ ?a ?a) => (* 2 ?a))
                 (rule/rule (cos x) => 12))]
       (binding [sym/*incremental-simplifier* flip]
-        (is (= '(* 2 theta)
+        (is (= '(* 2 (cos theta))
                (v/freeze
                 (g/+ (g/cos 'theta) (g/cos 'theta))))
             "The rule applies a single simplification.")
