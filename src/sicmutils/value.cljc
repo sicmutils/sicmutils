@@ -132,6 +132,12 @@
                (instance? goog.math.Long x)
                (instance? Complex x))))
 
+(defn numeric-zero?
+  "Returns `true` if `x` is both a [[number?]] and [[zero?]], false otherwise."
+  [x]
+  (and (number? x)
+       (zero? x)))
+
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.
 
