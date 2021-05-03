@@ -2,6 +2,25 @@
 
 ## [unreleased]
 
+- #357:
+
+  - Adds the ability to do incremental simplification, every time an operation
+    is performed involving a symbolic expression. Bind
+    `sicmutils.numsymb/*incremental-simplifier*` to a function from raw
+    expression -> raw expression, like `sicmutils.simplify/simplify-expression`
+    or any of the rules in `sicmutils.simplify.rules` to enable this behavior.
+
+  - Expands the `sicmutils.expression.analyze` API with the functions
+    `default-simplifier`, `expression-simplifier`, `initializer`,
+    `expression-analyzer` and `auxiliary-variable-fetcher`. See the [API
+    documentation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.expression.analyze)
+    for detailed notes on how to do interactive expression analysis and
+    simplification with these new tools.
+
+  - by default, each simplification pass uses both rational function _and_
+    polynomial canonicalization. This brings the simplifier into line with the
+    scmutils simplifier.
+
 - #353 introduces a powerful new simplifier, ported from the `new-simplify`
   procedure in `simplify/rules.scm` of the scmutils library. There are now a
   BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!

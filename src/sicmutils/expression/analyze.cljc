@@ -38,32 +38,40 @@
 
 ;; ## General Recursive Simplifier Maker
 ;;
-;; Given a set of operations, this procedure makes a recursive simplifier that
-;; simplifies expressions involving these operations, treating other
-;; combinations as atomic.
+;; The heading, and the following block of comments, is based on the narrative
+;; in `simplify/simplify.scm` of the scmutils repository.
+;;
+;; Given a set of operations, the protocols and functions in this namespace
+;; allow you to define recursive simplifiers that simplify expressions involving
+;; these operations, treating other combinations as atomic.
 ;;
 ;; To break an expression up into manipulable and nonmanipulable parts with
 ;; respect to a set of algebraic operators. This is done by the introduction of
 ;; auxiliary variables.
 ;;
 ;; For example, the equation
-;;    I = Is (exp((V2 - V3)/Vt) - 1) ; I, V2, V3
-;; can be broken into three equations
-;;    I + Is = Is*X                  ; I, X
-;;    V2/Vt - V3/Vt = Y              ; V2, V3, Y
-;;    X = (exp Y)                    ; X, Y
+;;
+;;    I = Is (exp((V2 - V3)/Vt) - 1) ;; I, V2, V3
+;;
+;; can be broken into three equations:
+;;
+;;    I + Is = Is*X                  ;; I, X
+;;    V2/Vt - V3/Vt = Y              ;; V2, V3, Y
+;;    X = (exp Y)                    ;; X, Y
 ;;
 ;; where X and Y are new variables. The first two parts contain only addition,
 ;; subtraction, multiplication, and division and the third is not expressible in
 ;; terms of those operations.
 ;;
 ;;
-;; ### Implementation
-;;
-;; Exponential expressions with non-integer exponents must become
-;; kernels, because they cannot become polynomial exponentials.
+;; ## Implementation
 
-(def ^:dynamic *inhibit-expt-simplify*
+(def ^{:dynamic true
+       :doc "Exponential expressions with non-integer exponents must become
+       kernels, because they cannot become polynomial exponentials.
+
+       To disable this guard, bind this variable to `false`."}
+  *inhibit-expt-simplify*
   true)
 
 ;; ### Utilities
@@ -89,8 +97,6 @@
       (var-set w) 1
       :else (compare v w))))
 
-;; TODO write a test that generates 1000 of these and makes sure they sort! And then shows that gensyms do not, maybe?
-
 (defn monotonic-symbol-generator
   "Returns a function which generates a sequence of symbols with the given
   `prefix` with the property that later symbols will sort after earlier symbols.
@@ -112,17 +118,15 @@
                                (.padStart 16 "0"))]
                 (str prefix suffix)))))))
 
-;; TODO note this, this is a new thing!
-
 (defprotocol ICanonicalize
   "[[ICanonicalize]] captures the methods exposed by a SICMUtils analyzer backend."
   (expression->
     [analyzer x continue]
     [analyzer x continue compare-fn]
-    "Invokes `continue` with
+    "Invokes `continue` with two arguments:
 
   - A version of `x` converted to the canonical form represented by `analyzer`
-  - A (sorted) sequence of variables found in `x`
+  - A (sorted by `compare-fn`) sequence of variables found in `x`.
 
   `compare-fn` is used to sort variables. Defaults
   to [[clojure.core/compare]].")
@@ -144,12 +148,13 @@
 
 (defn make-analyzer
   "Make-analyzer takes an analyzer `backend` (which implements [[ICanonicalize]])
-  and provides the apparatus necessary to prepare expressions for analysis by
-  replacing subexpressions formed from operations unknown to the analyzer with
-  generated symbols, and backsubstituting after analysis is complete.
+  and returns a dictionary with the apparatus necessary to prepare expressions
+  for analysis by replacing subexpressions formed from operations unknown to the
+  analyzer with generated symbols, and backsubstituting after analysis is
+  complete.
 
   For example, in the case of polynomial canonical form, we would replace a
-  subexpression like `(sin x)` with a gensym, before entry, since the sine
+  subexpression like `(sin x)` with a gensym, before entry, since the `sin`
   operation is not available to the polynomial canonicalizer, and restore it
   afterwards."
   [backend symbol-generator]
@@ -196,7 +201,7 @@
 
 
             ;; NOTE: use `doall` to force the variable-binding side effects
-            ;; of `base-simplify`
+            ;; of `base-simplify`.
             (new-kernels [expr]
               (let [simplified-expr (doall (map base-simplify expr))
                     op (sym/operator simplified-expr)]
@@ -210,11 +215,11 @@
 
             (add-symbol! [expr]
               (if (unquoted-list? expr)
-                ;; in a transaction, probe and maybe update the
-                ;; expr->var->expr maps
+                ;; in a transaction, probe and maybe update the expr->var->expr
+                ;; maps.
                 ;;
-                ;; NOTE: Make sure to use the FROZEN version of the
-                ;; expression as the key.
+                ;; NOTE: Make sure to use the FROZEN version of the expression
+                ;; as the key!
                 (let [expr-k (v/freeze expr)]
                   (#?(:clj dosync :cljs identity)
                    (if-let [existing-expr (@expr->var expr-k)]
@@ -233,9 +238,9 @@
             (backsubstitute [expr]
               (cond (sequential? expr) (doall
                                         (map backsubstitute expr))
-                    (symbol? expr)     (if-let [w (@var->expr expr)]
-                                         (backsubstitute w)
-                                         expr)
+                    (symbol? expr) (if-let [w (@var->expr expr)]
+                                     (backsubstitute w)
+                                     expr)
                     :else expr))
 
             (base-simplify [expr]
@@ -251,7 +256,7 @@
                 (base-simplify
                  (analyze expr))))
 
-            ;; Simplify relative to existing tables
+            ;; Simplify relative to existing tables.
             (simplify-expression [expr]
               (backsubstitute
                (analyze-expression expr)))
@@ -260,7 +265,6 @@
             (simplify [expr]
               (new-analysis!)
               (simplify-expression expr))]
-
       {:simplify simplify
        :simplify-expression simplify-expression
        :initializer new-analysis!
@@ -270,17 +274,104 @@
 
 ;; These functions allow you to take different pieces of the analyzer apart.
 
-(defn default-simplifier [analyzer]
+(defn default-simplifier
+  "Given an `analyzer` instance created with [[make-analyzer]], returns a
+  simplifier (a function of S-expression => simplified S-expression) that will
+  reset its internal symbolic bindings at every invocation.
+
+  Equivalent to:
+
+  ```clojure
+  (let [new-analysis! (initializer analyzer)
+        simplify (expression-simplifier analyzer)]
+    (fn [expr]
+      (new-analysis!)
+      (simplify expr)))
+  ```
+
+  See [[expression-simplifier]] for a version that will assign the same symbol
+  to every expression it sees more than once."
+  [analyzer]
   (:simplify analyzer))
 
-(defn expression-simplifier [analyzer]
+(defn expression-simplifier
+  "Given an `analyzer` instance created with [[make-analyzer]], returns a
+  simplifier (a function of S-expression => simplified S-expression) that will
+  NOT reset its internal symbolic bindings across invocations.
+
+  This can be useful if the analyzer backend has any sort of memoization or
+  caching of expressions.
+
+  Pass `analyzer` to [[initializer]] to create a function that, when called,
+  will explicitly reset the internal cache:
+
+  ```clojure
+  (def reset-analyzer! (initializer analyzer))
+  (def simplify (expression-simplifier analyzer))
+
+  (reset-analyzer!)
+  (simplify <expr>)
+  ```
+
+  See [[default-simplifier]] for a version that will reset its internal variable
+  assignment cache at each invocation."
+  [analyzer]
   (:simplify-expression analyzer))
 
-(defn initializer [analyzer]
+(defn initializer
+  "Given an `analyzer` instance created with [[make-analyzer]], returns a function
+  of no arguments that, when called, will reset the analyzer's internal caches
+  of symbol => subexpression and subexpression => symbol."
+  [analyzer]
   (:initializer analyzer))
 
-(defn expression-analyzer [analyzer]
+(defn expression-analyzer
+  "Given an `analyzer` instance created with [[make-analyzer]], returns a function
+  that will take a symbolic expression, and return a simplified expression with
+  any subexpression NOT supported by the analyzer backend replaced by a
+  generated symbol.
+
+  Any replaced subexpression will map to the SAME symbol over repeated
+  invocations, unless you call the resetting function generated by passing
+  `analyzer` to [[initializer]].
+
+  For example:
+
+  ```clojure
+  (let [a  (poly-analyzer)
+        ea (expression-analyzer a)]
+    (ea '(+ x x x (sin x) (sin x))))
+  ;;=> (+ (* 3 x) (* 2 -s-0000000000000000))
+  ```"
+  [analyzer]
   (:analyze-expression analyzer))
 
-(defn auxiliary-variable-fetcher [analyzer]
+(defn auxiliary-variable-fetcher
+  "Given an `analyzer` instance created with [[make-analyzer]], returns a function
+  of no arguments that, when called, will return the analyzer's current map of
+  generated symbol => subexpression.
+
+  Call the no-argument function returned by passing `analyzer`
+  to [[initializer]] to reset the table.
+
+  For example:
+
+  ```clojure
+  (def a (poly-analyzer))
+  (def ea (expression-analyzer a))
+
+  (def get-tables (auxiliary-variable-fetcher a))
+  (def reset-tables! (initializer a))
+
+  (ea '(+ x x x (sin x) (sin x)))
+  ;;=> (+ (* 3 x) (* 2 -s-0000000000000000))
+
+  (get-tables)
+  ;;=> {'-s-0000000000000000 '(sin x)}
+
+  (reset-tables!)
+  (get-tables)
+  ;;=> {}
+  ```"
+  [analyzer]
   (:get-var->expr analyzer))
