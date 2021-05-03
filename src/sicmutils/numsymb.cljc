@@ -460,7 +460,7 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- derivative
+(defn ^:no-doc derivative
   "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
 

@@ -300,15 +300,6 @@
     (is (= [[(up 0 (up 0 0) (down 0 0))] 0]
            (k '(-> (UP Real (UP Real Real) (DOWN Real Real)) Real))))))
 
-(deftest function-differential
-  (testing "structural utilities"
-    (is (af/symbolic-derivative? '(D f)))
-    (is (not (af/symbolic-derivative? '(e f))))
-    (is (not (af/iterated-symbolic-derivative? '(expt D 2))))
-    (is (af/iterated-symbolic-derivative? '((expt D 2) f)))
-    (is (= '((expt D 2) f) (af/symbolic-increase-derivative '(D f))))
-    (is (= '((expt D 3) f) (af/symbolic-increase-derivative '((expt D 2) f))))))
-
 (deftest moved-from-series
   (testing "series"
     (is (= '[(* 2 (f x)) (* 3 (f x))]
