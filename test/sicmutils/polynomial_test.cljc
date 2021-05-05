@@ -1,27 +1,25 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.polynomial-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec]]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
@@ -157,8 +155,8 @@
       (is (v/= 77 c))))
 
   (checking "terms, lead term" 100 [x sg/any-integral]
-            (is (= (p/terms x)
-                   (p/terms (p/make-constant 0 x))))
+            (is (= (p/->terms x)
+                   (p/->terms (p/make-constant 0 x))))
 
             (is (= (p/lead-term x)
                    (p/lead-term (p/make-constant 0 x))))
@@ -549,45 +547,79 @@
           exp3 (expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
       (is (= '#{* + x} (variables-in exp1)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
-      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> poly-analyzer exp2 receive)))
-      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
+      (is (= [(p/make [-3 -2 1]) '(x)]
+             (a/expression-> poly-analyzer exp1 receive)))
+
+      (is (= [(p/make [-3 -2 1]) '(x)]
+             (a/expression-> poly-analyzer exp1 receive)))
+
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)]
+             (a/expression-> poly-analyzer exp2 receive)))
+
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)]
+             (a/expression-> poly-analyzer exp3 receive)))))
 
   (testing "monomial order"
-    (let [poly-simp #(a/expression-> poly-analyzer
-                                     (expression-of %)
-                                     (fn [p vars] (a/->expression poly-analyzer p vars)))]
-      (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
-      (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
-      (is (= '(+
-               (expt x 4)
-               (* 4 (expt x 3) y)
-               (* 6 (expt x 2) (expt y 2))
-               (* 4 x (expt y 3))
-               (expt y 4))
+    (let [poly-simp #(a/expression->
+                      poly-analyzer
+                      (expression-of %)
+                      (fn [p vars]
+                        (a/->expression poly-analyzer p vars)))]
+      (is (= '(+ (expt x 2) x 1)
+             (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
+
+      (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1)
+             (poly-simp (g/expt (g/+ 1 'x) 4))))
+
+      (is (= '(+ (expt x 4)
+                 (* 4 (expt x 3) y)
+                 (* 6 (expt x 2) (expt y 2))
+                 (* 4 x (expt y 3))
+                 (expt y 4))
              (poly-simp (g/expt (g/+ 'x 'y) 4))))
-      (is (= '(+
-               (expt x 4)
-               (* 4 (expt x 3) y)
-               (* 6 (expt x 2) (expt y 2))
-               (* 4 x (expt y 3))
-               (expt y 4))
+
+      (is (= '(+ (expt x 4)
+                 (* 4 (expt x 3) y)
+                 (* 6 (expt x 2) (expt y 2))
+                 (* 4 x (expt y 3))
+                 (expt y 4))
              (poly-simp (g/expt (g/+ 'y 'x) 4))))))
 
   (testing "expr-simplify"
-    (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
-          exp1 (expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (expression-of (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+    (let [poly-simp #(a/expression->
+                      poly-analyzer
+                      %
+                      (fn [p vars]
+                        (a/->expression poly-analyzer p vars)))
+          exp1 (expression-of (g/+ (g/* 'x 'x 'x)
+                                   (g/* 'x 'x)
+                                   (g/* 'x 'x)))
+          exp2 (expression-of (g/+ (g/* 'y 'y)
+                                   (g/* 'x 'x 'x)
+                                   (g/* 'x 'x)
+                                   (g/* 'x 'x)
+                                   (g/* 'y 'y)))
           exp3 'y]
-      (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
-      (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
+      (is (= '(+ (expt x 3) (* 2 (expt x 2)))
+             (poly-simp exp1)))
+
+      (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2)))
+             (poly-simp exp2)))
+
       (is (= 'y (poly-simp exp3)))
-      (is (= '(+ g1 g2) (poly-simp (expression-of (g/+ 'g1 'g2)))))
-      (is (= '(* 2 g1) (poly-simp (expression-of (g/+ 'g1 'g1)))))
+
+      (is (= '(+ g1 g2)
+             (poly-simp (expression-of (g/+ 'g1 'g2)))))
+      (is (= '(* 2 g1)
+             (poly-simp (expression-of (g/+ 'g1 'g1)))))
+
       (is (= 3 (poly-simp '(+ 2 1))))
-      (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
-      (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
+
+      (is (= '(+ b (* -1 f))
+             (poly-simp '(- (+ a b c) (+ a c f)))))
+
+      (is (= '(+ (* -1 b) f)
+             (poly-simp '(- (+ a c f) (+ c b a))))))))
 
 (deftest lower-raise-tests
   (testing "lower, raise are inverse"
