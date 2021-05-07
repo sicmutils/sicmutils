@@ -18,157 +18,381 @@
 ;;
 
 (ns sicmutils.quaternion
-  (:require [sicmutils.function :as f]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util.logic :as ul]
             [sicmutils.matrix :as m]
-            [sicmutils.value :as v]))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang AFn Associative IObj IFn Sequential))))
 
-(deftype Quaternion [r i j k]
-  ;; TODO implement `get`, `assoc` by index
-  ;;
-  ;; - kind ::quaternion
-  ;; - IFn, call q:apply
-  ;; - zero?, zero-like... identity too?
-  ;; = does what you'd expect
-  ;; - print-method and friends
-  ;;
-  ;; arity
-  )
+(declare arity q:= exact? q:apply q:zero? zero-like)
 
-(comment
-  ;; protocols
-  (defmethod g/apply q:apply        quaternion? any?)
-  (defmethod g/arity            q:arity           quaternion?)
-  (defmethod g/inexact?         q:inexact?        quaternion?)
-  (defmethod g/zero-like        q:zero-like       quaternion?)
-  (defmethod g/zero?            q:zero?           quaternion?)
-  (defmethod g/=     q:=                       quaternion? quaternion?))
+(deftype Quaternion [r i j k m]
+  v/Value
+  (zero? [this] (q:zero? this))
+  (one? [_] false)
+  (identity? [_] false)
+  (zero-like [this] (zero-like this))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
+  (exact? [this] (exact? this))
+  (freeze [_] (list 'quaternion r i j k))
+  (kind [_] ::quaternion)
+
+  f/IArity
+  (arity [this] (arity this))
+
+  d/IPerturbed
+  (perturbed? [_]
+    (or (d/perturbed? r)
+        (d/perturbed? i)
+        (d/perturbed? j)
+        (d/perturbed? k)))
+
+  (replace-tag [_ old new]
+    (Quaternion.
+     (d/replace-tag r old new)
+     (d/replace-tag i old new)
+     (d/replace-tag j old new)
+     (d/replace-tag k old new)
+     m))
+
+  (extract-tangent [_ tag]
+    (Quaternion.
+     (d/extract-tangent r tag)
+     (d/extract-tangent i tag)
+     (d/extract-tangent j tag)
+     (d/extract-tangent k tag)
+     m))
+
+  #?@(:clj
+      [Object
+       (toString [_] (str "#sicm/quaternion [" r " " i  " " j " " k "]"))
+       (equals [self q] (q:= self q))
+
+       IObj
+       (meta [_] m)
+       (withMeta [_ m] (Quaternion. r i j k m))
+
+       Sequential
+
+       Associative
+       (assoc [_ k v]
+              (case k
+                0 (Quaternion. v i j k m)
+                1 (Quaternion. r v j k m)
+                2 (Quaternion. r i v k m)
+                3 (Quaternion. r i j v m)
+                (IndexOutOfBoundsException.)))
+
+       (containsKey [_ k] (boolean (#{0 1 2 3} k)))
+       (entryAt [this k]
+                (get this k nil))
+
+       ;; TODO: count does NOT get called, it seems!!
+       (count [_] 4)
+       (seq [_] (list r i j k))
+       (valAt [this k]
+              (get this k nil))
+       (valAt [_ k default]
+              (case k
+                0 r
+                1 i
+                2 j
+                3 k
+                default))
+       (empty [this] (Quaternion. 0 0 0 0 m))
+       (equiv [this that] (.equals this that))
+
+       IFn
+       (invoke [this]
+               (q:apply this []))
+       (invoke [this a]
+               (q:apply this [a]))
+       (invoke [this a b]
+               (q:apply this [a b]))
+       (invoke [this a b c]
+               (q:apply this [a b c]))
+       (invoke [this a b c d]
+               (q:apply this [a b c d]))
+       (invoke [this a b c d e]
+               (q:apply this [a b c d e]))
+       (invoke [this a b c d e f]
+               (q:apply this [a b c d e f]))
+       (invoke [this a b c d e f g]
+               (q:apply this [a b c d e f g]))
+       (invoke [this a b c d e f g h]
+               (q:apply this [a b c d e f g h]))
+       (invoke [this a b c d e f g h i]
+               (q:apply this [a b c d e f g h i]))
+       (invoke [this a b c d e f g h i j]
+               (q:apply this [a b c d e f g h i j]))
+       (invoke [this a b c d e f g h i j k]
+               (q:apply this [a b c d e f g h i j k]))
+       (invoke [this a b c d e f g h i j k l]
+               (q:apply this [a b c d e f g h i j k l]))
+       (invoke [this a b c d e f g h i j k l m]
+               (q:apply this [a b c d e f g h i j k l m]))
+       (invoke [this a b c d e f g h i j k l m n]
+               (q:apply this [a b c d e f g h i j k l m n]))
+       (invoke [this a b c d e f g h i j k l m n o]
+               (q:apply this [a b c d e f g h i j k l m n o]))
+       (invoke [this a b c d e f g h i j k l m n o p]
+               (q:apply this [a b c d e f g h i j k l m n o p]))
+       (invoke [this a b c d e f g h i j k l m n o p q]
+               (q:apply this [a b c d e f g h i j k l m n o p q]))
+       (invoke [this a b c d e f g h i j k l m n o p q r]
+               (q:apply this [a b c d e f g h i j k l m n o p q r]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s]
+               (q:apply this [a b c d e f g h i j k l m n o p q r s]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s t]
+               (q:apply this [a b c d e f g h i j k l m n o p q r s t]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+               (q:apply this (into [a b c d e f g h i j k l m n o p q r s t] rest)))
+       (applyTo [s xs] (AFn/applyToHelper s xs))]
+
+      :cljs
+      [Object
+       (toString [_]
+                 (str "#sicm/quaternion [" r " " i  " " j " " k "]"))
+
+       IMeta
+       (-meta [_] m)
+
+       IWithMeta
+       (-with-meta [_ m] (Quaternion. r i j k m))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer (.toString x)))
+
+       ;; ICollection
+       ;; (-conj [_ item] (. orientation (-conj v item) m))
+
+       IEmptyableCollection
+       (-empty [_] (Quaternion. 0 0 0 0 m))
+
+       ISequential
+
+       IEquiv
+       (-equiv [this that] (q:= this that))
+
+       ISeqable
+       (-seq [_] (-seq v))
+
+       ICounted
+       (-count [_] 4)
+
+       ;; IIndexed
+       ;; (-nth [_ n] (-nth v n))
+       ;; (-nth [_ n not-found] (-nth v n not-found))
+
+       ;; ILookup
+       ;; (-lookup [_ k] (-lookup v k))
+       ;; (-lookup [_ k not-found] (-lookup v k not-found))
+
+       ;; IAssociative
+       ;; (-assoc [_ k entry] (Structure. orientation (-assoc v k entry) m))
+       ;; (-contains-key? [_ k] (-contains-key? v k))
+
+       ;; IFind
+       ;; (-find [_ n] (-find v n))
+
+       ;; IReduce
+       ;; (-reduce [_ f] (-reduce v f))
+       ;; (-reduce [_ f start] (-reduce v f start))
+
+       IFn
+       (-invoke [this]
+                (q:apply this []))
+       (-invoke [this a]
+                (q:apply this [a]))
+       (-invoke [this a b]
+                (q:apply this [a b]))
+       (-invoke [this a b c]
+                (q:apply this [a b c]))
+       (-invoke [this a b c d]
+                (q:apply this [a b c d]))
+       (-invoke [this a b c d e]
+                (q:apply this [a b c d e]))
+       (-invoke [this a b c d e f]
+                (q:apply this [a b c d e f]))
+       (-invoke [this a b c d e f g]
+                (q:apply this [a b c d e f g]))
+       (-invoke [this a b c d e f g h]
+                (q:apply this [a b c d e f g h]))
+       (-invoke [this a b c d e f g h i]
+                (q:apply this [a b c d e f g h i]))
+       (-invoke [this a b c d e f g h i j]
+                (q:apply this [a b c d e f g h i j]))
+       (-invoke [this a b c d e f g h i j k]
+                (q:apply this [a b c d e f g h i j k]))
+       (-invoke [this a b c d e f g h i j k l]
+                (q:apply this [a b c d e f g h i j k l]))
+       (-invoke [this a b c d e f g h i j k l m]
+                (q:apply this [a b c d e f g h i j k l m]))
+       (-invoke [this a b c d e f g h i j k l m n]
+                (q:apply this [a b c d e f g h i j k l m n]))
+       (-invoke [this a b c d e f g h i j k l m n o]
+                (q:apply this [a b c d e f g h i j k l m n o]))
+       (-invoke [this a b c d e f g h i j k l m n o p]
+                (q:apply this [a b c d e f g h i j k l m n o p]))
+       (-invoke [this a b c d e f g h i j k l m n o p q]
+                (q:apply this [a b c d e f g h i j k l m n o p q]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r]
+                (q:apply this [a b c d e f g h i j k l m n o p q r]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s]
+                (q:apply this [a b c d e f g h i j k l m n o p q r s]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
+                (q:apply this [a b c d e f g h i j k l m n o p q r s t]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+                (q:apply this (into [a b c d e f g h i j k l m n o p q r s t] rest)))]))
+
+(do (ns-unmap 'sicmutils.quaternion '->Quaternion)
+    (defn ->Quaternion
+      "Positional factory function for [[Quaternion]].
+
+  The final argument `m` defaults to nil if not supplied."
+      ([r i j k]
+       (Quaternion. r i j k nil))
+      ([r i j k m]
+       (Quaternion. r i j k m))))
+
+(defmethod print-method Quaternion [^Quaternion q ^java.io.Writer w]
+  (.write w (.toString q)))
+
+(defmethod print-dup Quaternion [^Quaternion q ^java.io.Writer w]
+  (.write w (.toString q)))
 
 (defn make
-  "Same as `make`, and `real&3vector->quaternion`."
+  "Same as `make`, and `real&3vector->quaternion`... plus one more."
+  ([[r i j k]]
+   (->Quaternion r i j k))
   ([r [i j k]]
    (->Quaternion r i j k))
   ([r i j k]
    (->Quaternion r i j k)))
 
 (defn quaternion? [q]
-  (instance? Quaternion q))
+(instance? Quaternion q))
 
 (defn ->vector [^Quaternion q]
-  [(.-r q) (.-i q) (.-j q) (.-k q)])
+[(.-r q) (.-i q) (.-j q) (.-k q)])
 
 (defn real-part [^Quaternion q]
-  (.-r q))
+(.-r q))
 
 (defn three-vector [^Quaternion q]
-  [(.-i q) (.-j q) (.-k q)])
+[(.-i q) (.-j q) (.-k q)])
 
 (defn q:+ [^Quaternion q1 ^Quaternion q2]
-  (->Quaternion
-   (g/+ (.-r q1) (.-r q2))
-   (g/+ (.-i q1) (.-i q2))
-   (g/+ (.-j q1) (.-j q2))
-   (g/+ (.-k q1) (.-k q2))))
+(->Quaternion
+ (g/+ (.-r q1) (.-r q2))
+ (g/+ (.-i q1) (.-i q2))
+ (g/+ (.-j q1) (.-j q2))
+ (g/+ (.-k q1) (.-k q2))))
 
 (defn q:- [^Quaternion q1 ^Quaternion q2]
-  (->Quaternion
-   (g/- (.-r q1) (.-r q2))
-   (g/- (.-i q1) (.-i q2))
-   (g/- (.-j q1) (.-j q2))
-   (g/- (.-k q1) (.-k q2))))
+(->Quaternion
+ (g/- (.-r q1) (.-r q2))
+ (g/- (.-i q1) (.-i q2))
+ (g/- (.-j q1) (.-j q2))
+ (g/- (.-k q1) (.-k q2))))
 
 (defn q:*
-  ([q] q)
-  ([^Quaternion q1 ^Quaternion q2]
-   (let [r1 (.-r q1) i1 (.-i q1) j1 (.-j q1) k1 (.-k q1)
-         r2 (.-r q2) i2 (.-i q2) j2 (.-j q2) k2 (.-k q2)]
-     (->Quaternion
-      (g/- (g/* r1 r2) (g/+ (g/* i1 i2) (g/* j1 j2) (g/* k1 k2)))
-      (g/+ (g/* r1 i2) (g/* i1 r2) (g/* j1 k2) (g/* -1 k1 j2))
-      (g/+ (g/* r1 j2) (g/* -1 i1 k2) (g/* j1 r2) (g/* k1 i2))
-      (g/+ (g/* r1 k2) (g/* i1 j2) (g/* -1 j1 i2) (g/* k1 r2)))))
-  ([q1 q2 & more]
-   (reduce q:* (q:* q1 q2) more)))
+([q] q)
+([^Quaternion q1 ^Quaternion q2]
+ (let [r1 (.-r q1) i1 (.-i q1) j1 (.-j q1) k1 (.-k q1)
+       r2 (.-r q2) i2 (.-i q2) j2 (.-j q2) k2 (.-k q2)]
+   (->Quaternion
+    (g/- (g/* r1 r2) (g/+ (g/* i1 i2) (g/* j1 j2) (g/* k1 k2)))
+    (g/+ (g/* r1 i2) (g/* i1 r2) (g/* j1 k2) (g/* -1 k1 j2))
+    (g/+ (g/* r1 j2) (g/* -1 i1 k2) (g/* j1 r2) (g/* k1 i2))
+    (g/+ (g/* r1 k2) (g/* i1 j2) (g/* -1 j1 i2) (g/* k1 r2)))))
+([q1 q2 & more]
+ (reduce q:* (q:* q1 q2) more)))
 
 (defn q:conjugate [^Quaternion q]
-  (->Quaternion
-   (.-r q)
-   (g/negate (.-i q))
-   (g/negate (.-j q))
-   (g/negate (.-k q))))
+(->Quaternion
+ (.-r q)
+ (g/negate (.-i q))
+ (g/negate (.-j q))
+ (g/negate (.-k q))))
 
 (defn q:negate [^Quaternion q]
-  (->Quaternion
-   (g/negate (.-r q))
-   (g/negate (.-i q))
-   (g/negate (.-j q))
-   (g/negate (.-k q))))
+(->Quaternion
+ (g/negate (.-r q))
+ (g/negate (.-i q))
+ (g/negate (.-j q))
+ (g/negate (.-k q))))
 
 (defn scalar*q [s ^Quaternion q]
-  (->Quaternion
-   (g/* s (.-r q))
-   (g/* s (.-i q))
-   (g/* s (.-j q))
-   (g/* s (.-k q))))
+(->Quaternion
+ (g/* s (.-r q))
+ (g/* s (.-i q))
+ (g/* s (.-j q))
+ (g/* s (.-k q))))
 
 (defn q*scalar [^Quaternion q s]
-  (->Quaternion
-   (g/* (.-r q) s)
-   (g/* (.-i q) s)
-   (g/* (.-j q) s)
-   (g/* (.-k q) s)))
+(->Quaternion
+ (g/* (.-r q) s)
+ (g/* (.-i q) s)
+ (g/* (.-j q) s)
+ (g/* (.-k q) s)))
 
 (defn q-div-scalar [^Quaternion q s]
-  (->Quaternion
-   (g// (.-r q) s)
-   (g// (.-i q) s)
-   (g// (.-j q) s)
-   (g// (.-k q) s)))
+(->Quaternion
+ (g// (.-r q) s)
+ (g// (.-i q) s)
+ (g// (.-j q) s)
+ (g// (.-k q) s)))
 
 (defn invert [^Quaternion q]
-  (q-div-scalar (q:conjugate q)
-                (g/+ (g/square (.-r q))
-                     (g/square (.-i q))
-                     (g/square (.-j q))
-                     (g/square (.-k q)))))
+(q-div-scalar (q:conjugate q)
+              (g/+ (g/square (.-r q))
+                   (g/square (.-i q))
+                   (g/square (.-j q))
+                   (g/square (.-k q)))))
 
 (defn q:div [q1 q2]
-  (q:* q1 (invert q2)))
+(q:* q1 (invert q2)))
 
 (defn magnitude [^Quaternion q]
-  (g/sqrt
-   (g/+ (g/square (.-r q))
-        (g/square (.-i q))
-        (g/square (.-j q))
-        (g/square (.-k q)))))
+(g/sqrt
+ (g/+ (g/square (.-r q))
+      (g/square (.-i q))
+      (g/square (.-j q))
+      (g/square (.-k q)))))
 
 (defn make-unit [q]
-  (q-div-scalar q (magnitude q)))
+(q-div-scalar q (magnitude q)))
 
 ;; TODO vector dot product, just do it directly.
 
 (defn unit? [q]
-  (let [v (->vector q)]
-    (v/one? (g/dot-product v v))))
+(let [v (->vector q)]
+  (v/one? (g/dot-product v v))))
 
 (defn exp [q]
-  (let [a (real-part q)
-        v (three-vector q)]
-    (let [vv (g/abs v)]
-      (g/* (g/exp a)
-           (make (g/cos vv)
-                 (g/* (g/sin vv)
-                      (g// v vv)))))))
+(let [a (real-part q)
+      v (three-vector q)]
+  (let [vv (g/abs v)]
+    (g/* (g/exp a)
+         (make (g/cos vv)
+               (g/* (g/sin vv)
+                    (g// v vv)))))))
 
 (defn log [q]
-  (let [a  (real-part q)
-        v  (three-vector q)
-        qq (g/abs (->vector q))
-        vv (g/abs v)]
-    (make (g/log qq)
-          (g/* (g/acos (g// a qq))
-               (g// v vv)))))
+(let [a  (real-part q)
+      v  (three-vector q)
+      qq (g/abs (->vector q))
+      vv (g/abs v)]
+  (make (g/log qq)
+        (g/* (g/acos (g// a qq))
+             (g// v vv)))))
 
 (let [zero (->Quaternion 0 0 0 0)]
   (defn zero-like [_] zero))
@@ -179,11 +403,20 @@
        (v/zero? (.-j q))
        (v/zero? (.-k q))))
 
-(defn q:= [^Quaternion q1 ^Quaternion q2]
-  (and (v/= (.-r q1) (.-r q2))
-       (v/= (.-i q1) (.-i q2))
-       (v/= (.-j q1) (.-j q2))
-       (v/= (.-k q1) (.-k q2))))
+(defn q:= [^Quaternion q1 q2]
+  (or (identical? q1 q2)
+      (and (instance? Quaternion q2)
+           (let [q2 ^Quaternion q2]
+             (and (v/= (.-r q1) (.-r q2))
+                  (v/= (.-i q1) (.-i q2))
+                  (v/= (.-j q1) (.-j q2))
+                  (v/= (.-k q1) (.-k q2)))))
+      (and (counted? q2)
+           (= (count q2) 4)
+           (= (.-r q1) (q2 0))
+           (= (.-i q1) (q2 1))
+           (= (.-j q1) (q2 2))
+           (= (.-k q1) (q2 3)))))
 
 (defn exact? [^Quaternion q]
   (and (v/exact? (.-r q))
@@ -559,6 +792,12 @@
                  (g/- (second result) axis))))))
 
 ;; Generic Method Installation
+
+(defmethod v/= [::quaternion ::quaternion] [a b] (q:= a b))
+
+;; TODO test... maybe we just need vectors, not sequences?
+(defmethod v/= [v/seqtype ::quaternion] [a b] (q:= a b))
+(defmethod v/= [::quaternion v/seqtype] [a b] (q:= a b))
 
 (defmethod g/add [::quaternion ::quaternion] [a b] (q:+ a b))
 
