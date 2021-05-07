@@ -26,14 +26,18 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn Associative IObj IFn Sequential))))
+     (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
 (declare arity q:= exact? q:apply q:zero? zero-like)
 
 (deftype Quaternion [r i j k m]
   v/Value
   (zero? [this] (q:zero? this))
-  (one? [_] false)
+  (one? [_] false
+
+    ;; TODO add one or identity from https://github.com/infusion/Quaternion.js/
+
+    )
   (identity? [_] false)
   (zero-like [this] (zero-like this))
   (one-like [o] (u/unsupported (str "one-like: " o)))
@@ -267,132 +271,197 @@
 (defmethod print-dup Quaternion [^Quaternion q ^java.io.Writer w]
   (.write w (.toString q)))
 
+(defn quaternion? [q]
+  (instance? Quaternion q))
+
+(defn get-r
+  "Get the r component of a quaternion."
+  [^Quaternion q]
+  (.-r q))
+
+(defn real-part [^Quaternion q]
+  (.-r q))
+
+(defn get-i
+  "Get the i component of a quaternion."
+  [^Quaternion q]
+  (.-i q))
+
+(defn get-j
+  "Get the j component of a quaternion."
+  [^Quaternion q]
+  (.-j q))
+
+(defn get-k
+  "Get the k component of a quaternion."
+  [^Quaternion q]
+  (.-k q))
+
+(defn ->vector [^Quaternion q]
+  [(.-r q) (.-i q) (.-j q) (.-k q)])
+
+(defn three-vector [^Quaternion q]
+  [(.-i q) (.-j q) (.-k q)])
+
+;; Constructors
+;;
+;; TODO check for duplicates!
+
 (defn make
   "Same as `make`, and `real&3vector->quaternion`... plus one more."
-  ([[r i j k]]
-   (->Quaternion r i j k))
+  ([v]
+   (if (instance? Quaternion v)
+     v
+     (apply ->Quaternion v)))
   ([r [i j k]]
    (->Quaternion r i j k))
   ([r i j k]
    (->Quaternion r i j k)))
 
-(defn quaternion? [q]
-(instance? Quaternion q))
+(def ^{:doc "The identity quaternion."}
+  q:identity
+  (make 1 0 0 0))
 
-(defn ->vector [^Quaternion q]
-[(.-r q) (.-i q) (.-j q) (.-k q)])
+(defn from-angle-normal-axis
+  "Create a quaternion from an angle in radians and a normalized axis vector."
+  [angle [x y z]]
+  (let [half-angle (g// angle 2)
+        half-sine (g/sin half-angle)]
+    (->Quaternion (g/cos half-angle)
+                  (g/* half-sine x)
+                  (g/* half-sine y)
+                  (g/* half-sine z))))
 
-(defn real-part [^Quaternion q]
-(.-r q))
+(defn from-angle-axis
+  "Create a quaternion from an angle in radians and an arbitrary axis vector."
+  [angle axis]
+  (let [vv (g/abs axis)]
+    (from-angle-normal-axis angle (g// axis vv))))
 
-(defn three-vector [^Quaternion q]
-[(.-i q) (.-j q) (.-k q)])
+(defn pitch
+  "Create a quaternion representing a pitch rotation by an angle in radians."
+  [angle]
+  (from-angle-normal-axis angle [1 0 0]))
+
+(defn yaw
+  "Create a quaternion representing a yaw rotation by an angle in radians."
+  [angle]
+  (from-angle-normal-axis angle [0 1 0]))
+
+(defn roll
+  "Create a quaternion representing a roll rotation by an angle in radians."
+  [angle]
+  (from-angle-normal-axis angle [0 0 1]))
+
+;; Algebra
 
 (defn q:+ [^Quaternion q1 ^Quaternion q2]
-(->Quaternion
- (g/+ (.-r q1) (.-r q2))
- (g/+ (.-i q1) (.-i q2))
- (g/+ (.-j q1) (.-j q2))
- (g/+ (.-k q1) (.-k q2))))
+  (->Quaternion
+   (g/+ (.-r q1) (.-r q2))
+   (g/+ (.-i q1) (.-i q2))
+   (g/+ (.-j q1) (.-j q2))
+   (g/+ (.-k q1) (.-k q2))))
 
 (defn q:- [^Quaternion q1 ^Quaternion q2]
-(->Quaternion
- (g/- (.-r q1) (.-r q2))
- (g/- (.-i q1) (.-i q2))
- (g/- (.-j q1) (.-j q2))
- (g/- (.-k q1) (.-k q2))))
+  (->Quaternion
+   (g/- (.-r q1) (.-r q2))
+   (g/- (.-i q1) (.-i q2))
+   (g/- (.-j q1) (.-j q2))
+   (g/- (.-k q1) (.-k q2))))
 
 (defn q:*
-([q] q)
-([^Quaternion q1 ^Quaternion q2]
- (let [r1 (.-r q1) i1 (.-i q1) j1 (.-j q1) k1 (.-k q1)
-       r2 (.-r q2) i2 (.-i q2) j2 (.-j q2) k2 (.-k q2)]
-   (->Quaternion
-    (g/- (g/* r1 r2) (g/+ (g/* i1 i2) (g/* j1 j2) (g/* k1 k2)))
-    (g/+ (g/* r1 i2) (g/* i1 r2) (g/* j1 k2) (g/* -1 k1 j2))
-    (g/+ (g/* r1 j2) (g/* -1 i1 k2) (g/* j1 r2) (g/* k1 i2))
-    (g/+ (g/* r1 k2) (g/* i1 j2) (g/* -1 j1 i2) (g/* k1 r2)))))
-([q1 q2 & more]
- (reduce q:* (q:* q1 q2) more)))
+  ([q] q)
+  ([^Quaternion q1 ^Quaternion q2]
+   (let [r1 (.-r q1) i1 (.-i q1) j1 (.-j q1) k1 (.-k q1)
+         r2 (.-r q2) i2 (.-i q2) j2 (.-j q2) k2 (.-k q2)]
+     (->Quaternion
+      (g/- (g/* r1 r2) (g/+ (g/* i1 i2) (g/* j1 j2) (g/* k1 k2)))
+      (g/+ (g/* r1 i2) (g/* i1 r2) (g/* j1 k2) (g/* -1 k1 j2))
+      (g/+ (g/* r1 j2) (g/* -1 i1 k2) (g/* j1 r2) (g/* k1 i2))
+      (g/+ (g/* r1 k2) (g/* i1 j2) (g/* -1 j1 i2) (g/* k1 r2)))))
+  ([q1 q2 & more]
+   (reduce q:* (q:* q1 q2) more)))
 
 (defn q:conjugate [^Quaternion q]
-(->Quaternion
- (.-r q)
- (g/negate (.-i q))
- (g/negate (.-j q))
- (g/negate (.-k q))))
+  (->Quaternion
+   (.-r q)
+   (g/negate (.-i q))
+   (g/negate (.-j q))
+   (g/negate (.-k q))))
 
 (defn q:negate [^Quaternion q]
-(->Quaternion
- (g/negate (.-r q))
- (g/negate (.-i q))
- (g/negate (.-j q))
- (g/negate (.-k q))))
+  (->Quaternion
+   (g/negate (.-r q))
+   (g/negate (.-i q))
+   (g/negate (.-j q))
+   (g/negate (.-k q))))
 
 (defn scalar*q [s ^Quaternion q]
-(->Quaternion
- (g/* s (.-r q))
- (g/* s (.-i q))
- (g/* s (.-j q))
- (g/* s (.-k q))))
+  (->Quaternion
+   (g/* s (.-r q))
+   (g/* s (.-i q))
+   (g/* s (.-j q))
+   (g/* s (.-k q))))
 
 (defn q*scalar [^Quaternion q s]
-(->Quaternion
- (g/* (.-r q) s)
- (g/* (.-i q) s)
- (g/* (.-j q) s)
- (g/* (.-k q) s)))
+  (->Quaternion
+   (g/* (.-r q) s)
+   (g/* (.-i q) s)
+   (g/* (.-j q) s)
+   (g/* (.-k q) s)))
 
 (defn q-div-scalar [^Quaternion q s]
-(->Quaternion
- (g// (.-r q) s)
- (g// (.-i q) s)
- (g// (.-j q) s)
- (g// (.-k q) s)))
+  (->Quaternion
+   (g// (.-r q) s)
+   (g// (.-i q) s)
+   (g// (.-j q) s)
+   (g// (.-k q) s)))
 
 (defn invert [^Quaternion q]
-(q-div-scalar (q:conjugate q)
-              (g/+ (g/square (.-r q))
-                   (g/square (.-i q))
-                   (g/square (.-j q))
-                   (g/square (.-k q)))))
+  (q-div-scalar (q:conjugate q)
+                (g/+ (g/square (.-r q))
+                     (g/square (.-i q))
+                     (g/square (.-j q))
+                     (g/square (.-k q)))))
 
 (defn q:div [q1 q2]
-(q:* q1 (invert q2)))
+  (q:* q1 (invert q2)))
 
-(defn magnitude [^Quaternion q]
-(g/sqrt
- (g/+ (g/square (.-r q))
-      (g/square (.-i q))
-      (g/square (.-j q))
-      (g/square (.-k q)))))
+(defn magnitude
+  "The norm of the quaternion."
+  [^Quaternion q]
+  (g/sqrt
+   (g/+ (g/square (.-r q))
+        (g/square (.-i q))
+        (g/square (.-j q))
+        (g/square (.-k q)))))
 
 (defn make-unit [q]
-(q-div-scalar q (magnitude q)))
+  (q-div-scalar q (magnitude q)))
 
 ;; TODO vector dot product, just do it directly.
 
 (defn unit? [q]
-(let [v (->vector q)]
-  (v/one? (g/dot-product v v))))
+  (let [v (->vector q)]
+    (v/one? (g/dot-product v v))))
 
 (defn exp [q]
-(let [a (real-part q)
-      v (three-vector q)]
-  (let [vv (g/abs v)]
-    (g/* (g/exp a)
-         (make (g/cos vv)
-               (g/* (g/sin vv)
-                    (g// v vv)))))))
+  (let [a (real-part q)
+        v (three-vector q)]
+    (let [vv (g/abs v)]
+      (g/* (g/exp a)
+           (make (g/cos vv)
+                 (g/* (g/sin vv)
+                      (g// v vv)))))))
 
 (defn log [q]
-(let [a  (real-part q)
-      v  (three-vector q)
-      qq (g/abs (->vector q))
-      vv (g/abs v)]
-  (make (g/log qq)
-        (g/* (g/acos (g// a qq))
-             (g// v vv)))))
+  (let [a  (real-part q)
+        v  (three-vector q)
+        qq (g/abs (->vector q))
+        vv (g/abs v)]
+    (make (g/log qq)
+          (g/* (g/acos (g// a qq))
+               (g// v vv)))))
 
 (let [zero (->Quaternion 0 0 0 0)]
   (defn zero-like [_] zero))
@@ -492,8 +561,7 @@
        (g/* (.-k q) q:k)))
 
 (defn q:4x4-> [four-matrix]
-  (apply ->Quaternion
-         (nth four-matrix 0)))
+  (make (nth four-matrix 0)))
 
 ;; ## Quaternions and 3D rotations
 
@@ -518,19 +586,25 @@
          axis  (g// v (g/abs v))]
      (continue theta axis))))
 
-(comment
-  (is (= '(theta
-           (up x y (sqrt (+ 1 (* -1 (expt x 2))
-                            (* -1 (expt y 2))))))
-         (g/simplify
-          (->angle-axis
-           (angle-axis->
-            'theta
-            ['x 'y (g/sqrt
-                    (g/- 1 (g/square 'x) (g/square 'y)))]))))))
-
 ;; To rotate a 3-vector by the angle prescribed by a unit quaternion.
 
+(comment
+  ;; TODO see if it's more efficient to do this, AND if so move the next one to
+  ;; the tests.
+
+  (defn rotate
+    "Rotate a vector with a quaternion."
+    [^Quaternion q ^Vector3D v]
+    (let [qx (.getX q), qy (.getY q), qz (.getZ q), qw (.getW q)
+          vx (.getX v), vy (.getY v), vz (.getZ v)]
+      (Vector3D.
+       (+ (* qw qw vx)     (* 2 qy qw vz) (* -2 qz qw vy)  (* qx qx vx)
+          (* 2 qy qx vy)   (* 2 qz qx vz) (- (* qz qz vx)) (- (* qy qy vx)))
+       (+ (* 2 qx qy vx)   (* qy qy vy)   (* 2 qz qy vz)   (* 2 qw qz vx)
+          (- (* qz qz vy)) (* qw qw vy)   (* -2 qx qw vz)  (- (* qx qx vy)))
+       (+ (* 2 qx qz vx)   (* 2 qy qz vy) (* qz qz vz)     (* -2 qw qy vx)
+          (- (* qy qy vz)) (* 2 qw qx vy) (- (* qx qx vz)) (* qw qw vz)))))
+  )
 (defn rotate [q]
   {:pre [(quaternion? q)]}
   ;;(assert (q:unit? q))
@@ -757,40 +831,6 @@
                           (g/expt q3 2))
                      m-2)])))
 
-(comment
-  (is (= (s/up 0 (s/up 0 0 0))
-         (let [theta 'theta
-               v (s/up 'x 'y 'z)
-               axis (make-unit v)
-               result
-               ((comp quaternion->angle-axis
-                      rotation-matrix->quaternion
-                      quaternion->rotation-matrix
-                      angle-axis->quaternion)
-                theta axis)]
-           (s/up (g/- (first result) theta)
-                 (g/- (second result) axis)))))
-
-  ;; But look at (show-notes) to see the assumptions.
-  ;;
-  ;; Indeed:
-
-  (is (= '(up 2.0
-              (up -0.5345224838248488
-                  -1.0690449676496976
-                  -1.6035674514745464))
-         (let [theta -1
-               v (up 1 2 3)
-               axis (make-unit v)
-               result
-               ((comp quaternion->angle-axis
-                      rotation-matrix->quaternion
-                      quaternion->rotation-matrix
-                      angle-axis->quaternion)
-                theta axis)]
-           (s/up (g/- (first result) theta)
-                 (g/- (second result) axis))))))
-
 ;; Generic Method Installation
 
 (defmethod v/= [::quaternion ::quaternion] [a b] (q:= a b))
@@ -798,6 +838,14 @@
 ;; TODO test... maybe we just need vectors, not sequences?
 (defmethod v/= [v/seqtype ::quaternion] [a b] (q:= a b))
 (defmethod v/= [::quaternion v/seqtype] [a b] (q:= a b))
+
+(defmethod g/simplify [::quaternion] [^Quaternion q]
+  (->Quaternion
+   (g/simplify (.-r q))
+   (g/simplify (.-i q))
+   (g/simplify (.-j q))
+   (g/simplify (.-k q))
+   (meta q)))
 
 (defmethod g/add [::quaternion ::quaternion] [a b] (q:+ a b))
 
@@ -826,3 +874,71 @@
 
 (defmethod g/solve-linear [::v/scalar ::quaternion] [s q] (q-div-scalar q s))
 (defmethod g/solve-linear [::quaternion ::quaternion] [a b] (q:div b a))
+
+
+;; TODO see remaining interfaces here, and PICK the functions below: https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
+
+(comment
+  (defn axes
+    "Return the three axes of the quaternion."
+    [^Quaternion q]
+    (let [n  (norm q),  s  (if (> n 0) (/ 2.0 n) 0.0)
+          x  (.getX q), y  (.getY q), z  (.getZ q), w  (.getW q)
+          xs (* x s),   ys (* y s),   zs (* z s),   ws (* w s)
+          xx (* x xs),  xy (* x ys),  xz (* x zs),  xw (* x ws)
+          yy (* y ys),  yz (* y zs),  yw (* y ws)
+          zz (* z zs),  zw (* z ws)]
+      [(Vector3D. (- 1.0 (+ yy zz)) (+ xy zw) (- xz yw))
+       (Vector3D. (- xy zw) (- 1.0 (+ xx zz)) (+ yz xw))
+       (Vector3D. (+ xz yw) (- yz xw) (- 1.0 (+ xx yy)))]))
+
+  (defn from-axes
+    "Create a quaternion from three axis vectors."
+    [^Vector3D x-axis ^Vector3D y-axis ^Vector3D z-axis]
+    (let [m00 (.getX x-axis), m01 (.getX y-axis), m02 (.getX z-axis)
+          m10 (.getY x-axis), m11 (.getY y-axis), m12 (.getY z-axis)
+          m20 (.getZ x-axis), m21 (.getZ y-axis), m22 (.getZ z-axis)
+          trace (+ m00 m11 m22)]
+      (cond
+        (>= trace 0)
+        (let [s (Math/sqrt (inc trace))
+              r (/ 0.5 s)]
+          (Quaternion. (* r (- m21 m12))
+                       (* r (- m02 m20))
+                       (* r (- m10 m01))
+                       (* 0.5 s)))
+        (and (> m00 m11) (> m00 m22))
+        (let [s (Math/sqrt (- (inc m00) m11 m22))
+              r (/ 0.5 s)]
+          (Quaternion. (* 0.5 s)
+                       (* r (+ m10 m01))
+                       (* r (+ m02 m20))
+                       (* r (- m21 m12))))
+        (> m11 m22)
+        (let [s (Math/sqrt (- (inc m11) m00 m22))
+              r (/ 0.5 s)]
+          (Quaternion. (* r (+ m10 m01))
+                       (* 0.5 s)
+                       (* r (+ m21 m12))
+                       (* r (- m02 m20))))
+        :else
+        (let [s (Math/sqrt (- (inc m22) m00 m11))
+              r (/ 0.5 s)]
+          (Quaternion. (* r (+ m02 m20))
+                       (* r (+ m21 m12))
+                       (* 0.5 s)
+                       (* r (- m10 m01)))))))
+
+  (defn look-at
+    "Create a quaternion that is directed at a point specified by a vector."
+    [direction up]
+    (let [z-axis (v/normalize direction)
+          x-axis (v/normalize (v/cross up direction))
+          y-axis (v/normalize (v/cross direction x-axis))]
+      (from-axes x-axis y-axis z-axis))))
+
+
+(comment
+  ;; TODO look at https://github.com/infusion/Quaternion.js/ and see if there
+  ;; are more functions that we want!
+  )
