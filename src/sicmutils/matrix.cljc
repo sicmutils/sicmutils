@@ -321,12 +321,18 @@
   only one index is required to get an unboxed element from a column vector.
 
   NOTE that this is perhaps an unprincipled exception..."
-  [m is]
-  (let [e (core-get-in m is)]
-    (if (and (column? m)
-             (= 1 (count is)))
-      (e 0)
-      e)))
+  ([m is]
+   (let [e (core-get-in m is)]
+     (if (and (column? m)
+              (= 1 (count is)))
+       (e 0)
+       e)))
+  ([m is not-found]
+   (let [e (core-get-in m is not-found)]
+   (if (and (column? m)
+            (= 1 (count is)))
+     (e 0)
+     e))))
 
 (defn some
   "Returns true if `f` is true for some element of the matrix `m`, false
