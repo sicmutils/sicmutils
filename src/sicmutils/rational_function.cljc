@@ -301,63 +301,23 @@
 ;; The notation here is from Knuth (p. 291). In various places we take the gcd
 ;; of two polynomials and then use quotient to reduce those polynomials.
 
-(comment
-  (defn rcf:binary-operator
-    [u:u* v:v* int*int int*rat rat*int rat*rat]
-    (if (rational-function? u:u*)
-      (if (rational-function? v:v*)
-	      (rat*rat (ratform-numerator u:u*)
-		             (ratform-denominator u:u*)
-		             (ratform-numerator v:v*)
-		             (ratform-denominator v:v*))
-	      (rat*int (ratform-numerator u:u*)
-		             (ratform-denominator u:u*)
-		             v:v*))
-      (if (rational-function? v:v*)
-	      (int*rat u:u*
-		             (ratform-numerator v:v*)
-		             (ratform-denominator v:v*))
-	      (int*int u:u* v:v*))))
+(defn- binop
+  "Returns a function of two rf, poly or coefficient args... TODO describe args.
+  This is mostly for building a janky version of the generic fn.
 
-  (defn rcf:+
-    "TODO see how different this is from what we have below."
-    [u:u* v:v*]
-    (rcf:binary-operator
-     u:u* v:v*
-     p/poly:+
-     (fn [u v v*]
-       (if (v/zero? u)
-	       v:v*
-	       (make-rcf (poly:+ (poly:* u v*) v) v*)))
-     (fn [u u* v]
-       (if (poly:zero? v)
-	       u:u*
-	       (make-rcf (poly:+ u (poly:* u* v)) u*)))
-     (fn [u u* v v*]
-       (if (poly:= u* v*)
-	       (let* ((n (poly:+ u v)) (g (poly:gcd u* n)))
-	         (if (poly:one? g)
-		         (make-rcf n u*)
-		         (make-rcf (poly:quotient n g) (poly:quotient u* g))))
-	       (let [d1 (poly:gcd u* v*)]
-	         (if (poly:one? d1)
-		         (make-rcf (poly:+ (poly:* u v*) (poly:* u* v))
-			                 (poly:* u* v*))
-		         (let [u*:d1 (poly:quotient u* d1)
-			             t (poly:+ (poly:* u (poly:quotient v* d1))
-				                     (poly:* u*:d1 v))]
-		           (if (poly:zero? t)
-		             rcf:zero
-		             (let [d2 (poly:gcd t d1)]
-			             (if (poly:one? d2)
-			               (make-rcf t (poly:* u*/d1 v*))
-			               (make-rcf
-			                (poly:quotient t d2)
-			                (poly:* u*/d1
-				                      (poly:quotient v* d2))))))))))))))
+  THIS is here for accumulations, if we drop down to coef arithmetic."
+  [u*v u*rf rf*v rf*rf]
+  (fn [u v]
+    (if (rational-function? u)
+      (if (rational-function? v)
+	      (rf*rf u v)
+	      (rf*v u v))
+      (if (rational-function? v)
+	      (u*rf u v)
+	      (u*v u v)))))
 
 (defn rf:+
-  "Add the rational functions r and s."
+  "Add the [[RationalFunction]] instances `r` and `s`."
   [r s]
   {:pre [(rational-function? r)
          (rational-function? s)
@@ -366,30 +326,65 @@
         u  (numerator r)
         u' (denominator r)
         v  (numerator s)
-        v' (denominator s)
-        d1 (poly/gcd u' v')]
-    (if (v/one? d1)
-      (make-reduced a (p/poly:+ (p/poly:* u v')
-                                (p/poly:* u' v))
-                    (p/poly:* u' v'))
-      (let [t (p/poly:+ (p/poly:* u (p/evenly-divide v' d1))
-                        (p/poly:* v (p/evenly-divide u' d1)))
-            d2 (poly/gcd t d1)]
-        (make-reduced a
-                      (p/evenly-divide t d2)
-                      (p/poly:* (p/evenly-divide u' d1)
-                                (p/evenly-divide v' d2)))))))
+        v' (denominator s)]
+    (if (v/= u' v')
+	    (let [n (p/poly:+ u v)
+            g (poly/gcd u' n)]
+	      (if (v/one? g)
+		      (make-reduced a n u')
+		      (make-reduced a
+                        (p/evenly-divide n g)
+                        (p/evenly-divide u' g))))
+	    (let [d1 (poly/gcd u' v')]
+	      (if (v/one? d1)
+		      (make-reduced a
+                        (p/poly:+ (p/poly:* u v')
+                                  (p/poly:* u' v))
+			                  (p/poly:* u' v'))
+		      (let [u':d1 (p/evenly-divide u' d1)
+                v':d1 (p/evenly-divide v' d1)
+			          t (p/poly:+ (p/poly:* u v':d1)
+				                    (p/poly:* u':d1 v))]
+		        (if (v/zero? t)
+		          0
+		          (let [d2 (poly/gcd t d1)]
+                ;; TODO this branch seems a little pedantic. Check and remove IF
+                ;; in fact evenly-divide can easily catch this and be fast.
+			          (if (v/one? d2)
+			            (make-reduced a t (p/poly:* u':d1 v'))
+			            (make-reduced a
+			                          (p/evenly-divide t d2)
+			                          (p/poly:* u':d1
+				                                  (p/evenly-divide v' d2))))))))))))
 
-;; TODO add one for the poly on LEFT etc and install it in generics.
-;; TODO this is exactly what the binop is doing.
-(defn addp
+(defn rf+other
   "Add a rational function to a polynomial."
-  [r p]
-  (if (v/zero? p)
-    r
-    (let [v (denominator r)]
-      (-> (p/poly:+ (numerator r) (p/poly:* v p))
-          (make v)))))
+  [u v]
+  {:pre [(rational-function? u)]}
+  (if (v/zero? v)
+    u
+    (let [n (numerator u)
+          d (denominator u)]
+      (make (p/poly:+ n (p/poly:* d v))
+            d))))
+
+(defn other+rf
+  "Add a rational function to a polynomial.
+
+  TODO these little guards continue to feel weird. Why not check both sides?"
+  [u v]
+  {:pre [(rational-function? v)]}
+  (if (v/zero? u)
+    v
+    (let [n (numerator v)
+          d (denominator v)]
+      (make (p/poly:+ (p/poly:* u d) n)
+            d))))
+
+(def ^{:private true
+       :doc "TODO figure out where to stash this."}
+  full-add
+  (binop p/poly:+ other+rf rf+other rf:+))
 
 (defn negate [r]
   {:pre [(rational-function? r)]}
@@ -397,100 +392,47 @@
                       (p/negate (numerator r))
                       (denominator r)))
 
-(comment
-  (define rcf:- [u:u* v:v*]
-    (rcf:binary-operator
-     u:u* v:v*
-     poly:-
-     (lambda (u v v*)
-             (if (poly:zero? u)
-	             (make-ratform (poly:negate v) v*)
-	             (make-rcf (poly:- (poly:* u v*) v) v*)))
-     (fn [u u* v]
-       (if (poly:zero? v)
-	       u:u*
-	       (make-rcf (poly:- u (poly:* u* v)) u*)))
-     (fn [u u* v v*]
-       (if (poly:= u* v*)
-	       (let* ((n (poly:- u v)) (g (poly:gcd u* n)))
-	         (if (poly:one? g)
-		         (make-rcf n u*)
-		         (make-rcf (poly:quotient n g) (poly:quotient u* g))))
-	       (let [d1 (poly:gcd u* v*)]
-	         (if (poly:one? d1)
-		         (make-rcf (poly:- (poly:* u v*) (poly:* u* v))
-			                 (poly:* u* v*))
-		         (let [u*:d1 (poly:quotient u* d1)
-			             t (poly:- (poly:* u (poly:quotient v* d1))
-				                     (poly:* u*:d1 v))]
-		           (if (poly:zero? t)
-		             rcf:zero
-		             (let [d2 (poly:gcd t d1)]
-			             (if (poly:one? d2)
-			               (make-rcf t (poly:* u*:d1 v*))
-			               (make-rcf
-			                (poly:quotient t d2)
-			                (poly:* u*:d1
-				                      (poly:quotient v* d2))))))))))))))
-
 (defn rf:- [r s]
   (rf:+ r (negate s)))
 
-;; TODO add one for the poly on LEFT etc and install it in generics.
-(defn subp
-  "Subtract polynomial `p` from rational function `r`."
-  [r p]
-  {:pre [(rational-function? r)]}
-  (if (v/zero? p)
-    r
-    (let [v (denominator r)]
-      (-> (p/poly:- (numerator r)
-                    (p/poly:* v p))
-          (make v)))))
+(defn rf-other [u v]
+  {:pre [(rational-function? u)]}
+  (if (v/zero? v)
+    u
+    (let [n (numerator u)
+          d (denominator u)]
+      (make (p/poly:- n (p/poly:* d v))
+            d))))
 
-(comment
-  (define (rcf:* u:u* v:v*)
-    (rcf:binary-operator
-     u:u* v:v*
-     poly:*
-     (fn [u v v*]
-       (cond (poly:zero? u) rcf:zero
-	           (poly:one? u) v:v*
-	           :else
-	           (let [d (poly:gcd u v*)]
-	             (if (poly:one? d)
-		             (make-rcf (poly:* u v) v*)
-		             (make-rcf (poly:* (poly:quotient u d) v)
-			                     (poly:quotient v* d))))))
-     (fn [u u* v]
-       (cond (poly:zero? v) rcf:zero
-	           (poly:one? v) u:u*
-	           :else
-	           (let [d (poly:gcd u* v)]
-	             (if (poly:one? d)
-		             (make-rcf (poly:* u v) u*)
-		             (make-rcf (poly:* u (poly:quotient v d))
-			                     (poly:quotient u* d))))))
-     (fn [u u* v v*]
-       (let [d1 (poly:gcd u v*)
-	           d2 (poly:gcd u* v)]
-	       (if (poly:one? d1)
-	         (if (poly:one? d2)
-		         (make-rcf (poly:* u v) (poly:* u* v*))
-		         (make-rcf (poly:* u (poly:quotient v d2))
-			                 (poly:* (poly:quotient u* d2) v*)))
-	         (if (poly:one? d2)
-		         (make-rcf (poly:* (poly:quotient u d1) v)
-			                 (poly:* u* (poly:quotient v* d1)))
-		         (make-rcf (poly:* (poly:quotient u d1)
-				                       (poly:quotient v d2))
-			                 (poly:* (poly:quotient u* d2)
-				                       (poly:quotient v* d1))))))))))
+(defn other-rf [u v]
+  {:pre [(rational-function? v)]}
+  (if (v/zero? u)
+    (negate v)
+    (let [n (numerator v)
+          d (denominator v)]
+      (make (p/poly:- (p/poly:* u d) n)
+            d))))
 
-;; TODO move the other multipliers up!!
+;; TODO continue here.
 
-(defn rf:*
-  [r s]
+#_
+(fn [u u' v v']
+  (let [d1 (poly/gcd u v')
+	      d2 (poly/gcd u' v)]
+	  (if (v/one? d1)
+	    (if (v/one? d2)
+		    (make-rcf (p/poly:* u v) (p/poly:* u' v'))
+		    (make-rcf (p/poly:* u (p/evenly-divide v d2))
+			            (p/poly:* (p/evenly-divide u' d2) v')))
+	    (if (v/one? d2)
+		    (make-rcf (p/poly:* (p/evenly-divide u d1) v)
+			            (p/poly:* u' (p/evenly-divide v' d1)))
+		    (make-rcf (p/poly:* (p/evenly-divide u d1)
+				                    (p/evenly-divide v d2))
+			            (p/poly:* (p/evenly-divide u' d2)
+				                    (p/evenly-divide v' d1)))))))
+
+(defn rf:* [r s]
   {:pre [(rational-function? r)
          (rational-function? s)
          (= (bare-arity r) (bare-arity s))]}
@@ -509,21 +451,71 @@
                       v'' (p/poly:* (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
                   (make-reduced a u'' v'')))))
 
-(comment
-  ;; pretty sure this is identical to what we do, deferring to polynomial.
-  (defn rcf:expt [base exponent]
-    (letfn [(expt-iter [x count answer]
-              (if (fix:zero? count)
-	              answer
-	              (if (even? count)
-	                (expt-iter (rcf:square x) (fix:quotient count 2) answer)
-	                (expt-iter x (fix:-1+ count) (rcf:* x answer)))))]
-      (if (g/negative? exponent)
-	      (rcf:invert (expt-iter base (int:negate exponent) rcf:one))
-	      :else (expt-iter base exponent rcf:one)))))
+(defn rf*other [u v]
+  #_
+  (let [u (numerator r)
+        v (denominator r)
+        a (bare-arity r)]
+    (cond (v/zero? p) 0
+          (v/one? p)  r
+          :else (let [d (poly/gcd v p)]
+                  (if (v/one? d)
+                    (make-reduced a (p/poly:* u p) v)
+                    (make-reduced a
+                                  (p/poly:* u (p/evenly-divide p d))
+                                  (p/evenly-divide v d))))))
+
+  #_
+  (fn [u u' v]
+    (cond (v/zero? v) rcf:zero
+	        (v/one? v) u:u'
+	        :else
+	        (let [d (poly/gcd u' v)]
+	          (if (v/one? d)
+		          (make-rcf (p/poly:* u v) u')
+		          (make-rcf (p/poly:* u (p/evenly-divide v d))
+			                  (p/evenly-divide u' d)))))))
+
+(defn other*rf [u v]
+  ;; ratio on left:
+  #_
+  (make (g/mul (numerator r)
+               (r/numerator a))
+        (g/mul (denominator r)
+               (r/denominator a)))
+
+  ;; just coeff on left:
+  #_
+  (make (g/mul c (numerator r))
+        (denominator r))
+
+  #_
+  (let [u (numerator r)
+        v (denominator r)
+        a (bare-arity r)]
+    (cond (v/zero? p) 0
+          (v/one? p)  r
+          :else (let [d (poly/gcd p v) ]
+                  (if (v/one? d)
+                    (->RationalFunction a (p/poly:* p u) v)
+                    (->RationalFunction a
+                                        (p/poly:* (p/evenly-divide p d) u)
+                                        (p/evenly-divide v d))))))
+
+  #_
+  (fn [u v v']
+    (cond (v/zero? u) rcf:zero
+	        (v/one? u) v:v'
+	        :else
+	        (let [d (poly/gcd u v')]
+	          (if (v/one? d)
+		          (make-rcf (p/poly:* u v) v')
+		          (make-rcf (p/poly:* (p/evenly-divide u d) v)
+			                  (p/evenly-divide v' d)))))))
 
 (defn expt [r n]
-  {:pre [(rational-function? r) (v/integral? n)]}
+  {:pre [(rational-function? r)
+         (v/integral? n)]}
   (let [u (numerator r)
         v (denominator r)
         [top bottom e] (if (g/negative? n)
@@ -535,147 +527,167 @@
 
 (defn square [r]
   {:pre [(rational-function? r)]}
-  (let [u (numerator r)
-        v (denominator r)]
-    (->RationalFunction (bare-arity r)
-                        (p/square u)
-                        (p/square v))))
+  (->RationalFunction (bare-arity r)
+                      (p/square (numerator r))
+                      (p/square (denominator r))))
 
 (defn cube [r]
   {:pre [(rational-function? r)]}
-  (let [u (numerator r)
-        v (denominator r)]
-    (->RationalFunction (bare-arity r)
-                        (p/cube u)
-                        (p/cube v))))
+  (->RationalFunction (bare-arity r)
+                      (p/cube (numerator r))
+                      (p/cube (denominator r))))
 
 (defn invert [r]
   ;; use make so that the - sign will get flipped if needed.
   ;;
-  ;; TODO seems expensive, we can do better!
+  ;; TODO this is expensive, we can do better AND just flip the negative sign
+  ;; ourselves.
   (make (denominator r)
         (numerator r)))
 
-;; TODO if we want this to be more generic we need to get `rf:*` to handle more
-;; stuff...
-(defn div [r s]
-  (g/mul r (invert s)))
+(defn rf:div [u v]
+  (rf:* u (invert v)))
 
-(comment
-  (defn rcf:gcd [u/u* v/v*]
-    (rcf:binary-operator u/u* v/v*
-                         poly:gcd
-                         (lambda (u v v*)
-                                 (cond ((poly:zero? u) v/v*)
-	                                     ((poly:one? u) poly:one)
-	                                     (else (poly:gcd u v))))
-                         (lambda (u u* v)
-                                 (cond ((poly:zero? v) u/u*)
-	                                     ((poly:one? v) poly:one)
-	                                     (else (poly:gcd u v))))
-                         (lambda (u u* v v*)
-                                 (let ((d1 (poly:gcd u v))
-	                                     (d2 (poly:gcd u* v*)))
-	                                 (make-rcf d1 d2)))))
+(defn rf-div-other [u v]
+  (rf*other u (g/invert v)))
 
-  (define (rcf:arg-scale r points)
-    (if (ratform? r)
-      (div (apply poly:arg-scale (ratform-numerator r) points)
-	         (apply poly:arg-scale (ratform-denominator r) points))
-      (apply poly:arg-scale r points)))
+(defn other-div-rf [u v]
+  (other*rf u (invert v)))
 
-  (define (rcf:arg-shift r points)
-    (if (ratform? r)
-      (div (apply poly:arg-shift (ratform-numerator r) points)
-	         (apply poly:arg-shift (ratform-denominator r) points))
-      (apply poly:arg-shift r points)))
+(defn rf:gcd [u v]
+  (let [d1 (poly/gcd (numerator u)
+                     (numerator v))
+	      d2 (poly/gcd (numerator u)
+                     (numerator v))]
+	  (make d1 d2)))
 
-  ;; TODO call this `evaluate`, since we define that name above.
-  (define (rcf:value r points)
-    (if (ratform? r)
-      (div (apply poly:value (ratform-numerator r) points)
-	         (apply poly:value (ratform-denominator r) points))
-      (apply poly:value r points)))
+(defn rf-gcd-other [u v]
+  (cond (v/zero? v) u
+	      (v/one? v)  1
+	      :else (poly/gcd (numerator u) v)))
 
-  ;; The following only plugs r2 in for the principal indeterminate.
-  ;; TODO add poly:principal-reverse
-  (defn rcf:compose [r1 r2]
-    (if (ratform? r2)
-      (let [nr1 (numerator r1)
-            nr2 (numerator r2)
-	          dr1 (denominator r1)
-            dr2 (denominator r2)
-            dn (p/degree nr1)
-	          dd (p/degree dr1)
-	          narity (+ (p/arity dr1) 1)
-            nnr1 (poly:extend 1 (poly:principal-reverse nr1))
-            ndr1 (poly:extend 1 (poly:principal-reverse dr1))
-            scales (list (cadr (poly:new-variables narity)) 1)
-            pn (poly:value (poly:principal-reverse
-				                    (poly:arg-scale nnr1 scales))
-				                   nr2
-				                   dr2)
-            pd (poly:value (poly:principal-reverse
-				                    (poly:arg-scale ndr1 scales))
-				                   nr2
-				                   dr2)]
-	      (cond (> dn dd) (div pn (poly:* (poly:expt dr2 (fix:- dn dd)) pd))
-		          (< dn dd) (div (poly:* (poly:expt dr2 (fix:- dd dn)) pn) pd)
-		          :else (div pn pd)))
-      (div (poly:value (numerator r1) r2)
-	         (poly:value (denominator r1) r2))))
+(defn other-gcd-rf [u v]
+  (cond (v/zero? u) v
+	      (v/one? u)  1
+	      :else (poly/gcd u (numerator v))))
 
-  (defn rcf:derivative [r varnum]
-    (if (ratform? r)
-      (let [u (numerator r)
-            v (denominator r)]
-	      (div (poly:- (poly:* (poly:derivative u varnum) v)
-		                 (poly:* u (poly:derivative v varnum)))
-	           (poly:* v v)))
-      (poly:derivative r varnum))))
+;; TODO don't use `g/div`, build the `div` function!
 
-(comment
-  ;; I don't know if this stuff is ever important...GJS
+(defn arg-scale [r points]
+  (if (rational-function? r)
+    (g/div (p/arg-scale (numerator r) points)
+	         (p/arg-scale (denominator r) points))
+    (p/arg-scale r points)))
 
-  (defn assoc-accumulation [rat:op poly:op rat:identity]
-    (letfn [(operate [rats]
-              (cond (null? rats) rat:identity
-	                  (null? (cdr rats)) (car rats)
-	                  (ratform? (car rats))
-	                  (cond (ratform? (cadr rats))
-		                      (operate (cons (rat:op (car rats) (cadr rats))
-				                                 (cddr rats)))
-		                      (null? (cddr rats)) (rat:op (car rats) (cadr rats))
-		                      (not (ratform? (caddr rats)))
-		                      (operate (cons (car rats)
-				                                 (cons (poly:op (cadr rats) (caddr rats))
-				                                       (cdddr rats))))
-		                      :else (operate (cons (rat:op (car rats) (cadr rats))
-				                                       (cddr rats))))
-	                  (ratform? (cadr rats))
-	                  (operate (cons (rat:op (car rats) (cadr rats))
-			                             (cddr rats)))
-	                  :else
-	                  (operate (cons (poly:op (car rats) (cadr rats))
-			                             (cddr rats)))))]
-      (fn [& xs]
-        (operate rats))))
+(defn arg-shift [r points]
+  (if (rational-function? r)
+    (g/div (p/arg-shift (numerator r) points)
+	         (p/arg-shift (denominator r) points))
+    (p/arg-shift r points)))
 
-  (def +$rf (assoc-accumulation rf:+ p/poly:+ rf:zero))
-  (def *$rf (assoc-accumulation rf:* p/poly:* rf:one))
+(defn evaluate [r xs]
+  (if (rational-function? r)
+    (g/div (p/evaluate (numerator r) xs)
+	         (p/evaluate (denominator r) xs))
+    (p/evaluate r xs)))
 
-  (defn assoc-inverse-accumulation [rat:inv-op rat:op rat:invert poly:op rat:identity]
-    (let [direct-op (assoc-accumulation rat:op poly:op rat:identity)]
-      (fn operator [& rats]
-        (cond (null? rats) rat:identity
-	            (null? (cdr rats)) (rat:invert (car rats))
-	            :else (rat:inv-op (car rats) (apply direct-op (cdr rats)))))))
+(defn compose
+  "only plugs r2 in for the principal indeterminate."
+  [r1 r2]
+  (if (rational-function? r2)
+    (let [nr1 (numerator r1)
+          nr2 (numerator r2)
+	        dr1 (denominator r1)
+          dr2 (denominator r2)
+          dn  (p/degree nr1)
+	        dd  (p/degree dr1)
+	        narity (+ (p/arity dr1) 1)
+          nnr1 (p/extend 1 (p/principal-reverse nr1))
+          ndr1 (p/extend 1 (p/principal-reverse dr1))
+          scales [(second (p/new-variables narity)) 1]
+          pn (p/evaluate (p/principal-reverse
+				                  (p/arg-scale nnr1 scales))
+				                 nr2
+				                 dr2)
+          pd (p/evaluate (p/principal-reverse
+				                  (p/arg-scale ndr1 scales))
+				                 nr2
+				                 dr2)]
+	    (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
+		        (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
+		        :else (g/div pn pd)))
+    (g/div (p/evaluate (numerator r1) r2)
+	         (p/evaluate (denominator r1) r2))))
 
-  (def -$rcf
-    (assoc-inverse-accumulation rcf:- rcf:+ rcf:negate poly:+ rcf:zero))
+(defn partial-derivative [r i]
+  (if (rational-function? r)
+    (let [u (numerator r)
+          v (denominator r)]
+	    (g/div (p/poly:- (p/poly:* (p/partial-derivative u i) v)
+		                   (p/poly:* u (p/partial-derivative v i)))
+	           (p/poly:* v v)))
+    (p/partial-derivative r i)))
 
-  (def div-$rcf
-    (assoc-inverse-accumulation div rcf:* rcf:invert poly:* rcf:one)))
+;; I don't know if this stuff is ever important...GJS
+
+(defn assoc-accumulation [rat:op poly:op rat:identity]
+  (letfn [(operate [rats]
+            (cond (empty? rats) rat:identity
+
+                  (empty? (rest rats)) (first rats)
+
+                  (rational-function? (first rats))
+	                (cond (rational-function? (second rats))
+		                    (operate
+                         (cons (rat:op (first rats)
+                                       (second rats))
+				                       (drop 2 rats)))
+
+		                    (empty? (drop 2 rats))
+                        (rat:op (first rats)
+                                (second rats))
+
+		                    (not (rational-function? (nth rats 2)))
+		                    (operate
+                         (cons (first rats)
+				                       (cons (poly:op (second rats)
+                                              (nth rats 2))
+				                             (drop 3 rats))))
+
+		                    :else (operate
+                               (cons (rat:op (first rats)
+                                             (second rats))
+				                             (drop 2 rats))))
+
+                  (rational-function? (second rats))
+	                (operate
+                   (cons (rat:op (first rats)
+                                 (second rats))
+			                   (drop 2 rats)))
+	                :else
+	                (operate
+                   (cons (poly:op (first rats)
+                                  (second rats))
+			                   (drop 2 rats)))))]
+    (fn [& xs]
+      (operate xs))))
+
+(def +$rf (assoc-accumulation rf:+ p/poly:+ 0))
+(def *$rf (assoc-accumulation rf:* p/poly:* 1))
+
+(defn assoc-inverse-accumulation [rat:inv-op rat:op rat:invert poly:op rat:identity]
+  (let [direct-op (assoc-accumulation rat:op poly:op rat:identity)]
+    (fn operator
+      ([] rat:identity)
+      ([r] (rat:invert r))
+      ([r & rs]
+       (rat:inv-op r (apply direct-op rs))))))
+
+(def -$rcf
+  (assoc-inverse-accumulation rf:- rf:+ negate p/poly:+ 0))
+
+(def div-$rcf
+  (assoc-inverse-accumulation rf:div rf:* invert p/poly:* 1))
 
 ;; TODO use accumulation etc to make these tidy.
 ;;
@@ -698,13 +710,12 @@
    'expt g/expt
    'square square
    'cube cube
-   'gcd g/gcd
-   })
+   'gcd g/gcd})
 
 (def operators-known
   (u/keyset operator-table))
 
-(deftype RationalFunctionAnalyzer [polynomial-analyzer]
+(deftype RationalFunctionAnalyzer [poly-analyzer]
   a/ICanonicalize
   (expression-> [this expr cont]
     (a/expression-> this expr cont compare))
@@ -722,9 +733,9 @@
     (let [expression-vars (sort v-compare
                                 (set/difference (x/variables-in expr)
                                                 operators-known))
-          arity    (count expression-vars)
+          arity (count expression-vars)
           sym->var (zipmap expression-vars (p/new-variables arity))
-          expr'    (x/evaluate expr sym->var operator-table)]
+          expr' (x/evaluate expr sym->var operator-table)]
       (cont expr' expression-vars)))
 
   (->expression [_ r vars]
@@ -733,15 +744,11 @@
     ;; representing the evaluation of that function over the
     ;; indeterminates extracted from the expression at the start of this
     ;; process."
-    (cond (rational-function? r)
-          ((sym/symbolic-operator '/)
-           (a/->expression polynomial-analyzer (numerator ^RationalFunction r) vars)
-           (a/->expression polynomial-analyzer (denominator ^RationalFunction r) vars))
-
-          (p/polynomial? r)
-          (a/->expression polynomial-analyzer r vars)
-
-          :else r))
+    (if (rational-function? r)
+      ((sym/symbolic-operator '/)
+       (a/->expression poly-analyzer (numerator r) vars)
+       (a/->expression poly-analyzer (denominator r) vars))
+      (a/->expression poly-analyzer r vars)))
 
   (known-operation? [_ o]
     (contains? operators-known o)))
@@ -749,110 +756,51 @@
 ;; ## Generic Method Implementations
 ;;
 ;; TODO figure out MORE methods to install here... cos etc?
-
-(defmethod g/add [::rational-function ::rational-function] [a b]
-  (rf:+ a b))
-
-(defmethod g/add [::rational-function ::p/polynomial] [r p]
-  (addp r p))
-
-(defmethod g/add [::p/polynomial ::rational-function] [p r]
-  (addp r p))
-
-(defmethod g/add [::rational-function ::p/coeff] [a b]
-  (addp a (p/make-constant (bare-arity a) b)))
-
-(defmethod g/add [::p/coeff ::rational-function] [b a]
-  (addp a (p/make-constant (bare-arity a) b)))
-
-(defmethod g/negate [::rational-function] [a]
-  (negate a))
-
-(defmethod g/sub [::rational-function ::rational-function] [a b]
-  (rf:- a b))
-
-(defmethod g/sub [::rational-function ::p/polynomial] [r p]
-  (subp r p))
-
-;; TODO why just integral??
-(defmethod g/sub [::rational-function ::v/integral] [^RationalFunction r c]
-  (let [u (numerator r)
-        v (denominator r)]
-    (make (p/poly:- (g/mul c v) u) v)))
-
-;; TODO make these NOT necessarily commute,
-(defmethod g/sub [::rational-function ::p/polynomial] [r p]
-  (addp r (g/negate p)))
-
-(defmethod g/sub [::p/polynomial ::rational-function] [p r]
-  (addp (g/negate r) p))
-
-(defmethod g/mul [::rational-function ::rational-function] [a b]
-  (rf:* a b))
-
-;; Multiply the rational function r = u/v by the polynomial p.
-
-(defmethod g/mul [::rational-function ::p/polynomial] [r p]
-  (let [u (numerator r)
-        v (denominator r)
-        a (bare-arity r)]
-    (cond (v/zero? p) 0
-          (v/one? p)  r
-          :else (let [d (poly/gcd v p)]
-                  (if (v/one? d)
-                    (make-reduced a (p/poly:* u p) v)
-                    (make-reduced a
-                                  (p/poly:* u (p/evenly-divide p d))
-                                  (p/evenly-divide v d)))))))
-
-;; Multiply the polynomial p by the rational function r = u/v.
 ;;
-;; TODO why not make-reduced?
+;; `exact-divide`, `abs`, `partial-derivative`, `simplify`,
+;; `solve-linear-right`, `solve-linear`
 
-(defmethod g/mul [::p/polynomial ::rational-function] [p r]
-  (let [u (numerator r)
-        v (denominator r)
-        a (bare-arity r)]
-    (cond (v/zero? p) 0
-          (v/one? p)  r
-          :else (let [d (poly/gcd p v) ]
-                  (if (v/one? d)
-                    (->RationalFunction a (p/poly:* p u) v)
-                    (->RationalFunction a
-                                        (p/poly:* (p/evenly-divide p d) u)
-                                        (p/evenly-divide v d)))))))
+;; TODO can I make them inherit... and then just do the top one ONLY?
 
-(defmethod g/div [::rational-function ::rational-function] [a b]
-  (div a b))
+(defmethod v/= [::rational-function ::rational-function] [u v] (rf:= u v))
+(defmethod v/= [::rational-function ::polynomial] [u v] (rf:= u v))
+(defmethod v/= [::rational-function ::coeff] [u v] (rf:= u v))
+(defmethod v/= [::polynomial ::rational-function] [u v] (rf:= v u))
+(defmethod v/= [::p/coeff ::rational-function] [u v] (rf:= v u))
 
-(defmethod g/div [::rational-function ::p/polynomial] [r p]
-  (make (numerator r)
-        (p/poly:* (denominator r) p)))
+(defmethod g/add [::rational-function ::rational-function] [u v] (rf:+ u v))
+(defmethod g/add [::rational-function ::p/polynomial] [u v] (rf+other u v))
+(defmethod g/add [::rational-function ::p/coeff] [u v] (rf+other u v))
+(defmethod g/add [::p/polynomial ::rational-function] [u v] (other+rf u v))
+(defmethod g/add [::p/coeff ::rational-function] [u v] (other+rf u v))
 
-(defmethod g/div [::p/polynomial ::rational-function] [p r]
-  (make (p/poly:* p (denominator r))
-        (numerator r)))
+(defmethod g/negate [::rational-function] [a] (negate a))
 
-(defmethod g/div [::p/polynomial ::p/polynomial] [p q]
-  (let [g (poly/gcd p q)]
-    (make (p/evenly-divide p g)
-          (p/evenly-divide q g))))
+(defmethod g/sub [::rational-function ::rational-function] [a b] (rf:- a b))
+(defmethod g/sub [::rational-function ::p/polynomial] [u v] (rf-other u v))
+(defmethod g/sub [::rational-function ::p/coeff] [u v] (rf-other u v))
+(defmethod g/sub [::p/polynomial ::rational-function] [u v] (other-rf u v))
+(defmethod g/sub [::p/coeff ::rational-function] [u v] (other-rf u v))
 
-(defmethod g/invert [::p/polynomial] [p]
-  (make (p/make-constant (p/bare-arity p) 1) p))
+(defmethod g/mul [::rational-function ::rational-function] [u v] (rf:* u v))
+(defmethod g/mul [::rational-function ::p/polynomial] [u v] (rf*other u v))
+(defmethod g/mul [::rational-function ::p/coeff] [u v] (rf*other u v))
+(defmethod g/mul [::p/polynomial ::rational-function] [u v] (other*rf u v))
+(defmethod g/mul [::p/coeff ::rational-function] [u v] (other*rf u v))
 
-;; ### (coeff, RF)
 
-(defmethod g/mul [::p/coeff ::rational-function] [c ^RationalFunction r]
+;; TODO fold the next four in...
+(defmethod g/mul [::p/coeff ::rational-function] [c r]
   (make (g/mul c (numerator r))
         (denominator r)))
 
-(defmethod g/mul [::rational-function ::p/coeff] [^RationalFunction r c]
+(defmethod g/mul [::rational-function ::p/coeff] [r c]
   (make (g/mul (numerator r) c)
         (denominator r)))
 
-;; Ratio support for Clojure.
-(defmethod g/mul [::rational-function r/ratiotype] [^RationalFunction r a]
+;; Ratio support
+
+(defmethod g/mul [::rational-function r/ratiotype] [r a]
   (make (g/mul (numerator r)
                (r/numerator a))
         (g/mul (denominator r)
@@ -864,8 +812,17 @@
         (g/mul (r/denominator a)
                (denominator r))))
 
-(defmethod g/expt [::rational-function ::v/integral] [b x]
-  (expt b x))
+(defmethod g/invert [::p/polynomial] [p]
+  (->RationalFunction (p/bare-arity p) 1 p))
+
+(defmethod g/div [::rational-function ::rational-function] [u v] (rf:div u v))
+(defmethod g/div [::rational-function ::p/polynomial] [u v] (rf-div-other u v))
+(defmethod g/div [::p/polynomial ::rational-function] [u v] (other-div-rf u v))
+
+(defmethod g/div [::p/polynomial ::p/polynomial] [p q]
+  (let [g (poly/gcd p q)]
+    (make (p/evenly-divide p g)
+          (p/evenly-divide q g))))
 
 (defmethod g/div [::rational-function ::p/coeff] [r c]
   (make (numerator r)
@@ -879,30 +836,11 @@
   (make (p/make-constant (p/bare-arity p) c)
         p))
 
-;; TODO shouldn't this move to the `gcd` namespace??
-(defmethod g/gcd [::p/polynomial ::p/polynomial] [p q]
-  (poly/gcd p q))
+(defmethod g/expt [::rational-function ::v/integral] [b x]
+  (expt b x))
 
-(defmethod g/gcd [::p/polynomial ::rational-function] [p u]
-  (poly/gcd p (numerator u)))
-
-(defmethod g/gcd [::rational-function ::p/polynomial] [u p]
-  (poly/gcd (numerator u) p))
-
-(defmethod g/gcd [::rational-function ::rational-function] [u v]
-  (make (poly/gcd (numerator u)
-                  (numerator v))
-        (poly/gcd (denominator u)
-                  (denominator v))))
-
-(defmethod g/gcd [::p/polynomial ::v/integral] [p a]
-  (poly/primitive-gcd (cons a (p/coefficients p))))
-
-(defmethod g/gcd [::v/integral ::p/polynomial] [a p]
-  (poly/primitive-gcd (cons a (p/coefficients p))))
-
-(defmethod g/gcd [::p/polynomial r/ratiotype] [p a]
-  (poly/primitive-gcd (cons a (p/coefficients p))))
-
-(defmethod g/gcd [r/ratiotype ::p/polynomial] [a p]
-  (poly/primitive-gcd (cons a (p/coefficients p))))
+(defmethod g/gcd [::rational-function ::rational-function] [u v] (rf:gcd u v))
+(defmethod g/gcd [::p/polynomial ::rational-function] [u v] (other-gcd-rf u v))
+(defmethod g/gcd [::p/coeff ::rational-function] [u v] (other-gcd-rf u v))
+(defmethod g/gcd [::rational-function ::p/polynomial] [u v] (rf-gcd-other u v))
+(defmethod g/gcd [::rational-function ::p/coeff] [u v] (rf-gcd-other u v))

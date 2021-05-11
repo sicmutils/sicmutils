@@ -392,6 +392,18 @@
 
         :else 0))
 
+(defn principal-reverse [p]
+  ;; TODO figure out what the heck this is trying to do... get some more stuff
+  ;; from pcf around line 1243.
+  #_(let [d (degree p)]
+	    (loop [p      (bare-terms p)
+             result []]
+	      (if (empty? p)
+	        result
+	        (recur (rest p)
+		             (cons (cons (- d (caar p)) (cdar p))
+			                 result))))))
+
 (defn monomial? [p]
   (or (not (explicit-polynomial? p))
       (= 1 (count (bare-terms p)))))
@@ -611,7 +623,7 @@
 
 ;; ## Manipulations
 
-(defn poly:extend
+(defn extend
   "TODO interpolate a new variable in the `n` spot by expanding all vectors."
   [p n]
   )
@@ -951,33 +963,29 @@
                     L)))))
 
 ;; ## Scale and Shift
-;;
-;; Given polynomial P(x), substitute x = r*y and compute the resulting
-;;  polynomial Q(y) = P(y*r).  When a multivariate polynomial is
-;;  scaled, each factor must have the same arity as the given
-;;  polynomial... or a base constant.
-;;
-;; NOTE this is actually scaling each arg.
 
-(comment
-  (define (poly/arg-scale p factors)
-    (poly/horner p
-	               (map poly/mul
-		                  (list-head factors (poly/arity p))
-		                  (poly/make-vars (poly/arity p))))))
+(declare horner)
 
+(defn arg-scale
+  "Given polynomial P(x), substitute x = r*y and compute the resulting polynomial
+  Q(y) = P(y*r). When a multivariate polynomial is scaled, each factor must have
+  the same arity as the given polynomial... or a base constant.
+  "
+  [p factors]
+  {:pre (= (arity p) (count factors))}
+  (horner p (map poly:*
+		             factors
+		             (new-variables (arity p)))))
 
-;; Given polynomial P(x), substitute x = y+h and compute the resulting
-;;  polynomial Q(y) = P(y+h).  When a multivariate polynomial is
-;;  shifted, each shift must have the same arity as the given
-;;  polynomial... or a base constant.
-
-(comment
-  (define (poly/arg-shift p shifts)
-    (poly/horner p
-	               (map poly/add
-		                  (list-head shifts (poly/arity p))
-		                  (poly/make-vars (poly/arity p))))))
+(defn arg-shift
+  "Given polynomial P(x), substitute x = y+h and compute the resulting polynomial
+  Q(y) = P(y+h). When a multivariate polynomial is shifted, each shift must have
+  the same arity as the given polynomial... or a base constant."
+  [p shifts]
+  {:pre (= (arity p) (count shifts))}
+  (horner p (map poly:+
+                 shifts
+		             (new-variables (arity p)))))
 
 ;; ## GCD Related Things
 ;;
@@ -1146,6 +1154,9 @@
   (->PolynomialAnalyzer))
 
 ;; ## Generic Implementations
+
+;; TODO: add `partial-derivative`., `simplify`, `solve-linear-right`,
+;; `solve-linear`,
 
 (defmethod v/= [::polynomial ::coeff] [l r] (poly:= l r))
 (defmethod v/= [::coeff ::polynomial] [l r] (poly:= r l))

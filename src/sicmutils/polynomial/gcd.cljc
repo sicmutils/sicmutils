@@ -376,10 +376,12 @@
          (v/one? u)  u
          (v/one? v)  v
          (= u v)     u
-         (v/scalar? u) (if (v/scalar? v)
-                         (g/gcd u v)
-                         (g/gcd u (sparse-base-content (poly->sparse v))))
-         (v/scalar? v) (g/gcd (sparse-base-content (poly->sparse u)) v)
+         ;; TODO there is no way that this will work, the `sparse-base-content`
+         ;; thing. isn't that u and a list?
+         (p/coeff? u) (if (p/coeff? v)
+                        (g/gcd u v)
+                        (g/gcd u (sparse-base-content (poly->sparse v))))
+         (p/coeff? v) (g/gcd (sparse-base-content (poly->sparse u)) v)
 
          :else
          (let [arity (p/check-same-arity u v)]
@@ -415,10 +417,18 @@
   gcd
   gcd-dispatch)
 
+;; TODO test `gcd` between OTHER types and polynomials here...
+
 (defmethod g/gcd [::p/polynomial ::p/polynomial] [u v]
   (gcd-dispatch u v))
 
-(defn ^:private gcd-seq
+(defmethod g/gcd [::p/polynomial ::p/coeff] [u v]
+  (primitive-gcd (cons v (p/coefficients u))))
+
+(defmethod g/gcd [::p/coeff ::p/polynomial] [u v]
+  (primitive-gcd (cons u (p/coefficients v))))
+
+(defn- gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
   [items]
