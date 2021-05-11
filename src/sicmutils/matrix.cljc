@@ -867,8 +867,8 @@ by the right matrix."
   [matrix-A matrix-B]
   (fmap (fn [x] (g/* x matrix-B)) matrix-A))
 
-(defn dim-sum
-  "Initial implementation of Direct Sum"
+(defn direct-sum
+  "Initial implementation of Direct Sum. "
   [matrix-A matrix-B]
   (let [new-row-count (+ (num-rows matrix-A) (num-rows matrix-B))
         new-col-count (+ (num-cols matrix-A) (num-cols matrix-B))
