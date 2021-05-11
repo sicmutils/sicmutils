@@ -183,6 +183,8 @@
   (kind [_] ::polynomial)
 
   f/IArity
+  ;; TODO we CAN actually evaluate this thing with less... so it's always really
+  ;; between 0 and arity, right??
   (arity [_] [:exactly arity])
 
   #?@(:clj
@@ -314,7 +316,7 @@
        (Polynomial. arity xs->c m))))
 
 (defn explicit-polynomial?
-  "Returns true if the supplied argument is an instance of `Polynomial`, false
+  "Returns true if the supplied argument is an instance of [[Polynomial]], false
   otherwise."
   [x]
   (instance? Polynomial x))
@@ -408,7 +410,9 @@
            (lead-term p))))
     (v/one? p)))
 
-(defn coefficients [p]
+(defn coefficients
+  "TODO see where this is used. Return a vector?"
+  [p]
   (if (explicit-polynomial? p)
     (map coefficient (->terms p))
     [p]))
@@ -741,6 +745,12 @@
 
           :else (expt-iter p n 1))))
 
+(defn square [p]
+  (poly:* p p))
+
+(defn cube [p]
+  (poly:* p (poly:* p p)))
+
 ;; TODO go from here! divide, then horner-eval, get those working (raise and
 ;; lower come along for the ride).
 ;;
@@ -1066,8 +1076,8 @@
          (reduce poly:* (poly:* x y) more)))
    'negate negate
    'expt expt
-   'square (fn [x] (poly:* x x))
-   'cube (fn [x] (poly:* x (poly:* x x)))})
+   'square square
+   'cube cube})
 
 (def ^:no-doc operators-known
   (u/keyset operator-table))
@@ -1164,18 +1174,23 @@
   (map-coefficients #(g/* % c) p))
 
 (defmethod g/add [::coeff ::polynomial] [c p]
+  ;; TODO make THIS more efficient, check scmutils!
   (poly:+ (make-constant (bare-arity p) c) p))
 
 (defmethod g/add [::polynomial ::coeff] [p c]
+  ;; TODO make THIS more efficient, check scmutils!
   (poly:+ p (make-constant (bare-arity p) c)))
 
 (defmethod g/sub [::coeff ::polynomial] [c p]
+  ;; TODO make THIS more efficient, check scmutils!
   (poly:- (make-constant (bare-arity p) c) p))
 
 (defmethod g/sub [::polynomial ::coeff] [p c]
+  ;; TODO make THIS more efficient, check scmutils!
   (poly:- p (make-constant (bare-arity p) c)))
 
 (defmethod g/div [::polynomial ::coeff] [p c]
+  ;; TODO pull this out into its own thing.
   (map-coefficients #(g/divide % c) p))
 
 (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))

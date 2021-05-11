@@ -376,10 +376,10 @@
          (v/one? u)  u
          (v/one? v)  v
          (= u v)     u
-         (p/base? u) (if (p/base? v)
-                       (g/gcd u v)
-                       (g/gcd u (sparse-base-content (poly->sparse v))))
-         (p/base? v) (g/gcd (sparse-base-content (poly->sparse u)) v)
+         (v/scalar? u) (if (v/scalar? v)
+                         (g/gcd u v)
+                         (g/gcd u (sparse-base-content (poly->sparse v))))
+         (v/scalar? v) (g/gcd (sparse-base-content (poly->sparse u)) v)
 
          :else
          (let [arity (p/check-same-arity u v)]
