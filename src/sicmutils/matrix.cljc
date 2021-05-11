@@ -880,18 +880,17 @@ by the right matrix."
         new-col-count (+ (num-cols matrix-A) (num-cols matrix-B))
         B-row-offset  (- new-row-count (num-rows matrix-B))
         B-col-offset  (- new-col-count (num-cols matrix-B))]
-    (fmap (fn [x] (if (nil? x)
-                    0
-                    x))
-          (generate new-row-count
-                    new-col-count
-                    (fn [i j]
-                      (if (or
-                           (< i B-row-offset)
-                           (< j B-col-offset))
-                        (get-in matrix-A [i j])
-                        (get-in matrix-B [(- i B-row-offset)
-                                          (- j B-col-offset)])))))))
+    (generate new-row-count
+              new-col-count
+              (fn [i j]
+                (if (or
+                     (< i B-row-offset)
+                     (< j B-col-offset))
+                  (get-in matrix-A [i j] 0)
+                  (get-in matrix-B
+                          [(- i B-row-offset)
+                           (- j B-col-offset)]
+                          0))))))
 
 ;; ## Generic Operation Installation
 
