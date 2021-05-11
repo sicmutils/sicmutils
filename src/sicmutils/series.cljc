@@ -809,3 +809,20 @@
     (->PowerSeries (i/deriv (.-xs s)))
     (u/illegal
      (str "Cannot yet take partial derivatives of a power series: " s selectors))))
+
+;; TODO do this in a separate PR!
+
+(defn arg-scale [s factors]
+  (if (power-series? s)
+    (do (assert (= (count factors) 1) "Only univariate [[PowerSeries]] are allowed.")
+        (compose s (power-series* [0 (first factors)])))
+    (fmap #(arg-scale % factors) s)))
+
+(defn arg-shift
+  "TODO note that this CAN'T work with a constant value for the shift, SO instead
+  we return a function. [[arg-scale]] can do the right thing."
+  [s shifts]
+  (if (power-series? s)
+    (do (assert (= (count shifts) 1) "Only univariate [[PowerSeries]] are allowed.")
+        (apply f/arg-shift s shifts))
+    (fmap #(arg-shift % shifts) s)))
