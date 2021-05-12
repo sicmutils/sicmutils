@@ -437,7 +437,6 @@
                        [12 1] 1})]
       (gcd-test "S2" 1 u v))))
 
-
 ;; Currently we only do GCD testing of univariate polynomials, because we find
 ;; that unfortunately clojure.test.check is very good at finding polynomials
 ;; even of arity 2 that will exceed the time allotment for finding GCDs.
