@@ -158,6 +158,8 @@
    (continue (p/lower-arity u)
              (p/lower-arity v))))
 
+(declare primitive-gcd)
+
 (defn- with-trivial-constant-gcd-check
   "We consider the maximum exponent found for each variable in any term of each
   polynomial. A nontrivial GCD would have to fit in this exponent limit for both
@@ -232,28 +234,9 @@
 ;; The primitive-part of a polynomial is the polynomial with the content
 ;; removed.
 
-(comment
-  ;; Okay... so the only difference HERE is that this can tell us if it never
-  ;; won! return nil if it failed. It's fine if we default to 1... AND in fact
-  ;; they have some stuff to do that!
-  (defn poly:content-maker [gcd]
-    (fn content [u win lose]
-      (let [coeffs (p/coefficients u)]
-        (if (empty? coeffs)
-	        (win 0)
-	        (loop [c0 (first coeffs)
-                 cs (rest coeffs)]
-	          (if (empty? cs)
-		          (win c0)
-		          (gcd c0
-                   (first cs)
-		               (fn [g1]
-		                 (if (v/one? g1)
-			                 (win g1)
-			                 (recur g1 (rest cs))))
-		               lose))))))))
-
 ;; ## GCD Routines
+
+(declare maybe-bail-out)
 
 (defn- euclid-inner-loop
   [coeff-gcd]
@@ -261,14 +244,23 @@
             (coeff-gcd
              (p/coefficients p)))]
     (fn [u v]
-      (prn u v)
       (maybe-bail-out "euclid inner loop")
-      (let [[r _] (p/pseudo-remainder u v)]
-        (if (v/zero? r)
-          v
-          (let [kr (content r)]
-            (recur v (p/map-coefficients
-                      #(g/exact-divide % kr) r))))))))
+      (cond (v/zero? u) v
+            (v/zero? v) u
+            (v/one? u)  u
+            (v/one? v)  v
+            (= u v)     u
+            (p/coeff? u) (if (p/coeff? v)
+                           (g/gcd u v)
+                           (gcd-poly-number v u))
+            (p/coeff? v) (gcd-poly-number u v)
+            :else
+            (let [[r _] (p/pseudo-remainder u v)]
+              (if (v/zero? r)
+                v
+                (let [kr (content r)]
+                  (recur v (p/map-coefficients
+                            #(g/exact-divide % kr) r)))))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -293,7 +285,8 @@
   [u v & fs]
   (condp < (count fs)
     2 `(~(first fs) ~u ~v
-        (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
+        (fn [u# v#]
+          (gcd-continuation-chain u# v# ~@(next fs))))
     1 `(~(first fs) ~u ~v ~(second fs))
     0 `(~(first fs) ~u ~v)))
 
@@ -309,9 +302,11 @@
     (do (swap! gcd-cache-hit inc)
         g)
     ;; TODO SHARE these trivial conditions!
+    ;;
+    ;; TODO do we need abs?
     (let [g (cond
-              (v/zero? u) (g/abs v)
-              (v/zero? v) (g/abs u)
+              (v/zero? u) v
+              (v/zero? v) u
               (v/one? u)  u
               (v/one? v)  v
               (= u v)     u
@@ -322,7 +317,7 @@
               :else
               (let [arity (p/check-same-arity u v)]
                 (cond
-                  (= arity 1)     (gcd1 u v)
+                  (= arity 1) (gcd1 u v)
                   (p/monomial? u) (monomial-gcd u v)
                   (p/monomial? v) (monomial-gcd v u)
                   :else
@@ -415,7 +410,7 @@
 
              :else
              (with-limited-time *poly-gcd-time-limit*
-               (gcd-euclid u v)))))))
+               (fn [] (gcd-euclid u v))))))))
 
 (def ^{:doc "main GCD entrypoint."}
   gcd
@@ -427,10 +422,14 @@
   (gcd-dispatch u v))
 
 (defmethod g/gcd [::p/polynomial ::p/coeff] [u v]
-  (gcd-poly-number u v))
+  (if (v/zero? v)
+    u
+    (gcd-poly-number u v)))
 
 (defmethod g/gcd [::p/coeff ::p/polynomial] [u v]
-  (gcd-poly-number v u))
+  (if (v/zero? u)
+    v
+    (gcd-poly-number v u)))
 
 (defn- gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

@@ -580,11 +580,13 @@
 (defn check-same-arity
   "TODO works now for constants, check!"
   [p q]
-  (let [ap (arity p)
-        aq (arity q)]
-    (if (= ap aq)
-      ap
-      (u/arithmetic-ex "mismatched polynomial arity"))))
+  (cond (coeff? p) (arity q)
+        (coeff? q) (arity p)
+        :else (let [ap (arity p)
+                    aq (arity q)]
+                (if (= ap aq)
+                  ap
+                  (u/arithmetic-ex "mismatched polynomial arity: " ap ", " aq)))))
 
 (defn new-variables
   "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the

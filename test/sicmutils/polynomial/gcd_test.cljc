@@ -90,7 +90,7 @@
         (is (= V (g/gcd V V)))
         (is (= W (g/gcd W W))))
 
-      (testing "TODO, generative, gcd of anything with 0 or 1 is itself."
+      (testing "TODO, generative, gcd of anything with 0 itself."
         (is (= U (g/gcd U 0)))
         (is (= U (g/gcd 0 U)))
         (is (= V (g/gcd V 0)))
