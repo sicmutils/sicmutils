@@ -32,12 +32,15 @@
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
+
 (deftest gcd-tests
   (checking "gcd between numbers" 100
-            [x sg/any-integral
-             y sg/any-integral]
+            [x sg/rational
+             y sg/rational]
             (is (= (pg/gcd x y)
                    (g/gcd x y))))
+
+  ;; TODO let's see if we can expand this to work with integrals by NOT
 
   (checking "primitive-gcd matches normal gcd" 100
             [xs (gen/vector sg/any-integral)]

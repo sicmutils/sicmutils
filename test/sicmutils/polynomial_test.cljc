@@ -36,18 +36,20 @@
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
-    (let [x3 [3 0 0]
+    (let [x3   [3 0 0]
           x2z2 [2 0 2]
           xy2z [1 2 1]
-          z2 [0 0 2]
+          z2   [0 0 2]
           monomials [x3 x2z2 xy2z z2]
-          monomial-sort #(sort-by identity % monomials)]
+          sort-with #(sort % monomials)]
       (is (= [z2 xy2z x2z2 x3]
-             (monomial-sort p/lex-order)))
+             (sort-with p/lex-order)))
+
       (is (= [z2 x3 x2z2 xy2z]
-             (monomial-sort p/graded-reverse-lex-order)))
+             (sort-with p/graded-reverse-lex-order)))
+
       (is (= [z2 x3 xy2z x2z2]
-             (monomial-sort p/graded-lex-order))))))
+             (sort-with p/graded-lex-order))))))
 
 (deftest polynomial-type-tests
   (checking "polynomials are both explicit polys and polynomial? == true" 100
@@ -57,11 +59,23 @@
             (is (= ::p/polynomial (v/kind p))))
 
   (checking "any number (coefficient) is a polynomial." 100 [p sg/number]
-            (is (p/polynomial? p)))
+            (is (p/polynomial? p))
+            (is (p/coeff? p)))
 
   (checking "IArity" 100 [p (sg/polynomial)]
             (is (= (f/arity p)
                    [:exactly (p/arity p)])))
+
+  (checking "make-term round trip" 100
+            [expts (gen/vector gen/nat)
+             coef sg/number]
+            (let [term (p/make-term expts coef)]
+              (is (= expts (p/exponents term)))
+              (is (= coef (p/coefficient term)))))
+
+  (testing "term getter defaults"
+    (is (= 0 (p/coefficient [])))
+    (is (= [] (p/exponents []))))
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))

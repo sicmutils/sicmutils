@@ -40,14 +40,15 @@
 (deftest factoring
   (testing "simple test cases"
     (let [fpe #(pf/factor-polynomial-expression g/simplify poly-analyzer %)
-          unity2 (p/make 2 [[[0 0] 1]])
+          unity2 (p/make-constant 2 2)
           x-y (->poly '(- x y))
           x+y (->poly '(+ x y))
-          U0 (g/* (g/square (g/- 'x 'y)) (g/cube (g/+ 'x 'y)))
+          U0 (g/* (g/square (g/- 'x 'y))
+                  (g/cube (g/+ 'x 'y)))
           U1 (g/square (g/- 'x 'y))
           U2 (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y))
           U3 (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))
-          U (->poly '(* (square (- x y)) (cube (+ x y))))]
+          U  (->poly '(* (square (- x y)) (cube (+ x y))))]
       (is (= [unity2 unity2 x-y x+y] (pf/split-polynomial U)))
       (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (fpe U0)))
       (is (= [1 1 '(+ x (* -1 y)) 1] (fpe U1)))

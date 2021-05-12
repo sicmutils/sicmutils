@@ -20,9 +20,11 @@
 (ns sicmutils.polynomial.gcd
   #?(:cljs (:require-macros
             [sicmutils.polynomial.gcd :refer [dbg gcd-continuation-chain]]))
+  (:refer-clojure :exclude [rational?])
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
+            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stopwatch :as us]
@@ -35,11 +37,6 @@
 (def ^:dynamic *clock* nil)
 (def ^:dynamic *euclid-breakpoint-arity* 3)
 (def ^:dynamic *gcd-cut-losses* nil)
-
-
-
-;; TODO these are old.
-(def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))
 
 (def ^:dynamic *poly-gcd-cache-enable* true)
 (def ^:dynamic *poly-gcd-debug* false)
@@ -77,34 +74,13 @@
       ~level ~where ~level
       ~@(map #(list 'str %) xs))))
 
-;; ## Coefficient GCD
+;; Continuation Helpers
 
-(defn- native-gcd
-  "TODO ONLY needed if we don't do the transform game!!"
-  ([] 0)
-  ([l] l)
-  ([l r]
-   (g/gcd (u/biginteger l)
-          (u/biginteger r))))
+;; Continuation Menu
 
-(defn primitive-gcd
-  "A function which will return the gcd of a sequence of numbers. TODO put this in
-  `numbers`... NOT here."
-  [xs]
-  (g/abs
-   (transduce
-    (comp (ua/halt-at v/one?)
-          (map u/biginteger))
-    (fn
-      ([] 0)
-      ([x] x)
-      ([x y] (g/gcd x y)))
-    xs)))
+;; TODO I THINK we have this very similar thing in `permute.cljc`, which we
+;; should port over here first!!
 
-;; ## GCD Helpers
-
-;; TODO I THINK we have this exact same thing in `permute.cljc`, which we should
-;; port over here first!!
 (defn- sort->permutations
   "Given a vector, returns a permutation function which would sort that vector,
   and the inverse permutation. Each of these functions expects a vector and
@@ -125,16 +101,19 @@
     [identity identity]
     (sort->permutations
      (transduce (map p/exponents)
-                (fn [l-expts r-expts]
-                  (mapv max l-expts r-expts))
-                (first terms)
+                (completing
+                 (fn [l-expts r-expts]
+                   (mapv max l-expts r-expts)))
+                (p/exponents (first terms))
                 (rest terms)))))
 
 (defn- with-optimized-variable-order
   "Rearrange the variables in u and v to make GCD go faster.
   Calls the continuation with the rearranged polynomials. Undoes the
-  rearrangement on return. Variables are sorted by increasing degree. Discussed
-  in 'Evaluation of the Heuristic Polynomial GCD', by Liao and Fateman [1995]."
+  rearrangement on return. Variables are sorted by increasing degree.
+
+  Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao and
+  Fateman [1995]."
   [u v continue]
   (if (and (p/coeff? u) (p/coeff? v))
     (continue u v)
@@ -147,10 +126,108 @@
                      (p/map-exponents sort v))
            (p/map-exponents unsort)))))
 
-;; TODO implement these!
+(defn ->gcd [binary-gcd]
+  (fn [coefs]
+    (transduce (ua/halt-at v/one?)
+               (fn
+                 ([] 0)
+                 ([x] x)
+                 ([x y] (binary-gcd x y)))
+               coefs)))
+
+;; TODO fix these bullshits!
+
+(defn- with-content-removed
+  "For multivariate polynomials. u and v are considered here as univariate
+  polynomials with polynomial coefficients. Using the supplied gcd function, the
+  content of u and v is divided out and the primitive parts are supplied to the
+  continuation, the result of which has the content reattached and is returned."
+  [gcd u v continue]
+  (let [content (fn [p]
+                  (gcd (p/coefficients p)))
+        ku (content u)
+        kv (content v)
+        pu (p/map-coefficients #(g/exact-divide % ku) u)
+        pv (p/map-coefficients #(g/exact-divide % kv) v)
+        d (gcd [ku kv])]
+    (p/coeff*poly d (continue pu pv))))
+
+(defn- with-lower-arity
+  [u v continue]
+  (p/raise-arity
+   (continue (p/lower-arity u)
+             (p/lower-arity v))))
+
+(defn- with-trivial-constant-gcd-check
+  "We consider the maximum exponent found for each variable in any term of each
+  polynomial. A nontrivial GCD would have to fit in this exponent limit for both
+  polynomials. This is basically a test for a kind of disjointness of the
+  variables. If this happens we just return the constant gcd and do not invoke
+  the continuation.
+
+  TODO note that this will now return a constant, NOT a polynomial."
+  [u v continue]
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)]}
+  (let [umax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms u)))
+        vmax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms v)))
+        maxd (mapv min umax vmax)]
+    (if (every? zero? maxd)
+      (do (swap! gcd-trivial-constant inc)
+          (primitive-gcd
+           (concat (p/coefficients u)
+                   (p/coefficients v))))
+      (continue u v))))
+
+;; ## Basic GCD for Coefficients, Monomials
+
+(defn primitive-gcd
+  "A function which will return the gcd of a sequence of numbers. TODO put this in
+  `numbers`... NOT here."
+  [xs]
+  (g/abs
+   (transduce
+    (comp (ua/halt-at v/one?)
+          (map u/biginteger))
+    (fn
+      ([] 0)
+      ([x] x)
+      ([x y] (g/gcd x y)))
+    xs)))
+
+;; Next simplest! We have a poly on one side, coeff on the other.
+
+(defn- gcd-poly-number [p n]
+  {:pre [(p/polynomial? p)
+         (p/coeff? n)]}
+  (primitive-gcd (cons n (p/coefficients p))))
+
+(defn- monomial-gcd
+  "Computing the GCD is easy if one of the polynomials is a monomial.
+  The monomial is the first argument.
+
+  Basically... take the GCD of the coeffs for the coefficient, and the MINIMUM
+  exp of each variable across all, pinned at the top by the monomial."
+  [m p]
+  {:pre [(p/polynomial? m)
+         (p/polynomial? p)
+         (= (count (p/bare-terms m)) 1)]}
+  (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
+        xs (transduce (map p/exponents)
+                      (completing #(mapv min %1 %2))
+                      mono-expts
+                      (p/bare-terms p))
+        c (gcd-poly-number p mono-coeff)]
+    (swap! gcd-monomials inc)
+    (p/terms->polynomial (p/bare-arity m) [[xs c]])))
+
+(comment
+  (is (= (p/make 2 {[1 2] 3})
+         (monomial-gcd (p/make 2 {[1 2] 12})
+                       (p/make 2 {[4 3] 15})))))
 
 ;; The content of a polynomial is the GCD of its coefficients. The content of a
-;;  polynomial has the arity of its coefficients.
+;; polynomial has the arity of its coefficients.
 
 ;; The primitive-part of a polynomial is the polynomial with the content
 ;; removed.
@@ -174,107 +251,38 @@
 		                 (if (v/one? g1)
 			                 (win g1)
 			                 (recur g1 (rest cs))))
-		               lose))))))
-    poly/content))
-
-(defn ^:private with-content-removed
-  "For multivariate polynomials. u and v are considered here as
-  univariate polynomials with polynomial coefficients. Using the
-  supplied gcd function, the content of u and v is divided out and the
-  primitive parts are supplied to the continuation, the result of which
-  has the content reattached and is returned."
-  [gcd u v continue]
-  (let [xform   (comp (map p/coefficients)
-                      (ua/halt-at v/one?))
-        content (fn [p]
-                  (transduce xform gcd p))
-        ku (content u)
-        kv (content v)
-        pu (p/map-coefficients #(g/exact-divide % ku) u)
-        pv (p/map-coefficients #(g/exact-divide % kv) v)
-        d (gcd ku kv)]
-    (p/map-coefficients #(g/* d %) (continue pu pv))))
+		               lose))))))))
 
 ;; ## GCD Routines
 
 (defn- euclid-inner-loop
-  [coefficient-gcd]
-  (let [xform   (comp (ua/halt-at v/one?)
-                      (map p/coefficients))
-        content (fn [p]
-                  (transduce xform coefficient-gcd p))]
+  [coeff-gcd]
+  (letfn [(content [p]
+            (coeff-gcd
+             (p/coefficients p)))]
     (fn [u v]
-      (*poly-gcd-bail-out*)
+      (prn u v)
+      (maybe-bail-out "euclid inner loop")
       (let [[r _] (p/pseudo-remainder u v)]
-        (when (v/zero? r) v
-              (let [kr (content r)]
-                (recur v (p/map-coefficients
-                          #(g/exact-divide % kr) r))))))))
+        (if (v/zero? r)
+          v
+          (let [kr (content r)]
+            (recur v (p/map-coefficients
+                      #(g/exact-divide % kr) r))))))))
 
 (def ^:private univariate-euclid-inner-loop
-  (euclid-inner-loop native-gcd))
+  (euclid-inner-loop primitive-gcd))
 
-(defn ^:private joint-quotient
-  "If d evenly divides both u and v, then [u/d, v/d, d], else nil."
-  [u v d]
-  (let [[q1 r1] (p/divide u d)
-        [q2 r2] (p/divide v d)]
-    (when (and (v/zero? r1)
-               (v/zero? r2))
-      [q1 q2 d])))
-
-(defn- with-trivial-constant-gcd-check
-  "We consider the maximum exponent found for each variable in any term of each
-  polynomial. A nontrivial GCD would have to fit in this exponent limit for both
-  polynomials. This is basically a test for a kind of disjointness of the
-  variables. If this happens we just return the constant gcd and do not invoke
-  the continuation."
-  [u v continue]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)]}
-  (let [umax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms u)))
-        vmax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms v)))
-        maxd (mapv min umax vmax)]
-    (if (every? zero? maxd)
-      (do (swap! gcd-trivial-constant inc)
-          (->> (concat (p/coefficients u) (p/coefficients v))
-               (primitive-gcd)
-               (p/make-constant (p/bare-arity u))))
-      (continue u v))))
-
-(defn ^:private gcd1
+(defn- gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
   [u v]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)
          (= (p/arity u) 1)
          (= (p/arity v) 1)]}
-  (cond
-    (v/zero? u) v
-    (v/zero? v) u
-    (v/one? u) u
-    (v/one? v) v
-    (= u v) u
-    :else (with-content-removed native-gcd u v univariate-euclid-inner-loop)))
+  (with-content-removed primitive-gcd u v univariate-euclid-inner-loop))
 
-(defn ^:private monomial-gcd
-  "Computing the GCD is easy if one of the polynomials is a monomial.
-  The monomial is the first argument."
-  [m p]
-  {:pre [(p/polynomial? m)
-         (p/polynomial? p)
-         (= (count (p/bare-terms m)) 1)]}
-  (let [[mxs mc] (-> m p/bare-terms first)
-        xs (reduce #(mapv min %1 %2) mxs (->> p p/bare-terms (map p/exponents)))
-        c (primitive-gcd (cons mc (p/coefficients p)))]
-    (swap! gcd-monomials inc)
-    (p/make (p/bare-arity m) [[xs c]])))
-
-(defn ^:private with-lower-arity
-  [u v continue]
-  (p/raise-arity
-   (continue (p/lower-arity u)
-             (p/lower-arity v))))
+;; Helpers
 
 (defmacro gcd-continuation-chain
   "Takes two polynomials and a chain of functions. Each function, except
@@ -289,52 +297,51 @@
     1 `(~(first fs) ~u ~v ~(second fs))
     0 `(~(first fs) ~u ~v)))
 
-(defn ^:private inner-gcd
+;; Continuations
+
+(defn- inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a polynomial gcd. Delegates to gcd1 for univariate
   polynomials."
   [level u v]
   (dbg level "inner-gcd" u v)
-  (let [arity (p/check-same-arity u v)]
-    (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
-      (do (swap! gcd-cache-hit inc)
-          g)
-      (let [g (cond (= arity 1) (gcd1 u v)
-                    ;; TODO this is repetitive, can we can this in the dispatcher??
-                    (v/zero? u) v
-                    (v/zero? v) u
-                    (v/one? u)  u
-                    (v/one? v)  v
-                    (= u v)     u
-                    (p/monomial? u) (monomial-gcd u v)
-                    (p/monomial? v) (monomial-gcd v u)
-                    :else (let [next-gcd        #(inner-gcd (inc level) %1 %2)
-                                content-remover #(with-content-removed next-gcd %1 %2 %3)]
-                            (*poly-gcd-bail-out*)
-                            (gcd-continuation-chain u v
-                                                    with-lower-arity
-                                                    content-remover
-                                                    #((euclid-inner-loop next-gcd) %1 %2))))]
-        (when *poly-gcd-cache-enable*
-          (swap! gcd-cache-miss inc)
-          (swap! gcd-memo assoc [u v] g))
-        (dbg level "<-" g)
-        g))))
+  (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
+    (do (swap! gcd-cache-hit inc)
+        g)
+    ;; TODO SHARE these trivial conditions!
+    (let [g (cond
+              (v/zero? u) (g/abs v)
+              (v/zero? v) (g/abs u)
+              (v/one? u)  u
+              (v/one? v)  v
+              (= u v)     u
+              (p/coeff? u) (if (p/coeff? v)
+                             (g/gcd u v)
+                             (gcd-poly-number v u))
+              (p/coeff? v) (gcd-poly-number u v)
+              :else
+              (let [arity (p/check-same-arity u v)]
+                (cond
+                  (= arity 1)     (gcd1 u v)
+                  (p/monomial? u) (monomial-gcd u v)
+                  (p/monomial? v) (monomial-gcd v u)
+                  :else
+                  (let [next-gcd (->gcd #(inner-gcd (inc level) %1 %2))
+                        content-remover #(with-content-removed next-gcd %1 %2 %3)]
+                    (maybe-bail-out "polynomial GCD")
+                    (gcd-continuation-chain u v
+                                            with-lower-arity
+                                            content-remover
+                                            #((euclid-inner-loop next-gcd) %1 %2))))))]
+      (when *poly-gcd-cache-enable*
+        (swap! gcd-cache-miss inc)
+        (swap! gcd-memo assoc [u v] g))
+      (dbg level "<-" g)
+      g)))
 
 ;; TODO we want this to die.
 
-(defn- maybe-bail-out
-  "Returns a function that checks if clock has been running longer than timeout
-  and if so throws an exception after logging the event. Timeout should be of
-  the form [number Keyword], where keyword is one of the supported units from
-  sicmutils.util.stopwatch."
-  [description clock [ticks units :as timeout]]
-  (fn []
-    (when (> (us/elapsed clock units)
-             ticks)
-      (let [s (format "Timed out: %s after %s" description (us/repr clock))]
-        (log/warn s)
-        (u/timeout-ex s)))))
+
 
 ;; TODO move these somewhere better! To the stopwatch namespace is the best
 ;; place.
@@ -344,74 +351,71 @@
        (let [[ticks units] *poly-gcd-time-limit*]
          (> (us/elapsed *clock* units) ticks))))
 
+(defn- maybe-bail-out
+  "Returns a function that checks if clock has been running longer than timeout
+  and if so throws an exception after logging the event. Timeout should be of
+  the form [number Keyword], where keyword is one of the supported units from
+  sicmutils.util.stopwatch."
+  [description]
+  (when (time-expired?)
+    (let [s (format "Timed out: %s after %s" description (us/repr *clock*))]
+      (log/warn s)
+      (u/timeout-ex s))))
+
 (defn with-limited-time [timeout thunk]
   (binding [*poly-gcd-time-limit* timeout
             *clock* (us/stopwatch)]
     (thunk)))
 
-(declare sparse-base-content poly->sparse)
-
-(defn gcd-sparse
-  "TODO get this filled in."
-  [u v]
-  false)
-
 (defn gcd-euclid [u v]
-  (let [clock (us/stopwatch)]
-    (binding [*poly-gcd-bail-out* (maybe-bail-out
-                                   "polynomial GCD" clock *poly-gcd-time-limit*)]
-      (g/abs
-       (gcd-continuation-chain u v
-                               with-trivial-constant-gcd-check
-                               with-optimized-variable-order
-                               #(inner-gcd 0 %1 %2))))))
+  (g/abs
+   (gcd-continuation-chain u v
+                           with-trivial-constant-gcd-check
+                           with-optimized-variable-order
+                           #(inner-gcd 0 %1 %2))))
+
+(def rational?
+  (some-fn v/integral? r/ratio?))
 
 (defn- gcd-dispatch
-  "Dispatcher for GCD routines."
+  "Dispatcher for GCD routines.
+
+  TODO isn't... the defmethod sort of the dispatcher??"
   ([] 0)
   ([u] u)
   ([u v]
+   ;; TODO I... think we can kill ALL of these... since we do them inside `inner-gcd`??
    (cond (v/zero? u) (g/abs v)
          (v/zero? v) (g/abs u)
          (v/one? u)  u
          (v/one? v)  v
          (= u v)     u
-         ;; TODO there is no way that this will work, the `sparse-base-content`
-         ;; thing. isn't that u and a list?
          (p/coeff? u) (if (p/coeff? v)
                         (g/gcd u v)
-                        (g/gcd u (sparse-base-content (poly->sparse v))))
-         (p/coeff? v) (g/gcd (sparse-base-content (poly->sparse u)) v)
+                        (gcd-poly-number v u))
+         (p/coeff? v) (gcd-poly-number u v)
 
          :else
          (let [arity (p/check-same-arity u v)]
-           (cond (not (and (every? v/integral? (p/coefficients u))
-                           (every? v/integral? (p/coefficients v))))
-                 (v/one-like u)
+           (cond
+             ;; this is not QUITE right... we want to check if everyone is
+             ;; RATIONAL. Right? Can't we do that?
+             ;; TODO this is wrong, erase this condition!!
+             (not (and (every? v/integral? (p/coefficients u))
+                       (every? v/integral? (p/coefficients v))))
+             ;; we want this... but does that make sense?
+             #_
+             (not (and (every? rational? (p/coefficients u))
+                       (every? rational? (p/coefficients v))))
+             (v/one-like u)
 
-                 (= arity 1) (g/abs (gcd1 u v))
+             ;; TODO `gcd1` does not guard against non-integral coefs so we have
+             ;; to put it here, after the check. Fix!
+             (= arity 1) (g/abs (gcd1 u v))
 
-                 :else
-                 (or (with-limited-time [1.0 :seconds]
-		                   (fn [] (gcd-sparse u v)))
-
-	                   (with-limited-time [1.0 :seconds]
-		                   (fn [] (gcd-euclid u v)))
-
-	                   (with-limited-time [100.0 :seconds]
-		                   (fn [] (gcd-sparse u v)))
-
-	                   (and (< arity *euclid-breakpoint-arity*)
-		                      (with-limited-time [100.0 :seconds]
-		                        (fn [] (gcd-euclid u v))))
-
-	                   (gcd-sparse u v)
-
-	                   (if *gcd-cut-losses*
-		                   (or (with-limited-time *gcd-cut-losses*
-			                       (fn [] (gcd-euclid u v)))
-		                       1)
-		                   (gcd-euclid u v))))))))
+             :else
+             (with-limited-time *poly-gcd-time-limit*
+               (gcd-euclid u v)))))))
 
 (def ^{:doc "main GCD entrypoint."}
   gcd
@@ -423,10 +427,10 @@
   (gcd-dispatch u v))
 
 (defmethod g/gcd [::p/polynomial ::p/coeff] [u v]
-  (primitive-gcd (cons v (p/coefficients u))))
+  (gcd-poly-number u v))
 
 (defmethod g/gcd [::p/coeff ::p/polynomial] [u v]
-  (primitive-gcd (cons u (p/coefficients v))))
+  (gcd-poly-number v u))
 
 (defn- gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

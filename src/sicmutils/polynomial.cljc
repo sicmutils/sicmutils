@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.polynomial
-  (:refer-clojure :exclude [divide])
+  (:refer-clojure :exclude [extend divide])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.collection]
@@ -136,27 +136,28 @@
 
 ;; ## Polynomial Type Definition
 ;;
-;; TODO look at PowerSeries, see what we're missing.
+;; implement:
 ;;
-;; TODO to match differential, should we call xs->c `terms`?
+;; IPerturbed, IComparable?, same with RF ;; TODO look at PowerSeries, see what
+;; we're missing.
 
 (declare evaluate make-constant poly->str poly:=)
 
-(deftype Polynomial [arity xs->c m]
+(deftype Polynomial [arity terms m]
   v/Value
   (zero? [_]
-    (empty? xs->c))
+    (empty? terms))
 
   (one? [_]
-    (and (= (count xs->c) 1)
-         (let [[term] xs->c]
+    (and (= (count terms) 1)
+         (let [[term] terms]
            (and (constant-term? term)
                 (v/one? (coefficient term))))))
 
   (identity? [_]
     (and (v/one? arity)
-         (= (count xs->c) 1)
-         (let [[[[e] c]] xs->c]
+         (= (count terms) 1)
+         (let [[[[e] c]] terms]
            (and (v/one? e)
                 (v/one? c)))))
 
@@ -164,7 +165,7 @@
     (Polynomial. arity empty-terms m))
 
   (one-like [_]
-    (let [one (if-let [term (nth xs->c 0)]
+    (let [one (if-let [term (nth terms 0)]
                 (v/one-like (coefficient term))
                 1)]
       (make-constant arity one)))
@@ -172,14 +173,14 @@
   (identity-like [_]
     (assert (v/one? arity)
             "identity-like unsupported on multivariate monomials!")
-    (let [one (if-let [term (nth xs->c 0)]
+    (let [one (if-let [term (nth terms 0)]
                 (v/one-like (coefficient term))
                 1)
           term (make-term [1] one)]
       (Polynomial. arity [term] m)))
 
   (exact? [_] false)
-  (freeze [_] `(~'polynomial ~arity ~xs->c))
+  (freeze [_] `(~'polynomial ~arity ~terms))
   (kind [_] ::polynomial)
 
   f/IArity
@@ -194,7 +195,7 @@
 
        IObj
        (meta [_] m)
-       (withMeta [_ meta] (Polynomial. arity xs->c m))
+       (withMeta [_ meta] (Polynomial. arity terms m))
 
        IFn
        (invoke [this a]
@@ -252,7 +253,7 @@
        (-meta [_] m)
 
        IWithMeta
-       (-with-meta [_ m] (Polynomial. arity xs->c m))
+       (-with-meta [_ m] (Polynomial. arity terms m))
 
        IFn
        (-invoke [this a]
@@ -310,10 +311,10 @@
       "Positional factory function for [[Polynomial]].
 
   The final argument `m` defaults to nil if not supplied."
-      ([arity xs->c]
-       (Polynomial. arity xs->c nil))
-      ([arity xs->c m]
-       (Polynomial. arity xs->c m))))
+      ([arity terms]
+       (Polynomial. arity terms nil))
+      ([arity terms m]
+       (Polynomial. arity terms m))))
 
 (defn explicit-polynomial?
   "Returns true if the supplied argument is an instance of [[Polynomial]], false
@@ -334,7 +335,7 @@
 
 (defn ^:no-doc bare-terms [p]
   {:pre [(explicit-polynomial? p)]}
-  (.-xs->c ^Polynomial p))
+  (.-terms ^Polynomial p))
 
 (defn- poly:=
   "Polynomials are equal to a number if the polynomial is constant; otherwise
@@ -343,9 +344,9 @@
   (if (instance? Polynomial that)
     (let [p ^Polynomial that]
       (and (= (.-arity this) (.-arity p))
-           (v/= (.-xs->c this) (.-xs->c p))))
+           (v/= (.-terms this) (.-terms p))))
 
-    (let [terms (.-xs->c this)]
+    (let [terms (.-terms this)]
       (and (<= (count terms) 1)
            (let [term (peek terms)]
              (and (constant-term? term)
@@ -478,7 +479,7 @@
 
 ;; NOTE: Analogous to to `terms->differential`.
 
-(defn- terms->polynomial
+(defn ^:no-doc terms->polynomial
   "Returns a [[Polynomial]] instance generated from a vector of terms. This method
   will do some mild cleanup:
 
@@ -732,6 +733,12 @@
   [p q]
   (binary-combine p q g/* mul-terms))
 
+(defn poly*coeff [p c]
+  (map-coefficients #(g/* % c) p))
+
+(defn coeff*poly [c p]
+  (map-coefficients #(g/* c %) p))
+
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [p n]
@@ -879,7 +886,7 @@
                                   [(subvec xs 1) c]))]
                 (->Polynomial (dec A) coef-terms)))]
       (->> (bare-terms p)
-           (group-by #(first (exponents %)))
+           (group-by #(nth (exponents %) 0))
            (map (fn [[x terms]]
                   (make-term [x] (lower-terms terms))))
            (sparse->terms)
@@ -892,7 +899,7 @@
   {:pre [(polynomial? p)
          (= (arity p) 1)]}
   (let [terms (sparse->terms
-               (for [[x q] (bare-terms p)
+               (for [[x q]  (bare-terms p)
                      [ys c] (->terms q)]
                  [(into x ys) c]))
         ltc (lead-coefficient p)]
@@ -932,13 +939,13 @@
 
   TODO check is this well formed, and proper horner?"
   [p x]
-  (loop [xs->c  (->terms p)
+  (loop [terms  (->terms p)
          result 0
          x**e   1
          e      0]
-    (if-let [[[e'] c] (first xs->c)]
+    (if-let [[[e'] c] (first terms)]
       (let [x**e' (g/* x**e (g/expt x (g/- e' e)))]
-        (recur (next xs->c)
+        (recur (next terms)
                (g/+ result (g/* c x**e'))
                x**e'
                e'))
@@ -1101,9 +1108,7 @@
     [p vars]
     (if (explicit-polynomial? p)
       (let [xform (map (fn [[xs c]]
-                         (->> (map (fn [exponent var]
-                                     (expt var exponent))
-                                   xs vars)
+                         (->> (map expt vars xs)
                               (reduce *)
                               (* c))))]
         (->> (bare-terms p)
@@ -1179,10 +1184,10 @@
 (defmethod g/abs [::polynomial] [a] (abs a))
 
 (defmethod g/mul [::coeff ::polynomial] [c p]
-  (map-coefficients #(g/* c %) p))
+  (coeff*poly c p))
 
 (defmethod g/mul [::polynomial ::coeff] [p c]
-  (map-coefficients #(g/* % c) p))
+  (poly*coeff p c))
 
 (defmethod g/add [::coeff ::polynomial] [c p]
   ;; TODO make THIS more efficient, check scmutils!
