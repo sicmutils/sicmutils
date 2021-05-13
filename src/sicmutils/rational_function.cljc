@@ -613,12 +613,10 @@
           scales [(second (p/new-variables narity)) 1]
           pn (p/evaluate (p/principal-reverse
 				                  (p/arg-scale nnr1 scales))
-				                 nr2
-				                 dr2)
+				                 [nr2 dr2])
           pd (p/evaluate (p/principal-reverse
 				                  (p/arg-scale ndr1 scales))
-				                 nr2
-				                 dr2)]
+				                 [nr2 dr2])]
 	    (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
 		        (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
 		        :else (g/div pn pd)))

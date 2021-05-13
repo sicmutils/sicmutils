@@ -247,7 +247,7 @@
        (toString [p] (poly->str p))
 
        IEquiv
-       (-equiv [this that] (poly:= this thiat))
+       (-equiv [this that] (poly:= this that))
 
        IMeta
        (-meta [_] m)
@@ -759,7 +759,7 @@
     (cond (coeff? p)  (g/expt p n)
 
           (not (explicit-polynomial? p))
-          (u/illegal "Wrong type :" p)
+          (u/illegal (str "Wrong type :" p))
 
           (not (v/native-integral? n))
           (u/illegal (str "Can only raise an FPF to an exact integer power: " p n))

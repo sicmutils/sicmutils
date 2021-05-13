@@ -99,8 +99,10 @@
           (do (def cake p)
               (split-polynomial p))))))
 
-(defn split-polynomial->expression [P]
-  (let [factors (factor-polynomial-expression P)]
+(defn split-polynomial->expression
+  "TODO this is unused but I want it!"
+  [simplifier analyzer P]
+  (let [factors (factor-polynomial-expression simplifier analyzer P)]
     (cons '* (actual-factors factors))))
 
 (defn- flatten-product
