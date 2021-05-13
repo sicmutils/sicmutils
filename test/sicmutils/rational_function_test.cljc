@@ -158,13 +158,20 @@
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
     (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z)))))
-    (is (= 1 (rf-simp '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z))))))
+    (is (= '(* (/ 1 6) y)
+           (v/freeze
+            (rf-simp
+             '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z)))))
+        "Can handle rational gcd!"))
 
   (testing "quotients"
     (is (= '(/ 1 (* 2 x))
-           (rf-simp (x/expression-of (g/divide 1 (g/* 2 'x))))))
+           (rf-simp
+            (x/expression-of (g/divide 1 (g/* 2 'x))))))
 
-    (is (= 4 (rf-simp (x/expression-of (g/divide (g/* 28 'x) (g/* 7 'x))))))
+    (is (= 4 (rf-simp
+              (x/expression-of (g/divide (g/* 28 'x) (g/* 7 'x))))))
 
     (is (= '(/ 1 (expt x 21))
-           (rf-simp (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
+           (rf-simp
+            (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
