@@ -56,7 +56,7 @@
       (let [hits   @gcd-cache-hit
             misses @gcd-cache-miss]
         (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
-                          (* 100 (/ hits (+ hits misses)))
+                          (* 100 (/ (float hits) (+ hits misses)))
                           memo-count)))))
 
   (log/info (format "GCD triv %d mono %d"
@@ -176,8 +176,12 @@
         kv (content v)
         pu (p/map-coefficients #(g/exact-divide % ku) u)
         pv (p/map-coefficients #(g/exact-divide % kv) v)
-        d (gcd [ku kv])]
-    (p/coeff*poly d (continue pu pv))))
+        d (gcd [ku kv])
+        result (continue pu pv)
+        result (if (p/coeff? result)
+                 (p/make-constant 1 result)
+                 result)]
+    (p/coeff*poly d result)))
 
 (defn- with-lower-arity
   [u v continue]
@@ -284,13 +288,12 @@
                            (gcd-poly-number v u))
             (p/coeff? v) (gcd-poly-number u v)
             :else
-            (do (prn "v: " v)
-                (let [[r _] (p/pseudo-remainder u v)]
-                  (if (v/zero? r)
-                    v
-                    (let [kr (content r)]
-                      (recur v (p/map-coefficients
-                                #(g/exact-divide % kr) r))))))))))
+            (let [[r _] (p/pseudo-remainder u v)]
+              (if (v/zero? r)
+                v
+                (let [kr (content r)]
+                  (recur v (p/map-coefficients
+                            #(g/exact-divide % kr) r)))))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -332,7 +335,6 @@
     (do (swap! gcd-cache-hit inc)
         g)
     ;; TODO SHARE these trivial conditions!
-    ;;
     ;; TODO do we need abs?
     (let [g (cond
               (v/zero? u) v
@@ -351,8 +353,11 @@
                   (p/monomial? u) (monomial-gcd u v)
                   (p/monomial? v) (monomial-gcd v u)
                   :else
-                  (let [next-gcd (->gcd #(inner-gcd (inc level) %1 %2))
-                        content-remover #(with-content-removed next-gcd %1 %2 %3)]
+                  (let [next-gcd (->gcd
+                                  (fn [u v]
+                                    (inner-gcd (inc level) u v)))
+                        content-remover (fn [u v cont]
+                                          (with-content-removed next-gcd u v cont))]
                     (maybe-bail-out "polynomial GCD")
                     (gcd-continuation-chain u v
                                             with-lower-arity

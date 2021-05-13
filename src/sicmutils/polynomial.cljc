@@ -494,7 +494,10 @@
 
         (and (= (count terms) 1)
              (constant-term? (nth terms 0)))
-        (coefficient (nth terms 0))
+        (let [c (coefficient (nth terms 0))]
+          (if (coeff? c)
+            c
+            (->Polynomial arity terms)))
 
         :else (->Polynomial arity terms)))
 
@@ -726,8 +729,6 @@
 (defn poly:-
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (prn "bad!" (arity p) p)
-  (prn "q: " (arity q) q)
   (poly:+ p (negate q)))
 
 (defn- mul-terms [l r]
@@ -841,7 +842,7 @@
         (poly:div (make-constant (bare-arity v) u) v)
 
         (and (explicit-polynomial? u) (coeff? v))
-        (poly:div u (make-constant (bare-arity u) v))
+        [(map-coefficients #(divide % v) u) 0]
 
         (and (explicit-polynomial? u)
              (explicit-polynomial? v))
@@ -862,7 +863,7 @@
   (let [[q r] (divide u v)]
     (when-not (v/zero? r)
       (u/illegal-state
-       (str "expected even division left a remainder!" u " / " v " r " r)))
+       (str "expected even division left a remainder! " u " / " v " r " r)))
     q))
 
 (defn abs
@@ -912,16 +913,19 @@
   "The opposite of lower-arity. This needs a polynomial with terms that are
   THEMSELVES coefficients."
   [p a]
-  {:pre [(explicit-polynomial? p)
-         (= (arity p) 1)]}
-  (let [terms (sparse->terms
-               (for [[x q]  (bare-terms p)
-                     [ys c] (->terms q)
-                     :let [ys (if (empty? ys)
-                                (repeat (dec a) 0)
-                                ys)]]
-                 [(into x ys) c]))]
-    (->Polynomial a terms)))
+  {:pre [(polynomial? p)
+         (<= (arity p) 1)]}
+  (if (coeff? p)
+    (make-constant a p)
+    (let [terms (doall
+                 (sparse->terms
+                  (for [[x q]  (bare-terms p)
+                        [ys c] (->terms q)
+                        :let [ys (if (empty? ys)
+                                   (repeat (dec a) 0)
+                                   ys)]]
+                    [(into x ys) c])))]
+      (->Polynomial a terms))))
 
 (comment
   ;; TODO what about horner-with-error?
@@ -1027,6 +1031,20 @@
 ;;
 ;; Sussman's code -- good for Euclid Algorithm
 
+(comment
+  ;; somehow this gets arity 2!!! TODO make a test.
+  (let [a1 (make 1 {[0] (make 2 {[1 0] 1})
+                    [1] 1})
+        a2 (make 1 {[0] (make 2 {[0 1] 1})
+                    [1] 1})]
+    (g/- a1 a2))
+
+  (let [a1 (make 1 {[0] (make 2 {[1 0] 1})
+                    [1] (make-constant 2 1)})
+        a2 (make 1 {[0] (make 2 {[0 1] 1})
+                    [1] (make-constant 2 1)})]
+    (g/- a1 a2)))
+
 (defn pseudo-remainder
   "Compute the pseudo-remainder of univariate polynomials p and q.
 
@@ -1047,21 +1065,20 @@
          (explicit-polynomial? v)
          (= (bare-arity v) 1)
          (not (v/zero? v))]}
-  (let [a (check-same-arity u v)
-        [vn-exponents vn-coefficient] (lead-term v)
-        *vn (fn [p] (coeff*poly vn-coefficient p))
-        n (monomial-degree vn-exponents)]
+  (let [[vn-exponents vn-coefficient] (lead-term v)
+        *vn (fn [p] (poly*coeff p vn-coefficient))
+
+        n   (monomial-degree vn-exponents)]
     (loop [remainder u
            d         0]
       (let [m (degree remainder)
             c (lead-coefficient remainder)]
         (if (< m n)
           [remainder d]
-          (do (prn "recur: " remainder)
-              (recur (poly:- (*vn remainder)
-                             (poly:* (make-c*xn a c (g/- m n))
-                                     v))
-                     (inc d))))))))
+          (recur (poly:- (*vn remainder)
+                         (poly:* (make-c*xn 1 c (g/- m n))
+                                 v))
+                 (inc d)))))))
 
 ;; ## Derivatives
 
@@ -1197,8 +1214,15 @@
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q]
   (evenly-divide p q))
 
-(defmethod g/exact-divide [::polynomial ::coeff] [p q]
-  (evenly-divide p q))
+(defmethod g/exact-divide [::polynomial ::coeff] [p c]
+  (evenly-divide p c))
+
+(defmethod g/exact-divide [::coeff ::polynomial] [c p]
+  (let [[term :as terms] (bare-terms p)]
+    (if (and (= (count terms) 1)
+             (constant-term? term))
+      (g/exact-divide c (coefficient term))
+      (u/illegal (str "Can't divide coefficient by polynomial: " c ", " p)))))
 
 ;; quotient, remainder, modulo... TODO search for more functions!
 

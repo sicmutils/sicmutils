@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is bansed on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.polynomial.gcd-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -31,7 +31,6 @@
             [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
-
 
 (deftest gcd-tests
   (checking "gcd between numbers" 100
@@ -444,31 +443,26 @@
 ;; Hopefully we can fix that, but for the present this explains why we draw
 ;; arities from the singleton set [1].
 
-(def ^:private num-tests 20)
+(deftest gcd-laws
+  (checking "g-divides-u-and-v" num-tests
+            [[u v] (gen/let [arity (gen/elements [1])]
+                     (gen/tuple (sg/polynomial :arity arity)
+                                (sg/polynomial :arity arity)))]
+            (let [g (g/gcd u v)]
+              (is (or (and (v/zero? u)
+                           (v/zero? v)
+                           (v/zero? g))
+                      (and (g/exact-divide u g)
+                           (g/exact-divide v g))))))
 
-(defspec ^:long g-divides-u-and-v num-tests
-  (gen/let [arity (gen/elements [1])]
-    (prop/for-all [u (sg/polynomial :arity arity)
-                   v (sg/polynomial :arity arity)]
-                  (let [g (g/gcd u v)]
-                    (or (and (v/zero? u)
-                             (v/zero? v)
-                             (v/zero? g))
-                        (and (g/exact-divide u g)
-                             (g/exact-divide v g)))))))
-
-(defspec ^:long d-divides-gcd-ud-vd num-tests
-  (gen/let [arity (gen/elements [1])]
-    (prop/for-all [u (sg/polynomial :arity arity
-                                    :nonzero? true)
-                   v (sg/polynomial :arity arity
-                                    :nonzero? true)
-                   d (sg/polynomial :arity arity
-                                    :nonzero? true)]
-                  (let [ud (g/* u d)
-                        vd (g/* v d)
-                        g (g/gcd ud vd)]
-                    (and
-                     (g/exact-divide ud g)
-                     (g/exact-divide vd g)
-                     (g/exact-divide g d))))))
+  (checking "d-divides-gcd-ud-vd" num-tests
+            [[u v d] (gen/let [arity (gen/elements [1])]
+                       (gen/tuple (sg/polynomial :arity arity)
+                                  (sg/polynomial :arity arity)
+                                  (sg/polynomial :arity arity)))]
+            (let [ud (g/* u d)
+                  vd (g/* v d)
+                  g (g/gcd ud vd)]
+              (is (g/exact-divide ud g))
+              (is (g/exact-divide vd g))
+              (is (g/exact-divide g d)))))
