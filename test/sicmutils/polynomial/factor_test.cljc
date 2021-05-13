@@ -19,15 +19,15 @@
 
 (ns sicmutils.polynomial.factor-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.number]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.factor :as pf]
-            [sicmutils.value :as v]
             [sicmutils.simplify
-             :refer [hermetic-simplify-fixture
-                     simplify-expression]]))
+             :refer [hermetic-simplify-fixture simplify-expression]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

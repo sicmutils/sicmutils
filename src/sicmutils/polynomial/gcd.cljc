@@ -280,13 +280,13 @@
       (maybe-bail-out "euclid inner loop")
       (cond (v/zero? u) v
             (v/zero? v) u
-            (v/one? u)  u
-            (v/one? v)  v
-            (= u v)     u
+            (v/one? u) u
+            (v/one? v) v
             (p/coeff? u) (if (p/coeff? v)
                            (g/gcd u v)
                            (gcd-poly-number v u))
             (p/coeff? v) (gcd-poly-number u v)
+            (= u v) u
             :else
             (let [[r _] (p/pseudo-remainder u v)]
               (if (v/zero? r)
@@ -336,33 +336,32 @@
         g)
     ;; TODO SHARE these trivial conditions!
     ;; TODO do we need abs?
-    (let [g (cond
-              (v/zero? u) v
-              (v/zero? v) u
-              (v/one? u)  u
-              (v/one? v)  v
-              (= u v)     u
-              (p/coeff? u) (if (p/coeff? v)
-                             (g/gcd u v)
-                             (gcd-poly-number v u))
-              (p/coeff? v) (gcd-poly-number u v)
-              :else
-              (let [arity (p/check-same-arity u v)]
-                (cond
-                  (= arity 1) (gcd1 u v)
-                  (p/monomial? u) (monomial-gcd u v)
-                  (p/monomial? v) (monomial-gcd v u)
+    (let [g (cond (v/zero? u) (g/abs v)
+                  (v/zero? v) (g/abs u)
+                  (p/coeff? u)(if (p/coeff? v)
+                                (g/gcd u v)
+                                (gcd-poly-number v u))
+                  (p/coeff? v)(gcd-poly-number u v)
+                  (v/one? u)  u
+                  (v/one? v)  v
+                  (= u v) u
                   :else
-                  (let [next-gcd (->gcd
-                                  (fn [u v]
-                                    (inner-gcd (inc level) u v)))
-                        content-remover (fn [u v cont]
-                                          (with-content-removed next-gcd u v cont))]
-                    (maybe-bail-out "polynomial GCD")
-                    (gcd-continuation-chain u v
-                                            with-lower-arity
-                                            content-remover
-                                            (euclid-inner-loop next-gcd))))))]
+                  (let [arity (p/check-same-arity u v)]
+                    (cond
+                      (= arity 1) (gcd1 u v)
+                      (p/monomial? u) (monomial-gcd u v)
+                      (p/monomial? v) (monomial-gcd v u)
+                      :else
+                      (let [next-gcd (->gcd
+                                      (fn [u v]
+                                        (inner-gcd (inc level) u v)))
+                            content-remover (fn [u v cont]
+                                              (with-content-removed next-gcd u v cont))]
+                        (maybe-bail-out "polynomial GCD")
+                        (gcd-continuation-chain u v
+                                                with-lower-arity
+                                                content-remover
+                                                (euclid-inner-loop next-gcd))))))]
       (when *poly-gcd-cache-enable*
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g))
@@ -384,16 +383,15 @@
   ([u] u)
   ([u v]
    ;; TODO I... think we can kill ALL of these... since we do them inside `inner-gcd`??
-   (cond (v/zero? u) (g/abs v)
-         (v/zero? v) (g/abs u)
+   (cond (v/zero? u)(g/abs v)
+         (v/zero? v)(g/abs u)
+         (p/coeff? u)(if (p/coeff? v)
+                       (g/gcd u v)
+                       (gcd-poly-number v u))
+         (p/coeff? v)(gcd-poly-number u v)
          (v/one? u)  u
          (v/one? v)  v
-         (= u v)     u
-         (p/coeff? u) (if (p/coeff? v)
-                        (g/gcd u v)
-                        (gcd-poly-number v u))
-         (p/coeff? v) (gcd-poly-number u v)
-
+         (= u v)     (g/abs u)
          :else
          (let [arity (p/check-same-arity u v)]
            (cond

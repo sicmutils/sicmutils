@@ -56,16 +56,15 @@
 	            ;; get a totally wrong facts, but its gcd with the
 	            ;; initial old-m=1 will be 1, so it won't result in
 	            ;; incorrect doublefacts or singlefacts.
-
               doublefacts (gcd facts old-m)
-              ;; doublefacts gets all the factors which were to
+              ;; doublefacts gets all the factors which w ere to
 	            ;; the power x>1, x<=2, (ergo x=2), in the last step.
 
               singlefacts (g/exact-divide new-s new-m)
               ;; takes out p = all factors only to the 1st power.
               ]
           (recur new-m
-                 ;; the followinghas all factors to the 1 or 2 power
+                 ;; the following has all factors to the 1 or 2 power
 	               ;; completely removed, others now to the power-2.
                  ;; TODO: poly:*, keep it cheap
                  (g/exact-divide h (g/* new-m new-s))

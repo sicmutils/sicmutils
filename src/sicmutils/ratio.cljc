@@ -198,14 +198,37 @@
                         (str n) "/" (str d)
                         "\"")))))))
 
+(comment
+  (is (= 5/3 (g/gcd 5 10/3)))
+  (is (= 5/3 (g/gcd 10/3 4))))
+
+;; TODO fix!
+
 #?(:clj
-   (doseq [[op f] [[g/exact-divide /]
-                   [g/quotient quot]
-                   [g/remainder rem]
-                   [g/modulo mod]]]
-     (defmethod op [Ratio Ratio] [a b] (f a b))
-     (defmethod op [Ratio ::v/integral] [a b] (f a b))
-     (defmethod op [::v/integral Ratio] [a b] (f a b)))
+   (do
+     (defmethod g/gcd [Ratio ::v/integral] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (biginteger b))
+              (core-denominator a)))
+
+     (defmethod g/gcd [::v/integral Ratio] [a b]
+       (g/div (.gcd (biginteger a)
+                    (core-numerator b))
+              (core-denominator b)))
+
+     (defmethod g/gcd [Ratio Ratio] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (core-numerator b))
+              (g/lcm (core-denominator a)
+                     (core-denominator b))))
+
+     (doseq [[op f] [[g/exact-divide /]
+                     [g/quotient quot]
+                     [g/remainder rem]
+                     [g/modulo mod]]]
+       (defmethod op [Ratio Ratio] [a b] (f a b))
+       (defmethod op [Ratio ::v/integral] [a b] (f a b))
+       (defmethod op [::v/integral Ratio] [a b] (f a b))))
 
    :cljs
    (do

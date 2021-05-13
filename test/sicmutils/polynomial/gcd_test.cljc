@@ -315,7 +315,6 @@
                    (* x1 x1 x2 x3 x5 x6 x7)
                    (* x1 x1 x3 x3 x4 x5 x5))]
         (gcd-test "D7" d7 f7 g7)))
-
     (pg/gcd-stats)))
 
 (deftest big-gcd
@@ -442,6 +441,8 @@
 ;; even of arity 2 that will exceed the time allotment for finding GCDs.
 ;; Hopefully we can fix that, but for the present this explains why we draw
 ;; arities from the singleton set [1].
+
+(def num-tests 20)
 
 (deftest gcd-laws
   (checking "g-divides-u-and-v" num-tests

@@ -358,6 +358,7 @@
   (cond (explicit-polynomial? p) (bare-terms p)
         (vector? p) p
         (v/zero? p) []
+        ;; TODO THIS is troubling.
         :else [(make-term p)]))
 
 (defn ^:no-doc lead-term
@@ -813,14 +814,22 @@
              remainder u]
         ;; find a term in the remainder into which the
         ;; lead term of the divisor can be divided.
-        (let [[r-exponents r-coefficient] (lead-term remainder)
-              residues (mapv g/- r-exponents vn-exponents)]
-          (if (good? residues)
-            (let [new-coef (g/div r-coefficient vn-coefficient)
-                  new-term (make arity [(make-term residues new-coef)])]
-              (recur (poly:+ quotient new-term)
-                     (poly:- remainder (poly:* new-term v))))
-            [quotient remainder]))))))
+        (if (v/zero? remainder)
+          [quotient remainder]
+          (let [[r-exponents r-coefficient] (if (coeff? remainder)
+                                              [(into [] (repeat arity 0)) remainder]
+                                              (lead-term remainder))
+                residues (mapv g/- r-exponents vn-exponents)]
+            (if (good? residues)
+              (let [new-coef (g/div r-coefficient vn-coefficient)
+                    new-term (->Polynomial arity [(make-term residues new-coef)])]
+                (recur (poly:+ quotient new-term)
+                       (poly:- remainder (poly:* new-term v))))
+              [quotient remainder])))))))
+
+;; TODO: test
+;; return test = (lambda (q r)
+;;          (assert (poly/equal? u (poly/add (poly/mul q v) r))))
 
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
@@ -831,18 +840,20 @@
   [u v]
   {:pre [(polynomial? u)
          (polynomial? v)]}
-  (cond (v/zero? v) (u/illegal "internal polynomial division by zero")
-        (v/zero? u) [u u]
-        (v/one? v)  [u (v/zero-like u)]
+  (cond (v/zero? v)
+        (u/illegal "internal polynomial division by zero")
 
-        (and (coeff? u) (coeff? v)) [(g/quotient u v)
-                                     (g/remainder u v)]
+        (or (v/zero? u) (v/one? v))
+        [u 0]
+
+        (and (coeff? u) (coeff? v))
+        [(g/quotient u v) (g/remainder u v)]
 
         (and (coeff? u) (explicit-polynomial? v))
         (poly:div (make-constant (bare-arity v) u) v)
 
         (and (explicit-polynomial? u) (coeff? v))
-        [(map-coefficients #(divide % v) u) 0]
+        (poly:div u (make-constant (bare-arity u) v))
 
         (and (explicit-polynomial? u)
              (explicit-polynomial? v))
@@ -1067,8 +1078,7 @@
          (not (v/zero? v))]}
   (let [[vn-exponents vn-coefficient] (lead-term v)
         *vn (fn [p] (poly*coeff p vn-coefficient))
-
-        n   (monomial-degree vn-exponents)]
+        n (monomial-degree vn-exponents)]
     (loop [remainder u
            d         0]
       (let [m (degree remainder)

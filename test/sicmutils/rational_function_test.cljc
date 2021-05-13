@@ -81,24 +81,23 @@
     (is (= (rf/make (p/make [1 2 1]) (p/make [1 -2 1])) (rf/expt x+1:x-1 2)))
     (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1])) (rf/expt x+1:x-1 -2)))
     (is (= (p 3) (rf/rf:+ (rf 3 2) (rf 3 2))))
-    (is (= (rf 5 3) (rf/div (rf 5 2) (rf 3 2))))
-    (is (= (rf 14 3) (rf/div (rf 8 3) (rf 4 7))))
+    (is (= #sicm/ratio 5/3 (rf/rf:div (rf 5 2) (rf 3 2))))
+    (is (= #sicm/ratio 14/3 (rf/rf:div (rf 8 3) (rf 4 7))))
     (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
            (rf/make (p/make [0 #sicm/ratio 1/2 #sicm/ratio 1/3])
                     (p/make [0 0 #sicm/ratio 1/2 #sicm/ratio 3/5]))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
-    (let [p #(p/make 1 [[[0] %]])     ;; constant arity 1 polynomial
+    (let [p #(p/make-constant 1 %) ;; constant arity 1 polynomial
           rf #(rf/make (p %1) (p %2)) ;; arity 1 rational function out of two constants
           N 3
           H (s/up* (for [i (range 1 (inc N))]
                      (s/up* (for [j (range 1 (inc N))]
                               (rf 1 (+ i j -1))))))]
-      (is (= (s/mapr #(rf % 1)
-                     (s/down (s/down 9 -36 30)
-                             (s/down -36 192 -180)
-                             (s/down 30 -180 180)))
+      (is (= (s/down (s/down 9 -36 30)
+                     (s/down -36 192 -180)
+                     (s/down 30 -180 180))
              (g/invert H))))))
 
 (deftest rf-operations
@@ -162,6 +161,10 @@
     (is (= 1 (rf-simp '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z))))))
 
   (testing "quotients"
-    (is (= '(/ 1 (* 2 x)) (rf-simp (x/expression-of (g/divide 1 (g/* 2 'x))))))
+    (is (= '(/ 1 (* 2 x))
+           (rf-simp (x/expression-of (g/divide 1 (g/* 2 'x))))))
+
     (is (= 4 (rf-simp (x/expression-of (g/divide (g/* 28 'x) (g/* 7 'x))))))
-    (is (= '(/ 1 (expt x 21)) (rf-simp (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
+
+    (is (= '(/ 1 (expt x 21))
+           (rf-simp (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))

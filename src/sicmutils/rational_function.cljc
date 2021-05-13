@@ -449,7 +449,10 @@
                       d2 (poly/gcd u' v)
                       u'' (p/poly:* (p/evenly-divide u d1) (p/evenly-divide v d2))
                       v'' (p/poly:* (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
-                  (make-reduced a u'' v'')))))
+                  (if (and (p/coeff? u'')
+                           (p/coeff? v''))
+                    (g/div u'' v'')
+                    (make-reduced a u'' v''))))))
 
 (defn rf*other [u v]
   #_
@@ -546,19 +549,19 @@
         (numerator r)))
 
 (defn rf:div [u v]
-  (rf:* u (invert v)))
+  (g/mul #_rf:* u (invert v)))
 
 (defn rf-div-other [u v]
-  (rf*other u (g/invert v)))
+  (g/mul #_rf*other u (g/invert v)))
 
 (defn other-div-rf [u v]
-  (other*rf u (invert v)))
+  (g/mul #_other*rf u (invert v)))
 
 (defn rf:gcd [u v]
   (let [d1 (poly/gcd (numerator u)
                      (numerator v))
-	      d2 (poly/gcd (numerator u)
-                     (numerator v))]
+	      d2 (poly/gcd (denominator u)
+                     (denominator v))]
 	  (make d1 d2)))
 
 (defn rf-gcd-other [u v]
@@ -783,15 +786,23 @@
 (defmethod g/sub [::p/coeff ::rational-function] [u v] (other-rf u v))
 
 (defmethod g/mul [::rational-function ::rational-function] [u v] (rf:* u v))
-(defmethod g/mul [::rational-function ::p/polynomial] [u v] (rf*other u v))
-(defmethod g/mul [::rational-function ::p/coeff] [u v] (rf*other u v))
-(defmethod g/mul [::p/polynomial ::rational-function] [u v] (other*rf u v))
-(defmethod g/mul [::p/coeff ::rational-function] [u v] (other*rf u v))
+#_(defmethod g/mul [::rational-function ::p/polynomial] [u v] (rf*other u v))
+#_(defmethod g/mul [::rational-function ::p/coeff] [u v] (rf*other u v))
+#_(defmethod g/mul [::p/polynomial ::rational-function] [u v] (other*rf u v))
+#_(defmethod g/mul [::p/coeff ::rational-function] [u v] (other*rf u v))
 
 
-;; TODO fold the next four in...
+;; TODO fold the next six in...
+(defmethod g/mul [::p/polynomial ::rational-function] [c r]
+  (make (g/mul c (numerator r))
+        (denominator r)))
+
 (defmethod g/mul [::p/coeff ::rational-function] [c r]
   (make (g/mul c (numerator r))
+        (denominator r)))
+
+(defmethod g/mul [::rational-function ::p/polynomial] [r c]
+  (make (g/mul (numerator r) c)
         (denominator r)))
 
 (defmethod g/mul [::rational-function ::p/coeff] [r c]
