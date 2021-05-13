@@ -74,6 +74,33 @@
       ~level ~where ~level
       ~@(map #(list 'str %) xs))))
 
+(def rational?
+  (some-fn v/integral? r/ratio?))
+
+;; TODO move these somewhere better! To the stopwatch namespace is the best
+;; place.
+
+(defn time-expired? []
+  (and *clock*
+       (let [[ticks units] *poly-gcd-time-limit*]
+         (> (us/elapsed *clock* units) ticks))))
+
+(defn- maybe-bail-out
+  "Returns a function that checks if clock has been running longer than timeout
+  and if so throws an exception after logging the event. Timeout should be of
+  the form [number Keyword], where keyword is one of the supported units from
+  sicmutils.util.stopwatch."
+  [description]
+  (when (time-expired?)
+    (let [s (format "Timed out: %s after %s" description (us/repr *clock*))]
+      (log/warn s)
+      (u/timeout-ex s))))
+
+(defn with-limited-time [timeout thunk]
+  (binding [*poly-gcd-time-limit* timeout
+            *clock* (us/stopwatch)]
+    (thunk)))
+
 ;; Continuation Helpers
 
 ;; Continuation Menu
@@ -236,9 +263,10 @@
 
 ;; ## GCD Routines
 
-(declare maybe-bail-out)
-
 (defn- euclid-inner-loop
+  "TODO THIS is sort of messed up, since this damned thing does a RECUR and can
+  potentially drop down to non... polynomial stuff. I think the whole codebase
+  needs to get RID of this thing."
   [coeff-gcd]
   (letfn [(content [p]
             (coeff-gcd
@@ -334,43 +362,12 @@
       (dbg level "<-" g)
       g)))
 
-;; TODO we want this to die.
-
-
-
-;; TODO move these somewhere better! To the stopwatch namespace is the best
-;; place.
-
-(defn time-expired? []
-  (and *clock*
-       (let [[ticks units] *poly-gcd-time-limit*]
-         (> (us/elapsed *clock* units) ticks))))
-
-(defn- maybe-bail-out
-  "Returns a function that checks if clock has been running longer than timeout
-  and if so throws an exception after logging the event. Timeout should be of
-  the form [number Keyword], where keyword is one of the supported units from
-  sicmutils.util.stopwatch."
-  [description]
-  (when (time-expired?)
-    (let [s (format "Timed out: %s after %s" description (us/repr *clock*))]
-      (log/warn s)
-      (u/timeout-ex s))))
-
-(defn with-limited-time [timeout thunk]
-  (binding [*poly-gcd-time-limit* timeout
-            *clock* (us/stopwatch)]
-    (thunk)))
-
 (defn gcd-euclid [u v]
   (g/abs
    (gcd-continuation-chain u v
                            with-trivial-constant-gcd-check
                            with-optimized-variable-order
                            #(inner-gcd 0 %1 %2))))
-
-(def rational?
-  (some-fn v/integral? r/ratio?))
 
 (defn- gcd-dispatch
   "Dispatcher for GCD routines.

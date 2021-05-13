@@ -586,7 +586,8 @@
                     aq (arity q)]
                 (if (= ap aq)
                   ap
-                  (u/arithmetic-ex "mismatched polynomial arity: " ap ", " aq)))))
+                  (u/arithmetic-ex
+                   (str "mismatched polynomial arity: " ap ", " aq))))))
 
 (defn new-variables
   "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
@@ -676,10 +677,12 @@
 (defn normalize
   "Note that we can take coefs on the left too..."
   [p c]
-  (cond (v/zero? c) (u/arithmetic-ex (str "Divide by zero: " p c))
+  (cond (v/zero? c) (u/arithmetic-ex
+                     (str "Divide by zero: " p c))
         (v/one? c) p
         :else
         (let [c' (g/invert c)]
+          ;; TODO why not divide??
           (map-coefficients #(g/* c' %) p))))
 
 ;; ## Polynomial Arithmetic
@@ -1022,7 +1025,9 @@
   Similar in spirit to Knuth's algorithm 4.6.1R, except we don't multiply the
   remainder through during gaps in the remainder. Since you don't know up front
   how many times the integerizing multiplication will be done, we also return
-  the number d for which d * u = q * v + r."
+  the number d for which d * u = q * v + r.
+
+  TODO note that `d` is the integerizing coefficient."
   [u v]
   {:pre [(polynomial? u)
          (polynomial? v)
@@ -1030,10 +1035,10 @@
          (= (bare-arity u) (bare-arity v) 1)]}
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
-        *vn (fn [p] (map-coefficients #(g/* vn-coefficient %) p))
+        *vn (fn [p] (coeff*poly vn-coefficient p))
         n (monomial-degree vn-exponents)]
     (loop [remainder u
-           d 0]
+           d         0]
       (let [m (degree remainder)
             c (lead-coefficient remainder)]
         (if (< m n)
