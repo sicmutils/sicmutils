@@ -186,8 +186,11 @@
                  (g/divide 'x 0))))
 
   (testing "symbolic moves"
-    (is (v/one? (g/expt 'x 0)))
-    #_(is (= 'x (g/gcd 'x 'x)))
+    (is (v/one? (g/expt 'x 0))
+        "TODO wrong! should be 'x.")
+    #_
+    (is (= 'x (g/gcd 'x 'x))
+        "TODO should be 'x")
     (is (v/one? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 

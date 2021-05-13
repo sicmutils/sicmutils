@@ -26,6 +26,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
+            [sicmutils.modint :as mi]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.util.stopwatch :as us]
@@ -167,16 +168,20 @@
   ;; it could come back, but in order to do this right, we would need a way to
   ;; specify the coefficient field when we create a polynomial so that we can
   ;; efficiently dispatch to a GCD routine tailored to that field.
-  #_(testing "modular polynomial reduction"
-      (let [A (p/make [-360 -171 145 25 1])
-            B (p/make [-15 -14 -1 15 14 1])
-            Z5 #(modular/make % 5)
-            A:Z5 (map-coefficients Z5 A)
-            B:Z5 (map-coefficients Z5 B)
-            G5 (g/gcd A:Z5 B:Z5)]
-        (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
-        (is (= (p/make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-        (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5)))))
+  (testing "modular polynomial reduction"
+    (let [A (p/make [-360 -171 145 25 1])
+          B (p/make [-15 -14 -1 15 14 1])
+          Z5 #(mi/make % 5)
+          A:Z5 (p/map-coefficients Z5 A)
+          B:Z5 (p/map-coefficients Z5 B)
+          G5 (g/gcd A:Z5 B:Z5)]
+      (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
+      (is (= (p/make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
+
+      ;; TODO; this will work if you remove the `rational?` guard inside `gcd`.
+      ;; What are we really trying to do there?
+      #_
+      (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5)))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
