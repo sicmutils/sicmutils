@@ -74,9 +74,6 @@
       ~level ~where ~level
       ~@(map #(list 'str %) xs))))
 
-(def rational?
-  (some-fn v/integral? r/ratio?))
-
 ;; TODO move these somewhere better! To the stopwatch namespace is the best
 ;; place.
 
@@ -222,7 +219,10 @@
   (g/abs
    (transduce
     (comp (ua/halt-at v/one?)
-          (map u/biginteger))
+          (map (fn [x]
+                 (if (v/integral? x)
+                   (u/biginteger x)
+                   x))))
     (fn
       ([] 0)
       ([x] x)
@@ -375,6 +375,9 @@
                            with-optimized-variable-order
                            #(inner-gcd 0 %1 %2))))
 
+(def rational?
+  (some-fn v/integral? r/ratio?))
+
 (defn- gcd-dispatch
   "Dispatcher for GCD routines.
 
@@ -391,17 +394,10 @@
          (p/coeff? v)(gcd-poly-number u v)
          (v/one? u)  u
          (v/one? v)  v
-         (= u v)     (g/abs u)
+         (= u v) (g/abs u)
          :else
          (let [arity (p/check-same-arity u v)]
            (cond
-             ;; this is not QUITE right... we want to check if everyone is
-             ;; RATIONAL. Right? Can't we do that?
-             ;; TODO this is wrong, erase this condition!!
-             (not (and (every? v/integral? (p/coefficients u))
-                       (every? v/integral? (p/coefficients v))))
-             ;; we want this... but does that make sense?
-             #_
              (not (and (every? rational? (p/coefficients u))
                        (every? rational? (p/coefficients v))))
              (v/one-like u)
@@ -444,8 +440,10 @@
 (defn gcd-Dp
   "Compute the gcd of the all the partial derivatives of p."
   [p]
-  (gcd-seq
-   (p/partial-derivatives p)))
+  (if (p/explicit-polynomial? p)
+    (gcd-seq
+     (p/partial-derivatives p))
+    1))
 
 ;; several observations. many of the gcds we find when attempting the
 ;; troublesome GCD are the case where we have two monomials. This can be done

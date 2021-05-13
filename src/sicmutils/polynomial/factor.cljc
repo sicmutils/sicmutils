@@ -32,23 +32,22 @@
 (defn split-polynomial
   "Note: Split a polynomial into factors of various multiplicities."
   [p]
-  (letfn [(answer [[x :as tracker] const]
-            (if (v/number? x)
-              (into [x] (conj (pop tracker) 1))
-              (into [const] (rest tracker))))]
-    ;; TODO these should switch to poly:zero and friends.
-    (loop [m (v/zero-like p)
+  (letfn [(answer [tracker const]
+            (let [final (peek tracker)]
+              (if (v/number? final)
+                (into [final] (subvec (conj (pop tracker) 1) 1))
+                (into [const] (subvec tracker 1)))))]
+    (loop [m 0
            h p
            tracker []
            old-s p
-           old-m (v/one-like p)]
+           old-m 1]
       (if (v/one? m)
         (answer tracker h)
-        (let [gg    (gcd-Dp h)
-              ;; TODO: g/exact-divide => poly:quotient
-              new-s (g/exact-divide h (gcd h gg))
+        (let [gg (gcd-Dp h)
+              new-s (poly/evenly-divide h (gcd h gg))
               new-m (gcd gg new-s)
-              facts (g/exact-divide old-s new-s)
+              facts (poly/evenly-divide old-s new-s)
 
               ;; facts gets all the factors that were completely
 	            ;; removed last step, i.e. all those that were to
@@ -60,14 +59,15 @@
               ;; doublefacts gets all the factors which w ere to
 	            ;; the power x>1, x<=2, (ergo x=2), in the last step.
 
-              singlefacts (g/exact-divide new-s new-m)
+              singlefacts (poly/evenly-divide new-s new-m)
               ;; takes out p = all factors only to the 1st power.
               ]
+
           (recur new-m
                  ;; the following has all factors to the 1 or 2 power
 	               ;; completely removed, others now to the power-2.
                  ;; TODO: poly:*, keep it cheap
-                 (g/exact-divide h (g/* new-m new-s))
+                 (poly/evenly-divide h (poly/poly:* new-m new-s))
 
                  ;; tracker of the form
 	               ;;  h(vi) = (* (exponent (get tracker k) k))
@@ -96,7 +96,8 @@
      (map (fn [factor]
             (simplifier
              (a/->expression analyzer factor v)))
-          (split-polynomial p)))))
+          (do (def cake p)
+              (split-polynomial p))))))
 
 (defn split-polynomial->expression [P]
   (let [factors (factor-polynomial-expression P)]

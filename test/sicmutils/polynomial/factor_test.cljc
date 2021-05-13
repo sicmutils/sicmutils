@@ -40,20 +40,28 @@
 (deftest factoring
   (testing "simple test cases"
     (let [fpe #(pf/factor-polynomial-expression g/simplify poly-analyzer %)
-          unity2 (p/make-constant 2 2)
           x-y (->poly '(- x y))
-          x+y (->poly '(+ x y))
-          U0 (g/* (g/square (g/- 'x 'y))
-                  (g/cube (g/+ 'x 'y)))
-          U1 (g/square (g/- 'x 'y))
-          U2 (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y))
-          U3 (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))
-          U  (->poly '(* (square (- x y)) (cube (+ x y))))]
-      (is (= [unity2 unity2 x-y x+y] (pf/split-polynomial U)))
-      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (fpe U0)))
-      (is (= [1 1 '(+ x (* -1 y)) 1] (fpe U1)))
-      (is (= [3 '(+ (expt x 2) y) 1 'z] (fpe U2)))
-      (is (= [3 '(+ (expt x 2) y) 'z 1] (fpe U3))))))
+          x+y (->poly '(+ x y))]
+      (is (= [1 1 x-y x+y]
+             (pf/split-polynomial
+              (->poly '(* (square (- x y)) (cube (+ x y)))))))
+
+      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)]
+             (fpe
+              (g/* (g/square (g/- 'x 'y))
+                   (g/cube (g/+ 'x 'y))))))
+
+      (is (= [1 1 '(+ x (* -1 y)) 1]
+             (fpe
+              (g/square (g/- 'x 'y)))))
+
+      (is (= [3 '(+ (expt x 2) y) 1 'z]
+             (fpe
+              (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y)))))
+
+      (is (= [3 '(+ (expt x 2) y) 'z 1]
+             (fpe
+              (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))))))))
 
 (deftest factoring-2
   (testing "test poly - first example from split-poly.scm"
