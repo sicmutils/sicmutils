@@ -163,13 +163,15 @@
            odds 1
            evens 1]
       (cond (nil? factors)
-            (do (if (not (and (number? evens) (= evens 1)))
+            (do (if (not (and (v/number? evens)
+                              (= evens 1)))
                   (assume! `(~'non-negative? ~evens) 'root-out-squares))
                 (* (sym/sqrt odds) evens))
 
             (sym/expt? (first factors))
             (let [[b e] (sym/operands (first factors))]
-              (if (and (integer? e) (even? e))
+              (if (and (v/native-integral? e)
+                       (even? e))
                 (recur (next factors)
                        odds
                        (let [power (quot e 2)]

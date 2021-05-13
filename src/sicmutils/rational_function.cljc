@@ -387,10 +387,11 @@
   (binop p/poly:+ other+rf rf+other rf:+))
 
 (defn negate [r]
-  {:pre [(rational-function? r)]}
-  (->RationalFunction (bare-arity r)
-                      (p/negate (numerator r))
-                      (denominator r)))
+  (if (rational-function? r)
+    (->RationalFunction (bare-arity r)
+                        (p/negate (numerator r))
+                        (denominator r))
+    (p/negate r)))
 
 (defn rf:- [r s]
   (rf:+ r (negate s)))
@@ -529,16 +530,18 @@
                         (p/expt bottom e))))
 
 (defn square [r]
-  {:pre [(rational-function? r)]}
-  (->RationalFunction (bare-arity r)
-                      (p/square (numerator r))
-                      (p/square (denominator r))))
+  (if (rational-function? r)
+    (->RationalFunction (bare-arity r)
+                        (p/square (numerator r))
+                        (p/square (denominator r)))
+    (p/square r)))
 
 (defn cube [r]
-  {:pre [(rational-function? r)]}
-  (->RationalFunction (bare-arity r)
-                      (p/cube (numerator r))
-                      (p/cube (denominator r))))
+  (if (rational-function? r)
+    (->RationalFunction (bare-arity r)
+                        (p/cube (numerator r))
+                        (p/cube (denominator r)))
+    (p/cube r)))
 
 (defn invert [r]
   ;; use make so that the - sign will get flipped if needed.
@@ -696,6 +699,9 @@
 ;;
 ;; TODO make a note that this operator table can handle polynomials,
 ;; coefficients AND rational functions, nothing else.
+;;
+;; TODO this is not true yet, but we want it to be!
+
 (def ^:private operator-table
   {'+ #(reduce g/add %&)
    '- (fn [arg & args]
@@ -708,8 +714,10 @@
          (reduce g/mul (g/mul x y) more)))
    '/ (fn [arg & args]
         (if (some? args) (g/div arg (reduce g/mul args)) (g/invert arg)))
+   ;; TODO these are `g` form so that they can catch polynomials too. That is
+   ;; NOT appropriate...
    'negate negate
-   'invert invert
+   'invert g/invert
    'expt g/expt
    'square square
    'cube cube

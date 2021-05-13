@@ -241,6 +241,57 @@
     (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
            (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b)))))))
 
+  (testing "double simplify does good work! One round will NOT get this result."
+    (is (clojure.core/=
+         '(+ (* -1 R (cos phi)
+                (expt (cos theta) 3)
+                (((partial 0) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta)))))
+             (* -1 R (expt (cos theta) 3)
+                (sin phi)
+                (((partial 1) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta)))))
+             (* -1 R (sin theta)
+                (expt (cos theta) 2)
+                (((partial 2) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta))))))
+         (simplify-expression
+          (simplify-expression
+           '(/ (+ (* -1
+                     (expt R 2)
+                     (((partial 0) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (cos phi)
+                     (expt (cos theta) 3)
+                     (sin theta))
+                  (* -1
+                     (expt R 2)
+                     (((partial 1) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (expt (cos theta) 3)
+                     (sin phi)
+                     (sin theta))
+                  (* (((partial 2) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (sqrt
+                      (+ (* (expt R 4) (expt (cos theta) 4))
+                         (* -2 (expt R 4) (expt (cos theta) 2))
+                         (expt R 4)))
+                     (expt (cos theta) 2)))
+               (* R (sin theta))))))))
+
   (testing "issue #156"
     (is (= '(* y_1 (sqrt (+ (expt x_2 2) (expt y_1 2) (* 2 y_1 y_2) (expt y_2 2))))
            (g/simplify

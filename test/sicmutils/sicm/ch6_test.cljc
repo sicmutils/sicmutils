@@ -82,10 +82,10 @@
              (simplify (e/series:sum E 2))))
 
     (is (= '(up t
-                (/ (+ (* (/ -1 2) (expt α 2) (expt β 2) (expt ε 2) (sin theta) (cos theta))
-                      (* (expt p_theta 2) α β ε (sin theta))
-                      (* (expt p_theta 4) theta))
-                   (expt p_theta 4))
+                (/ (+ (* -1 (expt α 2) (expt β 2) (expt ε 2) (sin theta) (cos theta))
+                      (* 2 (expt p_theta 2) α β ε (sin theta))
+                      (* 2 (expt p_theta 4) theta))
+                   (* 2 (expt p_theta 4)))
                 (/ (+ (* 2 (expt p_theta 2) α β ε (cos theta))
                       (* -1 (expt α 2) (expt β 2) (expt ε 2))
                       (* 2 (expt p_theta 4)))

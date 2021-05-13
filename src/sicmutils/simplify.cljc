@@ -47,7 +47,7 @@
   NOTE: I think this is fpf:analyzer in the scheme code."
   []
   (let [backend (poly/->PolynomialAnalyzer)
-        gensym  (a/monotonic-symbol-generator "-s-")]
+        gensym (a/monotonic-symbol-generator "-s-")]
     (a/make-analyzer backend gensym)))
 
 (defn ^:no-doc rational-function-analyzer
