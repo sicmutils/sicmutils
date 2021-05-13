@@ -442,11 +442,12 @@
   ([p n]
    {:pre [explicit-polynomial? p]}
    (let [terms     (bare-terms p)
+         arity     (bare-arity p)
          n-terms   (count terms)
          term-strs (take n (map term->str terms))
          suffix    (when (> n-terms n)
                      (str "... and " (g/- n-terms n) " more terms"))]
-     (str "(" (cs/join " + " term-strs) suffix ")"))))
+     (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
 
 ;; ## Constructors
 
@@ -725,6 +726,8 @@
 (defn poly:-
   "Subtract the polynomial q from the polynomial p."
   [p q]
+  (prn "bad!" (arity p) p)
+  (prn "q: " (arity q) q)
   (poly:+ p (negate q)))
 
 (defn- mul-terms [l r]
@@ -897,18 +900,28 @@
            (sparse->terms)
            (->Polynomial 1)))))
 
+(comment
+  ;; TODO this works... BUT I think we want to drop those constants down to
+  ;; actual constants. But then what would raise do??
+  (is (= (make 1 {[1] (make-constant 2 2)
+                  [2] (make-constant 2 2)})
+         (lower-arity
+          (make 3 {[1 0 0] 2 [2 0 0] 2})))))
+
 (defn raise-arity
   "The opposite of lower-arity. This needs a polynomial with terms that are
   THEMSELVES coefficients."
-  [p]
-  {:pre [(polynomial? p)
+  [p a]
+  {:pre [(explicit-polynomial? p)
          (= (arity p) 1)]}
   (let [terms (sparse->terms
                (for [[x q]  (bare-terms p)
-                     [ys c] (->terms q)]
-                 [(into x ys) c]))
-        ltc (lead-coefficient p)]
-    (->Polynomial (inc (arity ltc)) terms)))
+                     [ys c] (->terms q)
+                     :let [ys (if (empty? ys)
+                                (repeat (dec a) 0)
+                                ys)]]
+                 [(into x ys) c]))]
+    (->Polynomial a terms)))
 
 (comment
   ;; TODO what about horner-with-error?
@@ -1029,10 +1042,11 @@
 
   TODO note that `d` is the integerizing coefficient."
   [u v]
-  {:pre [(polynomial? u)
-         (polynomial? v)
-         (not (v/zero? v))
-         (= (bare-arity u) (bare-arity v) 1)]}
+  {:pre [(explicit-polynomial? u)
+         (= (bare-arity u) 1)
+         (explicit-polynomial? v)
+         (= (bare-arity v) 1)
+         (not (v/zero? v))]}
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
         *vn (fn [p] (coeff*poly vn-coefficient p))
@@ -1043,10 +1057,11 @@
             c (lead-coefficient remainder)]
         (if (< m n)
           [remainder d]
-          (recur (poly:- (*vn remainder)
-                         (poly:* (make-c*xn a c (g/- m n))
-                                 v))
-                 (inc d)))))))
+          (do (prn "recur: " remainder)
+              (recur (poly:- (*vn remainder)
+                             (poly:* (make-c*xn a c (g/- m n))
+                                     v))
+                     (inc d))))))))
 
 ;; ## Derivatives
 

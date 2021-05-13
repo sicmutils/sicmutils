@@ -685,8 +685,15 @@
             [p (gen/let [arity (gen/choose 2 10)]
                  (sg/polynomial :arity arity
                                 :nonzero? true))]
-            (is (= p (p/raise-arity
-                      (p/lower-arity p))))))
+            (is (= p (-> (p/lower-arity p)
+                         (p/raise-arity (p/arity p))))))
+
+  (checking "TODO name this..." 100
+            [x sg/any-integral
+             arity (gen/choose 2 10)]
+            (is (= (p/make-constant arity x)
+                   (-> (p/make-constant x)
+                       (p/raise-arity arity))))))
 
 (deftest evaluation-homomorphism-tests
   (checking "evaluation-homomorphism" 30

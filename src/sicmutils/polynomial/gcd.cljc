@@ -181,9 +181,10 @@
 
 (defn- with-lower-arity
   [u v continue]
-  (p/raise-arity
-   (continue (p/lower-arity u)
-             (p/lower-arity v))))
+  (let [a (p/check-same-arity u v)]
+    (-> (continue (p/lower-arity u)
+                  (p/lower-arity v))
+        (p/raise-arity a))))
 
 (declare primitive-gcd)
 
@@ -283,12 +284,13 @@
                            (gcd-poly-number v u))
             (p/coeff? v) (gcd-poly-number u v)
             :else
-            (let [[r _] (p/pseudo-remainder u v)]
-              (if (v/zero? r)
-                v
-                (let [kr (content r)]
-                  (recur v (p/map-coefficients
-                            #(g/exact-divide % kr) r)))))))))
+            (do (prn "v: " v)
+                (let [[r _] (p/pseudo-remainder u v)]
+                  (if (v/zero? r)
+                    v
+                    (let [kr (content r)]
+                      (recur v (p/map-coefficients
+                                #(g/exact-divide % kr) r))))))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -355,7 +357,7 @@
                     (gcd-continuation-chain u v
                                             with-lower-arity
                                             content-remover
-                                            #((euclid-inner-loop next-gcd) %1 %2))))))]
+                                            (euclid-inner-loop next-gcd))))))]
       (when *poly-gcd-cache-enable*
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g))

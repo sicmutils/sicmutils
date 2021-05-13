@@ -63,7 +63,8 @@
                     (p/make-constant 4))))
     (is (= 1 (g/gcd (p/make-constant 7)
                     (p/make-constant 11))))
-    (is (= 11 (g/gcd 0 (p/make-constant 11)))))
+    (is (= (p/make-constant 11)
+           (g/gcd 0 (p/make-constant 11)))))
 
   (testing "GCD: arity 1 case"
     (let [x+1 (p/make [1 1])
