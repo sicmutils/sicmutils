@@ -112,8 +112,15 @@
 
 (defn make-term
   "Takes a monomial and a coefficient and returns a polynomial term."
+  ;; TODO this first arity us busted!!
   ([coef] [[] coef])
   ([expts coef] [expts coef]))
+
+(defn constant->terms [arity coef]
+  (if (v/zero? coef)
+    []
+    (let [term [(into [] (repeat arity 0)) coef]]
+      [term])))
 
 (defn exponents
   "Returns the exponent vector of the term."
@@ -698,50 +705,114 @@
 ;; TODO I KNOW we can do a better job here, rather than calling `make` each
 ;; time.
 
+(defn merge-fn [compare add zero? make]
+  (fn
+    ([] [])
+    ([xs] xs)
+    ([xs ys]
+     (loop [i (long 0)
+            j (long 0)
+            result (transient [])]
+       (let [x (nth xs i nil)
+             y (nth ys j nil)]
+         (cond (not x) (into (persistent! result) (subvec ys j))
+               (not y) (into (persistent! result) (subvec xs i))
+               :else (let [[x-tags x-coef] x
+                           [y-tags y-coef] y
+                           compare-flag (compare x-tags y-tags)]
+                       (cond
+                         ;; If the terms have the same tag set, add the coefficients
+                         ;; together. Include the term in the result only if the new
+                         ;; coefficient is non-zero.
+                         (zero? compare-flag)
+                         (let [sum (add x-coef y-coef)]
+                           (recur (inc i)
+                                  (inc j)
+                                  (if (zero? sum)
+                                    result
+                                    (conj! result (make x-tags sum)))))
+
+                         ;; Else, pass the smaller term on unchanged and proceed.
+                         (neg? compare-flag)
+                         (recur (inc i) j (conj! result x))
+
+                         :else
+                         (recur i (inc j) (conj! result y))))))))))
+
+(def terms:+
+  (merge-fn monomial-order g/add v/zero? make-term))
+
 (defn- binary-combine
   "TODO this is inefficient as hell for the TWO places we use it."
   [l r coeff-op terms-op]
   (let [l-poly? (explicit-polynomial? l)
         r-poly? (explicit-polynomial? r)]
     (cond (and l-poly? r-poly?)
-          (make (check-same-arity l r)
-                (terms-op (bare-terms l)
-                          (bare-terms r)))
+          (terms->polynomial
+           (check-same-arity l r)
+           (terms-op (bare-terms l)
+                     (bare-terms r)))
 
           l-poly?
-          (let [r-poly (make-constant (bare-arity l) r)]
-            (make (bare-arity l)
-	                (terms-op (bare-terms l)
-			                      (bare-terms r-poly))))
+          (terms->polynomial
+           (bare-arity l)
+	         (terms-op (bare-terms l)
+			               (constant->terms (bare-arity l) r)))
 
           r-poly?
-          (let [l-poly (make-constant (bare-arity r) l)]
-            (make (bare-arity r)
-                  (terms-op (bare-terms l-poly)
-                            (bare-terms r))))
+          (terms->polynomial
+           (bare-arity r)
+           (terms-op (constant->terms (bare-arity r) l)
+                     (bare-terms r)))
 
           :else (coeff-op l r))))
 
 (defn poly:+
   "Adds the polynomials p and q"
   [p q]
-  (binary-combine p q g/+ into))
+  (binary-combine p q g/add terms:+))
 
 (defn poly:-
   "Subtract the polynomial q from the polynomial p."
   [p q]
   (poly:+ p (negate q)))
 
+(defn- t*ts
+  "Multiplies a single term on the left by a vector of `terms` on the right.
+  Returns a new vector of terms."
+  [[tags coeff] terms]
+  (loop [acc []
+         i 0]
+    (let [t (nth terms i nil)]
+      (if (nil? t)
+        acc
+	      (let [[tags1 coeff1] t]
+	        (recur (conj acc (make-term
+		                        (mapv + tags tags1)
+		                        (g/* coeff coeff1)))
+		             (inc i)))))))
+
+(defn mul-terms [xlist ylist]
+  (letfn [(call [i]
+            (let [x (nth xlist i nil)]
+              (if (nil? x)
+                []
+                (terms:+ (t*ts x ylist)
+	                       (call (inc i))))))]
+    (call 0)))
+
+#_
 (defn- mul-terms [l r]
-  (for [[l-expts l-coef] l
-        [r-expts r-coef] r]
-    (make-term (mapv g/+ l-expts r-expts)
-               (g/* l-coef r-coef))))
+  (sparse->terms
+   (for [[l-expts l-coef] l
+         [r-expts r-coef] r]
+     (make-term (mapv + l-expts r-expts)
+                (g/* l-coef r-coef)))))
 
 (defn poly:*
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (binary-combine p q g/* mul-terms))
+  (binary-combine p q g/mul mul-terms))
 
 (defn poly*coeff [p c]
   (map-coefficients #(g/* % c) p))
