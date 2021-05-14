@@ -27,6 +27,7 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.gcd :refer [gcd gcd-Dp]]
+            [sicmutils.util.logic :as ul]
             [taoensso.timbre :as log]))
 
 (defn split-polynomial
@@ -147,11 +148,7 @@
 (def factor
   (a/default-simplifier factor-analyzer))
 
-;; TODO assumptions are missing!
-
-(defn- assume! [thing context]
-  (log/warn
-   (format "Assuming %s in %s" thing context)))
+;; TODO assumptions are missing! Check, add more!
 
 (defn- process-sqrt
   "NOTE: Comes from split-poly.scm."
@@ -167,7 +164,7 @@
       (cond (nil? factors)
             (do (if (not (and (v/number? evens)
                               (= evens 1)))
-                  (assume! `(~'non-negative? ~evens) 'root-out-squares))
+                  (ul/assume! `(~'non-negative? ~evens) 'root-out-squares))
                 (* (sym/sqrt odds) evens))
 
             (sym/expt? (first factors))
