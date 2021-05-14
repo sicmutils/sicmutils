@@ -57,6 +57,21 @@
 ;; it is important that the monomial vectors all contain the same number of
 ;; slots, so that 3x + 2y^2 would be represented as: 3*[1 0] + 2*[0 2].
 
+(defn dense->expts [v]
+  (reduce-kv (fn [acc i x]
+               (if (zero? x)
+                 acc
+                 (assoc acc i x)))
+             (sorted-map)
+             v))
+
+(defn expts:+ [l r]
+  (merge-with + l r))
+
+(defn expts:- [l r]
+  (dense->expts
+   (merge-with + l (u/map-vals - r))))
+
 (defn- monomial-degree
   "Compute the degree of a monomial. This is just the sum of the exponents."
   [m]
@@ -70,8 +85,23 @@
 (defn ^:no-doc lex-order
   "Lex order for monomials considers the power of x, then the power of y, etc."
   [xs ys]
-  (compare (vec xs)
-           (vec ys)))
+  (let [xs (vec xs)
+        ys (vec ys)]
+    (loop [i (long 0)]
+      (let [x (nth xs i nil)
+            y (nth ys i nil)]
+        (cond (and (not x) (not y)) 0
+              (not x) -1
+              (not y) 1
+              :else (let [bit (compare (nth x 0) (nth y 0))]
+                      (cond (zero? bit)
+                            (let [xv (nth x 1)
+                                  yv (nth y 1)]
+                              (if (= xv yv)
+                                (recur (inc i))
+                                (- xv yv)))
+                            (neg? bit) 1
+                            :else -1)))))))
 
 (defn ^:no-doc graded-lex-order [xs ys]
   (let [xd (monomial-degree xs)
@@ -84,8 +114,8 @@
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
     (if (= xd yd)
-      (compare (vec (rseq ys))
-               (vec (rseq xs)))
+      (lex-order (rseq ys)
+                 (rseq xs))
       (- xd yd))))
 
 ;; the default.
@@ -113,7 +143,6 @@
 
 (defn make-term
   "Takes a monomial and a coefficient and returns a polynomial term."
-  ;; TODO this first arity us busted!!
   ([coef] [empty-expts coef])
   ([expts coef] [expts coef]))
 
@@ -164,7 +193,7 @@
     (and (v/one? arity)
          (= (count terms) 1)
          (let [term (nth terms 0)]
-           (and (v/one? (exponents term))
+           (and (= {0 1} (exponents term))
                 (v/one? (coefficient term))))))
 
   (zero-like [_]
@@ -349,8 +378,8 @@
   (if (instance? Polynomial that)
     (let [p ^Polynomial that]
       (and (= (.-arity this) (.-arity p))
-           ;; TODO fix this, look at actual exponent terms...
-           (v/= (.-terms this) (.-terms p))))
+           (v/= (.-terms this)
+                (.-terms p))))
 
     (let [terms (.-terms this)]
       (and (<= (count terms) 1)
@@ -466,7 +495,10 @@
      []
      (->> (for [[expts terms] (group-by exponents expts->coef)
                 :let [coef-sum (transduce
-                                (map coefficient) g/+ terms)]
+                                (map coefficient) g/+ terms)
+                      expts (if (vector? expts)
+                              (dense->expts expts)
+                              expts)]
                 :when (not (v/zero? coef-sum))]
             (make-term expts coef-sum))
           (sort-by exponents comparator)
@@ -479,7 +511,10 @@
   (let [->term (fn [i coef]
                  (if (v/zero? coef)
                    []
-                   [(make-term (sorted-map 0 i) coef)]))
+                   [(make-term (if (zero? i)
+                                 (sorted-map)
+                                 (sorted-map 0 i))
+                               coef)]))
         xform  (comp (map-indexed ->term)
                      cat)]
     (into empty-terms xform coefs)))
@@ -781,7 +816,7 @@
         acc
 	      (let [[tags1 coeff1] t]
 	        (recur (conj acc (make-term
-		                        (merge-with + tags tags1)
+		                        (expts:+ tags tags1)
 		                        (g/* coeff coeff1)))
 		             (inc i)))))))
 
@@ -863,9 +898,7 @@
         [vn-exponents vn-coefficient] (lead-term v)
         ;; TODO note that this takes expts.
         good? (fn [residues]
-                (and (seq residues)
-                     (every? (complement neg?)
-                             (vals residues))))]
+                (every? pos? (vals residues)))]
     (if (zero? arity)
       [(g/div (lead-coefficient u) vn-coefficient) 0]
       (loop [quotient  0
@@ -875,7 +908,7 @@
         (if (v/zero? remainder)
           [quotient remainder]
           (let [[r-exponents r-coefficient] (lead-term remainder)
-                residues (merge-with + r-exponents (u/map-vals - vn-exponents))]
+                residues (expts:- r-exponents vn-exponents)]
             (if (good? residues)
               (let [new-coef (g/div r-coefficient vn-coefficient)
                     new-term (->Polynomial arity [(make-term residues new-coef)])]
@@ -942,6 +975,21 @@
     (negate p)
     p))
 
+(defn- expt-down [expts]
+  (reduce-kv (fn [acc k v]
+               (assoc acc (dec k) v))
+             (sorted-map)
+             (dissoc expts 0)))
+
+(defn expt-up [zero-expt expts]
+  (let [m (reduce-kv (fn [acc k v]
+                       (assoc acc (inc k) v))
+                     (sorted-map)
+                     expts)]
+    (if (zero? zero-expt)
+      m
+      (assoc m 0 zero-expt))))
+
 (defn lower-arity
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
@@ -959,13 +1007,15 @@
     (letfn [(lower-terms [terms]
               (let [coef-terms (sparse->terms
                                 (for [[xs c] terms]
-                                  ;; TODO map, and bump DOWN every entry.... maybe??
-                                  [(dissoc xs 0) c]))]
+                                  [(expt-down xs) c]))]
                 (->Polynomial (dec A) coef-terms)))]
       (->> (bare-terms p)
-           (group-by #((exponents %) 0))
+           (group-by #((exponents %) 0 0))
            (map (fn [[x terms]]
-                  (make-term (sorted-map 0 x) (lower-terms terms))))
+                  (let [expts (if (zero? x)
+                                (sorted-map)
+                                (sorted-map 0 x))]
+                    (make-term expts (lower-terms terms)))))
            (sparse->terms)
            (->Polynomial 1)))))
 
@@ -988,8 +1038,7 @@
     (let [terms (sparse->terms
                  (for [[x q] (bare-terms p)
                        [ys c] (->terms q)]
-                   ;; TODO bump UP every entry, assoc 0.... maybe??
-                   [(assoc ys 0 (x 0)) c]))]
+                   [(expt-up (x 0 0) ys) c]))]
       (->Polynomial a terms))))
 
 (comment
@@ -1001,7 +1050,7 @@
 	    (if (empty? terms)
         (apply g/* (cons sum (map g/expt args expts)))
 	      (let [new-expts (exponents (first terms))
-              diff (merge-with + expts (u/map-vals - new-expts))]
+              diff (expts:- expts new-expts)]
 	        (recur (rest terms)
 		             new-expts
 		             (g/+ (coefficient (first terms))
@@ -1156,9 +1205,12 @@
   (if (explicit-polynomial? p)
     (make (bare-arity p)
           (for [[xs c] (bare-terms p)
-                :let [xi (xs i)]
+                :let [xi (xs i 0)]
                 :when (not= 0 xi)]
-            [(update xs i dec) (g/* xi c)]))
+            (let [expts (if (= 1 xi)
+                          (dissoc xs i)
+                          (update xs i dec))]
+              [expts (g/* xi c)])))
     0))
 
 (defn partial-derivatives
@@ -1212,9 +1264,9 @@
     [p vars]
     (if (explicit-polynomial? p)
       (let [xform (map (fn [[xs c]]
-                         (->> (map (fn [v i]
-                                     (expt v (xs i 0)))
-                                   vars xs)
+                         (->> (map-indexed (fn [i v]
+                                             (expt v (xs i 0)))
+                                           vars)
                               (reduce *)
                               (* c))))]
         (->> (bare-terms p)

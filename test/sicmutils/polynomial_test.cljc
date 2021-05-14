@@ -36,10 +36,10 @@
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
-    (let [x3   (sorted-map 0 3)
-          x2z2 (sorted-map 0 2 2 2)
-          xy2z (sorted-map 0 1 1 2 2 1)
-          z2   (sorted-map 2 2)
+    (let [x3 (p/dense->expts [3 0 0])
+          x2z2 (p/dense->expts [2 0 2])
+          xy2z (p/dense->expts [1 2 1])
+          z2   (p/dense->expts [0 0 2])
           monomials [x3 x2z2 xy2z z2]
           sort-with #(sort % monomials)]
       (is (= [z2 xy2z x2z2 x3]
@@ -64,18 +64,19 @@
 
   (checking "IArity" 100 [p (sg/polynomial)]
             (is (= (f/arity p)
-                   [:exactly (p/arity p)])))
+                   [:between 0 (p/arity p)])))
 
   (checking "make-term round trip" 100
             [expts (gen/vector gen/nat)
              coef sg/number]
-            (let [term (p/make-term expts coef)]
+            (let [expts (p/dense->expts expts)
+                  term  (p/make-term expts coef)]
               (is (= expts (p/exponents term)))
               (is (= coef (p/coefficient term)))))
 
   (testing "term getter defaults"
     (is (= 0 (p/coefficient [])))
-    (is (= [] (p/exponents []))))
+    (is (= p/empty-expts (p/exponents []))))
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))
