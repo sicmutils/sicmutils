@@ -36,10 +36,10 @@
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
-    (let [x3   [3 0 0]
-          x2z2 [2 0 2]
-          xy2z [1 2 1]
-          z2   [0 0 2]
+    (let [x3   (sorted-map 0 3)
+          x2z2 (sorted-map 0 2 2 2)
+          xy2z (sorted-map 0 1 1 2 2 1)
+          z2   (sorted-map 2 2)
           monomials [x3 x2z2 xy2z z2]
           sort-with #(sort % monomials)]
       (is (= [z2 xy2z x2z2 x3]
