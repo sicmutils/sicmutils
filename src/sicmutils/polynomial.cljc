@@ -801,14 +801,6 @@
 	                       (call (inc i))))))]
     (call 0)))
 
-#_
-(defn- mul-terms [l r]
-  (sparse->terms
-   (for [[l-expts l-coef] l
-         [r-expts r-coef] r]
-     (make-term (mapv + l-expts r-expts)
-                (g/* l-coef r-coef)))))
-
 (defn poly:*
   "Multiply polynomials p and q, and return the product."
   [p q]
