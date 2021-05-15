@@ -128,3 +128,11 @@
                           :derived-units [{:derived-unit :foot
                                            :definition {,,,}}]})
   )
+
+;; It might be better to just start creating that macro than something else.
+;; That's what I want to make, after all. History is gone from Slack, though.
+;;
+;; What?
+;;
+;; 1. Macro for defining a unit system is good. Emit tagged literals to solve my mess.
+;; 2. scmutils aleady supports this. Let's see what they did. And where they put it.
