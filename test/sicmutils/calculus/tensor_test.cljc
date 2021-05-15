@@ -76,18 +76,14 @@
                (apply T (assoc args i thing))))
          (m/typical-point coordsys)))))))
 
-(comment
-  ;; Commenting this out for our big test suite; this takes about 30 seconds to
-  ;; run, and it would be nice to remove it until we can properly mark long
-  ;; tests for non-inclusion.
-  (deftest ^:long long-tensor-tests
-    (is (= [0 0 0 0]
-           (run-tensor-test
-            (curv/Riemann
-             (cov/covariant-derivative
-              (conn/literal-Cartan 'G m/R3-rect)))
-            [:oneform :vector :vector :vector]
-            m/R3-rect)))))
+(deftest ^:long long-tensor-tests
+  (is (= [0 0 0 0]
+         (run-tensor-test
+          (curv/Riemann
+           (cov/covariant-derivative
+            (conn/literal-Cartan 'G m/R3-rect)))
+          [:oneform :vector :vector :vector]
+          m/R3-rect))))
 
 (deftest tensor-tests
   (letfn [(F [nabla]
