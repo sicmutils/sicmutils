@@ -898,7 +898,7 @@
         [vn-exponents vn-coefficient] (lead-term v)
         ;; TODO note that this takes expts.
         good? (fn [residues]
-                (every? pos? (vals residues)))]
+                (every? (complement neg?) (vals residues)))]
     (if (zero? arity)
       [(g/div (lead-coefficient u) vn-coefficient) 0]
       (loop [quotient  0

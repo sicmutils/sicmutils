@@ -21,7 +21,8 @@
   #?(:cljs (:require-macros
             [sicmutils.polynomial.gcd :refer [dbg gcd-continuation-chain]]))
   (:refer-clojure :exclude [rational?])
-  (:require #?(:cljs [goog.string :refer [format]])
+  (:require [clojure.set :as cs]
+            #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.ratio :as r]
@@ -103,31 +104,48 @@
 ;; Continuation Menu
 
 ;; TODO I THINK we have this very similar thing in `permute.cljc`, which we
-;; should port over here first!!
+;; should port over here first!! But not for sorted maps.
 
-(defn- sort->permutations
-  "Given a vector, returns a permutation function which would sort that vector,
-  and the inverse permutation. Each of these functions expects a vector and
-  returns one."
-  [xs]
-  (let [n (count xs)
-        order (into [] (sort-by xs (range n)))
-        reverse-order (into [] (sort-by order (range n)))]
-    [#(mapv % order)
-     #(mapv % reverse-order)]))
+(defn sort->permutations [m]
+  (def sort-m m)
+  (let [indices (range (count m))
+        order (into [] (sort-by m (keys m)))
+        sort (fn [m']
+               (into (sorted-map)
+                     (mapcat (fn [i]
+                               (when-let [v (m' (order i))]
+                                 [[i v]])))
+                     indices))
+        unsort (fn [m']
+                 (into (sorted-map)
+                       (mapcat (fn [i]
+                                 (when-let [v (m' i)]
+                                   [[(order i) v]])))
+                       indices))]
+    [sort unsort]))
+
+(comment
+  (defn tester [m]
+    (let [[sort unsort] (sort->permutations' m)]
+      (and (= (vals (sort m))
+              (clojure.core/sort (vals m)))
+           (= m (unsort (sort m))))))
+
+  (tester (sorted-map 1 2, 3 1, 5 4))
+  (tester (sorted-map 1 3, 3 1, 5 4))
+  (tester (sorted-map 1 8, 3 1, 5 4)))
 
 (defn- terms->permutations
   "Returns a pair of functions that sort and unsort terms into the order of terms
   with max degree in ANY monomial."
   [terms]
-  ;; AND remove it up here.
   (if (<= (count terms) 1)
     [identity identity]
     (sort->permutations
      (transduce (map p/exponents)
                 (completing
                  (fn [l-expts r-expts]
-                   (mapv max l-expts r-expts)))
+                   (merge-with max l-expts r-expts)))
                 (p/exponents (first terms))
                 (rest terms)))))
 
@@ -145,9 +163,9 @@
           r-terms (if (p/coeff? v) [] (p/bare-terms v))
           [sort unsort] (terms->permutations
                          (into l-terms r-terms))]
-      ;; TODO, HERE, check if the terms count is tiny, if so just do identity.
-      (->> (continue (p/map-exponents sort u)
-                     (p/map-exponents sort v))
+      (->> (continue
+            (p/map-exponents sort u)
+            (p/map-exponents sort v))
            (p/map-exponents unsort)))))
 
 (defn ->gcd [binary-gcd]
@@ -200,10 +218,11 @@
   [u v continue]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)]}
-  (let [umax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms u)))
-        vmax (reduce #(mapv max %1 %2) (map p/exponents (p/bare-terms v)))
-        maxd (mapv min umax vmax)]
-    (if (every? zero? maxd)
+  (let [umax (reduce into (map (comp u/keyset p/exponents)
+                               (p/bare-terms u)))
+        vmax (reduce into (map (comp u/keyset p/exponents)
+                               (p/bare-terms v)))]
+    (if (empty? (cs/intersection umax vmax))
       (do (swap! gcd-trivial-constant inc)
           (primitive-gcd
            (concat (p/coefficients u)
@@ -247,8 +266,11 @@
          (p/polynomial? p)
          (= (count (p/bare-terms m)) 1)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
-        xs (transduce (map p/exponents)
-                      (completing #(mapv min %1 %2))
+        mono-keys (keys mono-expts)
+        xs (transduce (map (fn [term]
+                             (-> (p/exponents term)
+                                 (select-keys mono-keys))))
+                      (completing #(merge-with min %1 %2))
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]
