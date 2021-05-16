@@ -267,10 +267,13 @@
          (= (count (p/bare-terms m)) 1)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
-        xs (transduce (map (fn [term]
-                             (-> (p/exponents term)
-                                 (select-keys mono-keys))))
-                      (completing #(merge-with min %1 %2))
+        xs (transduce (map p/exponents)
+                      (completing
+                       (fn [l r]
+                         (merge-with
+                          min
+                          (select-keys l (keys r))
+                          (select-keys r (keys l)))))
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]

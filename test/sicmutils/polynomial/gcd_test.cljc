@@ -33,19 +33,6 @@
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
-(comment
-  ;; busted!
-  (let [d (p/make 3 {[0 0 0] 1})
-        f (p/make 3 {[0 0 0] -1
-                     [0 0 3] 1})
-        g (p/make 3 {[0 0 0] 1
-                     [2 3 0] 2
-                     [0 8 1] 1
-                     [7 0 5] -1})]
-    (is (= d (pg/gcd
-              (g/* d f)
-              (g/* d g))))))
-
 (deftest gcd-tests
   (checking "gcd between numbers" 100
             [x sg/rational
