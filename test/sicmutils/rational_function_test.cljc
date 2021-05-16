@@ -49,8 +49,8 @@
           x."))
 
     (testing "v/freeze"
-      (is (= '(/ (polynomial 1 [[[0] 1] [[1] 1]])
-                 (polynomial 1 [[[0] -1] [[1] 1]]))
+      (is (= '(/ (polynomial 1 [[{} 1] [{0 1} 1]])
+                 (polynomial 1 [[{} -1] [{0 1} 1]]))
              (v/freeze x+1:x-1))))
 
     (testing "v/numerical?"
