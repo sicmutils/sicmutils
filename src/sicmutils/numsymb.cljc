@@ -347,7 +347,7 @@
     (g/abs x)
     (list 'abs x)))
 
-(defn gcd [a b]
+(defn- gcd [a b]
   (cond (and (v/number? a) (v/number? b)) (g/gcd a b)
         (v/number? a) (cond (v/zero? a) b
                             (v/one? a) 1
