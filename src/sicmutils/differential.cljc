@@ -254,7 +254,7 @@
 ;; al. (2019).
 ;;
 ;; The solution is to introduce a new $\varepsilon$ for every level, and allow
-;; different $\varepsilon$ instances to multiply without annihalating. Each
+;; different $\varepsilon$ instances to multiply without annihilating. Each
 ;; $\varepsilon$ is called a "tag". [[Differential]] (implemented below) is a
 ;; generalized dual number that can track many tags at once, allowing nested
 ;; derivatives like the one described above to work.

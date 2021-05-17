@@ -288,7 +288,7 @@ For example:
   "Takes an operator symbol `op` and an identity element `constant` and returns a
   rule that turns binary forms with `constant` on either side into `constant`.
 
-  This rule is useful for commutative annihalators like:
+  This rule is useful for commutative annihilators like:
 
   ```clojure
   (* 0 <anything>) => 0

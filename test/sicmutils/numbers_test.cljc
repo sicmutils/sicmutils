@@ -391,7 +391,10 @@
                 (is (= 1 (g/gcd x 1)))))
 
     (letfn [(nonzero [g]
-              (gen/fmap #(if (v/zero? %) 1 %) g))]
+              (gen/fmap (fn [x]
+                          (-> (if (v/zero? x) 1 x)
+                              (g/remainder 10000)))
+                        g))]
       (checking "gcd" 100 [x (nonzero sg/small-integral)
                            y (nonzero sg/small-integral)
                            z (nonzero sg/small-integral)]

@@ -1230,9 +1230,9 @@
 ;; functions take polynomial inputs and return polynomials.
 
 (def ^:private operator-table
-  {'+ (ua/accumulation poly:+ 0)
-   '- (ua/inverse-accumulation poly:- poly:+ negate 0)
-   '* (ua/accumulation poly:* 1 v/zero?)
+  {'+ (ua/monoid poly:+ 0)
+   '- (ua/group poly:- poly:+ negate 0)
+   '* (ua/monoid poly:* 1 v/zero?)
    'negate negate
    'expt expt
    'square square

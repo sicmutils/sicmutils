@@ -94,7 +94,11 @@
          (reduced result)
          (rf result input))))))
 
-(defn- combiner [f stop?]
+(defn- combiner
+  "If `stop?` is false, returns `f`. Else, returns a binary reducing function that
+  returns a `reduced` value if its left argument returns `true` for `stop?`,
+  else aggregates with `f`."
+  [f stop?]
   (if stop?
     (fn [l r]
       (if (stop? l)
@@ -102,10 +106,19 @@
         (f l r)))
     f))
 
-(defn accumulation
-  "TODO document."
+(defn monoid
+  "Accepts a binary (associative) aggregation function `plus` and an identity
+  element `id` and returns a multi-arity function that will combine its
+  arguments via `plus`. A 0-arity call returns `id`.
+
+  optionally takes an `annihilate?` function that should return true for any `x`
+  such that `(plus x <any>) == x`.
+
+  If the `annihilate?` function is supplied, then if the aggregation produces a
+  value that returns `(annihilate? true)` at any point, the reduction will
+  return immediately."
   ([plus id]
-   (accumulation plus id nil))
+   (monoid plus id nil))
   ([plus id annihilate?]
    (let [acc (combiner plus annihilate?)]
      (fn
@@ -115,10 +128,24 @@
        ([x y & more]
         (reduce acc (plus x y) more))))))
 
-(defn inverse-accumulation
-  "TODO document."
+(defn group
+  "Similar to [[monoid]] for types with invertible elements. Accepts:
+
+  - binary `minus` and (associative) `plus` functions
+  - a unary `negate` function
+  - an element `id` that obeys `(plus id other) == (plus other id) == other`
+  - optionally, an `annihilate?` function that should return true for any `x`
+    such that `(plus x <any>) == x`.
+
+  Accepts a binary aggregation function `plus` and an identity element `id` and
+  returns a multi-arity function that will reduce its arguments via `plus`. A
+  0-arity call returns `id`.
+
+  If the `annihilate?` function is supplied, then if the aggregation produces a
+  value that returns `(annihilate? true)` at any point, the reduction will
+  return immediately."
   ([minus plus invert id]
-   (inverse-accumulation minus plus invert id nil))
+   (group minus plus invert id nil))
   ([minus plus invert id annihilate?]
    (let [acc (combiner plus annihilate?)]
      (fn

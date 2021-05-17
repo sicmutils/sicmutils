@@ -12,6 +12,9 @@
   - on the JVM, GCD now works between rational numbers and integers. Previously
     this combination would always return `1`.
 
+  - New `sicmutils.util.aggregate/{monoid,group}` functions let you build
+    any-arity aggregations out of binary combination functions.
+
   - in `sicmutils.numsymb`, the `'*`, `'/`, `'-`, `'+`, `'or`, `'and`, `'gcd`,
     `'lcm` and `'=` operations now have efficient multi-arity implementations
     that stop computing when they receive an annihilator, like `0` for

@@ -553,20 +553,20 @@
   {'zero? sym:zero?
    'one? sym:one?
    'identity? sym:one?
-   '= (ua/accumulation sym:= true)
+   '= (ua/monoid sym:= true)
    'not sym:not
-   'and (ua/accumulation sym:and true false?)
-   'or (ua/accumulation sym:or false true?)
+   'and (ua/monoid sym:and true false?)
+   'or (ua/monoid sym:or false true?)
    'negate negate
    'invert invert
-   '+ (ua/accumulation add 0)
-   '- (ua/inverse-accumulation sub add negate 0)
-   '* (ua/accumulation mul 1 v/zero?)
-   '/ (ua/inverse-accumulation div mul invert 1 v/zero?)
+   '+ (ua/monoid add 0)
+   '- (ua/group sub add negate 0)
+   '* (ua/monoid mul 1 v/zero?)
+   '/ (ua/group div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
-   'gcd (ua/accumulation gcd 0 v/one?)
-   'lcm (ua/accumulation lcm 1 v/zero?)
+   'gcd (ua/monoid gcd 0 v/one?)
+   'lcm (ua/monoid lcm 1 v/zero?)
    'floor floor
    'ceiling ceiling
    'integer-part integer-part

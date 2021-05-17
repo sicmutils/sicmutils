@@ -634,7 +634,7 @@
 
 ;; I don't know if this stuff is ever important...GJS
 
-(defn assoc-accumulation [rat:op poly:op rat:identity]
+(defn assoc-monoid [rat:op poly:op rat:identity]
   (letfn [(operate [rats]
             (cond (empty? rats) rat:identity
 
@@ -676,11 +676,11 @@
     (fn [& xs]
       (operate xs))))
 
-(def +$rf (assoc-accumulation rf:+ p/poly:+ 0))
-(def *$rf (assoc-accumulation rf:* p/poly:* 1))
+(def +$rf (assoc-monoid rf:+ p/poly:+ 0))
+(def *$rf (assoc-monoid rf:* p/poly:* 1))
 
-(defn assoc-inverse-accumulation [rat:inv-op rat:op rat:invert poly:op rat:identity]
-  (let [direct-op (assoc-accumulation rat:op poly:op rat:identity)]
+(defn assoc-group [rat:inv-op rat:op rat:invert poly:op rat:identity]
+  (let [direct-op (assoc-monoid rat:op poly:op rat:identity)]
     (fn operator
       ([] rat:identity)
       ([r] (rat:invert r))
@@ -688,10 +688,10 @@
        (rat:inv-op r (apply direct-op rs))))))
 
 (def -$rcf
-  (assoc-inverse-accumulation rf:- rf:+ negate p/poly:+ 0))
+  (assoc-group rf:- rf:+ negate p/poly:+ 0))
 
 (def div-$rcf
-  (assoc-inverse-accumulation rf:div rf:* invert p/poly:* 1))
+  (assoc-group rf:div rf:* invert p/poly:* 1))
 
 ;; TODO make a note that this operator table can handle polynomials,
 ;; coefficients AND rational functions, nothing else.
@@ -701,10 +701,10 @@
 ;; TODO REMOVE `g` form from all of these!
 
 (def ^:private operator-table
-  {'+ (ua/accumulation g/add 0)
-   '- (ua/inverse-accumulation g/sub g/add g/negate 0)
-   '* (ua/accumulation g/mul 1 v/zero?)
-   '/ (ua/inverse-accumulation g/div g/mul g/invert 1 v/zero?)
+  {'+ (ua/monoid g/add 0)
+   '- (ua/group g/sub g/add g/negate 0)
+   '* (ua/monoid g/mul 1 v/zero?)
+   '/ (ua/group g/div g/mul g/invert 1 v/zero?)
    'negate negate
    'invert g/invert
    'expt g/expt
