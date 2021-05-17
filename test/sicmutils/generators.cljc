@@ -299,15 +299,15 @@
            arity gen/nat
            coefs small-integral}}]
   (letfn [(poly-gen [arity]
-            (let [expts (->> (gen/vector gen/nat arity)
-                             (gen/fmap poly/dense->expts))
-                  term  (gen/tuple expts coefs)
-                  pgen  (gen/fmap (fn [terms]
-                                    (let [p (poly/make arity terms)]
-                                      (if (poly/explicit-polynomial? p)
-                                        p
-                                        (poly/make-constant arity p))))
-                                  (gen/vector term))]
+            (let [mono (->> (gen/vector gen/nat arity)
+                            (gen/fmap poly/dense->monomial))
+                  term (gen/tuple mono coefs)
+                  pgen (gen/fmap (fn [terms]
+                                   (let [p (poly/make arity terms)]
+                                     (if (poly/explicit-polynomial? p)
+                                       p
+                                       (poly/make-constant arity p))))
+                                 (gen/vector term))]
               (if nonzero?
                 (gen/such-that (complement v/zero?) pgen)
                 pgen)))]

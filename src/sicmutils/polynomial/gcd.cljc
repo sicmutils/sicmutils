@@ -216,8 +216,8 @@
 
   TODO note that this will now return a constant, NOT a polynomial."
   [u v continue]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)]}
+  {:pre [(p/explicit-polynomial? u)
+         (p/explicit-polynomial? v)]}
   (let [umax (reduce into (map (comp u/keyset p/exponents)
                                (p/bare-terms u)))
         vmax (reduce into (map (comp u/keyset p/exponents)
@@ -250,9 +250,10 @@
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
-(defn- gcd-poly-number [p n]
-  {:pre [(p/polynomial? p)
-         (p/coeff? n)]}
+(defn- gcd-poly-number
+  [p n]
+  {:pre [(p/explicit-polynomial? p)
+         (not (p/explicit-polynomial? n))]}
   (primitive-gcd (cons n (p/coefficients p))))
 
 (defn- monomial-gcd
@@ -262,18 +263,15 @@
   Basically... take the GCD of the coeffs for the coefficient, and the MINIMUM
   exp of each variable across all, pinned at the top by the monomial."
   [m p]
-  {:pre [(p/polynomial? m)
-         (p/polynomial? p)
-         (= (count (p/bare-terms m)) 1)]}
+  {:pre [(p/explicit-polynomial? m)
+         (= (count (p/bare-terms m)) 1)
+         (p/explicit-polynomial? p)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
         xs (transduce (map p/exponents)
                       (completing
                        (fn [l r]
-                         (merge-with
-                          min
-                          (select-keys l (keys r))
-                          (select-keys r (keys l)))))
+                         (p/mono:intersect-with min l r)))
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]
@@ -326,10 +324,10 @@
 (defn- gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
   [u v]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)
-         (= (p/arity u) 1)
-         (= (p/arity v) 1)]}
+  {:pre [(p/explicit-polynomial? u)
+         (p/explicit-polynomial? v)
+         (= (p/bare-arity u) 1)
+         (= (p/bare-arity v) 1)]}
   (with-content-removed primitive-gcd u v univariate-euclid-inner-loop))
 
 ;; Helpers

@@ -282,7 +282,7 @@
                 (p/coefficients u))
         factor (transduce xform (completing g/lcm) 1 coefs)
         factor (if (= 1 (coef-sgn
-                         (p/lead-coefficient v)))
+                         (p/leading-coefficient v)))
                  factor
                  (g/negate factor))
         [u' v'] (if (v/one? factor)

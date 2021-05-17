@@ -36,10 +36,10 @@
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
-    (let [x3 (p/dense->expts [3 0 0])
-          x2z2 (p/dense->expts [2 0 2])
-          xy2z (p/dense->expts [1 2 1])
-          z2   (p/dense->expts [0 0 2])
+    (let [x3 (p/dense->monomial [3 0 0])
+          x2z2 (p/dense->monomial [2 0 2])
+          xy2z (p/dense->monomial [1 2 1])
+          z2   (p/dense->monomial [0 0 2])
           monomials [x3 x2z2 xy2z z2]
           sort-with #(sort % monomials)]
       (is (= [z2 xy2z x2z2 x3]
@@ -55,12 +55,7 @@
   (checking "polynomials are both explicit polys and polynomial? == true" 100
             [p (sg/polynomial)]
             (is (p/explicit-polynomial? p))
-            (is (p/polynomial? p))
             (is (= ::p/polynomial (v/kind p))))
-
-  (checking "any number (coefficient) is a polynomial." 100 [p sg/number]
-            (is (p/polynomial? p))
-            (is (p/coeff? p)))
 
   (checking "IArity" 100 [p (sg/polynomial)]
             (is (= (f/arity p)
@@ -69,7 +64,7 @@
   (checking "make-term round trip" 100
             [expts (gen/vector gen/nat)
              coef sg/number]
-            (let [expts (p/dense->expts expts)
+            (let [expts (p/dense->monomial expts)
                   term  (p/make-term expts coef)]
               (is (= expts (p/exponents term)))
               (is (= coef (p/coefficient term)))))
@@ -173,11 +168,11 @@
             (is (= (p/->terms x)
                    (p/->terms (p/make-constant 0 x))))
 
-            (is (= (p/lead-term x)
-                   (p/lead-term (p/make-constant 0 x))))
+            (is (= (p/leading-term x)
+                   (p/leading-term (p/make-constant 0 x))))
 
-            (is (= (p/lead-coefficient x)
-                   (p/lead-coefficient (p/make-constant x)))))
+            (is (= (p/leading-coefficient x)
+                   (p/leading-coefficient (p/make-constant x)))))
 
   (testing "degree"
     (is (= -1 (p/degree (p/make-constant 1 0))))

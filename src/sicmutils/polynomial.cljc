@@ -34,51 +34,56 @@
   #?(:clj
      (:import (clojure.lang AFn IFn IObj))))
 
-;; TODO note that this differs from scmutils because we can extend the
-;; coefficient space.
-;;
-;; TODO note that we should be treating ANYTHING as a coefficient, and just
-;; special-casing the polynoimal type.
-
-;;
 ;; # Flat Polynomial Form, for Commutative Rings
 ;;
-;; The namespace starts by defining monomials, then builds these into
-;; polynomials with a proper type definition.
+;; The namespace starts by defining monomials, then builds these into terms,
+;; then polynomials with a proper type definition.
 ;;
 ;; ## Monomials
 ;;
-;; A monomial is a single term of a polynomial. NOTE we need to clarify this vs
-;; the polynomial single term with coef.
+;; A monomial is the EXPONENTS of a single term of a polynomial. NOTE we need to
+;; clarify this vs the polynomial single term with coef. that's called a `term`.
 ;;
-;; We represent a monomial as a vector of integers representing the exponents of
-;; the indeterminates over some ring. For example; we would represent x^2
-;; as [2], and xy^2 as [1 2], though the indeterminates have no name.
-;; Polynomials are linear combinations of the monomials. When these are formed,
-;; it is important that the monomial vectors all contain the same number of
-;; slots, so that 3x + 2y^2 would be represented as: 3*[1 0] + 2*[0 2].
+;; We represent a monomial as a sorted map, keyed by integers representing the
+;; indeterminates over some ring, with values set to each indeterminate's
+;; exponent. For example; we would represent x^2 as {0 2}, and xy^2 as {0 1, 1
+;; 2}. Polynomials are linear combinations of the monomials.
 
-(defn dense->expts [v]
+(defn dense->monomial
+  "Accepts a sequence of pairs of indeterminate index => power, and returns a
+  sparse representation of the monomial."
+  [idx->pow]
   (reduce-kv (fn [acc i x]
                (if (zero? x)
                  acc
                  (assoc acc i x)))
              (sorted-map)
-             v))
+             idx->pow))
 
-(defn expts:+ [l r]
+(defn ^:no-doc mono:+ [l r]
   (merge-with + l r))
 
-(defn expts:- [l r]
-  (dense->expts
+(defn ^:no-doc mono:- [l r]
+  (dense->monomial
    (merge-with + l (u/map-vals - r))))
 
+(defn  mono:intersect-with
+  "TODO note that this does NOT remove zeros!"
+  [f l r]
+  (let [l' (select-keys l (keys r))
+        r' (select-keys r (keys l))]
+    (merge-with f l' r')))
+
 (defn- monomial-degree
-  "Compute the degree of a monomial. This is just the sum of the exponents."
+  "Compute the degree of a monomial. This is just the sum of the exponents.
+
+  TODO see where we use this... should we pass the full term?"
   [m]
   (apply + (vals m)))
 
-;; ### Monomial Comparators
+;; ### Monomial Orderings
+;;
+;; https://en.wikipedia.org/wiki/Monomial_order
 ;;
 ;; These comparators are in the sense of Java: x.compareTo(y), so that this
 ;; returns 1 if x > y, -1 if x < y, and 0 if x = y.
@@ -93,7 +98,7 @@
             y (nth ys i nil)]
         (cond (and (not x) (not y)) 0
               (not x) -1
-              (not y) 1
+              (not y)  1
               :else (let [bit (compare (nth x 0) (nth y 0))]
                       (cond (zero? bit)
                             (let [xv (nth x 1)
@@ -124,15 +129,21 @@
 (def ^:no-doc monomial-order
   graded-lex-order)
 
+;; ## Coefficients
+
+;; TODO remove this... just do it via the generic installation? no internal
+;; coeff? checks. We CAN Use the coefficient thing above to easily register
+;; other stuff into the generics!
+;;
+;; TODO next step is to kill this!
+
+(declare explicit-polynomial?)
+
+(def coeff?
+  (complement #'explicit-polynomial?))
+
 ;; ## Polynomial Terms
 
-(derive ::v/scalar ::coeff)
-(derive ::mi/modint ::coeff)
-
-;; TODO remove this... just do it via the generic installation? no internal coeff? checks.
-
-(defn coeff? [x]
-  (isa? (v/kind x) ::coeff))
 
 ;; ## Term List
 ;;
@@ -360,13 +371,6 @@
   [x]
   (instance? Polynomial x))
 
-(defn polynomial?
-  "TODO is this helpful? I think maybe we should just... assume that this is more
-  open. Delete all uses of this and change `explicit-` to `polynomial?`."
-  [x]
-  (or (coeff? x)
-      (explicit-polynomial? x)))
-
 (defn ^:no-doc bare-arity [p]
   {:pre [(explicit-polynomial? p)]}
   (.-arity ^Polynomial p))
@@ -399,7 +403,7 @@
         (v/zero? p) []
         :else [(make-term p)]))
 
-(defn ^:no-doc lead-term
+(defn ^:no-doc leading-term
   "Return the leading (i.e., highest degree) term of the polynomial p. The return
   value is a pair of [exponents coefficient].
 
@@ -408,10 +412,15 @@
   (or (peek (->terms p))
       [empty-expts 0]))
 
-(defn ^:no-doc lead-coefficient [p]
+(defn ^:no-doc leading-coefficient [p]
   (if (explicit-polynomial? p)
-    (coefficient (lead-term p))
+    (coefficient (leading-term p))
     p))
+
+(defn ^:no-doc leading-monomial [p]
+  (if (explicit-polynomial? p)
+    (exponents (leading-term p))
+    empty-expts))
 
 (def ^:no-doc coeff-arity 0)
 
@@ -430,7 +439,7 @@
         (explicit-polynomial? p)
         (monomial-degree
          (exponents
-          (lead-term p)))
+          (leading-term p)))
 
         :else 0))
 
@@ -461,7 +470,7 @@
     (and (= 1 (arity p))
          (v/one?
           (coefficient
-           (lead-term p))))
+           (leading-term p))))
     (v/one? p)))
 
 (defn coefficients
@@ -503,7 +512,7 @@
                 :let [coef-sum (transduce
                                 (map coefficient) g/+ terms)
                       expts (if (vector? expts)
-                              (dense->expts expts)
+                              (dense->monomial expts)
                               expts)]
                 :when (not (v/zero? coef-sum))]
             (make-term expts coef-sum))
@@ -697,7 +706,7 @@
 		               (contractible?
                     (dec n)
                     ;; TODO WRONG... this is not the way for sparse!!
-					          (coefficient (lead-term p)))
+					          (coefficient (leading-term p)))
 
 			             (contractible?
                     n
@@ -719,7 +728,7 @@
 		                (poly:adjoin (dec a)
 				                         (degree p)
 				                         (contract (dec n)
-				                                   (coefficient (lead-term p)))
+				                                   (coefficient (leading-term p)))
 				                         (rec (except-leading-term a p)))))]
           (rec p))))
     (u/illegal (str "Poly not contractible" n p))))
@@ -789,7 +798,7 @@
         acc
 	      (let [[tags1 coeff1] t]
 	        (recur (conj acc (make-term
-		                        (expts:+ tags tags1)
+		                        (mono:+ tags tags1)
 		                        (g/* coeff coeff1)))
 		             (inc i)))))))
 
@@ -868,20 +877,20 @@
   "divide explicit polynomials."
   [u v]
   (let [arity (check-same-arity u v)
-        [vn-exponents vn-coefficient] (lead-term v)
+        [vn-exponents vn-coefficient] (leading-term v)
         ;; TODO note that this takes expts.
         good? (fn [residues]
                 (every? (complement neg?) (vals residues)))]
     (if (zero? arity)
-      [(g/div (lead-coefficient u) vn-coefficient) 0]
+      [(g/div (leading-coefficient u) vn-coefficient) 0]
       (loop [quotient  0
              remainder u]
         ;; find a term in the remainder into which the
         ;; lead term of the divisor can be divided.
         (if (v/zero? remainder)
           [quotient remainder]
-          (let [[r-exponents r-coefficient] (lead-term remainder)
-                residues (expts:- r-exponents vn-exponents)]
+          (let [[r-exponents r-coefficient] (leading-term remainder)
+                residues (mono:- r-exponents vn-exponents)]
             (if (good? residues)
               (let [new-coef (g/div r-coefficient vn-coefficient)
                     new-term (->Polynomial arity [(make-term residues new-coef)])]
@@ -944,7 +953,7 @@
   but don't install?"
   [p]
   (if (g/negative?
-       (lead-coefficient p))
+       (leading-coefficient p))
     (negate p)
     p))
 
@@ -1023,7 +1032,7 @@
 	    (if (empty? terms)
         (apply g/* (cons sum (map g/expt args expts)))
 	      (let [new-expts (exponents (first terms))
-              diff (expts:- expts new-expts)]
+              diff (mono:- expts new-expts)]
 	        (recur (rest terms)
 		             new-expts
 		             (g/+ (coefficient (first terms))
@@ -1153,13 +1162,13 @@
          (explicit-polynomial? v)
          (= (bare-arity v) 1)
          (not (v/zero? v))]}
-  (let [[vn-exponents vn-coefficient] (lead-term v)
+  (let [[vn-exponents vn-coefficient] (leading-term v)
         *vn (fn [p] (poly*coeff p vn-coefficient))
         n (monomial-degree vn-exponents)]
     (loop [remainder u
            d         0]
       (let [m (degree remainder)
-            c (lead-coefficient remainder)]
+            c (leading-coefficient remainder)]
         (if (< m n)
           [remainder d]
           (recur (poly:- (*vn remainder)
@@ -1278,6 +1287,9 @@
   (->PolynomialAnalyzer))
 
 ;; ## Generic Implementations
+
+(derive ::v/scalar ::coeff)
+(derive ::mi/modint ::coeff)
 
 ;; TODO: add `partial-derivative`., `simplify`, `solve-linear-right`,
 ;; `solve-linear`,
