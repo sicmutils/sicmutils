@@ -199,21 +199,40 @@
          (.gcd (biginteger a) b))))
 
 #?(:cljs
-   (do (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
-         (if (neg? b)
-           (g/invert (u/compute-expt a (core-minus b)))
-           (u/compute-expt a b)))
+   (do
+     (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
+       (if (core-zero? b)
+         a
+         (recur b (mod a b))))
 
-       (defmethod g/div [::v/integral ::v/integral] [a b]
-         (let [rem (g/remainder a b)]
-           (if (v/zero? rem)
-             (g/quotient a b)
-             (r/rationalize a b))))
+     (letfn [(bigint-gcd [a b]
+               (if (js* "~{} == ~{}" b 0)
+                 (g/abs a)
+                 (recur b (js* "~{} % ~{}" a b))))]
+       (defmethod g/gcd [js/BigInt js/BigInt] [a b]
+         (bigint-gcd a b))
 
-       (defmethod g/invert [::v/integral] [a]
-         (if (v/one? a)
-           a
-           (r/rationalize 1 a)))))
+       (defmethod g/gcd [::v/native-integral js/BigInt] [a b]
+         (bigint-gcd (js/BigInt a) b))
+
+       (defmethod g/gcd [ js/BigInt ::v/native-integral] [a b]
+         (bigint-gcd a (js/BigInt b))))
+
+     (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
+       (if (neg? b)
+         (g/invert (u/compute-expt a (core-minus b)))
+         (u/compute-expt a b)))
+
+     (defmethod g/div [::v/integral ::v/integral] [a b]
+       (let [rem (g/remainder a b)]
+         (if (v/zero? rem)
+           (g/quotient a b)
+           (r/rationalize a b))))
+
+     (defmethod g/invert [::v/integral] [a]
+       (if (v/one? a)
+         a
+         (r/rationalize 1 a)))))
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
@@ -224,7 +243,6 @@
      (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
      (defmethod g/modulo [js/BigInt js/BigInt] [a b] (g/modulo-default a b))
-     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (g/remainder-default a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
 
@@ -253,10 +271,10 @@
      (doseq [op [g/add g/mul g/sub g/div g/expt g/modulo g/remainder g/quotient]]
        ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
-         (op a (u/bigint b)))
+         (op a (js/BigInt b)))
 
        (defmethod op [::v/integral js/BigInt] [a b]
-         (op (u/bigint a) b))
+         (op (js/BigInt a) b))
 
        ;; For NON integrals, we currently have no choice but to downcast the
        ;; BigInt to a floating point number.
