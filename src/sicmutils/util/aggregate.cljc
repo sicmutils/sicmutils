@@ -94,22 +94,36 @@
          (reduced result)
          (rf result input))))))
 
+(defn- combiner [f stop?]
+  (if stop?
+    (fn [l r]
+      (if (stop? l)
+        (reduced l)
+        (f l r)))
+    f))
+
 (defn accumulation
   "TODO document."
-  [plus id]
-  (fn
-    ([] id)
-    ([x] x)
-    ([x y] (plus x y))
-    ([x y & more]
-     (reduce plus (plus x y) more))))
+  ([plus id]
+   (accumulation plus id nil))
+  ([plus id annihilate?]
+   (let [acc (combiner plus annihilate?)]
+     (fn
+       ([] id)
+       ([x] x)
+       ([x y] (plus x y))
+       ([x y & more]
+        (reduce acc (plus x y) more))))))
 
 (defn inverse-accumulation
   "TODO document."
-  [minus plus invert id]
-  (fn
-    ([] id)
-    ([x] (invert x))
-    ([x y] (minus x y))
-    ([x y & more]
-     (minus x (reduce plus y more)))))
+  ([minus plus invert id]
+   (inverse-accumulation minus plus invert id nil))
+  ([minus plus invert id annihilate?]
+   (let [acc (combiner plus annihilate?)]
+     (fn
+       ([] id)
+       ([x] (invert x))
+       ([x y] (minus x y))
+       ([x y & more]
+        (minus x (reduce acc y more)))))))

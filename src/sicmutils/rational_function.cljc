@@ -693,8 +693,6 @@
 (def div-$rcf
   (assoc-inverse-accumulation rf:div rf:* invert p/poly:* 1))
 
-;; TODO use accumulation etc to make these tidy.
-;;
 ;; TODO make a note that this operator table can handle polynomials,
 ;; coefficients AND rational functions, nothing else.
 ;;
@@ -705,8 +703,8 @@
 (def ^:private operator-table
   {'+ (ua/accumulation g/add 0)
    '- (ua/inverse-accumulation g/sub g/add g/negate 0)
-   '* (ua/accumulation g/mul 1)
-   '/ (ua/inverse-accumulation g/div g/mul g/invert 1)
+   '* (ua/accumulation g/mul 1 v/zero?)
+   '/ (ua/inverse-accumulation g/div g/mul g/invert 1 v/zero?)
    'negate negate
    'invert g/invert
    'expt g/expt

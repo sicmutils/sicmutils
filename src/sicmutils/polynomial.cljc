@@ -1232,7 +1232,7 @@
 (def ^:private operator-table
   {'+ (ua/accumulation poly:+ 0)
    '- (ua/inverse-accumulation poly:- poly:+ negate 0)
-   '* (ua/accumulation poly:* 1)
+   '* (ua/accumulation poly:* 1 v/zero?)
    'negate negate
    'expt expt
    'square square

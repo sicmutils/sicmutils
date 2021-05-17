@@ -200,15 +200,22 @@
 
 #?(:cljs
    (do
-     (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
-       (if (core-zero? b)
-         a
-         (recur b (mod a b))))
+     (letfn [(abs [a]
+               (if (neg? a) (core-minus a) a))
 
-     (letfn [(bigint-gcd [a b]
-               (if (js* "~{} == ~{}" b 0)
-                 (g/abs a)
-                 (recur b (js* "~{} % ~{}" a b))))]
+             (bigint-gcd [a b]
+               (loop [a (abs a)
+                      b (abs b)]
+                 (if (js* "~{} == ~{}" b 0)
+                   a
+                   (recur b (js* "~{} % ~{}" a b)))))]
+       (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
+         (loop [a (abs a)
+                b (abs b)]
+           (if (core-zero? b)
+             a
+             (recur b (rem a b)))))
+
        (defmethod g/gcd [js/BigInt js/BigInt] [a b]
          (bigint-gcd a b))
 
