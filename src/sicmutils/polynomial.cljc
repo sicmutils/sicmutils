@@ -220,7 +220,6 @@
   (kind [_] ::polynomial)
 
   f/IArity
-  ;; TODO test for 0 case etc.
   (arity [_] [:between 0 arity])
 
   #?@(:clj
@@ -233,6 +232,8 @@
        (withMeta [_ meta] (Polynomial. arity terms m))
 
        IFn
+       (invoke [this]
+               (evaluate this []))
        (invoke [this a]
                (evaluate this [a]))
        (invoke [this a b]
@@ -291,6 +292,8 @@
        (-with-meta [_ m] (Polynomial. arity terms m))
 
        IFn
+       (-invoke [this]
+                (evaluate this []))
        (-invoke [this a]
                 (evaluate this [a]))
        (-invoke [this a b]
@@ -410,12 +413,14 @@
     (coefficient (lead-term p))
     p))
 
+(def ^:no-doc coeff-arity 0)
+
 (defn arity
   "TODO what's the difference between arity and degree?"
   [p]
   (if (explicit-polynomial? p)
     (bare-arity p)
-    0))
+    coeff-arity))
 
 (defn degree
   "TODO what's the difference between arity and degree?"
@@ -537,9 +542,9 @@
         (and (= (count terms) 1)
              (constant-term? (nth terms 0)))
         (let [c (coefficient (nth terms 0))]
-          (if (coeff? c)
-            c
-            (->Polynomial arity terms)))
+          (if (explicit-polynomial? c)
+            (->Polynomial arity terms)
+            c))
 
         :else (->Polynomial arity terms)))
 
@@ -621,14 +626,18 @@
 (defn check-same-arity
   "TODO works now for constants, check!"
   [p q]
-  (cond (coeff? p) (arity q)
-        (coeff? q) (arity p)
-        :else (let [ap (arity p)
-                    aq (arity q)]
-                (if (= ap aq)
-                  ap
-                  (u/arithmetic-ex
-                   (str "mismatched polynomial arity: " ap ", " aq))))))
+  (let [poly-p? (explicit-polynomial? p)
+        poly-q? (explicit-polynomial? q)]
+    (cond (and poly-p? poly-q?)
+          (let [ap (bare-arity p)
+                aq (bare-arity q)]
+            (if (= ap aq)
+              ap
+              (u/arithmetic-ex
+               (str "mismatched polynomial arity: " ap ", " aq))))
+          poly-p? (bare-arity q)
+          poly-q? (bare-arity p)
+          :else coeff-arity)))
 
 (defn new-variables
   "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
@@ -1034,13 +1043,13 @@
   [p a]
   {:pre [(polynomial? p)
          (<= (arity p) 1)]}
-  (if (coeff? p)
-    (make-constant a p)
+  (if (explicit-polynomial? p)
     (let [terms (sparse->terms
                  (for [[x q] (bare-terms p)
                        [ys c] (->terms q)]
                    [(expt-up (x 0 0) ys) c]))]
-      (->Polynomial a terms))))
+      (->Polynomial a terms))
+    (make-constant a p)))
 
 (comment
   ;; TODO what about horner-with-error?

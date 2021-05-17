@@ -25,6 +25,8 @@
     that appropriately handle `0` and `1` on either side, as well as the case
     where both arguments are equal.
 
+  - new `arg-scale`, `arg-shift` for series!
+
   - polynomials have metadata, can be evaluated
 
   - rational functions have metadata, can be evaluated
