@@ -365,6 +365,28 @@
              (take 6 (s/integral nats)))
           "By default, constant is 0."))
 
+    (testing "arg-scale on power series"
+      (let [base (s/generate (fn [_] 1))
+            scaled (s/arg-scale base [2])]
+        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                     (s/arg-scale base [2 3]))
+            "multiple scale factors trigger an error.")
+
+        (is (s/power-series? scaled))
+        (is (= (g/simplify (take 10 (scaled 'x)))
+               (g/simplify (take 10 (base (g/* 2 'x))))))))
+
+    (testing "arg-shift on power series"
+      (let [base (s/generate (fn [_] 1))
+            shifted (s/arg-shift base [2])]
+        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                     (s/arg-shift base [2 3]))
+            "multiple shifts trigger an error.")
+
+        (is (fn? shifted))
+        (is (= (g/simplify (take 10 (shifted 'x)))
+               (g/simplify (take 10 (base (g/+ 2 'x))))))))
+
     (testing "summing N elements of a series"
       (is (= 4 (s/sum S 0)))
       (is (= 7 (s/sum S 1)))
