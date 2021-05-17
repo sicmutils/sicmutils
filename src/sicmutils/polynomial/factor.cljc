@@ -19,7 +19,6 @@
 
 (ns sicmutils.polynomial.factor
   (:require [clojure.walk :as w]
-            #?(:cljs [goog.string :refer [format]])
             [sicmutils.value :as v]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
@@ -51,27 +50,25 @@
               facts (poly/evenly-divide old-s new-s)
 
               ;; facts gets all the factors that were completely
-	            ;; removed last step, i.e. all those that were to
-	            ;; the 1 or 2 power.  The first loop through will
-	            ;; get a totally wrong facts, but its gcd with the
-	            ;; initial old-m=1 will be 1, so it won't result in
-	            ;; incorrect doublefacts or singlefacts.
+              ;; removed last step, i.e. all those that were to
+              ;; the 1 or 2 power.  The first loop through will
+              ;; get a totally wrong facts, but its gcd with the
+              ;; initial old-m=1 will be 1, so it won't result in
+              ;; incorrect doublefacts or singlefacts.
               doublefacts (gcd facts old-m)
               ;; doublefacts gets all the factors which w ere to
-	            ;; the power x>1, x<=2, (ergo x=2), in the last step.
+              ;; the power x>1, x<=2, (ergo x=2), in the last step.
 
-              singlefacts (poly/evenly-divide new-s new-m)
               ;; takes out p = all factors only to the 1st power.
-              ]
+              singlefacts (poly/evenly-divide new-s new-m)]
 
           (recur new-m
                  ;; the following has all factors to the 1 or 2 power
-	               ;; completely removed, others now to the power-2.
-                 ;; TODO: poly:*, keep it cheap
+                 ;; completely removed, others now to the power-2.
                  (poly/evenly-divide h (poly/poly:* new-m new-s))
 
                  ;; tracker of the form
-	               ;;  h(vi) = (* (exponent (get tracker k) k))
+                 ;;  h(vi) = (* (exponent (get tracker k) k))
                  (conj tracker doublefacts singlefacts)
                  new-s
                  new-m))))))
@@ -97,8 +94,7 @@
      (map (fn [factor]
             (simplifier
              (a/->expression analyzer factor v)))
-          (do (def cake p)
-              (split-polynomial p))))))
+          (split-polynomial p)))))
 
 (defn split-polynomial->expression
   "TODO this is unused but I want it!"

@@ -189,14 +189,17 @@
     (is (= 2 (p/degree (p/make [-1 0 2]))))))
 
 (deftest arithmetic-tests
-  (testing "algebraic laws"
-    (sl/ring 50 (sg/polynomial :arity 3) "polynomial is a ring"
-             :commutative? true
-             :with-one? true)
+  (let [coefs (gen/fmap #(g/modulo % 1000) sg/small-integral)]
+    (testing "algebraic laws"
+      (sl/ring 50 (sg/polynomial :arity 3 :coefs coefs)
+               "polynomial is a ring"
+               :commutative? true
+               :with-one? true)
 
-    (sl/ring 50 (sg/polynomial :arity 1) "polynomial arity 1 is a ring"
-             :commutative? true
-             :with-one? true))
+      (sl/ring 50 (sg/polynomial :arity 1 :coefs coefs)
+               "polynomial arity 1 is a ring"
+               :commutative? true
+               :with-one? true)))
 
   (testing "add constant"
     (is (= (p/make [3 0 2])

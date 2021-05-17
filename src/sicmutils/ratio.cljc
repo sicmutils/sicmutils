@@ -198,12 +198,6 @@
                         (str n) "/" (str d)
                         "\"")))))))
 
-(comment
-  (is (= 5/3 (g/gcd 5 10/3)))
-  (is (= 5/3 (g/gcd 10/3 4))))
-
-;; TODO fix!
-
 #?(:clj
    (do
      (defmethod g/gcd [Ratio ::v/integral] [a b]
