@@ -368,7 +368,7 @@
     (testing "arg-scale on power series"
       (let [base (s/generate (fn [_] 1))
             scaled (s/arg-scale base [2])]
-        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+        (is (thrown? #?(:clj AssertionError :cljs js/Error)
                      (s/arg-scale base [2 3]))
             "multiple scale factors trigger an error.")
 
@@ -379,7 +379,7 @@
     (testing "arg-shift on power series"
       (let [base (s/generate (fn [_] 1))
             shifted (s/arg-shift base [2])]
-        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+        (is (thrown? #?(:clj AssertionError :cljs js/Error)
                      (s/arg-shift base [2 3]))
             "multiple shifts trigger an error.")
 
