@@ -437,7 +437,7 @@
 
 (def ^{:doc "main GCD entrypoint."}
   gcd
-  gcd-dispatch)
+  #'gcd-dispatch)
 
 ;; TODO test `gcd` between OTHER types and polynomials here...
 

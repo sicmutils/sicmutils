@@ -29,6 +29,7 @@
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn IFn IObj))))
@@ -1229,26 +1230,14 @@
 ;; functions take polynomial inputs and return polynomials.
 
 (def ^:private operator-table
-  {'+ (fn
-        ([] 0)
-        ([x] x)
-        ([x y] (poly:+ x y))
-        ([x y & more]
-         (reduce poly:+ (poly:+ x y) more)))
-   '- (fn
-        ([x] (negate x))
-        ([x & more]
-         (poly:- x (apply (operator-table '+) more))))
-   '* (fn
-        ([] 1)
-        ([x] x)
-        ([x y] (poly:* x y))
-        ([x y & more]
-         (reduce poly:* (poly:* x y) more)))
+  {'+ (ua/accumulation poly:+ 0)
+   '- (ua/inverse-accumulation poly:- poly:+ negate 0)
+   '* (ua/accumulation poly:* 1)
    'negate negate
    'expt expt
    'square square
-   'cube cube})
+   'cube cube
+   'gcd g/gcd})
 
 (def ^:no-doc operators-known
   (u/keyset operator-table))

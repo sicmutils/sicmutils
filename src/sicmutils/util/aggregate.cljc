@@ -95,21 +95,21 @@
          (rf result input))))))
 
 (defn accumulation
-  "TODO document"
+  "TODO document."
   [plus id]
   (fn
     ([] id)
     ([x] x)
     ([x y] (plus x y))
     ([x y & more]
-     (reduce (plus x y) plus more))))
+     (reduce plus (plus x y) more))))
 
 (defn inverse-accumulation
-  "TODO document./"
+  "TODO document."
   [minus plus invert id]
   (fn
     ([] id)
     ([x] (invert x))
     ([x y] (minus x y))
     ([x y & more]
-     (minus x (reduce plus (cons y more))))))
+     (minus x (reduce plus y more)))))

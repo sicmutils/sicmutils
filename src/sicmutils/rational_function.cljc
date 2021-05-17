@@ -700,20 +700,13 @@
 ;;
 ;; TODO this is not true yet, but we want it to be!
 
+;; TODO REMOVE `g` form from all of these!
+
 (def ^:private operator-table
-  {'+ #(reduce g/add %&)
-   '- (fn [arg & args]
-        (if (some? args) (g/sub arg (reduce g/add args)) (g/negate arg)))
-   '* (fn
-        ([] 1)
-        ([x] x)
-        ([x y] (g/mul x y))
-        ([x y & more]
-         (reduce g/mul (g/mul x y) more)))
-   '/ (fn [arg & args]
-        (if (some? args) (g/div arg (reduce g/mul args)) (g/invert arg)))
-   ;; TODO these are `g` form so that they can catch polynomials too. That is
-   ;; NOT appropriate...
+  {'+ (ua/accumulation g/add 0)
+   '- (ua/inverse-accumulation g/sub g/add g/negate 0)
+   '* (ua/accumulation g/mul 1)
+   '/ (ua/inverse-accumulation g/div g/mul g/invert 1)
    'negate negate
    'invert g/invert
    'expt g/expt
