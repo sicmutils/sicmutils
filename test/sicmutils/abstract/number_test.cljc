@@ -456,17 +456,20 @@
                       (g/csc (an/literal-number x))))))))
 
 (deftest symbolic-arithmetic-tests
-  (testing "identity cases"
+  (testing "0-arity cases for symbolic operators"
     (is (false? ((sym/symbolic-operator 'or))))
     (is (true? ((sym/symbolic-operator 'and))))
     (is (= 0 ((sym/symbolic-operator '+))))
     (is (= 0 ((sym/symbolic-operator '-))))
     (is (= 1 ((sym/symbolic-operator '*))))
-    (is (= 1 ((sym/symbolic-operator '/)))))
+    (is (= 1 ((sym/symbolic-operator '/))))
+    (is (= 0 ((sym/symbolic-operator 'gcd))))
+    (is (= 1 ((sym/symbolic-operator 'lcm)))))
 
-  (testing "+ constructor optimizations"
-    (is (v/= 'x (g/add 0 'x)))
-    (is (v/= 'x (g/add 'x 0))))
+  (checking "+ constructor optimizations" 100
+            [x gen/symbol]
+            (is (v/= x (g/add 0 x)))
+            (is (v/= x (g/add x 0))))
 
   (testing "sums fuse together in the constructor"
     (is (= '(+ x y z) (v/freeze (g/add 'x (g/add 'y 'z)))))
@@ -476,10 +479,11 @@
            (v/freeze (g/add (g/add 'y 'z)
                             (g/add 'a 'b))))))
 
-  (testing "sub constructor optimizations"
-    (is (= (g/negate 'x) (g/- 0 'x)))
-    (is (v/= 'x (g/- 'x 0)))
-    (is (v/= 0 (g/- 'x 'x))))
+  (checking "- constructor optimizations" 100
+            [x gen/symbol]
+            (is (= (g/negate 'x) (g/sub 0 'x)))
+            (is (v/= 'x (g/sub 'x 0)))
+            (is (v/= 0 (g/sub 'x 'x))))
 
   (testing "+/- with symbols"
     (is (= (g/+ 15 'x) (g/+ 10 3 2 'x)))
@@ -491,12 +495,6 @@
     (is (= (g/- 10 (g/+ 'x 3 2 1)) (g/- 10 'x 3 2 1)))
     (is (= (g/- 10 (g/+ 20 'x 3 2 1)) (g/- 10 20 'x 3 2 1))))
 
-  (testing "mul constructor optimizations"
-    (is (v/= 0 (g/* 0 'x)))
-    (is (v/= 0 (g/* 'x 0)))
-    (is (v/= 'x (g/* 1 'x)))
-    (is (v/= 'x (g/* 'x 1))))
-
   (testing "products fuse together in the constructor"
     (is (= '(* x y z) (v/freeze (g/mul 'x (g/mul 'y 'z)))))
     (is (= '(* 10 y z) (v/freeze (g/mul 10 (g/mul 'y 'z)))))
@@ -504,6 +502,13 @@
     (is (= '(* y z a b)
            (v/freeze (g/mul (g/mul 'y 'z)
                             (g/mul 'a 'b))))))
+
+  (checking "* constructor optimizations" 100
+            [x gen/symbol]
+            (is (v/= 0 (g/mul 0 'x)))
+            (is (v/= 0 (g/mul 'x 0)))
+            (is (v/= 'x (g/mul 1 'x)))
+            (is (v/= 'x (g/mul 'x 1))))
 
   (testing "* with symbols"
     (is (= (g/* 60 'x) (g/* 10 3 2 'x)))
@@ -519,23 +524,39 @@
                  (apply (sym/symbolic-operator '*)
                         (concat pre [0] post)))))
 
-  (testing "div constructor optimizations"
-    (is (v/= 0 (g/divide 0 'x)))
-    (is (v/= 'x (g/divide 'x 1)))
-    (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
-                 (g/divide 'x 0))))
+  (checking "div constructor optimizations" 100 [x gen/symbol]
+            (is (v/= 0 (g/div 0 x)))
+            (is (v/= x (g/div x 1)))
+            (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
+                         (g/div x 0))))
 
-  (testing "modulo constructor optimizations"
-    (is (v/= 0 (g/modulo 0 'x)))
-    (is (v/= 0 (g/modulo 'x 'x)))
-    (is (= '(modulo x y) (v/freeze (g/modulo 'x 'y))))
-    (is (v/= 'x (g/modulo 'x 1))))
+  (checking "modulo constructor optimizations" 100
+            [x gen/symbol
+             y gen/symbol]
+            (is (v/= 0 (g/modulo 0 x)))
+            (is (v/= 0 (g/modulo x x)))
+            (if (= x y)
+              (is (= 0 (v/freeze (g/modulo x y))))
+              (is (= (list 'modulo x y)
+                     (v/freeze (g/modulo x y)))))
+            (is (v/= x (g/modulo x 1))))
 
   (testing "unary ops with symbols"
     (is (= '(floor x) (v/freeze (g/floor 'x))))
     (is (= '(ceiling x) (v/freeze (g/ceiling 'x))))
     (is (= '(integer-part x) (v/freeze (g/integer-part 'x))))
     (is (= '(fractional-part x) (v/freeze (g/fractional-part 'x)))))
+
+  (checking "gcd, lcm annihilation" 100
+            [pre (gen/vector gen/symbol)
+             post (gen/vector gen/symbol)]
+            (is (v/one?
+                 (apply (sym/symbolic-operator 'gcd)
+                        (concat pre [1] post))))
+
+            (is (v/zero?
+                 (apply (sym/symbolic-operator 'lcm)
+                        (concat pre [0] post)))))
 
   (let [non-one-zero (gen/fmap (fn [n]
                                  (if (or (v/zero? n) (v/one? n))
@@ -560,7 +581,27 @@
                   "gcd(1,x)==1")
 
               (is (v/one? (g/gcd sym (v/one-like n)))
-                  "gcd(x,1)==1")))
+                  "gcd(x,1)==1"))
+
+    (checking "symbolic lcm" 100 [sym gen/symbol
+                                  n non-one-zero]
+              (is (v/= (list 'lcm sym n) (g/lcm sym n)))
+              (is (v/= (list 'lcm n sym) (g/lcm n sym)))
+
+              (is (v/= sym (g/lcm sym sym))
+                  "lcm(x,x)==x")
+
+              (is (v/zero? (g/lcm (v/zero-like n) sym))
+                  "lcm(x,0)==0")
+
+              (is (v/zero? (g/lcm sym (v/zero-like n)))
+                  "lcm(0,x)==0")
+
+              (is (v/= sym (g/lcm (v/one-like n) sym))
+                  "lcm(1,x)==x")
+
+              (is (v/= sym (g/lcm sym (v/one-like n)))
+                  "lcm(x,1)==x")))
 
   (testing "/ with symbols"
     (is (= (g// 'x (g/* 10 'x 3 2))

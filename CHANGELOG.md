@@ -12,16 +12,18 @@
   - on the JVM, GCD now works between rational numbers and integers. Previously
     this combination would always return `1`.
 
-  - in `sicmutils.numsymb`, the `'*`, `'/`, `'-`, `'+`, `'or`, `'and` and `'=`
-    operations now have efficient multi-arity implementations that stop
-    computing when they receive an annihilator, like `0` for multiplication or
-    `true` for `or`. Access these via `(sicmutils.numsymb/symbolic-operator
-    <symbol>)`.
+  - in `sicmutils.numsymb`, the `'*`, `'/`, `'-`, `'+`, `'or`, `'and`, `'gcd`,
+    `'lcm` and `'=` operations now have efficient multi-arity implementations
+    that stop computing when they receive an annihilator, like `0` for
+    multiplication or `true` for `or`. Access these via
+    `(sicmutils.numsymb/symbolic-operator <symbol>)`.
 
-  - `gcd` on symbolic expressions now handles `0` and `1` on each side
-    appropriately.
+  - new multi-arity `lcm` and `gcd` implementations for symbolic expressions
+    that appropriately handle `0` and `1` on either side, as well as the case
+    where both arguments are equal.
 
   - polynomials have metadata, can be evaluated
+
   - rational functions have metadata, can be evaluated
 
 - #360 introduces a number of performance improvements to the

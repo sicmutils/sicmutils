@@ -358,6 +358,17 @@
         (= a b) a
         :else (list 'gcd a b)))
 
+(defn- lcm [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/lcm a b)
+        (v/number? a) (cond (v/zero? a) 0
+                            (v/one? a) b
+                            :else (list 'lcm a b))
+        (v/number? b) (cond (v/zero? b) 0
+                            (v/one? b) a
+                            :else (list 'lcm a b))
+        (= a b) a
+        :else (list 'lcm a b)))
+
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
@@ -554,7 +565,8 @@
    '/ (ua/inverse-accumulation div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
-   'gcd gcd
+   'gcd (ua/accumulation gcd 0 v/one?)
+   'lcm (ua/accumulation lcm 1 v/zero?)
    'floor floor
    'ceiling ceiling
    'integer-part integer-part

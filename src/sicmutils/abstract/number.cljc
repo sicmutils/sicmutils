@@ -217,6 +217,7 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+(defbinary g/lcm 'lcm)
 
 (defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
