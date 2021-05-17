@@ -23,7 +23,7 @@
             [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
-     (:import [org.apache.commons.math3.complex Complex])))
+     (:import (org.apache.commons.math3.complex Complex))))
 
 (def bigint
   "js/BigInt in cljs, clojure.lang.BigInt in clj."

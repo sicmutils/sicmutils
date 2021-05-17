@@ -113,10 +113,12 @@
            (simplify-expression
             '(sqrt (* (square (+ x y))
                       (cube (- x y))))))
-        "He was actually checking the full simplifier...")
+        "This example exists in `split-poly.scm`, but uses the full simplifier,
+        so doesn't actually check what `root-out-squares` is up to.")
 
     (is (= '(* (sqrt (expt (+ x (* -1 y)) 3)) (+ x y))
            (pf/root-out-squares
             '(sqrt (* (square (+ x y))
                       (cube (- x y))))))
-        "And HERE we have what root-out-squares is really doing.")))
+        "This is the actual `root-out-squares` contribution, and matches
+        scmutils.")))

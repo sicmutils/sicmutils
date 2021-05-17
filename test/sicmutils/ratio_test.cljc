@@ -151,7 +151,7 @@
               (g/invert (g/sqrt 2)))
         "a rational exponent on a float will drop precision."))
 
-  (testing "rational GCD"
+  (testing "GCD between ratio, non-ratio"
     (is (= #sicm/ratio 5/3 (g/gcd 5 #sicm/ratio 10/3)))
     (is (= #sicm/ratio 2/3 (g/gcd #sicm/ratio 10/3 4))))
 

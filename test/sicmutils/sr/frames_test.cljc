@@ -52,9 +52,7 @@
                 (- (/ (+ 'va 'vb)
                       (+ 1 (* (/ 'va 'C) (/ 'vb 'C))))
                    (/ (get foo 1)
-                      (/ (get foo 0) 'C)))))
-          "This is what we actually want. TODO test and enable when we get the
-            simplifier upgraded.")))
+                      (/ (get foo 0) 'C))))))))
 
   (testing "Simple test of reversibility"
     (let [A (sf/make-SR-frame 'A sf/the-ether

@@ -4,8 +4,25 @@
 
 - new PR:
 
-   - polynomials have metadata, can be evaluated
-   - rational functions have metadata, can be evaluated
+  - `v/kind` now works for sorted maps, bugfix!
+
+  - fast GCD in Clojurescript between all combinations of `js/BigInt` and
+    `js/Number`.
+
+  - on the JVM, GCD now works between rational numbers and integers. Previously
+    this combination would always return `1`.
+
+  - in `sicmutils.numsymb`, the `'*`, `'/`, `'-`, `'+`, `'or`, `'and` and `'=`
+    operations now have efficient multi-arity implementations that stop
+    computing when they receive an annihilator, like `0` for multiplication or
+    `true` for `or`. Access these via `(sicmutils.numsymb/symbolic-operator
+    <symbol>)`.
+
+  - `gcd` on symbolic expressions now handles `0` and `1` on each side
+    appropriately.
+
+  - polynomials have metadata, can be evaluated
+  - rational functions have metadata, can be evaluated
 
 - #360 introduces a number of performance improvements to the
   `sicmutils.differential.Differential` implementation, primarily in `terms:+`

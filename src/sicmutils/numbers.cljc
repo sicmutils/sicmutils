@@ -209,6 +209,9 @@
                  (if (js* "~{} == ~{}" b 0)
                    a
                    (recur b (js* "~{} % ~{}" a b)))))]
+
+       ;; The following GCD implementations use native operations to get more
+       ;; speed than the generic implementation in `sicmutils.euclid`.
        (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
          (loop [a (abs a)
                 b (abs b)]

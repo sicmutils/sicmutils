@@ -119,13 +119,11 @@
         (v/number? a) (cond (v/zero? a) a
                             (v/one? a) b
                             (product? b) `(~'* ~a ~@(operands b))
-                            :else `(~'* ~a ~b)
-                            )
+                            :else `(~'* ~a ~b))
         (v/number? b) (cond (v/zero? b) b
                             (v/one? b) a
                             (product? a) `(~'* ~@(operands a) ~b)
-                            :else `(~'* ~a ~b)
-                            )
+                            :else `(~'* ~a ~b))
         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
                            :else `(~'* ~@(operands a) ~b))
         (product? b) `(~'* ~a ~@(operands b))
@@ -349,6 +347,17 @@
     (g/abs x)
     (list 'abs x)))
 
+(defn gcd [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/gcd a b)
+        (v/number? a) (cond (v/zero? a) b
+                            (v/one? a) 1
+                            :else (list 'gcd a b))
+        (v/number? b) (cond (v/zero? b) a
+                            (v/one? b) 1
+                            :else (list 'gcd a b))
+        (= a b) a
+        :else (list 'gcd a b)))
+
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
@@ -545,6 +554,7 @@
    '/ (ua/inverse-accumulation div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
+   'gcd gcd
    'floor floor
    'ceiling ceiling
    'integer-part integer-part

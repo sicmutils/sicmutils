@@ -186,7 +186,6 @@
    (identity-like [m] (u/unsupported (str "identity-like: " m)))
    (exact? [m] (every? v/exact? (vals m)))
    (freeze [m] (u/map-vals v/freeze m))
-   ;; TODO test that `kind` now works on sorted maps.
    (kind [m] (if (sorted? m)
                (type m)
                (:type m (type m))))

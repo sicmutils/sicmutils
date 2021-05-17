@@ -381,7 +381,33 @@
                   (is (= (v/compare 0 y)
                          (v/compare 0 mod))
                       "`g/modulo` returns a result of either 0 or the same sign
-              as the denominator."))))))
+              as the denominator."))))
+
+    (checking "gcd identities" 100 [x sg/any-integral]
+              (let [ax (g/abs x)]
+                (is (= ax (g/gcd 0 x)))
+                (is (= ax (g/gcd x 0)))
+                (is (= 1 (g/gcd 1 x)))
+                (is (= 1 (g/gcd x 1)))))
+
+    (letfn [(nonzero [g]
+              (gen/fmap #(if (v/zero? %) 1 %) g))]
+      (checking "gcd" 100 [x (nonzero sg/small-integral)
+                           y (nonzero sg/small-integral)
+                           z (nonzero sg/small-integral)]
+                (let [gxy (g/gcd x y)
+                      x (g/div x gxy)
+                      y (g/div y gxy)
+                      z (g/abs z)
+
+                      ;; `x` and `y` are now relatively prime, `z` positive.
+                      xz (g/* x z)
+                      yz (g/* y z)
+                      g (g/gcd xz yz)]
+                  (is (not (g/negative? gxy)))
+                  (is (= x (g/exact-divide xz g)))
+                  (is (= y (g/exact-divide yz g)))
+                  (is (= (g/abs z) g)))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

@@ -456,6 +456,14 @@
                       (g/csc (an/literal-number x))))))))
 
 (deftest symbolic-arithmetic-tests
+  (testing "identity cases"
+    (is (false? ((sym/symbolic-operator 'or))))
+    (is (true? ((sym/symbolic-operator 'and))))
+    (is (= 0 ((sym/symbolic-operator '+))))
+    (is (= 0 ((sym/symbolic-operator '-))))
+    (is (= 1 ((sym/symbolic-operator '*))))
+    (is (= 1 ((sym/symbolic-operator '/)))))
+
   (testing "+ constructor optimizations"
     (is (v/= 'x (g/add 0 'x)))
     (is (v/= 'x (g/add 'x 0))))
@@ -504,6 +512,13 @@
     (is (= (g/* 'x 10 'x 3 2 1) (g/* 'x 10 'x 3 2 1)))
     (is (= (g/* 200 'x 3 2) (g/* 10 20 'x 3 2 1))))
 
+  (checking "zero annihilates any symbolic products" 100
+            [pre (gen/vector gen/symbol)
+             post (gen/vector gen/symbol)]
+            (is (zero?
+                 (apply (sym/symbolic-operator '*)
+                        (concat pre [0] post)))))
+
   (testing "div constructor optimizations"
     (is (v/= 0 (g/divide 0 'x)))
     (is (v/= 'x (g/divide 'x 1)))
@@ -521,6 +536,31 @@
     (is (= '(ceiling x) (v/freeze (g/ceiling 'x))))
     (is (= '(integer-part x) (v/freeze (g/integer-part 'x))))
     (is (= '(fractional-part x) (v/freeze (g/fractional-part 'x)))))
+
+  (let [non-one-zero (gen/fmap (fn [n]
+                                 (if (or (v/zero? n) (v/one? n))
+                                   2
+                                   n))
+                               sg/any-integral)]
+    (checking "symbolic gcd" 100 [sym gen/symbol
+                                  n non-one-zero]
+              (is (v/= (list 'gcd sym n) (g/gcd sym n)))
+              (is (v/= (list 'gcd n sym) (g/gcd n sym)))
+
+              (is (v/= sym (g/gcd sym sym))
+                  "gcd(x,x)==x")
+
+              (is (v/= sym (g/gcd (v/zero-like n) sym))
+                  "gcd(x,0)==x")
+
+              (is (v/= sym (g/gcd sym (v/zero-like n)))
+                  "gcd(0,x)==x")
+
+              (is (v/one? (g/gcd (v/one-like n) sym))
+                  "gcd(1,x)==1")
+
+              (is (v/one? (g/gcd sym (v/one-like n)))
+                  "gcd(x,1)==1")))
 
   (testing "/ with symbols"
     (is (= (g// 'x (g/* 10 'x 3 2))
@@ -791,7 +831,7 @@
 (deftest boolean-tests
   ;; These don't QUITE belong in the namespace for abstract number; TODO move
   ;; these to sicmutils.abstract.boolean when we make that namespace.
-  (let [sym:or  (sym/symbolic-operator 'or)
+  (let [sym:or (sym/symbolic-operator 'or)
         sym:and (sym/symbolic-operator 'and)
         sym:not (sym/symbolic-operator 'not)
         sym:=   (sym/symbolic-operator '=)]
@@ -801,6 +841,15 @@
                            (sym:not (sym:or 'c 'd)))
                   (sym:or 'x 'z)))
         "all forms work as expected with symbols.")
+
+    (checking "symbolic function annihilators" 100
+              [pre (gen/vector gen/symbol)
+               post (gen/vector gen/symbol)]
+              (is (true? (apply sym:or (concat pre [true] post)))
+                  "`or` returns a bare `true` if any `true` appears.")
+
+              (is (false? (apply sym:and (concat pre [false] post)))
+                  "`and` returns a bare `true` if any `true` appears."))
 
     (checking "symbolic matches actual" 100 [l gen/boolean
                                              r gen/boolean]
