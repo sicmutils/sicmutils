@@ -221,7 +221,7 @@
                   (sequential? node)
                   (let [[f-sym & args] node]
                     (if-let [f (sym->f f-sym)]
-                      (apply f (map walk args))
+                      (apply f (doall (map walk args)))
                       (u/illegal (str "Missing fn for symbol - " f-sym))))
                   :else node))]
     (walk

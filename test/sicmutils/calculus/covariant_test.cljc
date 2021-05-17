@@ -258,8 +258,6 @@
                        (oneform-basis
                         (s/mapr (g/Lie-derivative v) vector-basis)))]
 
-        ;; TODO cljs throws an error here SOMETIMES probably due to caching!
-        ;; Only on auto test runner... figure this out.
         (is (= 0 (simplify
                   ((- (((g/Lie-derivative V) Y) f)
                       (* (vector-basis f)
