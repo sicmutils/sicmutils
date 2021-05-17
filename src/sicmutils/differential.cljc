@@ -29,6 +29,7 @@
   (:require [clojure.string :refer [join]]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]
             [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v]))
@@ -475,48 +476,14 @@
 ;; NOTE: Clojure vectors already implement this ordering properly, so we can
 ;; use [[clojure.core/compare]] to determine an ordering on a tag list.
 
-(defn- terms:+
-  "Returns the sum of the two supplied sequences of differential terms; any terms
+(def ^{:private true
+       :doc "Returns the sum of the two supplied sequences of differential terms; any terms
   in the result with a zero coefficient will be removed.
 
   Each input must be sequence of `[tag-set, coefficient]` pairs, sorted by
-  `tag-set`.
-
-  NOTE that this function recurs on increasing indices internally instead of
-  walking through the lists directly. This method of traversing vectors is more
-  efficient, and this function is called so often that the performance gain is
-  worth it, and reads almost like the explicit sequence traversal."
-  ([] [])
-  ([xs] xs)
-  ([xs ys]
-   (loop [i (long 0)
-          j (long 0)
-          result (transient [])]
-     (let [x (nth xs i nil)
-           y (nth ys j nil)]
-       (cond (not x) (into (persistent! result) (subvec ys j))
-             (not y) (into (persistent! result) (subvec xs i))
-             :else (let [[x-tags x-coef] x
-                         [y-tags y-coef] y
-                         compare-flag (core-compare x-tags y-tags)]
-                     (cond
-                       ;; If the terms have the same tag set, add the coefficients
-                       ;; together. Include the term in the result only if the new
-                       ;; coefficient is non-zero.
-                       (zero? compare-flag)
-                       (let [sum (g/add x-coef y-coef)]
-                         (recur (inc i)
-                                (inc j)
-                                (if (v/zero? sum)
-                                  result
-                                  (conj! result (make-term x-tags sum)))))
-
-                       ;; Else, pass the smaller term on unchanged and proceed.
-                       (neg? compare-flag)
-                       (recur (inc i) j (conj! result x))
-
-                       :else
-                       (recur i (inc j) (conj! result y)))))))))
+  `tag-set`."}
+  terms:+
+  (ua/merge-fn core-compare g/add v/zero? make-term))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:

@@ -740,45 +740,8 @@
 (defn negate [p]
   (map-coefficients g/negate p))
 
-;; TODO I KNOW we can do a better job here, rather than calling `make` each
-;; time.
-
-(defn merge-fn [compare add zero? make]
-  (fn
-    ([] [])
-    ([xs] xs)
-    ([xs ys]
-     (loop [i (long 0)
-            j (long 0)
-            result (transient [])]
-       (let [x (nth xs i nil)
-             y (nth ys j nil)]
-         (cond (not x) (into (persistent! result) (subvec ys j))
-               (not y) (into (persistent! result) (subvec xs i))
-               :else (let [[x-tags x-coef] x
-                           [y-tags y-coef] y
-                           compare-flag (compare x-tags y-tags)]
-                       (cond
-                         ;; If the terms have the same tag set, add the coefficients
-                         ;; together. Include the term in the result only if the new
-                         ;; coefficient is non-zero.
-                         (zero? compare-flag)
-                         (let [sum (add x-coef y-coef)]
-                           (recur (inc i)
-                                  (inc j)
-                                  (if (zero? sum)
-                                    result
-                                    (conj! result (make x-tags sum)))))
-
-                         ;; Else, pass the smaller term on unchanged and proceed.
-                         (neg? compare-flag)
-                         (recur (inc i) j (conj! result x))
-
-                         :else
-                         (recur i (inc j) (conj! result y))))))))))
-
 (def terms:+
-  (merge-fn monomial-order g/add v/zero? make-term))
+  (ua/merge-fn monomial-order g/add v/zero? make-term))
 
 (defn- binary-combine
   "TODO this is inefficient as hell for the TWO places we use it."
