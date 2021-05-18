@@ -67,12 +67,13 @@
   (dense->monomial
    (merge-with + l (u/map-vals - r))))
 
-(defn  mono:intersect-with
-  "TODO note that this does NOT remove zeros!"
-  [f l r]
-  (let [l' (select-keys l (keys r))
-        r' (select-keys r (keys l))]
-    (merge-with f l' r')))
+(defn mono:gcd
+  "TODO: Boom, document."
+  ([l] l)
+  ([l r]
+   (let [l' (select-keys l (keys r))
+         r' (select-keys r (keys l))]
+     (merge-with min l' r'))))
 
 (defn- monomial-degree
   "Compute the degree of a monomial. This is just the sum of the exponents.
@@ -129,23 +130,7 @@
 (def ^:no-doc monomial-order
   graded-lex-order)
 
-;; ## Coefficients
-
-;; TODO remove this... just do it via the generic installation? no internal
-;; coeff? checks. We CAN Use the coefficient thing above to easily register
-;; other stuff into the generics!
-;;
-;; TODO next step is to kill this!
-
-(declare explicit-polynomial?)
-
-(def coeff?
-  (complement #'explicit-polynomial?))
-
 ;; ## Polynomial Terms
-
-
-;; ## Term List
 ;;
 ;; Terms are represented as pairs of [<monomial>, <coef>]. A polynomial (called
 ;; an `fpf` in scmutils, for Flat Polynomial Form), is a sorted list of terms.
@@ -165,7 +150,9 @@
       [term])))
 
 (defn exponents
-  "Returns the exponent vector of the term."
+  "Returns the exponent vector of the term.
+
+  TODO rename to monomial."
   [term]
   (nth term 0 empty-expts))
 
@@ -175,7 +162,7 @@
   (nth term 1 0))
 
 (defn constant-term?
-  "Returns true if the term has an exponents vector that is all zeros, false
+  "Returns true if the term has monomial with that is all zeros, false
   otherwise."
   [term]
   (v/zero?
@@ -183,10 +170,14 @@
 
 ;; ## Polynomial Type Definition
 ;;
-;; implement:
+;; A polynomial is a sorted sequence of terms, plus an `arity` and maybe some
+;; metadata.
 ;;
-;; IPerturbed, IComparable?, same with RF ;; TODO look at PowerSeries, see what
-;; we're missing.
+;; TODO implement:
+;;
+;; IPerturbed, IComparable?, same with RF.
+;;
+;; TODO look at PowerSeries, see what we're missing.
 
 (declare evaluate make-constant poly->str poly:=)
 
@@ -204,7 +195,7 @@
   (identity? [_]
     (and (v/one? arity)
          (= (count terms) 1)
-         (let [term (nth terms 0)]
+         (let [[term] terms]
            (and (= {0 1} (exponents term))
                 (v/one? (coefficient term))))))
 
@@ -365,18 +356,23 @@
       ([arity terms m]
        (Polynomial. arity terms m))))
 
-(defn explicit-polynomial?
+(defn polynomial?
   "Returns true if the supplied argument is an instance of [[Polynomial]], false
   otherwise."
   [x]
   (instance? Polynomial x))
 
+(defn coeff?
+  "Anything that is NOT an explicit polynomial is, helpfully, a potential coefficient."
+  [x]
+  (not (polynomial? x)))
+
 (defn ^:no-doc bare-arity [p]
-  {:pre [(explicit-polynomial? p)]}
+  {:pre [(polynomial? p)]}
   (.-arity ^Polynomial p))
 
 (defn ^:no-doc bare-terms [p]
-  {:pre [(explicit-polynomial? p)]}
+  {:pre [(polynomial? p)]}
   (.-terms ^Polynomial p))
 
 (defn- poly:=
@@ -398,7 +394,7 @@
 (defn ->terms
   "TODO this is JUST like `->terms` in `differential`."
   [p]
-  (cond (explicit-polynomial? p) (bare-terms p)
+  (cond (polynomial? p) (bare-terms p)
         (vector? p) p
         (v/zero? p) []
         :else [(make-term p)]))
@@ -412,36 +408,66 @@
   (or (peek (->terms p))
       [empty-expts 0]))
 
+(defn coefficients
+  "TODO see where this is used. Return a vector?"
+  [p]
+  (if (polynomial? p)
+    (map coefficient (->terms p))
+    [p]))
+
 (defn ^:no-doc leading-coefficient [p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (coefficient (leading-term p))
     p))
 
 (defn ^:no-doc leading-monomial [p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (exponents (leading-term p))
     empty-expts))
 
+(def ^:no-doc zero-arity -1)
 (def ^:no-doc coeff-arity 0)
 
 (defn arity
   "TODO what's the difference between arity and degree?"
   [p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (bare-arity p)
     coeff-arity))
 
 (defn degree
-  "TODO what's the difference between arity and degree?"
-  [p]
-  (cond (v/zero? p) -1
+  "TODO what's the difference between arity and degree?
 
-        (explicit-polynomial? p)
+  https://en.wikipedia.org/wiki/Degree_of_a_polynomial
+
+  zero polynomial: https://en.wikipedia.org/wiki/Degree_of_a_polynomial#Degree_of_the_zero_polynomial"
+  [p]
+  (cond (v/zero? p) zero-arity
+
+        (polynomial? p)
         (monomial-degree
          (exponents
           (leading-term p)))
 
-        :else 0))
+        :else coeff-arity))
+
+(defn monomial? [p]
+  (or (not (polynomial? p))
+      (= 1 (count (bare-terms p)))))
+
+(defn monic?
+  "Returns true if `p` is a [monic
+  polynomial](https://en.wikipedia.org/wiki/Monic_polynomial), false otherwise.
+
+  TODO test that you can normalize by the lead coefficient to get a monic.
+  Generate a dense then do that."
+  [p]
+  (if (polynomial? p)
+    (and (= 1 (arity p))
+         (v/one?
+          (coefficient
+           (leading-term p))))
+    (v/one? p)))
 
 (defn principal-reverse [p]
   ;; TODO figure out what the heck this is trying to do... get some more stuff
@@ -455,31 +481,6 @@
 		             (cons (cons (- d (caar p)) (cdar p))
 			                 result))))))
 
-(defn monomial? [p]
-  (or (not (explicit-polynomial? p))
-      (= 1 (count (bare-terms p)))))
-
-(defn monic?
-  "Returns true if `p` is a [monic
-  polynomial](https://en.wikipedia.org/wiki/Monic_polynomial), false otherwise.
-
-  TODO test that you can normalize by the lead coefficient to get a monic.
-  Generate a dense then do that."
-  [p]
-  (if (explicit-polynomial? p)
-    (and (= 1 (arity p))
-         (v/one?
-          (coefficient
-           (leading-term p))))
-    (v/one? p)))
-
-(defn coefficients
-  "TODO see where this is used. Return a vector?"
-  [p]
-  (if (explicit-polynomial? p)
-    (map coefficient (->terms p))
-    [p]))
-
 ;; String methods...
 
 (defn- term->str [term]
@@ -490,7 +491,7 @@
 (defn- poly->str
   ([p] (poly->str p 10))
   ([p n]
-   {:pre [explicit-polynomial? p]}
+   {:pre [polynomial? p]}
    (let [terms     (bare-terms p)
          arity     (bare-arity p)
          n-terms   (count terms)
@@ -551,7 +552,7 @@
         (and (= (count terms) 1)
              (constant-term? (nth terms 0)))
         (let [c (coefficient (nth terms 0))]
-          (if (explicit-polynomial? c)
+          (if (polynomial? c)
             (->Polynomial arity terms)
             c))
 
@@ -635,8 +636,8 @@
 (defn check-same-arity
   "TODO works now for constants, check!"
   [p q]
-  (let [poly-p? (explicit-polynomial? p)
-        poly-q? (explicit-polynomial? q)]
+  (let [poly-p? (polynomial? p)
+        poly-q? (polynomial? q)]
     (cond (and poly-p? poly-q?)
           (let [ap (bare-arity p)
                 aq (bare-arity q)]
@@ -660,7 +661,7 @@
 
   TODO this demotes to coefficient when it needs to, and can take a bare coef."
   [f p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (terms->polynomial
      (bare-arity p)
      (into empty-terms
@@ -676,7 +677,7 @@
 
   TODO can handle bare coef now."
   [f p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (make (bare-arity p)
           (for [term (bare-terms p)]
             (make-term
@@ -694,7 +695,7 @@
 (declare except-leading-term)
 
 (defn contractible? [n p]
-  (or (not (explicit-polynomial? p))
+  (or (not (polynomial? p))
       (if (zero? n)
 	      (= (degree p) 0)
         (and (< n (bare-arity p))
@@ -755,8 +756,8 @@
 (defn- binary-combine
   "TODO this is inefficient as hell for the TWO places we use it."
   [l r coeff-op terms-op]
-  (let [l-poly? (explicit-polynomial? l)
-        r-poly? (explicit-polynomial? r)]
+  (let [l-poly? (polynomial? l)
+        r-poly? (polynomial? r)]
     (cond (and l-poly? r-poly?)
           (terms->polynomial
            (check-same-arity l r)
@@ -829,23 +830,22 @@
             (cond (zero? n) answer
                   (even? n) (recur (poly:* x x) (quot n 2) answer)
                   :else     (recur x (dec n) (poly:* x answer))))]
-    (cond (coeff? p)  (g/expt p n)
+    (cond
+      (not (polynomial? p)) (g/expt p n)
 
-          (not (explicit-polynomial? p))
-          (u/illegal (str "Wrong type :" p))
+      (not (v/native-integral? n))
+      (u/illegal (str "Can only raise an FPF to an exact integer power: " p n))
 
-          (not (v/native-integral? n))
-          (u/illegal (str "Can only raise an FPF to an exact integer power: " p n))
+      ;; Why not bump to a rational function? Not if you get into here...
+      (neg? n)
+      (u/illegal (str "No inverse -- FPF:EXPT:" p n))
 
-          (neg? n)
-          (u/illegal (str "No inverse -- FPF:EXPT:" p n))
+      (v/one? p)  p
+      (v/zero? p) (if (v/zero? n)
+                    (u/arithmetic-ex "poly 0^0")
+                    p)
 
-          (v/one? p)  p
-          (v/zero? p) (if (v/zero? n)
-                        (u/arithmetic-ex "poly 0^0")
-                        p)
-
-          :else (expt-iter p n 1))))
+      :else (expt-iter p n 1))))
 
 (defn square [p]
   (poly:* p p))
@@ -909,28 +909,23 @@
   This assumes that the coefficients are drawn from a field, and so support
   division."
   [u v]
-  {:pre [(polynomial? u)
-         (polynomial? v)]}
   (cond (v/zero? v)
         (u/illegal "internal polynomial division by zero")
 
         (or (v/zero? u) (v/one? v))
         [u 0]
 
-        (and (coeff? u) (coeff? v))
-        [(g/quotient u v) (g/remainder u v)]
-
-        (and (coeff? u) (explicit-polynomial? v))
-        (poly:div (make-constant (bare-arity v) u) v)
-
-        (and (explicit-polynomial? u) (coeff? v))
-        (poly:div u (make-constant (bare-arity u) v))
-
-        (and (explicit-polynomial? u)
-             (explicit-polynomial? v))
+        (and (polynomial? u)
+             (polynomial? v))
         (poly:div u v)
 
-        :else (u/illegal (str "Bad arguments to divide: " u v))))
+        (polynomial? u)
+        (poly:div u (make-constant (bare-arity u) v))
+
+        (polynomial? v)
+        (poly:div (make-constant (bare-arity v) u) v)
+
+        :else [(g/quotient u v) (g/remainder u v)]))
 
 (defn divisible?
   "Returns true of the numerator `n` is evenly divisible by `d`, false otherwise."
@@ -976,7 +971,7 @@
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
   [p]
-  {:pre [(explicit-polynomial? p)
+  {:pre [(polynomial? p)
          (> (bare-arity p) 1)
          (not (v/zero? p))]}
   ;; XXX observation:
@@ -1013,14 +1008,13 @@
   "The opposite of lower-arity. This needs a polynomial with terms that are
   THEMSELVES coefficients."
   [p a]
-  {:pre [(polynomial? p)
-         (<= (arity p) 1)]}
-  (if (explicit-polynomial? p)
-    (let [terms (sparse->terms
-                 (for [[x q] (bare-terms p)
-                       [ys c] (->terms q)]
-                   [(expt-up (x 0 0) ys) c]))]
-      (->Polynomial a terms))
+  (if (polynomial? p)
+    (do (assert (= (bare-arity p) 1))
+        (let [terms (sparse->terms
+                     (for [[x q] (bare-terms p)
+                           [ys c] (->terms q)]
+                       [(expt-up (x 0 0) ys) c]))]
+          (->Polynomial a terms)))
     (make-constant a p)))
 
 (comment
@@ -1077,12 +1071,11 @@
 
   Too many args are ignored."
   [p xs]
-  {:pre [(polynomial? p)]}
   (let [a (arity p)]
-    (cond (coeff? p)  p
+    (cond (not (polynomial? p)) p
           (empty? xs) p
           (v/zero? p) 0
-          (= a 1)     (evaluate-1 p (first xs))
+          (= a 1) (evaluate-1 p (first xs))
           :else (let [L (evaluate-1 (lower-arity p) (first xs))]
                   (if (polynomial? L)
                     (recur L (next xs))
@@ -1157,9 +1150,9 @@
 
   TODO note that `d` is the integerizing coefficient."
   [u v]
-  {:pre [(explicit-polynomial? u)
+  {:pre [(polynomial? u)
          (= (bare-arity u) 1)
-         (explicit-polynomial? v)
+         (polynomial? v)
          (= (bare-arity v) 1)
          (not (v/zero? v))]}
   (let [[vn-exponents vn-coefficient] (leading-term v)
@@ -1184,7 +1177,7 @@
 
   TODO this is confused, with its special case for numbers."
   [p i]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (make (bare-arity p)
           (for [[xs c] (bare-terms p)
                 :let [xi (xs i 0)]
@@ -1199,7 +1192,7 @@
   "The sequence of partial derivatives of p with respect to each
   indeterminate. Return value has length `(arity p)`."
   [p]
-  (if (explicit-polynomial? p)
+  (if (polynomial? p)
     (for [i (range (bare-arity p))]
       (partial-derivative p i))
     []))
@@ -1232,7 +1225,7 @@
   evaluation of that polynomial over the indeterminates extracted from the
   expression at the start of this process."
     [p vars]
-    (if (explicit-polynomial? p)
+    (if (polynomial? p)
       (let [xform (map (fn [[xs c]]
                          (->> (map-indexed (fn [i v]
                                              (expt v (xs i 0)))

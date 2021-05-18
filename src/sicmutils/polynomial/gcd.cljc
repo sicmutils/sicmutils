@@ -216,8 +216,8 @@
 
   TODO note that this will now return a constant, NOT a polynomial."
   [u v continue]
-  {:pre [(p/explicit-polynomial? u)
-         (p/explicit-polynomial? v)]}
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)]}
   (let [umax (reduce into (map (comp u/keyset p/exponents)
                                (p/bare-terms u)))
         vmax (reduce into (map (comp u/keyset p/exponents)
@@ -252,8 +252,8 @@
 
 (defn- gcd-poly-number
   [p n]
-  {:pre [(p/explicit-polynomial? p)
-         (not (p/explicit-polynomial? n))]}
+  {:pre [(p/polynomial? p)
+         (not (p/polynomial? n))]}
   (primitive-gcd (cons n (p/coefficients p))))
 
 (defn- monomial-gcd
@@ -263,15 +263,13 @@
   Basically... take the GCD of the coeffs for the coefficient, and the MINIMUM
   exp of each variable across all, pinned at the top by the monomial."
   [m p]
-  {:pre [(p/explicit-polynomial? m)
+  {:pre [(p/polynomial? m)
          (= (count (p/bare-terms m)) 1)
-         (p/explicit-polynomial? p)]}
+         (p/polynomial? p)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
         xs (transduce (map p/exponents)
-                      (completing
-                       (fn [l r]
-                         (p/mono:intersect-with min l r)))
+                      p/mono:gcd
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]
@@ -324,8 +322,8 @@
 (defn- gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
   [u v]
-  {:pre [(p/explicit-polynomial? u)
-         (p/explicit-polynomial? v)
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)
          (= (p/bare-arity u) 1)
          (= (p/bare-arity v) 1)]}
   (with-content-removed primitive-gcd u v univariate-euclid-inner-loop))
@@ -463,7 +461,7 @@
 (defn gcd-Dp
   "Compute the gcd of the all the partial derivatives of p."
   [p]
-  (if (p/explicit-polynomial? p)
+  (if (p/polynomial? p)
     (gcd-seq
      (p/partial-derivatives p))
     1))

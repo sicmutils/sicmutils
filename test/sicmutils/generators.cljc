@@ -304,7 +304,7 @@
                   term (gen/tuple mono coefs)
                   pgen (gen/fmap (fn [terms]
                                    (let [p (poly/make arity terms)]
-                                     (if (poly/explicit-polynomial? p)
+                                     (if (poly/polynomial? p)
                                        p
                                        (poly/make-constant arity p))))
                                  (gen/vector term))]

@@ -54,7 +54,7 @@
 (deftest polynomial-type-tests
   (checking "polynomials are both explicit polys and polynomial? == true" 100
             [p (sg/polynomial)]
-            (is (p/explicit-polynomial? p))
+            (is (p/polynomial? p))
             (is (= ::p/polynomial (v/kind p))))
 
   (checking "IArity" 100 [p (sg/polynomial)]
@@ -149,18 +149,18 @@
         "identity-like is only supported on monomials."))
 
   (testing "make-constant"
-    (let [c (p/make-constant 1 99)](is (p/explicit-polynomial? c))
-         (is (p/explicit-polynomial? c))
-         (is (= c 99))
-         (is (v/= 99 c)))
+    (let [c (p/make-constant 1 99)]
+      (is (p/polynomial? c))
+      (is (= c 99))
+      (is (v/= 99 c)))
 
     (let [c (p/make-constant 2 88)]
-      (is (p/explicit-polynomial? c))
+      (is (p/polynomial? c))
       (is (= c 88))
       (is (v/= 88 c)))
 
     (let [c (p/make-constant 3 77)]
-      (is (p/explicit-polynomial? c))
+      (is (p/polynomial? c))
       (is (= c 77))
       (is (v/= 77 c))))
 
