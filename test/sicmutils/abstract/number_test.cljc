@@ -731,6 +731,17 @@
                        (g/make-polar sym n))
                   "for other cases, the complex number is evaluated.")))
 
+  (testing "helpful unit tests from generative testing"
+    (let [r 'A, theta 'pi]
+      (is (= (g/* r (g/+ (g/cos theta)
+                         (g/* c/I (g/sin theta))))
+             (g/make-polar r theta))))
+
+    (let [n -1, sym 'pi]
+      (is (= (g/* n (g/+ (g/cos sym)
+                         (g/* c/I (g/sin sym))))
+             (g/make-polar n sym)))))
+
   (checking "real-part" 100 [z gen/symbol]
             (is (= (g/* (g// 1 2)
                         (g/+ z (g/conjugate z)))

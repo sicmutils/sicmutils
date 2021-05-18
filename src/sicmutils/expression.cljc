@@ -87,7 +87,7 @@
              (if (instance? Literal b)
                (let [b ^Literal b]
                  (and (= type (.-type b))
-                      (= expression (.-expression b))
+                      (v/= expression (.-expression b))
                       (= m (.-m b))))
                (v/= expression b))))
 
@@ -114,7 +114,7 @@
                (if (instance? Literal b)
                  (let [b ^Literal b]
                    (and (= type (.-type b))
-                        (= expression (.-expression b))
+                        (v/= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= expression b)))
 
