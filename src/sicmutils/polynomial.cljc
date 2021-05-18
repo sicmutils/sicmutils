@@ -1143,7 +1143,7 @@
                       (constant (dec a) x)
                       x)]
               (if (= a 1)
-                (evaluate-1 p (first xs))
+                (evaluate-1 p x)
                 (let [L (evaluate-1 (lower-arity p) x)]
                   (if (polynomial? L)
                     (recur L (next xs))
