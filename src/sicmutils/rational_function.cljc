@@ -712,7 +712,8 @@
    'expt g/expt
    'square square
    'cube cube
-   'gcd g/gcd})
+   'gcd g/gcd
+   'lcm g/lcm})
 
 (def operators-known
   (u/keyset operator-table))

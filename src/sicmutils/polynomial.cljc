@@ -407,8 +407,6 @@
       ([arity terms m]
        (Polynomial. arity terms m))))
 
-;; ### Predicates
-
 (defn polynomial?
   "Returns true if the supplied argument is an instance of [[Polynomial]], false
   otherwise."
@@ -419,6 +417,16 @@
   "Anything that is NOT an explicit polynomial is, helpfully, a potential coefficient."
   [x]
   (not (polynomial? x)))
+
+(defn ^:no-doc bare-arity [p]
+  {:pre [(polynomial? p)]}
+  (.-arity ^Polynomial p))
+
+(defn ^:no-doc bare-terms [p]
+  {:pre [(polynomial? p)]}
+  (.-terms ^Polynomial p))
+
+;; ## Constructors
 
 (defn- sparse->terms
   "NOTE: Optionally takes a comparator."
@@ -522,6 +530,13 @@
    (let [expts (expt:make (dec i) 1)]
      (->Polynomial arity [(make-term expts 1)]))))
 
+(defn new-variables
+  "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
+  coefficient 1 and new indeterminates for each."
+  [n]
+  (map #(identity n %)
+       (range 1 (inc n))))
+
 (declare poly:+)
 
 (defn linear
@@ -542,13 +557,7 @@
         (let [term (make-term (expt:make 0 n) c)]
           (->Polynomial arity [term]))))
 
-(defn ^:no-doc bare-arity [p]
-  {:pre [(polynomial? p)]}
-  (.-arity ^Polynomial p))
-
-(defn ^:no-doc bare-terms [p]
-  {:pre [(polynomial? p)]}
-  (.-terms ^Polynomial p))
+;; ###  Accessors, Predicates
 
 (def ^:no-doc zero-arity -1)
 (def ^:no-doc coeff-arity 0)
@@ -651,13 +660,7 @@
                      (str "... and " (- n-terms n) " more terms"))]
      (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
 
-;; ## Constructors
-
-
-
 ;; ## Relaxed Accessors
-
-
 
 (defn coefficients
   "TODO see where this is used. Return a vector?"
@@ -679,6 +682,18 @@
   (if (polynomial? p)
     (coefficient
      (peek (bare-terms p)))
+    p))
+
+(defn leading-base-coefficient [p]
+  (let [c (leading-coefficient p)]
+    (if (polynomial? c)
+      (recur c)
+      c)))
+
+(defn trailing-coefficient [p]
+  (if (polynomial? p)
+    (coefficient
+     (nth (bare-terms p) 0))
     p))
 
 (defn leading-monomial [p]
@@ -711,29 +726,7 @@
   (and (polynomial? p)
        (= (bare-arity p) 1)))
 
-
-
-
-
-;; TODO check what this actually generates... I bet we do NOT want to generate
-;; NON polynomials here, if the original does not!!
-;;
-;; TODO do we take an optional thing that flags the right `x` index?
-
-
-
-
-
-
-
 ;; ## Polynomial API
-
-(defn new-variables
-  "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
-  coefficient 1 and new indeterminates for each."
-  [n]
-  (map #(identity n %)
-       (range 1 (inc n))))
 
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial.
@@ -766,6 +759,22 @@
 
 ;; ## Manipulations
 
+(defn scale [p c]
+  (map-coefficients #(g/* % c) p))
+
+(declare evenly-divide)
+
+(defn normalize
+  "Note that we can take coefs on the left too..."
+  ([p]
+   (normalize p (leading-coefficient p)))
+  ([p c]
+   (cond (v/one? c) p
+         (v/zero? c) (u/arithmetic-ex
+                      (str "Divide by zero: " p c))
+         (polynomial? c) (evenly-divide p c)
+         :else (scale p (g/invert c)))))
+
 (defn reciprocal
   "Returns the reciprical polynomial with respect to `i`, defaults to 0.
   https://en.wikipedia.org/wiki/Reciprocal_polynomial"
@@ -783,12 +792,15 @@
           p)))
      p)))
 
-(defn extend
-  "TODO interpolate a new variable in the `n` spot by expanding all vectors."
-  [p n]
-  )
-
-(declare except-leading-term)
+(defn drop-leading-term
+  "Returns `p` without its leading term, which MIGHT drop it down to a constant.
+  Any non-polynomial drops to 0."
+  [p]
+  (if (polynomial? p)
+    (let [a (bare-arity p)
+          terms (pop (bare-terms p))]
+      (terms->polynomial a terms))
+    0))
 
 (defn contractible? [n p]
   (or (not (polynomial? p))
@@ -807,12 +819,12 @@
 
 			             (contractible?
                     n
-			              (except-leading-term (bare-arity p) p))
+			              (drop-leading-term (bare-arity p) p))
 
                    ;; Weird... this makes no sense!
 		               :else false)))))
 
-(declare poly:adjoin trailing-coefficient)
+(declare poly:adjoin)
 
 (defn contract [p n]
   (if (contractible? n p)
@@ -826,20 +838,14 @@
 				                         (degree p)
 				                         (contract (dec n)
 				                                   (coefficient (leading-term p)))
-				                         (rec (except-leading-term a p)))))]
+				                         (rec (drop-leading-term a p)))))]
           (rec p))))
     (u/illegal (str "Poly not contractible" n p))))
 
-(defn normalize
-  "Note that we can take coefs on the left too..."
-  [p c]
-  (cond (v/zero? c) (u/arithmetic-ex
-                     (str "Divide by zero: " p c))
-        (v/one? c) p
-        :else
-        (let [c' (g/invert c)]
-          ;; TODO why not divide??
-          (map-coefficients #(g/* c' %) p))))
+(defn extend
+  "TODO interpolate a new variable in the `n` spot by expanding all vectors."
+  [p n]
+  )
 
 ;; ## Polynomial Arithmetic
 
@@ -1132,8 +1138,6 @@
 ;;
 ;; TODO fix raise, lower
 ;;
-;; TODO arg-shift, arg-scale for series, AND for polynomials...
-
 ;; POLY/HORNER-HELPER is used to evaluate a polynomial for a particular value of
 ;; the indeterminate. In general, the coefficients of the polynomial will
 ;; themselves be polynomials, which must be evaluated with values for their
@@ -1179,7 +1183,7 @@
 
 ;; ## Scale and Shift
 
-(declare horner)
+(declare horner horners-rule-with-error)
 
 (defn arg-scale
   "Given polynomial P(x), substitute x = r*y and compute the resulting polynomial
@@ -1307,7 +1311,8 @@
    'expt expt
    'square square
    'cube cube
-   'gcd g/gcd})
+   'gcd g/gcd
+   'lcm g/lcm})
 
 (def ^:no-doc operators-known
   (u/keyset operator-table))
