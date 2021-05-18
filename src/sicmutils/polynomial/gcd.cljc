@@ -169,12 +169,14 @@
 
 (defn ->gcd [binary-gcd]
   (fn [coefs]
-    (transduce (ua/halt-at v/one?)
-               (fn
-                 ([] 0)
-                 ([x] x)
-                 ([x y] (binary-gcd x y)))
-               coefs)))
+    (reduce (fn
+              ([] 0)
+              ([x] x)
+              ([x y]
+               (if (v/one? x)
+                 (reduced x)
+                 (binary-gcd x y))))
+            coefs)))
 
 ;; TODO fix these bullshits!
 
@@ -241,25 +243,27 @@
   "A function which will return the gcd of a sequence of numbers. TODO put this in
   `numbers`... NOT here."
   [xs]
-  (g/abs
-   (transduce
-    (comp (ua/halt-at v/one?)
-          (map (fn [x]
-                 (if (v/integral? x)
-                   (u/biginteger x)
-                   x))))
-    (fn
-      ([] 0)
-      ([x] x)
-      ([x y] (g/gcd x y)))
-    xs)))
+  (let [f (fn
+            ([] 0)
+            ([x] x)
+            ([x y] (if (v/one? x)
+                     (reduced x)
+                     (g/gcd x y))))]
+    (g/abs
+     #?(:clj (reduce f xs)
+        :cljs (transduce
+               (map (fn [x]
+                      (if (v/integral? x)
+                        (u/biginteger x)
+                        x)))
+               f xs)))))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
 (defn- gcd-poly-number
   [p n]
   {:pre [(p/polynomial? p)
-         (not (p/polynomial? n))]}
+         (p/coeff? n)]}
   (primitive-gcd (cons n (p/coefficients p))))
 
 (defn- monomial-gcd
@@ -269,8 +273,7 @@
   Basically... take the GCD of the coeffs for the coefficient, and the MINIMUM
   exp of each variable across all, pinned at the top by the monomial."
   [m p]
-  {:pre [(p/polynomial? m)
-         (= (count (p/bare-terms m)) 1)
+  {:pre [(p/monomial? m)
          (p/polynomial? p)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
@@ -330,10 +333,8 @@
 (defn- gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
   [u v]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)
-         (= (p/bare-arity u) 1)
-         (= (p/bare-arity v) 1)]}
+  {:pre [(p/univariate? u)
+         (p/univariate? v)]}
   (with-content-removed primitive-gcd u v univariate-euclid-inner-loop))
 
 ;; Helpers
@@ -428,8 +429,6 @@
                        (every? v/exact? (p/coefficients v))))
              (v/one-like u)
 
-             ;; TODO `gcd1` does not guard against non-integral coefs so we have
-             ;; to put it here, after the check. Fix!
              (= arity 1) (g/abs (gcd1 u v))
 
              :else

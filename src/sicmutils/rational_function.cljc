@@ -181,7 +181,7 @@
        (-pr-writer
         [x writer _]
         (write-all writer
-                   "#object[sicmutils.structure.RationalFunction \""
+                   "#object[sicmutils.rational-function.RationalFunction \""
                    (.toString x)
                    "\"]"))]))
 

@@ -419,7 +419,7 @@
        IPrintWithWriter
        (-pr-writer [x writer _]
                    (write-all writer
-                              "#object[sicmutils.structure.Polynomial \""
+                              "#object[sicmutils.polynomial.Polynomial \""
                               (.toString x)
                               "\"]"))]))
 
