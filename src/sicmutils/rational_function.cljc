@@ -245,8 +245,8 @@
   [u v]
   (let [ua (p/arity u)
         va (p/arity v)]
-    (cond (p/coeff? u) va
-          (p/coeff? v) ua
+    (cond (not (p/polynomial? u)) va
+          (not (p/polynomial? v)) ua
           (= ua va) ua
           :else (u/illegal (str "Unequal arities: " u ", " v)))))
 
@@ -450,10 +450,10 @@
                       d2 (poly/gcd u' v)
                       u'' (p/poly:* (p/evenly-divide u d1) (p/evenly-divide v d2))
                       v'' (p/poly:* (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
-                  (if (and (p/coeff? u'')
-                           (p/coeff? v''))
-                    (g/div u'' v'')
-                    (make-reduced a u'' v''))))))
+                  (if (or (p/polynomial? u'')
+                          (p/polynomial? v''))
+                    (make-reduced a u'' v'')
+                    (g/div u'' v''))))))
 
 (defn rf*other [u v]
   #_
@@ -598,7 +598,9 @@
     (p/evaluate r xs)))
 
 (defn compose
-  "only plugs r2 in for the principal indeterminate."
+  "only plugs r2 in for the principal indeterminate.
+
+  TODO we COULD do a version that composes with a different one??"
   [r1 r2]
   (if (rational-function? r2)
     (let [nr1 (numerator r1)
@@ -608,13 +610,13 @@
           dn  (p/degree nr1)
 	        dd  (p/degree dr1)
 	        narity (+ (p/arity dr1) 1)
-          nnr1 (p/extend 1 (p/principal-reverse nr1))
-          ndr1 (p/extend 1 (p/principal-reverse dr1))
+          nnr1 (p/extend 1 (p/reciprocal nr1))
+          ndr1 (p/extend 1 (p/reciprocal dr1))
           scales [(second (p/new-variables narity)) 1]
-          pn (p/evaluate (p/principal-reverse
+          pn (p/evaluate (p/reciprocal
 				                  (p/arg-scale nnr1 scales))
 				                 [nr2 dr2])
-          pd (p/evaluate (p/principal-reverse
+          pd (p/evaluate (p/reciprocal
 				                  (p/arg-scale ndr1 scales))
 				                 [nr2 dr2])]
 	    (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
@@ -837,11 +839,11 @@
         (g/mul c (denominator r))))
 
 (defmethod g/div [::p/coeff ::rational-function] [c r]
-  (g/divide (p/make-constant (bare-arity r) c)
+  (g/divide (p/constant (bare-arity r) c)
             r))
 
 (defmethod g/div [::p/coeff ::p/polynomial] [c p]
-  (make (p/make-constant (p/bare-arity p) c)
+  (make (p/constant (p/bare-arity p) c)
         p))
 
 (defmethod g/expt [::rational-function ::v/integral] [b x]

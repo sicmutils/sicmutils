@@ -143,9 +143,7 @@
     [identity identity]
     (sort->permutations
      (transduce (map p/exponents)
-                (completing
-                 (fn [l-expts r-expts]
-                   (merge-with max l-expts r-expts)))
+                p/expt:max
                 (p/exponents (first terms))
                 (rest terms)))))
 
@@ -157,16 +155,16 @@
   Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao and
   Fateman [1995]."
   [u v continue]
-  (if (and (p/coeff? u) (p/coeff? v))
-    (continue u v)
-    (let [l-terms (if (p/coeff? u) [] (p/bare-terms u))
-          r-terms (if (p/coeff? v) [] (p/bare-terms v))
+  (if (or (p/polynomial? u) (p/polynomial? v))
+    (let [l-terms (if (p/polynomial? u) (p/bare-terms u) [])
+          r-terms (if (p/polynomial? v) (p/bare-terms v) [])
           [sort unsort] (terms->permutations
                          (into l-terms r-terms))]
       (->> (continue
             (p/map-exponents sort u)
             (p/map-exponents sort v))
-           (p/map-exponents unsort)))))
+           (p/map-exponents unsort)))
+    (continue u v)))
 
 (defn ->gcd [binary-gcd]
   (fn [coefs]
@@ -193,17 +191,20 @@
         pv (p/map-coefficients #(g/exact-divide % kv) v)
         d (gcd [ku kv])
         result (continue pu pv)
-        result (if (p/coeff? result)
-                 (p/make-constant 1 result)
-                 result)]
+        result (if (p/polynomial? result)
+                 result
+                 (p/constant 1 result))]
     (p/coeff*poly d result)))
 
 (defn- with-lower-arity
   [u v continue]
-  (let [a (p/check-same-arity u v)]
-    (-> (continue (p/lower-arity u)
-                  (p/lower-arity v))
-        (p/raise-arity a))))
+  (let [a (p/check-same-arity u v)
+        result (continue
+                (p/lower-arity u)
+                (p/lower-arity v))]
+    (if (p/polynomial? result)
+      (p/raise-arity result a)
+      result)))
 
 (declare primitive-gcd)
 
@@ -269,7 +270,7 @@
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
         xs (transduce (map p/exponents)
-                      p/mono:gcd
+                      p/expt:gcd
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]

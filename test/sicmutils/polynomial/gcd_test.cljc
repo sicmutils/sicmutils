@@ -59,12 +59,12 @@
       (is (= [(p/make 2 []) Y] (p/divide Y X)))))
 
   (testing "constant case"
-    (is (= 4 (g/gcd (p/make-constant 8)
-                    (p/make-constant 4))))
-    (is (= 1 (g/gcd (p/make-constant 7)
-                    (p/make-constant 11))))
-    (is (= (p/make-constant 11)
-           (g/gcd 0 (p/make-constant 11)))))
+    (is (= 4 (g/gcd (p/constant 8)
+                    (p/constant 4))))
+    (is (= 1 (g/gcd (p/constant 7)
+                    (p/constant 11))))
+    (is (= (p/constant 11)
+           (g/gcd 0 (p/constant 11)))))
 
   (testing "GCD: arity 1 case"
     (let [x+1 (p/make [1 1])
@@ -381,7 +381,7 @@
         v (p/make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
                       [[2 0 1 2 1 1 0 0 0 0] 2]
                       [[4 0 1 0 1 1 0 0 0 0] 1]])]
-    (is (= (p/make-constant 10 1)
+    (is (= (p/constant 10 1)
            (g/gcd u v)))))
 
 (deftest ^:benchmark kuniaki-tsuji-examples

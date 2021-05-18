@@ -36,10 +36,10 @@
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
-    (let [x3 (p/dense->monomial [3 0 0])
-          x2z2 (p/dense->monomial [2 0 2])
-          xy2z (p/dense->monomial [1 2 1])
-          z2   (p/dense->monomial [0 0 2])
+    (let [x3 (p/dense->exponents [3 0 0])
+          x2z2 (p/dense->exponents [2 0 2])
+          xy2z (p/dense->exponents [1 2 1])
+          z2   (p/dense->exponents [0 0 2])
           monomials [x3 x2z2 xy2z z2]
           sort-with #(sort % monomials)]
       (is (= [z2 xy2z x2z2 x3]
@@ -64,7 +64,7 @@
   (checking "make-term round trip" 100
             [expts (gen/vector gen/nat)
              coef sg/number]
-            (let [expts (p/dense->monomial expts)
+            (let [expts (p/dense->exponents expts)
                   term  (p/make-term expts coef)]
               (is (= expts (p/exponents term)))
               (is (= coef (p/coefficient term)))))
@@ -86,8 +86,8 @@
               (is (not (v/zero? (p/make [x])))))
 
             (if (v/zero? x)
-              (is (v/zero? (p/make-constant arity x)))
-              (is (not (v/zero? (p/make-constant arity x))))))
+              (is (v/zero? (p/constant arity x)))
+              (is (not (v/zero? (p/constant arity x))))))
 
   (checking "zero-like" 100 [p (sg/polynomial)]
             (is (v/zero?
@@ -109,13 +109,13 @@
                  (v/one-like p))))
 
   (testing "one-like unit tests"
-    (is (= (p/make-constant 1 1)
+    (is (= (p/constant 1 1)
            (v/one-like (p/make [1 2 3]))))
 
-    (is (= (p/make-constant 2 1)
+    (is (= (p/constant 2 1)
            (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
 
-    (is (= (p/make-constant 3 1)
+    (is (= (p/constant 3 1)
            (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
 
     (is (= (p/make 2 [[[0 0] 1]])
@@ -129,8 +129,8 @@
     (is (not (v/identity? (p/make [0]))))
 
     (testing "identity? only returns true for monomials."
-      (is (v/identity? (p/poly:identity 1)))
-      (is (not (v/identity? (p/poly:identity 2 1))))))
+      (is (v/identity? (p/identity 1)))
+      (is (not (v/identity? (p/identity 2 1))))))
 
   (checking "identity-like (only on monomials)" 100
             [p (sg/polynomial :arity 1)]
@@ -145,37 +145,37 @@
            (v/identity-like (p/make [1 2 3]))))
 
     (is (thrown? #?(:clj AssertionError :cljs js/Error)
-                 (v/identity-like (p/make-constant 10 1)))
+                 (v/identity-like (p/constant 10 1)))
         "identity-like is only supported on monomials."))
 
-  (testing "make-constant"
-    (let [c (p/make-constant 1 99)]
+  (testing "constant"
+    (let [c (p/constant 1 99)]
       (is (p/polynomial? c))
       (is (= c 99))
       (is (v/= 99 c)))
 
-    (let [c (p/make-constant 2 88)]
+    (let [c (p/constant 2 88)]
       (is (p/polynomial? c))
       (is (= c 88))
       (is (v/= 88 c)))
 
-    (let [c (p/make-constant 3 77)]
+    (let [c (p/constant 3 77)]
       (is (p/polynomial? c))
       (is (= c 77))
       (is (v/= 77 c))))
 
   (checking "terms, lead term" 100 [x sg/any-integral]
             (is (= (p/->terms x)
-                   (p/->terms (p/make-constant 0 x))))
+                   (p/->terms (p/constant 0 x))))
 
             (is (= (p/leading-term x)
-                   (p/leading-term (p/make-constant 0 x))))
+                   (p/leading-term (p/constant 0 x))))
 
             (is (= (p/leading-coefficient x)
-                   (p/leading-coefficient (p/make-constant x)))))
+                   (p/leading-coefficient (p/constant x)))))
 
   (testing "degree"
-    (is (= -1 (p/degree (p/make-constant 1 0))))
+    (is (= -1 (p/degree (p/constant 1 0))))
     (is (= -1 (p/degree (p/make []))))
     (is (= -1 (p/degree (p/make [0 0]))))
     (is (= 1 (p/degree (p/make [-1 1]))))
@@ -199,11 +199,11 @@
   (testing "add constant"
     (is (= (p/make [3 0 2])
            (g/add (p/make [0 0 2])
-                  (p/make-constant 3))))
+                  (p/constant 3))))
 
     (is (= (p/make [0 0 2])
            (g/add (p/make [2 0 2])
-                  (p/make-constant -2)))))
+                  (p/constant -2)))))
 
   (checking "dense add, sub, negate" 100
             [[l r] (gen/sized
@@ -273,7 +273,7 @@
 
   (checking "p+p=2p" 30 [p (sg/polynomial)]
             (is (= (g/add p p)
-                   (g/mul p (p/make-constant (p/bare-arity p) 2)))))
+                   (g/mul p (p/constant (p/bare-arity p) 2)))))
 
   (checking "pq-div-p=q" 30
             [[p q] (gen/let [arity gen/nat]
@@ -413,8 +413,8 @@
                              (p/make [3]))))
 
       (is (= [0 1] (p/pseudo-remainder
-                    (p/make-constant 7)
-                    (p/make-constant 2)))))))
+                    (p/constant 7)
+                    (p/constant 2)))))))
 
 (deftest poly-core
   (testing "other coefficient rings: GF(11)"
@@ -690,8 +690,8 @@
   (checking "TODO name this..." 100
             [x sg/any-integral
              arity (gen/choose 2 10)]
-            (is (= (p/make-constant arity x)
-                   (-> (p/make-constant x)
+            (is (= (p/constant arity x)
+                   (-> (p/constant x)
                        (p/raise-arity arity))))))
 
 (deftest evaluation-homomorphism-tests

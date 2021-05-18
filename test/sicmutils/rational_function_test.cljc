@@ -89,7 +89,7 @@
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
-    (let [p #(p/make-constant 1 %) ;; constant arity 1 polynomial
+    (let [p #(p/constant 1 %) ;; constant arity 1 polynomial
           rf #(rf/make (p %1) (p %2)) ;; arity 1 rational function out of two constants
           N 3
           H (s/up* (for [i (range 1 (inc N))]
