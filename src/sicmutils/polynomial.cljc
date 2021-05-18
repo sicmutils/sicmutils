@@ -1264,7 +1264,7 @@
 ;; Sussman's code -- good for Euclid Algorithm
 
 (defn pseudo-remainder
-  "Compute the pseudo-remainder of univariate polynomials p and q.
+  "Compute the pseudo-remainder of univariate polynomials u and v.
 
   Fractions won't appear in the result; instead the divisor is multiplied by the
   leading coefficient of the dividend before quotient terms are generated so
@@ -1276,7 +1276,13 @@
   how many times the integerizing multiplication will be done, we also return
   the number d for which d * u = q * v + r.
 
-  TODO note that `d` is the integerizing coefficient."
+  TODO note that `d` is the integerizing coefficient.
+
+  Notes from GJS that we took on:
+
+  Pseudo division produces only a remainder--no quotient. This can be used to
+  generalize Euclid's algorithm for polynomials over a unique factorization
+  domain (UFD)."
   [u v]
   {:pre [(polynomial? u)
          (= (bare-arity u) 1)
@@ -1287,13 +1293,13 @@
         *vn (fn [p] (scale p vn-coefficient))
         n (monomial-degree vn-exponents)]
     (loop [remainder u
-           d         0]
+           d 0]
       (let [m (degree remainder)
             c (leading-coefficient remainder)]
         (if (< m n)
           [remainder d]
           (recur (poly:- (*vn remainder)
-                         (poly:* (c*xn 1 c (g/- m n))
+                         (poly:* (c*xn 1 c (- m n))
                                  v))
                  (inc d)))))))
 

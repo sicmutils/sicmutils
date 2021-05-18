@@ -389,10 +389,11 @@
       (is (= [(p/make [-3 0 1 0 -5]) 2]
              [pr d]))
 
-      (is (= (p/make [])
-             (g/sub (g/mul (p/make [(g/expt 3 d)]) U)
-                    (g/add (g/mul (p/make [-2 0 3]) V)
-                           pr)))))
+      (is (zero?
+           (g/- (g/* (p/make [(g/expt 3 d)])
+                     U)
+                (g/+ (g/* (p/make [-2 0 3]) V)
+                     pr)))))
 
     (testing "examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html"
       (let [p (p/make [1 1 0 1])
