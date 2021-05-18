@@ -194,7 +194,7 @@
         result (if (p/polynomial? result)
                  result
                  (p/constant 1 result))]
-    (p/coeff*poly d result)))
+    (p/scale-l d result)))
 
 (defn- with-lower-arity
   [u v continue]

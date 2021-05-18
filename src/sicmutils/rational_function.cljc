@@ -840,15 +840,23 @@
         (g/mul c (denominator r))))
 
 (defmethod g/div [::p/coeff ::rational-function] [c r]
-  (g/divide (p/constant (bare-arity r) c)
-            r))
+  (g/divide (p/constant (bare-arity r) c) r))
 
 (defmethod g/div [::p/coeff ::p/polynomial] [c p]
-  (make (p/constant (p/bare-arity p) c)
-        p))
+  (make (p/constant (p/bare-arity p) c) p))
 
-(defmethod g/expt [::rational-function ::v/integral] [b x]
-  (expt b x))
+(defmethod g/div [::polynomial ::coeff] [p c]
+  (make p (p/constant (p/bare-arity p) c)))
+
+(defmethod g/solve-linear-right [::p/polynomial ::p/polynomial] [s t] (g/div s t))
+(defmethod g/solve-linear-right [::p/coeff ::p/polynomial] [c s] (g/div c s))
+(defmethod g/solve-linear-right [::p/polynomial ::p/coeff] [s c] (g/div s c))
+
+(defmethod g/solve-linear [::p/polynomial ::p/polynomial] [s t] (g/div t s))
+(defmethod g/solve-linear [::p/coeff ::p/polynomial] [c s] (g/div s c))
+(defmethod g/solve-linear [::p/polynomial ::p/coeff] [s c] (g/div c s))
+
+(defmethod g/expt [::rational-function ::v/integral] [b x] (expt b x))
 
 (defmethod g/gcd [::rational-function ::rational-function] [u v] (rf:gcd u v))
 (defmethod g/gcd [::p/polynomial ::rational-function] [u v] (other-gcd-rf u v))

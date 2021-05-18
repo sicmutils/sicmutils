@@ -99,6 +99,33 @@
     (dissoc m i)
     (assoc m i v)))
 
+(defn- expt:lower
+  "TODO if `i` is the largest key than any key, you COULD go faster by just
+  dissocing it... but that won't happen in practice."
+  ([expts]
+   (expt:lower expts 0))
+  ([expts i]
+   (reduce-kv (fn [acc k v]
+                (if (> k i)
+                  (assoc acc (dec k) v)
+                  (assoc acc k v)))
+              empty-expts
+              (dissoc expts i))))
+
+(defn expt:raise
+  ([expts v]
+   (expt:raise expts 0 v))
+  ([expts i v]
+   (let [m (reduce-kv (fn [acc k v]
+                        (if (>= k i)
+                          (assoc acc (inc k) v)
+                          (assoc acc k v)))
+                      empty-expts
+                      expts)]
+     (if (zero? v)
+       m
+       (assoc m i v)))))
+
 (defn- monomial-degree
   "Compute the degree of a monomial. This is just the sum of the exponents. If you pass an `i`, you'll get the degree of that term.
 
@@ -212,8 +239,7 @@
 ;;
 ;; TODO look at PowerSeries, see what we're missing.
 
-(declare evaluate constant ->str eq
-         map-coefficients)
+(declare evaluate constant ->str eq map-coefficients)
 
 (deftype Polynomial [arity terms m]
   f/IArity
@@ -598,7 +624,7 @@
 (defn ^:no-doc validate-arity [p i]
   (let [a (arity p)]
     (if (or (< i 0)
-            (> i (arity p)))
+            (>= i (arity p)))
       (u/arithmetic-ex
        (str "Supplied i " i " outside the bounds of arity " a " for input " p))
       i)))
@@ -685,10 +711,9 @@
     p))
 
 (defn leading-base-coefficient [p]
-  (let [c (leading-coefficient p)]
-    (if (polynomial? c)
-      (recur c)
-      c)))
+  (if (polynomial? p)
+    (recur (leading-coefficient p))
+    p))
 
 (defn trailing-coefficient [p]
   (if (polynomial? p)
@@ -701,6 +726,13 @@
     (exponents
      (peek (bare-terms p)))
     empty-expts))
+
+(defn lowest-order [p]
+  (if (polynomial? p)
+    (monomial-degree
+     (exponents
+      (nth (bare-terms p) 0)))
+    coeff-arity))
 
 (defn monomial?
   "Returns true if `p` is a polynomial with a single term OR not a [[Polynomial]]
@@ -726,6 +758,10 @@
   (and (polynomial? p)
        (= (bare-arity p) 1)))
 
+(defn negative? [p]
+  (g/negative?
+   (leading-base-coefficient p)))
+
 ;; ## Polynomial API
 
 (defn map-coefficients
@@ -748,19 +784,43 @@
   returning a new Polynomial.
 
   TODO can handle bare coef now."
-  [f p]
-  (if (polynomial? p)
-    (make (bare-arity p)
-          (for [term (bare-terms p)]
-            (make-term
-             (f (exponents term))
-             (coefficient term))))
-    p))
+  ([f p]
+   (map-exponents f p (arity p)))
+  ([f p new-arity]
+   (if (polynomial? p)
+     (make new-arity
+           (for [term (bare-terms p)]
+             (make-term
+              (f (exponents term))
+              (coefficient term))))
+     p)))
 
 ;; ## Manipulations
 
+(defn univariate->dense [x]
+  {:pre [(univariate? x)]}
+  (let [d (degree x)]
+    (loop [terms (bare-terms x)
+           acc []
+           i 0]
+      (if (> i d)
+        acc
+        (let [t  (first terms)
+              e  (exponents t)
+              md (monomial-degree e 0)]
+          (if (= md i)
+            (recur (rest terms)
+                   (conj acc (coefficient t))
+                   (inc i))
+            (recur terms
+                   (conj acc 0)
+                   (inc i))))))))
+
 (defn scale [p c]
   (map-coefficients #(g/* % c) p))
+
+(defn scale-l [c p]
+  (map-coefficients #(g/* c %) p))
 
 (declare evenly-divide)
 
@@ -802,55 +862,15 @@
       (terms->polynomial a terms))
     0))
 
-(defn contractible? [n p]
-  (or (not (polynomial? p))
-      (if (zero? n)
-	      (= (degree p) 0)
-        (and (< n (bare-arity p))
-	           (cond (v/zero? p) true
-
-                   ;; weird case... IF the coefficient of the lead term is
-                   ;; contractible, then check if the whole thing is
-                   ;; contractible WITHOUT the lead term.
-		               (contractible?
-                    (dec n)
-                    ;; TODO WRONG... this is not the way for sparse!!
-					          (coefficient (leading-term p)))
-
-			             (contractible?
-                    n
-			              (drop-leading-term (bare-arity p) p))
-
-                   ;; Weird... this makes no sense!
-		               :else false)))))
-
-(declare poly:adjoin)
-
-(defn contract [p n]
-  (if (contractible? n p)
-    (let [a (arity p)]
-	    (if (zero? n)
-	      (trailing-coefficient p)
-        (letfn [(rec [p]
-                  (if (v/zero? p)
-                    p
-		                (poly:adjoin (dec a)
-				                         (degree p)
-				                         (contract (dec n)
-				                                   (coefficient (leading-term p)))
-				                         (rec (drop-leading-term a p)))))]
-          (rec p))))
-    (u/illegal (str "Poly not contractible" n p))))
-
-(defn extend
-  "TODO interpolate a new variable in the `n` spot by expanding all vectors."
-  [p n]
-  )
-
 ;; ## Polynomial Arithmetic
 
 (defn negate [p]
   (map-coefficients g/negate p))
+
+(defn abs [p]
+  (if (negative? p)
+    (negate p)
+    p))
 
 (def terms:+
   (ua/merge-fn #'*monomial-order* g/add v/zero? make-term))
@@ -919,11 +939,11 @@
   [p q]
   (binary-combine p q g/mul mul-terms))
 
-(defn poly*coeff [p c]
-  (map-coefficients #(g/* % c) p))
+(defn square [p]
+  (poly:* p p))
 
-(defn coeff*poly [c p]
-  (map-coefficients #(g/* c %) p))
+(defn cube [p]
+  (poly:* p (poly:* p p)))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
@@ -948,32 +968,6 @@
                     p)
 
       :else (expt-iter p n 1))))
-
-(defn square [p]
-  (poly:* p p))
-
-(defn cube [p]
-  (poly:* p (poly:* p p)))
-
-;; TODO go from here! divide, then horner-eval, get those working (raise and
-;; lower come along for the ride).
-;;
-;; then lock in to and from expressions... that covers fpf if that's all done.
-;;
-;; TODO oh! get accumulation going so that all this stuff actually works. That
-;; will be a nice PR for itself.
-;;
-;; TODO implement more protocols, like IFn for SURE.
-;;
-;; TODO to power series, for arity == 1...
-;;
-;; TODO monic?
-;;
-;; TODO put `abs` back in! weird, it is `poly/abs`...
-;;
-;; TODO make proper equality method... use v/=
-;;
-;; TODO get notes from pcf, poly/div
 
 (defn- poly:div
   "divide explicit polynomials."
@@ -1045,29 +1039,34 @@
        (str "expected even division left a remainder! " u " / " v " r " r)))
     q))
 
-(defn abs
-  "TODO this seems suspicious... how could this possibly be true? Maybe keep it
-  but don't install?"
-  [p]
-  (if (g/negative?
-       (leading-coefficient p))
-    (negate p)
-    p))
+(defn contractible? [n p]
+  (zero? (degree p n)))
 
-(defn- expt-down [expts]
-  (reduce-kv (fn [acc k v]
-               (assoc acc (dec k) v))
-             empty-expts
-             (dissoc expts 0)))
+(defn contract
+  "IF the variable is dead everywhere, contracts it!"
+  [p n]
+  (cond (not (polynomial? p)) p
+        (not (contractible? n p))
+        (u/illegal
+         (str "Polynomial not contractible: " p " in position " n))
+        :else
+        (map-exponents #(expt:lower % n)
+                       p
+                       (dec (bare-arity p)))))
 
-(defn expt-up [zero-expt expts]
-  (let [m (reduce-kv (fn [acc k v]
-                       (assoc acc (inc k) v))
-                     empty-expts
-                     expts)]
-    (if (zero? zero-expt)
-      m
-      (assoc m 0 zero-expt))))
+(defn extend
+  "interpolates a new variable in the `n` spot by bumping all indices higher than
+  the `n` supplied."
+  [p n]
+  (if-not (polynomial? p)
+    p
+    (let [a (bare-arity p)
+          new-arity (inc (max a n))]
+      (if (> n a)
+        (->Polynomial (inc n) (bare-terms p))
+        (map-exponents #(expt:raise % n 0)
+                       p
+                       (inc a))))))
 
 (defn lower-arity
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
@@ -1076,35 +1075,19 @@
   {:pre [(polynomial? p)
          (> (bare-arity p) 1)
          (not (v/zero? p))]}
-  ;; XXX observation:
-  ;; XXX we often create polynomials of "one lower arity"
-  ;; which are EFFECTIVELY UNIVARIATE. When this happens,
-  ;; we should notice.
-  ;; (but univariate in which variable? is it really that
-  ;; common that it's the first one?)
   (let [A (bare-arity p)]
     (letfn [(lower-terms [terms]
-              (let [coef-terms (sparse->terms
-                                (for [[xs c] terms]
-                                  [(expt-down xs) c]))]
-                (->Polynomial (dec A) coef-terms)))]
+              (make (dec A)
+                    (for [[xs c] terms]
+                      [(expt:lower xs 0) c])))]
       (->> (bare-terms p)
-           (group-by #((exponents %) 0 0))
+           (group-by #(monomial-degree (exponents %) 0))
            (map (fn [[x terms]]
                   (let [expts (if (zero? x)
                                 empty-expts
                                 (expt:make 0 x))]
                     (make-term expts (lower-terms terms)))))
-           (sparse->terms)
-           (->Polynomial 1)))))
-
-(comment
-  ;; TODO this works... BUT I think we want to drop those constants down to
-  ;; actual constants. But then what would raise do??
-  (is (= (make 1 {[1] (constant 2 2)
-                  [2] (constant 2 2)})
-         (lower-arity
-          (make 3 {[1 0 0] 2 [2 0 0] 2})))))
+           (make 1)))))
 
 (defn raise-arity
   "The opposite of lower-arity. This needs a polynomial with terms that are
@@ -1115,48 +1098,23 @@
         (let [terms (sparse->terms
                      (for [[x q] (bare-terms p)
                            [ys c] (->terms q)]
-                       [(expt-up (x 0 0) ys) c]))]
+                       [(expt:raise ys 0 (monomial-degree x 0)) c]))]
           (->Polynomial a terms)))
     (constant a p)))
 
-(comment
-  ;; TODO what about horner-with-error?
-  (defn- horner-eval-general [terms args]
-    (loop [[term & terms] terms
-           expts (exponents term)
-		       sum   (coefficient term)]
-	    (if (empty? terms)
-        (apply g/* (cons sum (map g/expt args expts)))
-	      (let [new-expts (exponents (first terms))
-              diff (expt:- expts new-expts)]
-	        (recur (rest terms)
-		             new-expts
-		             (g/+ (coefficient (first terms))
-                      (apply g/* (cons sum (map g/expt args diff))))))))))
+;; `evaluate-1` is used to evaluate a polynomial for a particular value of the
+;; indeterminate. In general, the coefficients of the polynomial will themselves
+;; be polynomials, which must be evaluated with values for their indeterminates.
 
-;; TODO examine the horner univariate method to see if this is the same.
-;;
-;; TODO fix raise, lower
-;;
-;; POLY/HORNER-HELPER is used to evaluate a polynomial for a particular value of
-;; the indeterminate. In general, the coefficients of the polynomial will
-;; themselves be polynomials, which must be evaluated with values for their
-;; indeterminates. The EVAL-COEFF argument will be used in the process of
-;; lifting this system to multivariate polynomials. It will encapsulate the
-;; process of evaluating the coefficients of the current polynomial on the rest
-;; of the polynomial arguments.
-
-(defn evaluate-1
-  "Evaluates a univariate polynomial p at x.
-
-  TODO check is this well formed, and proper horner?"
+(defn- evaluate-1
+  "Evaluates a univariate polynomial p at x using Horner's rule."
   [p x]
-  (loop [terms  (->terms p)
+  (loop [terms (bare-terms p)
          result 0
          x**e   1
          e      0]
-    (if-let [[expts c] (first terms)]
-      (let [e'    (expts 0 0)
+    (if-let [[expts c] (nth terms 0)]
+      (let [e' (monomial-degree expts 0)
             x**e' (g/* x**e (g/expt x (- e' e)))]
         (recur (next terms)
                (g/+ result (g/* c x**e'))
@@ -1165,25 +1123,107 @@
       result)))
 
 (defn evaluate
-  "Evaluates a multivariate polynomial p at xs.
+  "Evaluates a multivariate polynomial p at xs using Horner's rule.
 
-  If you provide too FEW, we just do a partial application.
-
-  Too many args are ignored."
+  If you provide too FEW arguments, we just do a partial application. Too many
+  args throw an error."
   [p xs]
-  (let [a (arity p)]
-    (cond (not (polynomial? p)) p
-          (empty? xs) p
-          (v/zero? p) 0
-          (= a 1) (evaluate-1 p (first xs))
-          :else (let [L (evaluate-1 (lower-arity p) (first xs))]
+  (if-not (polynomial? p)
+    p
+    (let [a (bare-arity p)]
+      (assert (<= (count xs) a)
+              (str "Too many args: " xs))
+      (cond (empty? xs) p
+            (v/zero? p) 0
+            :else
+            (let [x (first xs)
+                  x (if (polynomial? x)
+                      (constant (dec a) x)
+                      x)]
+              (if (= a 1)
+                (evaluate-1 p (first xs))
+                (let [L (evaluate-1 (lower-arity p) x)]
                   (if (polynomial? L)
                     (recur L (next xs))
-                    L)))))
+                    L))))))))
+
+(defn horner-with-error
+  "Takes a univariate polynomial `a`, an argument `z` and a continuation and calls
+  the continuation with (SEE BELOW).
+
+  This Horner's rule evaluator is restricted to numerical coefficients and
+  univariate polynomials. It returns, by calling a continuation procedure, a
+  value, two derivatives, and an estimate of the roundoff error incurred in
+  computing that value.
+
+  The recurrences used are from Kahan's 18 Nov 1986 paper 'Roundoff in
+  Polynomial Evaluation', generalized for sparse representations and another
+  derivative by GJS. For p = A(z), q = A'(z), r = A''(z), and e = error in A(x),
+
+  p_{j+n} = z^n p_j + a_{j+n}
+
+  e_{j+n} = |z|^n ( e_j + (n-1) p_j ) + |p_{j+n}|
+
+  q_{j+n} = z^n q_j + n z^{n-1} p_j
+
+  r_{j+n} = z^n r_j + n z^{n-1} q_j + 1/2 n (n-1) z^{n-2} p_j
+
+  "
+  ([a z]
+   (horner-with-error a z vector))
+  ([a z cont]
+   {:pre [(univariate? a)
+          (number? z)]}
+   (letfn [(call [d p q r e a]
+	           (let [next-degree (degree a)
+		               n (if (polynomial? a)
+                       (- d next-degree)
+                       d)
+                   finish (fn [np nq nr ne]
+                            (if (polynomial? a)
+                              (call next-degree np nq nr ne
+		                                (drop-leading-term a))
+		                          (cont np nq (* 2 nr)
+			                              (* v/machine-epsilon
+                                       (+ (- ne (Math/abs np)) ne)))))]
+	             (cond (= n 1)
+		                 (let [np (+ (* z p) (leading-coefficient a))
+			                     nq (+ (* z q) p)
+			                     nr (+ (* z r) q)
+			                     ne (+ (* (Math/abs z) e) (Math/abs np))]
+		                   (finish np nq nr ne))
+		                 (= n 2)
+		                 (let [z-n (* z z)
+			                     az-n (Math/abs z-n)
+			                     np (+ (* z-n p) (leading-coefficient a))
+			                     nq (+ (* z-n q) (* 2 (* z p)))
+			                     nr (+ (* z-n r) (* 2 z q) p)
+			                     ne (+ (* az-n (+ e p)) (Math/abs np))]
+		                   (finish np nq nr ne))
+		                 :else
+		                 (let [z-n-2 (expt z (- n 2))
+			                     z-n-1 (* z-n-2 z)
+			                     z-n (* z-n-1 z)
+			                     az-n (Math/abs z-n)
+			                     np (+ (* z-n p)
+				                         (leading-coefficient a))
+			                     nq (+ (* z-n q)
+				                         (* n (* z-n-1 p)))
+			                     nr (+ (* z-n r)
+				                         (* n z-n-1 q)
+				                         (* (/ 1 2) n (- n 1) z-n-2 p))
+			                     ne (+ (* az-n (+ e (* (- n 1) p)))
+				                         (Math/abs np))]
+		                   (finish np nq nr ne)))))]
+     (let [lc (leading-coefficient a)]
+       (call (degree a)
+		         lc
+		         0
+		         0
+		         (* (/ 1 2) (Math/abs lc))
+		         (drop-leading-term a))))))
 
 ;; ## Scale and Shift
-
-(declare horner horners-rule-with-error)
 
 (defn arg-scale
   "Given polynomial P(x), substitute x = r*y and compute the resulting polynomial
@@ -1192,9 +1232,9 @@
   "
   [p factors]
   {:pre (= (arity p) (count factors))}
-  (horner p (map poly:*
-		             factors
-		             (new-variables (arity p)))))
+  (evaluate p (map poly:*
+		               factors
+		               (new-variables (arity p)))))
 
 (defn arg-shift
   "Given polynomial P(x), substitute x = y+h and compute the resulting polynomial
@@ -1202,9 +1242,9 @@
   the same arity as the given polynomial... or a base constant."
   [p shifts]
   {:pre (= (arity p) (count shifts))}
-  (horner p (map poly:+
-                 shifts
-		             (new-variables (arity p)))))
+  (evaluate p (map poly:+
+                   shifts
+		               (new-variables (arity p)))))
 
 ;; ## GCD Related Things
 ;;
@@ -1220,20 +1260,6 @@
 ;; great deal in the multivariate case.
 ;;
 ;; Sussman's code -- good for Euclid Algorithm
-
-(comment
-  ;; somehow this gets arity 2!!! TODO make a test.
-  (let [a1 (make 1 {[0] (make 2 {[1 0] 1})
-                    [1] 1})
-        a2 (make 1 {[0] (make 2 {[0 1] 1})
-                    [1] 1})]
-    (g/- a1 a2))
-
-  (let [a1 (make 1 {[0] (make 2 {[1 0] 1})
-                    [1] (constant 2 1)})
-        a2 (make 1 {[0] (make 2 {[0 1] 1})
-                    [1] (constant 2 1)})]
-    (g/- a1 a2)))
 
 (defn pseudo-remainder
   "Compute the pseudo-remainder of univariate polynomials p and q.
@@ -1256,7 +1282,7 @@
          (= (bare-arity v) 1)
          (not (v/zero? v))]}
   (let [[vn-exponents vn-coefficient] (leading-term v)
-        *vn (fn [p] (poly*coeff p vn-coefficient))
+        *vn (fn [p] (scale p vn-coefficient))
         n (monomial-degree vn-exponents)]
     (loop [remainder u
            d         0]
@@ -1317,26 +1343,28 @@
 (def ^:no-doc operators-known
   (u/keyset operator-table))
 
-(let [*     (sym/symbolic-operator '*)
-      +     (sym/symbolic-operator '+)
-      expt  (sym/symbolic-operator 'expt)]
+(let [* (sym/symbolic-operator '*)
+      + (sym/symbolic-operator '+)
+      expt (sym/symbolic-operator 'expt)]
   (defn ->expression
     "This is the output stage of Flat Polynomial canonical form simplification. The
   input is a Polynomial object, and the output is an expression representing the
   evaluation of that polynomial over the indeterminates extracted from the
-  expression at the start of this process."
+  expression at the start of this process.
+
+  TODO NOTE, why are we not using horner evaluation?"
     [p vars]
-    (if (polynomial? p)
-      (let [xform (map (fn [[xs c]]
-                         (->> (map-indexed (fn [i v]
-                                             (expt v (xs i 0)))
-                                           vars)
-                              (reduce *)
-                              (* c))))]
-        (->> (bare-terms p)
-             (sort-by exponents #(*monomial-order* %2 %1))
-             (transduce xform +)))
-      p)))
+    (if-not (polynomial? p)
+      p
+      (let [xform (map (fn [[expts c]]
+                         (transduce
+                          (map-indexed
+                           (fn [i v]
+                             (let [pow (monomial-degree expts i)]
+                               (expt v pow))))
+                          * c vars)))
+            high->low (rseq (bare-terms p))]
+        (transduce xform + high->low)))))
 
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form.
@@ -1385,17 +1413,56 @@
 (derive ::v/scalar ::coeff)
 (derive ::mi/modint ::coeff)
 
-;; TODO: add `partial-derivative`., `simplify`, `solve-linear-right`,
-;; `solve-linear`,
+;; quotient, remainder, modulo... TODO search for more functions!
 
 (defmethod v/= [::polynomial ::coeff] [l r] (eq l r))
 (defmethod v/= [::coeff ::polynomial] [l r] (eq r l))
 
-(defmethod g/negate [::polynomial] [a] (negate a))
+;; TODO put this somewhere where I can depend on the `down` structure!
+#_
+(defmethod g/partial-derivative [::polynomial v/seqtype] [p selectors]
+  (cond (empty? selectors)
+        (ss/down* (partial-derivatives p))
 
-(defmethod g/add [::polynomial ::polynomial] [a b] (poly:+ a b))
+        (= 1 (count selectors))
+        (partial-derivatives p (first selectors))
+
+        :else
+        (u/illegal
+         (str "Invalid selector! Only 1 deep supported."))))
+
+(defmethod g/simplify [::polynomial] [p]
+  (map-coefficients g/simplify p))
+
+(defmethod g/negate [::polynomial] [a] (negate a))
+(defmethod g/negative? [::polynomial] [a] (negative? a))
+(defmethod g/abs [::polynomial] [a] (abs a))
+
+(defmethod g/add [::polynomial ::polynomial] [a b]
+  (poly:+ a b))
+
+(defmethod g/add [::coeff ::polynomial] [c p]
+  (poly:+ (constant (bare-arity p) c) p))
+
+(defmethod g/add [::polynomial ::coeff] [p c]
+  (poly:+ p (constant (bare-arity p) c)))
+
+(defmethod g/sub [::polynomial ::polynomial] [a b]
+  (poly:- a b))
+
+(defmethod g/sub [::coeff ::polynomial] [c p]
+  (poly:- (constant (bare-arity p) c) p))
+
+(defmethod g/sub [::polynomial ::coeff] [p c]
+  (poly:- p (constant (bare-arity p) c)))
+
 (defmethod g/mul [::polynomial ::polynomial] [a b] (poly:* a b))
-(defmethod g/sub [::polynomial ::polynomial] [a b] (poly:- a b))
+(defmethod g/mul [::coeff ::polynomial] [c p] (scale-l c p))
+(defmethod g/mul [::polynomial ::coeff] [p c] (scale p c))
+
+(defmethod g/square [::polynomial] [a] (square a))
+(defmethod g/cube [::polynomial] [a] (cube a))
+(defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
 
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q]
   (evenly-divide p q))
@@ -1409,36 +1476,3 @@
              (constant-term? term))
       (g/exact-divide c (coefficient term))
       (u/illegal (str "Can't divide coefficient by polynomial: " c ", " p)))))
-
-;; quotient, remainder, modulo... TODO search for more functions!
-
-(defmethod g/square [::polynomial] [a] (poly:* a a))
-(defmethod g/abs [::polynomial] [a] (abs a))
-
-(defmethod g/mul [::coeff ::polynomial] [c p]
-  (coeff*poly c p))
-
-(defmethod g/mul [::polynomial ::coeff] [p c]
-  (poly*coeff p c))
-
-(defmethod g/add [::coeff ::polynomial] [c p]
-  ;; TODO make THIS more efficient, check scmutils!
-  (poly:+ (constant (bare-arity p) c) p))
-
-(defmethod g/add [::polynomial ::coeff] [p c]
-  ;; TODO make THIS more efficient, check scmutils!
-  (poly:+ p (constant (bare-arity p) c)))
-
-(defmethod g/sub [::coeff ::polynomial] [c p]
-  ;; TODO make THIS more efficient, check scmutils!
-  (poly:- (constant (bare-arity p) c) p))
-
-(defmethod g/sub [::polynomial ::coeff] [p c]
-  ;; TODO make THIS more efficient, check scmutils!
-  (poly:- p (constant (bare-arity p) c)))
-
-(defmethod g/div [::polynomial ::coeff] [p c]
-  ;; TODO pull this out into its own thing.
-  (map-coefficients #(g/divide % c) p))
-
-(defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))

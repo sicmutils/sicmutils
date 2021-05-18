@@ -480,7 +480,9 @@
   (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]
       (is (= 14 (p/evaluate p [4])))
-      (is (= 11 (p/evaluate p [3 2]))))
+      (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                   (p/evaluate p [3 2]))
+          "Too many arguments supplied."))
 
     (is (= 256 (-> (->poly '(expt x 8))
                    (p/evaluate [2]))))
@@ -525,7 +527,9 @@
       (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (p/evaluate P [1])))
       (is (= (->poly '(+ 9 (* 8 z))) (p/evaluate P [1 2])))
       (is (= 33 (p/evaluate P [1 2 3])))
-      (is (= 33 (p/evaluate P [1 2 3 4]))))))
+      (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                   (p/evaluate P [1 2 3 4]))
+          "Too many arguments supplied."))))
 
 (deftest poly-partial-derivatives
   (let [V (p/make [1 2 3 4])
@@ -635,7 +639,13 @@
              (poly-simp '(- (+ a c f) (+ c b a))))))))
 
 (deftest lower-raise-tests
+  (is (= (p/make 1 {[1] (p/constant 2 2)
+                    [2] (p/constant 2 2)})
+         (p/lower-arity
+          (p/make 3 {[1 0 0] 2 [2 0 0] 2}))))
+
   (testing "lower, raise are inverse"
+
     (let [->poly (fn [x] (p/expression-> x (fn [p _] p)))
           f2 (->poly
               '(+ (expt x2 2)
@@ -757,3 +767,19 @@
                   (+ (* (/ 1 2) m (+ (* ((D phi) t) ((D phi) t) (r t))
                                      (* ((D phi) t) ((D phi) t) (r t))))
                      (* -1 ((D U) (r t))))))))))
+
+
+(deftest new-tests
+  (testing "contract, expand tests"
+    (is (= (p/make 1 {[1] 2 [2] 3})
+           (-> (p/make 2 {[0 1] 2 [0 2] 3})
+               (p/contract 0))))
+
+    (is (= (-> (p/make 1 {[1] 2 [2] 3})
+               (p/extend 0))
+           (p/make 2 {[0 1] 2 [0 2] 3})))
+
+    (is (= (-> (p/make 1 {[1] 2 [2] 3})
+               (p/extend 12))
+           (p/make 13 {[1] 2 [2] 3}))))
+  )

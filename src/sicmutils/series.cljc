@@ -43,6 +43,7 @@
             [sicmutils.function :as f]
             [sicmutils.series.impl :as i]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -428,6 +429,20 @@
   (cond (power-series? s) s
         (series? s) (->PowerSeries (seq s))
         :else (u/illegal "non-series provided to ->function.")))
+
+(defn from-polynomial [p]
+  (cond (power-series? p) p
+
+        (p/univariate? p)
+        (power-series*
+         (p/univariate->dense p))
+
+        (p/polynomial? p)
+        (u/illegal
+         "Only univariate polynomials can be converted to [[PowerSeries]].
+         Use [[polynomial/lower]] to generate a univariate.")
+
+        :else (constant p)))
 
 ;; ## Application
 ;;
