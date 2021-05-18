@@ -1263,6 +1263,12 @@
 ;;
 ;; Sussman's code -- good for Euclid Algorithm
 
+#?(:cljs
+   (defn ->big [c]
+     (if (v/integral? c)
+       (u/bigint c)
+       c)))
+
 (defn pseudo-remainder
   "Compute the pseudo-remainder of univariate polynomials u and v.
 
@@ -1284,10 +1290,8 @@
   generalize Euclid's algorithm for polynomials over a unique factorization
   domain (UFD)."
   [u v]
-  {:pre [(polynomial? u)
-         (= (bare-arity u) 1)
-         (polynomial? v)
-         (= (bare-arity v) 1)
+  {:pre [(univariate? u)
+         (univariate? v)
          (not (v/zero? v))]}
   (let [[vn-exponents vn-coefficient] (leading-term v)
         *vn (fn [p] (scale p vn-coefficient))
@@ -1295,7 +1299,8 @@
     (loop [remainder u
            d 0]
       (let [m (degree remainder)
-            c (leading-coefficient remainder)]
+            c #?(:clj (leading-coefficient remainder)
+                 :cljs (->big (leading-coefficient remainder)))]
         (if (< m n)
           [remainder d]
           (recur (poly:- (*vn remainder)

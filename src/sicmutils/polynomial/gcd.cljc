@@ -31,8 +31,8 @@
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
-
 ;; TODO these are new ones.
+
 (def ^:dynamic *poly-gcd-time-limit* [1000 :millis])
 (def ^:dynamic *clock* nil)
 (def ^:dynamic *euclid-breakpoint-arity* 3)
@@ -42,6 +42,7 @@
 (def ^:dynamic *poly-gcd-debug* false)
 
 ;; TODO these make the memoization work. It is probably great.
+
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
@@ -243,20 +244,14 @@
   "A function which will return the gcd of a sequence of numbers. TODO put this in
   `numbers`... NOT here."
   [xs]
-  (let [f (fn
-            ([] 0)
-            ([x] x)
-            ([x y] (if (v/one? x)
-                     (reduced x)
-                     (g/gcd x y))))]
-    (g/abs
-     #?(:clj (reduce f xs)
-        :cljs (transduce
-               (map (fn [x]
-                      (if (v/integral? x)
-                        (u/biginteger x)
-                        x)))
-               f xs)))))
+  (g/abs
+   (reduce (fn
+             ([] 0)
+             ([x] x)
+             ([x y] (if (v/one? x)
+                      (reduced x)
+                      (g/gcd x y))))
+           xs)))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
