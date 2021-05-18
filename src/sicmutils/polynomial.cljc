@@ -407,7 +407,7 @@
       ([arity terms m]
        (Polynomial. arity terms m))))
 
-;; ### Barebones Predicates
+;; ### Predicates
 
 (defn polynomial?
   "Returns true if the supplied argument is an instance of [[Polynomial]], false
@@ -419,44 +419,6 @@
   "Anything that is NOT an explicit polynomial is, helpfully, a potential coefficient."
   [x]
   (not (polynomial? x)))
-
-(defn ^:no-doc bare-arity [p]
-  {:pre [(polynomial? p)]}
-  (.-arity ^Polynomial p))
-
-(defn ^:no-doc bare-terms [p]
-  {:pre [(polynomial? p)]}
-  (.-terms ^Polynomial p))
-
-(defn eq
-  "Polynomials are equal to a number if the polynomial is constant; otherwise
-  it's only equal to other polynomials."
-  [^Polynomial this that]
-  (if (instance? Polynomial that)
-    (let [p ^Polynomial that]
-      (and (= (.-arity this) (.-arity p))
-           (v/= (.-terms this)
-                (.-terms p))))
-
-    (let [terms (.-terms this)]
-      (and (<= (count terms) 1)
-           (let [term (peek terms)]
-             (and (constant-term? term)
-                  (v/= that (coefficient term))))))))
-
-(defn- ->str
-  ([p] (->str p 10))
-  ([p n]
-   {:pre [polynomial? p]}
-   (let [terms     (bare-terms p)
-         arity     (bare-arity p)
-         n-terms   (count terms)
-         term-strs (take n (map term->str terms))
-         suffix    (when (> n-terms n)
-                     (str "... and " (- n-terms n) " more terms"))]
-     (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
-
-;; ## Constructors
 
 (defn- sparse->terms
   "NOTE: Optionally takes a comparator."
@@ -564,11 +526,11 @@
 
 (defn linear
   "Makes a polynomial representing a linear equation."
-  [arity varnum root]
+  [arity i root]
   (if (v/zero? root)
-    (identity arity varnum)
+    (identity arity i)
     (poly:+ (constant arity (g/negate root))
-            (identity arity varnum))))
+            (identity arity i))))
 
 (defn c*xn
   "Polynomial representing c*x^n, where x is the first indeterminate."
@@ -580,7 +542,13 @@
         (let [term (make-term (expt:make 0 n) c)]
           (->Polynomial arity [term]))))
 
-;; ## Relaxed Accessors
+(defn ^:no-doc bare-arity [p]
+  {:pre [(polynomial? p)]}
+  (.-arity ^Polynomial p))
+
+(defn ^:no-doc bare-terms [p]
+  {:pre [(polynomial? p)]}
+  (.-terms ^Polynomial p))
 
 (def ^:no-doc zero-arity -1)
 (def ^:no-doc coeff-arity 0)
@@ -591,6 +559,14 @@
   (if (polynomial? p)
     (bare-arity p)
     coeff-arity))
+
+(defn ->terms
+  "NOTE this is JUST like `->terms` in `differential`."
+  [p]
+  (cond (polynomial? p) (bare-terms p)
+        (vector? p) p
+        (v/zero? p) []
+        :else [(make-term p)]))
 
 (defn ^:no-doc check-same-arity
   "TODO works now for constants, check!
@@ -647,13 +623,41 @@
                         (bare-terms p)))
            :else coeff-arity))))
 
-(defn ->terms
-  "NOTE this is JUST like `->terms` in `differential`."
-  [p]
-  (cond (polynomial? p) (bare-terms p)
-        (vector? p) p
-        (v/zero? p) []
-        :else [(make-term p)]))
+(defn eq
+  "Polynomials are equal to a number if the polynomial is constant; otherwise
+  it's only equal to other polynomials."
+  [^Polynomial this that]
+  (if (instance? Polynomial that)
+    (let [p ^Polynomial that]
+      (and (= (.-arity this) (.-arity p))
+           (v/= (.-terms this)
+                (.-terms p))))
+
+    (let [terms (.-terms this)]
+      (and (<= (count terms) 1)
+           (let [term (peek terms)]
+             (and (constant-term? term)
+                  (v/= that (coefficient term))))))))
+
+(defn- ->str
+  ([p] (->str p 10))
+  ([p n]
+   {:pre [polynomial? p]}
+   (let [terms     (bare-terms p)
+         arity     (bare-arity p)
+         n-terms   (count terms)
+         term-strs (take n (map term->str terms))
+         suffix    (when (> n-terms n)
+                     (str "... and " (- n-terms n) " more terms"))]
+     (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
+
+;; ## Constructors
+
+
+
+;; ## Relaxed Accessors
+
+
 
 (defn coefficients
   "TODO see where this is used. Return a vector?"
