@@ -20,7 +20,6 @@
 (ns sicmutils.polynomial.gcd
   #?(:cljs (:require-macros
             [sicmutils.polynomial.gcd :refer [dbg gcd-continuation-chain]]))
-  (:refer-clojure :exclude [rational?])
   (:require [clojure.set :as cs]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
@@ -56,13 +55,15 @@
     (when (> memo-count 0)
       (let [hits   @gcd-cache-hit
             misses @gcd-cache-miss]
-        (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
-                          (* 100 (/ (float hits) (+ hits misses)))
-                          memo-count)))))
+        (log/info
+         (format "GCD cache hit rate %.2f%% (%d entries)"
+                 (* 100 (/ (float hits) (+ hits misses)))
+                 memo-count)))))
 
-  (log/info (format "GCD triv %d mono %d"
-                    @gcd-trivial-constant
-                    @gcd-monomials)))
+  (log/info
+   (format "GCD triv %d mono %d"
+           @gcd-trivial-constant
+           @gcd-monomials)))
 
 (defn- println-indented
   [level & args]
@@ -187,8 +188,12 @@
                   (gcd (p/coefficients p)))
         ku (content u)
         kv (content v)
-        pu (p/map-coefficients #(g/exact-divide % ku) u)
-        pv (p/map-coefficients #(g/exact-divide % kv) v)
+        pu (if (v/one? ku)
+             u
+             (p/map-coefficients #(g/exact-divide % ku) u))
+        pv (if (v/one? kv)
+             v
+             (p/map-coefficients #(g/exact-divide % kv) v))
         d (gcd [ku kv])
         result (continue pu pv)
         result (if (p/polynomial? result)
@@ -314,8 +319,10 @@
               (if (v/zero? r)
                 v
                 (let [kr (content r)]
-                  (recur v (p/map-coefficients
-                            #(g/exact-divide % kr) r)))))))))
+                  (recur v (if (v/one? kr)
+                             r
+                             (p/map-coefficients
+                              #(g/exact-divide % kr) r))))))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -397,9 +404,6 @@
                            with-optimized-variable-order
                            #(inner-gcd 0 %1 %2))))
 
-(def rational?
-  (some-fn v/integral? r/ratio?))
-
 (defn- gcd-dispatch
   "Dispatcher for GCD routines.
 
@@ -420,8 +424,8 @@
          :else
          (let [arity (p/check-same-arity u v)]
            (cond
-             (not (and (every? rational? (p/coefficients u))
-                       (every? rational? (p/coefficients v))))
+             (not (and (every? v/exact? (p/coefficients u))
+                       (every? v/exact? (p/coefficients v))))
              (v/one-like u)
 
              ;; TODO `gcd1` does not guard against non-integral coefs so we have

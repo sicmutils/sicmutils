@@ -164,10 +164,6 @@
 
         (is (= G (g/gcd U V))))))
 
-  ;; this was sort of cool, but prevented us from using native BigInteger GCD.
-  ;; it could come back, but in order to do this right, we would need a way to
-  ;; specify the coefficient field when we create a polynomial so that we can
-  ;; efficiently dispatch to a GCD routine tailored to that field.
   (testing "modular polynomial reduction"
     (let [A (p/make [-360 -171 145 25 1])
           B (p/make [-15 -14 -1 15 14 1])
@@ -177,10 +173,6 @@
           G5 (g/gcd A:Z5 B:Z5)]
       (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
       (is (= (p/make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-
-      ;; TODO; this will work if you remove the `rational?` guard inside `gcd`.
-      ;; What are we really trying to do there?
-      #_
       (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5)))))
 
 (deftest simple-gcd-3

@@ -1109,18 +1109,20 @@
 (defn- evaluate-1
   "Evaluates a univariate polynomial p at x using Horner's rule."
   [p x]
-  (loop [terms (bare-terms p)
-         result 0
-         x**e   1
-         e      0]
-    (if-let [[expts c] (nth terms 0)]
-      (let [e' (monomial-degree expts 0)
-            x**e' (g/* x**e (g/expt x (- e' e)))]
-        (recur (next terms)
-               (g/+ result (g/* c x**e'))
-               x**e'
-               e'))
-      result)))
+  (if-not (polynomial? p)
+    p
+    (loop [terms (bare-terms p)
+           result 0
+           x**e   1
+           e      0]
+      (if-let [[expts c] (nth terms 0)]
+        (let [e' (monomial-degree expts 0)
+              x**e' (g/* x**e (g/expt x (- e' e)))]
+          (recur (next terms)
+                 (g/+ result (g/* c x**e'))
+                 x**e'
+                 e'))
+        result))))
 
 (defn evaluate
   "Evaluates a multivariate polynomial p at xs using Horner's rule.
