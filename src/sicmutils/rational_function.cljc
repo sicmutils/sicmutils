@@ -30,7 +30,7 @@
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as p]
-            [sicmutils.polynomial.gcd :as poly]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -43,6 +43,7 @@
 ;; TODO check arity on CONSTRUCTION; make sure that either `u` or `v` is a
 ;; scalar AND we match the other, or that we are passing arities. But you can
 ;; totally pass scalars as either side.
+
 (deftype RationalFunction [arity u v m]
   v/Value
   (zero? [_] (v/zero? u))
@@ -289,7 +290,7 @@
                   [u v]
                   [(g/* factor u)
                    (g/* factor v)])
-        g   (poly/gcd u' v')
+        g   (pg/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
     (make-reduced (rf:arity u'' v'') u'' v'')))
@@ -329,13 +330,13 @@
         v' (denominator s)]
     (if (v/= u' v')
 	    (let [n (p/poly:+ u v)
-            g (poly/gcd u' n)]
+            g (pg/gcd u' n)]
 	      (if (v/one? g)
 		      (make-reduced a n u')
 		      (make-reduced a
                         (p/evenly-divide n g)
                         (p/evenly-divide u' g))))
-	    (let [d1 (poly/gcd u' v')]
+	    (let [d1 (pg/gcd u' v')]
 	      (if (v/one? d1)
 		      (make-reduced a
                         (p/poly:+ (p/poly:* u v')
@@ -347,7 +348,7 @@
 				                    (p/poly:* u':d1 v))]
 		        (if (v/zero? t)
 		          0
-		          (let [d2 (poly/gcd t d1)]
+		          (let [d2 (pg/gcd t d1)]
                 ;; TODO this branch seems a little pedantic. Check and remove IF
                 ;; in fact evenly-divide can easily catch this and be fast.
 			          (if (v/one? d2)
@@ -418,8 +419,8 @@
 
 #_
 (fn [u u' v v']
-  (let [d1 (poly/gcd u v')
-	      d2 (poly/gcd u' v)]
+  (let [d1 (pg/gcd u v')
+	      d2 (pg/gcd u' v)]
 	  (if (v/one? d1)
 	    (if (v/one? d2)
 		    (make-rcf (p/poly:* u v) (p/poly:* u' v'))
@@ -446,8 +447,8 @@
           (v/zero? s) s
           (v/one? r) s
           (v/one? s) r
-          :else (let [d1 (poly/gcd u v')
-                      d2 (poly/gcd u' v)
+          :else (let [d1 (pg/gcd u v')
+                      d2 (pg/gcd u' v)
                       u'' (p/poly:* (p/evenly-divide u d1) (p/evenly-divide v d2))
                       v'' (p/poly:* (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
                   (if (or (p/polynomial? u'')
@@ -462,7 +463,7 @@
         a (bare-arity r)]
     (cond (v/zero? p) 0
           (v/one? p)  r
-          :else (let [d (poly/gcd v p)]
+          :else (let [d (pg/gcd v p)]
                   (if (v/one? d)
                     (make-reduced a (p/poly:* u p) v)
                     (make-reduced a
@@ -474,7 +475,7 @@
     (cond (v/zero? v) rcf:zero
 	        (v/one? v) u:u'
 	        :else
-	        (let [d (poly/gcd u' v)]
+	        (let [d (pg/gcd u' v)]
 	          (if (v/one? d)
 		          (make-rcf (p/poly:* u v) u')
 		          (make-rcf (p/poly:* u (p/evenly-divide v d))
@@ -499,7 +500,7 @@
         a (bare-arity r)]
     (cond (v/zero? p) 0
           (v/one? p)  r
-          :else (let [d (poly/gcd p v) ]
+          :else (let [d (pg/gcd p v) ]
                   (if (v/one? d)
                     (->RationalFunction a (p/poly:* p u) v)
                     (->RationalFunction a
@@ -511,7 +512,7 @@
     (cond (v/zero? u) rcf:zero
 	        (v/one? u) v:v'
 	        :else
-	        (let [d (poly/gcd u v')]
+	        (let [d (pg/gcd u v')]
 	          (if (v/one? d)
 		          (make-rcf (p/poly:* u v) v')
 		          (make-rcf (p/poly:* (p/evenly-divide u d) v)
@@ -561,21 +562,21 @@
   (g/mul #_other*rf u (invert v)))
 
 (defn rf:gcd [u v]
-  (let [d1 (poly/gcd (numerator u)
-                     (numerator v))
-	      d2 (poly/gcd (denominator u)
-                     (denominator v))]
+  (let [d1 (pg/gcd (numerator u)
+                   (numerator v))
+	      d2 (pg/gcd (denominator u)
+                   (denominator v))]
 	  (make d1 d2)))
 
 (defn rf-gcd-other [u v]
   (cond (v/zero? v) u
 	      (v/one? v)  1
-	      :else (poly/gcd (numerator u) v)))
+	      :else (pg/gcd (numerator u) v)))
 
 (defn other-gcd-rf [u v]
   (cond (v/zero? u) v
 	      (v/one? u)  1
-	      :else (poly/gcd u (numerator v))))
+	      :else (pg/gcd u (numerator v))))
 
 ;; TODO don't use `g/div`, build the `div` function!
 
@@ -831,7 +832,7 @@
 (defmethod g/div [::p/polynomial ::rational-function] [u v] (other-div-rf u v))
 
 (defmethod g/div [::p/polynomial ::p/polynomial] [p q]
-  (let [g (poly/gcd p q)]
+  (let [g (pg/gcd p q)]
     (make (p/evenly-divide p g)
           (p/evenly-divide q g))))
 

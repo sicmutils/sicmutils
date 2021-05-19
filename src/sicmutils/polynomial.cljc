@@ -127,14 +127,13 @@
            (and (= {0 1} (exponents term))
                 (v/one? (coefficient term))))))
 
-  (zero-like [_]
-    (Polynomial. arity empty-terms m))
+  ;; TODO good idea?
+  (zero-like [_] 0)
 
   (one-like [_]
-    (let [one (if-let [term (nth terms 0)]
-                (v/one-like (coefficient term))
-                1)]
-      (constant arity one)))
+    (if-let [term (nth terms 0)]
+      (v/one-like (coefficient term))
+      1))
 
   (identity-like [_]
     (assert (v/one? arity)
@@ -614,6 +613,10 @@
   (and (polynomial? p)
        (= (bare-arity p) 1)))
 
+(defn multivariate? [p]
+  (and (polynomial? p)
+       (> (bare-arity p) 1)))
+
 (defn negative? [p]
   (g/negative?
    (leading-base-coefficient p)))
@@ -672,10 +675,14 @@
                    (inc i))))))))
 
 (defn scale [p c]
-  (map-coefficients #(g/* % c) p))
+  (if (v/zero? c)
+    c
+    (map-coefficients #(g/* % c) p)))
 
 (defn scale-l [c p]
-  (map-coefficients #(g/* c %) p))
+  (if (v/zero? c)
+    c
+    (map-coefficients #(g/* c %) p)))
 
 (declare evenly-divide)
 
@@ -823,13 +830,18 @@
       :else (expt-iter p n 1))))
 
 (defn- poly:div
-  "divide explicit polynomials."
+  "divide explicit polynomials.
+
+  TODO to be REALLY slick and match plus etc... this would work JUST on terms.
+  DO IT! That would let return constants when we need to. And you can see we want it below!"
   [u v]
   {:pre [(polynomial? u)
          (polynomial? v)]}
   (let [arity (check-same-arity u v)
+        v-terms             (bare-terms v)
         [vn-expts vn-coeff] (leading-term v)
-        good? #(xpt/every-power? pos? %)]
+        good?  #(xpt/every-power? pos? %)
+        term*v #(terms->polynomial arity (t*ts % v-terms))]
     (loop [quotient  0
            remainder u]
       ;; find a term in the remainder into which the
@@ -840,14 +852,19 @@
               residues (xpt/- r-exponents vn-expts)]
           (if (good? residues)
             (let [new-coeff (g/div r-coeff vn-coeff)
-                  new-term  (->Polynomial arity [(make-term residues new-coeff)])]
-              (recur (poly:+ quotient new-term)
-                     (poly:- remainder (poly:* new-term v))))
+                  new-term  (make-term residues new-coeff)]
+              (recur (poly:+ quotient (->Polynomial arity [new-term]))
+                     (poly:- remainder (term*v new-term))))
             [quotient remainder]))))))
 
-;; TODO: test
-;; return test = (lambda (q r)
-;;          (assert (poly/equal? u (poly/add (poly/mul q v) r))))
+(comment
+  ;; TODO test:
+  ;;
+  ;; TODO make this work JUST on terms and then turn the result into a poly!
+  (let [u (make [10])
+        v (make [10 20])
+        [q r] (divide u v)]
+    (g/+ (g/* q v) r)))
 
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
@@ -862,6 +879,7 @@
         (or (v/zero? u) (v/one? v))
         [u 0]
 
+        ;; TODO change these to work on terms.
         (and (polynomial? u)
              (polynomial? v))
         (poly:div u v)
@@ -897,13 +915,15 @@
   "IF the variable is dead everywhere, contracts it!"
   [p n]
   (cond (not (polynomial? p)) p
-        (not (contractible? n p))
-        (u/illegal
-         (str "Polynomial not contractible: " p " in position " n))
-        :else
+
+        (contractible? n p)
         (map-exponents #(xpt/lower % n)
                        p
-                       (dec (bare-arity p)))))
+                       (dec (bare-arity p)))
+
+        :else
+        (u/illegal
+         (str "Polynomial not contractible: " p " in position " n))))
 
 (defn extend
   "interpolates a new variable in the `n` spot by bumping all indices higher than
@@ -920,12 +940,12 @@
                        (inc a))))))
 
 (defn lower-arity
-  "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
-  of arity 1 whose coefficients are polynomials of arity A-1."
+  "Given a polynomial of arity A > 1, return an equivalent polynomial of arity 1
+  whose coefficients are polynomials of arity A-1.
+
+  NOTE that this will drop down to a constant."
   [p]
-  {:pre [(polynomial? p)
-         (> (bare-arity p) 1)
-         (not (v/zero? p))]}
+  {:pre [(multivariate? p)]}
   (let [A (bare-arity p)]
     (letfn [(lower-terms [terms]
               (make (dec A)
@@ -948,8 +968,9 @@
     (do (assert (= (bare-arity p) 1))
         (let [terms (sparse->terms
                      (for [[x q] (bare-terms p)
-                           [ys c] (->terms q)]
-                       [(xpt/raise ys 0 (xpt/monomial-degree x 0)) c]))]
+                           [ys c] (->terms q)
+                           :let [expts (xpt/raise ys 0 (xpt/monomial-degree x 0))]]
+                       (make-term expts c)))]
           (->Polynomial a terms)))
     (constant a p)))
 
@@ -1009,9 +1030,11 @@
   value, two derivatives, and an estimate of the roundoff error incurred in
   computing that value.
 
-  The recurrences used are from Kahan's 18 Nov 1986 paper 'Roundoff in
-  Polynomial Evaluation', generalized for sparse representations and another
-  derivative by GJS. For p = A(z), q = A'(z), r = A''(z), and e = error in A(x),
+  The recurrences used are from Kahan's 18 Nov 1986 paper ['Roundoff in
+  Polynomial
+  Evaluation'](https://people.eecs.berkeley.edu/~wkahan/Math128/Poly.pdf),
+  generalized for sparse representations and another derivative by GJS. For p =
+  A(z), q = A'(z), r = A''(z), and e = error in A(x),
 
   p_{j+n} = z^n p_j + a_{j+n}
 
@@ -1019,9 +1042,7 @@
 
   q_{j+n} = z^n q_j + n z^{n-1} p_j
 
-  r_{j+n} = z^n r_j + n z^{n-1} q_j + 1/2 n (n-1) z^{n-2} p_j
-
-  "
+  r_{j+n} = z^n r_j + n z^{n-1} q_j + 1/2 n (n-1) z^{n-2} p_j"
   ([a z]
    (horner-with-error a z vector))
   ([a z cont]
@@ -1167,25 +1188,26 @@
 
   TODO this is confused, with its special case for numbers."
   [p i]
-  (if (polynomial? p)
+  (if-not (polynomial? p)
+    0
     (make (bare-arity p)
           (for [[xs c] (bare-terms p)
                 :let [xi (xs i 0)]
                 :when (not= 0 xi)]
             (let [expts (if (= 1 xi)
                           (dissoc xs i)
-                          (update xs i dec))]
-              [expts (g/* xi c)])))
-    0))
+                          (update xs i dec))
+                  coeff (g/* xi c)]
+              (make-term expts coeff))))))
 
 (defn partial-derivatives
   "The sequence of partial derivatives of p with respect to each
   indeterminate. Return value has length `(arity p)`."
   [p]
-  (if (polynomial? p)
+  (if-not (polynomial? p)
+    []
     (for [i (range (bare-arity p))]
-      (partial-derivative p i))
-    []))
+      (partial-derivative p i))))
 
 ;; ## Canonicalizer
 
@@ -1247,8 +1269,9 @@
    (expression-> expr cont compare))
   ([expr cont v-compare]
    (let [vars     (set/difference (x/variables-in expr) operators-known)
+         arity    (count vars)
          sorted   (sort v-compare vars)
-         sym->var (zipmap sorted (new-variables (count sorted)))
+         sym->var (zipmap sorted (new-variables arity))
          expr'    (x/evaluate expr sym->var operator-table)]
      (cont expr' sorted))))
 
@@ -1276,8 +1299,6 @@
 
 (derive ::v/scalar ::coeff)
 (derive ::mi/modint ::coeff)
-
-;; quotient, remainder, modulo... TODO search for more functions!
 
 (defmethod v/= [::polynomial ::coeff] [l r] (eq l r))
 (defmethod v/= [::coeff ::polynomial] [l r] (eq r l))
@@ -1327,6 +1348,16 @@
 (defmethod g/square [::polynomial] [a] (square a))
 (defmethod g/cube [::polynomial] [a] (cube a))
 (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
+
+;; TODO `modulo`, how to handle?
+
+(defmethod g/quotient [::polynomial ::polynomial] [p q] (nth (divide p q) 0))
+(defmethod g/quotient [::polynomial ::coeff] [p q] (nth (divide p q) 0))
+(defmethod g/quotient [::coeff ::polynomial] [p q] (nth (divide p q) 0))
+
+(defmethod g/remainder [::polynomial ::polynomial] [p q] (nth (divide p q) 1))
+(defmethod g/remainder [::polynomial ::coeff] [p q] (nth (divide p q) 1))
+(defmethod g/remainder [::coeff ::polynomial] [p q] (nth (divide p q) 1))
 
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q]
   (evenly-divide p q))
