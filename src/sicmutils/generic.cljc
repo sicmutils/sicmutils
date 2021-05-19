@@ -186,7 +186,12 @@
            (and numy? (v/one? y)) x
            :else (mul x y))))
   ([x y & more]
-   (reduce * (* x y) more)))
+   (reduce (fn [l r]
+             (if (v/zero? l)
+               (reduced l)
+               (* l r)))
+           (* x y)
+           more)))
 
 (declare div)
 

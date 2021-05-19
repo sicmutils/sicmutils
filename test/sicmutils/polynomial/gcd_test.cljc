@@ -29,6 +29,7 @@
             [sicmutils.modint :as mi]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
+            [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
