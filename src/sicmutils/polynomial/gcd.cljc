@@ -409,14 +409,14 @@
   ([u] u)
   ([u v]
    ;; TODO I... think we can kill ALL of these... since we do them inside `inner-gcd`??
-   (cond (v/zero? u)(g/abs v)
-         (v/zero? v)(g/abs u)
-         (p/coeff? u)(if (p/coeff? v)
-                       (g/gcd u v)
-                       (gcd-poly-number v u))
-         (p/coeff? v)(gcd-poly-number u v)
-         (v/one? u)  u
-         (v/one? v)  v
+   (cond (v/zero? u) (g/abs v)
+         (v/zero? v) (g/abs u)
+         (p/coeff? u) (if (p/coeff? v)
+                        (g/gcd u v)
+                        (gcd-poly-number v u))
+         (p/coeff? v) (gcd-poly-number u v)
+         (v/one? u) u
+         (v/one? v) v
          (= u v) (g/abs u)
          :else
          (let [arity (p/check-same-arity u v)]
@@ -466,21 +466,11 @@
      (p/partial-derivatives p))
     1))
 
-;; several observations. many of the gcds we find when attempting the
-;; troublesome GCD are the case where we have two monomials. This can be done
-;; trivially without lowering arity.
+;; NOTE from Colin:
 ;;
-;; TODO we can totally do this! Lower should NOT raise back up properly if you
-;; get down to a constant. But I don't know if I can do that if I still have
-;; with-lowered around...
-;;
-;; secondly, we observe that lowering arity often produces constant polynomials.
-;; can we get away with just dropping these to scalars, instead of constant
-;; polynomials of lower degree?
-;;
-;; then we could special-case the question of GCD of a polynomial with a basic
-;; number. That's just the gcd of the number and the polynomial's integer
-;; coefficients.
+;; many of the gcds we find when attempting the troublesome GCD are the case
+;; where we have two monomials. This can be done trivially without lowering
+;; arity.
 ;;
 ;; open question: why was dividing out the greatest monomial factor such a lose?
 ;; it's much cheaper to do that than to find a gcd by going down the arity

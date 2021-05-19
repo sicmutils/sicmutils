@@ -1168,13 +1168,14 @@
          (univariate? v)
          (not (v/zero? v))]}
   (let [[vn-expts vn-coeff] (leading-term v)
+        #?@(:cljs [vn-coeff (->big vn-coeff)])
         *vn (fn [p] (scale p vn-coeff))
         n (xpt/monomial-degree vn-expts)]
     (loop [remainder u
            d 0]
       (let [m (degree remainder)
-            c #?(:clj (leading-coefficient remainder)
-                 :cljs (->big (leading-coefficient remainder)))]
+            c (leading-coefficient remainder)
+            #?@(:cljs [c (->big c)])]
         (if (< m n)
           [remainder d]
           (recur (poly:- (*vn remainder)

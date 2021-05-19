@@ -431,7 +431,20 @@
                        [1 9] 8
                        [8 5] -9
                        [12 1] 1})]
-      (gcd-test "S2" 1 u v))))
+      (gcd-test "S2" 1 u v)))
+
+  (testing "example 3: this stresses => bigint conversion in pseudo-remainder."
+    (let [u (p/make 1 {{} 1 {0 3} 1})
+          v (p/make 1 {{} 1
+                       {0 1} (u/long 21)})
+          d (p/make 1 {{} (u/long 4571)
+                       {0 1} (u/long 597)})]
+      (let [ud (g/* u d)
+            vd (g/* v d)
+            g (g/gcd ud vd)]
+        (is (g/exact-divide ud g))
+        (is (g/exact-divide vd g))
+        (is (g/exact-divide g d))))))
 
 ;; Currently we only do GCD testing of univariate polynomials, because we find
 ;; that unfortunately clojure.test.check is very good at finding polynomials
