@@ -85,6 +85,9 @@
   ([l r]
    (merge-with core-max l r)))
 
+(defn every-power? [f m]
+  (every? f (vals m)))
+
 (defn assoc [m i v]
   (if (zero? v)
     (dissoc m i)

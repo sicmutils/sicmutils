@@ -59,12 +59,6 @@
   ([coef] [xpt/empty coef])
   ([expts coef] [expts coef]))
 
-(defn constant->terms [coef]
-  (if (v/zero? coef)
-    empty-terms
-    (let [term [xpt/empty coef]]
-      [term])))
-
 (defn exponents
   "Returns the exponent vector of the term.
 
@@ -82,6 +76,11 @@
         coef  (coefficient term)]
     (str (pr-str coef) "*" (pr-str expts))))
 
+(defn constant->terms [coef]
+  (if (v/zero? coef)
+    empty-terms
+    [(make-term xpt/empty coef)]))
+
 (defn constant-term?
   "Returns true if the term has monomial with that is all zeros, false
   otherwise."
@@ -93,12 +92,6 @@
 ;;
 ;; A polynomial is a sorted sequence of terms, plus an `arity` and maybe some
 ;; metadata.
-;;
-;; TODO implement:
-;;
-;; IComparable?, same with RF.
-;;
-;; TODO look at PowerSeries, see what we're missing.
 
 (declare evaluate constant ->str eq map-coefficients)
 
@@ -316,19 +309,19 @@
 ;; ## Constructors
 
 (defn- sparse->terms
-  "NOTE: Optionally takes a comparator."
+  "NOTE: Optionally takes a comparator, defaults to the dynamically bound one."
   ([expts->coef]
    (sparse->terms expts->coef *monomial-order*))
   ([expts->coef comparator]
    (if (empty? expts->coef)
-     []
+     empty-terms
      (->> (for [[expts terms] (group-by exponents expts->coef)
                 :let [coef-sum (transduce
-                                (map coefficient) g/+ terms)
-                      expts (if (vector? expts)
+                                (map coefficient) g/+ terms)]
+                :when (not (v/zero? coef-sum))
+                :let [expts (if (vector? expts)
                               (xpt/dense->exponents expts)
-                              expts)]
-                :when (not (v/zero? coef-sum))]
+                              expts)]]
             (make-term expts coef-sum))
           (sort-by exponents comparator)
           (into empty-terms)))))
@@ -338,12 +331,11 @@
   sequence of terms."
   [coefs]
   (let [->term (fn [i coef]
-                 (if (v/zero? coef)
-                   []
-                   [(make-term (if (zero? i)
+                 (when-not (v/zero? coef)
+                   (let [expts (if (zero? i)
                                  xpt/empty
-                                 (xpt/make 0 i))
-                               coef)]))
+                                 (xpt/make 0 i))]
+                     [(make-term expts coef)])))
         xform  (comp (map-indexed ->term)
                      cat)]
     (into empty-terms xform coefs)))
@@ -418,7 +410,9 @@
      (->Polynomial arity [(make-term expts 1)]))))
 
 (defn new-variables
-  "TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
+  "Returns a lazy sequence of new variables.
+
+  TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
   coefficient 1 and new indeterminates for each."
   [n]
   (map #(identity n %)
@@ -439,7 +433,7 @@
   [arity c n]
   (cond (<= n -1)   0
         (v/zero? c) c
-        (v/zero? n) (constant arity c)
+        (zero? n) (constant arity c)
         :else
         (let [term (make-term (xpt/make 0 n) c)]
           (->Polynomial arity [term]))))
@@ -515,7 +509,8 @@
                      (-> (exponents term)
                          (xpt/monomial-degree i)))]
              (transduce (map i-degree)
-                        max 0
+                        max
+                        0
                         (bare-terms p)))
            :else coeff-arity))))
 
@@ -535,7 +530,7 @@
              (and (constant-term? term)
                   (v/= that (coefficient term))))))))
 
-(defn- ->str
+(defn ->str
   ([p] (->str p 10))
   ([p n]
    {:pre [polynomial? p]}
@@ -550,7 +545,7 @@
 ;; ## Relaxed Accessors
 
 (defn coefficients
-  "TODO see where this is used. Return a vector?"
+  "Returns a sequence of the coefficients of the polynomial."
   [p]
   (if (polynomial? p)
     (map coefficient (->terms p))
@@ -634,10 +629,10 @@
     (terms->polynomial
      (bare-arity p)
      (into empty-terms
-           (for [[xs c] (bare-terms p)
-                 :let [fc (f c)]
-                 :when (not (v/zero? fc))]
-             [xs fc])))
+           (for [[expts c] (bare-terms p)
+                 :let [f-c (f c)]
+                 :when (not (v/zero? f-c))]
+             (make-term expts f-c))))
     (f p)))
 
 (defn map-exponents
@@ -650,10 +645,9 @@
   ([f p new-arity]
    (if (polynomial? p)
      (make new-arity
-           (for [term (bare-terms p)]
-             (make-term
-              (f (exponents term))
-              (coefficient term))))
+           (for [[expts c] (bare-terms p)
+                 :let [f-expts (f expts)]]
+             (make-term f-expts c)))
      p)))
 
 ;; ## Manipulations
@@ -662,19 +656,19 @@
   {:pre [(univariate? x)]}
   (let [d (degree x)]
     (loop [terms (bare-terms x)
-           acc []
+           acc (transient [])
            i 0]
       (if (> i d)
-        acc
+        (persistent! acc)
         (let [t  (first terms)
               e  (exponents t)
               md (xpt/monomial-degree e 0)]
           (if (= md i)
             (recur (rest terms)
-                   (conj acc (coefficient t))
+                   (conj! acc (coefficient t))
                    (inc i))
             (recur terms
-                   (conj acc 0)
+                   (conj! acc 0)
                    (inc i))))))))
 
 (defn scale [p c]
@@ -736,9 +730,7 @@
 (def terms:+
   (ua/merge-fn #'*monomial-order* g/add v/zero? make-term))
 
-(defn- binary-combine
-  "TODO this is inefficient as hell for the TWO places we use it."
-  [l r coeff-op terms-op]
+(defn- binary-combine [l r coeff-op terms-op]
   (let [l-poly? (polynomial? l)
         r-poly? (polynomial? r)]
     (cond (and l-poly? r-poly?)
@@ -775,15 +767,15 @@
   "Multiplies a single term on the left by a vector of `terms` on the right.
   Returns a new vector of terms."
   [[tags coeff] terms]
-  (loop [acc []
+  (loop [acc (transient [])
          i 0]
     (let [t (nth terms i nil)]
       (if (nil? t)
-        acc
+        (persistent! acc)
 	      (let [[tags1 coeff1] t]
-	        (recur (conj acc (make-term
-		                        (xpt/+ tags tags1)
-		                        (g/* coeff coeff1)))
+	        (recur (conj! acc (make-term
+		                         (xpt/+ tags tags1)
+		                         (g/mul coeff coeff1)))
 		             (inc i)))))))
 
 (defn mul-terms [xlist ylist]
@@ -833,27 +825,25 @@
 (defn- poly:div
   "divide explicit polynomials."
   [u v]
+  {:pre [(polynomial? u)
+         (polynomial? v)]}
   (let [arity (check-same-arity u v)
-        [vn-exponents vn-coefficient] (leading-term v)
-        ;; TODO note that this takes expts.
-        good? (fn [residues]
-                (every? (complement neg?) (vals residues)))]
-    (if (zero? arity)
-      [(g/div (leading-coefficient u) vn-coefficient) 0]
-      (loop [quotient  0
-             remainder u]
-        ;; find a term in the remainder into which the
-        ;; lead term of the divisor can be divided.
-        (if (v/zero? remainder)
-          [quotient remainder]
-          (let [[r-exponents r-coefficient] (leading-term remainder)
-                residues (xpt/- r-exponents vn-exponents)]
-            (if (good? residues)
-              (let [new-coef (g/div r-coefficient vn-coefficient)
-                    new-term (->Polynomial arity [(make-term residues new-coef)])]
-                (recur (poly:+ quotient new-term)
-                       (poly:- remainder (poly:* new-term v))))
-              [quotient remainder])))))))
+        [vn-expts vn-coeff] (leading-term v)
+        good? #(xpt/every-power? pos? %)]
+    (loop [quotient  0
+           remainder u]
+      ;; find a term in the remainder into which the
+      ;; lead term of the divisor can be divided.
+      (if (v/zero? remainder)
+        [quotient remainder]
+        (let [[r-exponents r-coeff] (leading-term remainder)
+              residues (xpt/- r-exponents vn-expts)]
+          (if (good? residues)
+            (let [new-coeff (g/div r-coeff vn-coeff)
+                  new-term  (->Polynomial arity [(make-term residues new-coeff)])]
+              (recur (poly:+ quotient new-term)
+                     (poly:- remainder (poly:* new-term v))))
+            [quotient remainder]))))))
 
 ;; TODO: test
 ;; return test = (lambda (q r)
@@ -1154,9 +1144,9 @@
   {:pre [(univariate? u)
          (univariate? v)
          (not (v/zero? v))]}
-  (let [[vn-exponents vn-coefficient] (leading-term v)
-        *vn (fn [p] (scale p vn-coefficient))
-        n (xpt/monomial-degree vn-exponents)]
+  (let [[vn-expts vn-coeff] (leading-term v)
+        *vn (fn [p] (scale p vn-coeff))
+        n (xpt/monomial-degree vn-expts)]
     (loop [remainder u
            d 0]
       (let [m (degree remainder)
