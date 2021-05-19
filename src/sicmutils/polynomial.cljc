@@ -1,5 +1,5 @@
-;;
-;; Copyright © 2017 Colin Smith.
+;;xpt
+;; Copyright © 2021 Sam Richie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -29,6 +29,7 @@
             [sicmutils.generic :as g]
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v])
@@ -39,151 +40,11 @@
 ;;
 ;; The namespace starts by defining exponents (also called monomials), then
 ;; builds these into terms, then polynomials with a proper type definition.
-;;
-;; ## Monomials, Exponents, Coefficients
-;;
-;; Note about the terminology here, the two definitions you could use.
-;; Explored [here](https://en.wikipedia.org/wiki/Monomial_order).
-;;
-;; A monomial is a single term of a single term of a polynomial. NOTE we need to
-;; clarify this vs the polynomial single term with coef. that's called a `term`... okay, whatever.
-;;
-;; We represent the exponents of a monomial with a sorted map, keyed by integers
-;; representing the indeterminates over some ring, with values set to each
-;; indeterminate's exponent. For example; we would represent x^2 as {0 2}, and
-;; xy^2 as {0 1, 1 2}. Polynomials are linear combinations of the exponents.
-;;
-;; TODO tidy this up!
-
-(def ^{:doc "constructor."}
-  expt:make
-  #'sorted-map)
-
-(def ^:no-doc empty-expts
-  (expt:make))
-
-(defn dense->exponents
-  "Accepts a sequence of pairs of indeterminate index => power, and returns a
-  sparse representation of the monomial."
-  [idx->pow]
-  (reduce-kv (fn [acc i x]
-               (if (zero? x)
-                 acc
-                 (assoc acc i x)))
-             empty-expts
-             idx->pow))
-
-(defn ^:no-doc expt:+ [l r]
-  (merge-with + l r))
-
-(defn ^:no-doc expt:- [l r]
-  (dense->exponents
-   (merge-with + l (u/map-vals - r))))
-
-(defn expt:gcd
-  "TODO: Boom, document. What if we have a multi-arity version that grabs all
-  keysets, does a full intersection, THEN does the min? Faster?"
-  ([l] l)
-  ([l r]
-   (let [l' (select-keys l (keys r))
-         r' (select-keys r (keys l))]
-     (merge-with min l' r'))))
-
-(defn expt:max
-  ([l] l)
-  ([l r]
-   (merge-with max l r)))
-
-(defn expt:assoc [m i v]
-  (if (zero? v)
-    (dissoc m i)
-    (assoc m i v)))
-
-(defn- expt:lower
-  "TODO if `i` is the largest key than any key, you COULD go faster by just
-  dissocing it... but that won't happen in practice."
-  ([expts]
-   (expt:lower expts 0))
-  ([expts i]
-   (reduce-kv (fn [acc k v]
-                (if (> k i)
-                  (assoc acc (dec k) v)
-                  (assoc acc k v)))
-              empty-expts
-              (dissoc expts i))))
-
-(defn expt:raise
-  ([expts v]
-   (expt:raise expts 0 v))
-  ([expts i v]
-   (let [m (reduce-kv (fn [acc k v]
-                        (if (>= k i)
-                          (assoc acc (inc k) v)
-                          (assoc acc k v)))
-                      empty-expts
-                      expts)]
-     (if (zero? v)
-       m
-       (assoc m i v)))))
-
-(defn- monomial-degree
-  "Compute the degree of a monomial. This is just the sum of the exponents. If you pass an `i`, you'll get the degree of that term.
-
-  TODO see where we use this... should we pass the full term?"
-  ([m]
-   (apply + (vals m)))
-  ([m i]
-   (m i 0)))
-
-;; ### Monomial Orderings
-;;
-;; https://en.wikipedia.org/wiki/Monomial_order
-;;
-;; These comparators are in the sense of Java: x.compareTo(y), so that this
-;; returns 1 if x > y, -1 if x < y, and 0 if x = y.
-
-(defn ^:no-doc lex-order
-  "Lex order for monomials considers the power of x, then the power of y, etc."
-  [xs ys]
-  (let [xs (vec xs)
-        ys (vec ys)]
-    (loop [i (long 0)]
-      (let [x (nth xs i nil)
-            y (nth ys i nil)]
-        (cond (and (not x) (not y)) 0
-              (not x) -1
-              (not y)  1
-              :else (let [bit (compare (nth x 0) (nth y 0))]
-                      (cond (zero? bit)
-                            (let [xv (nth x 1)
-                                  yv (nth y 1)]
-                              (if (= xv yv)
-                                (recur (inc i))
-                                (- xv yv)))
-                            (neg? bit) 1
-                            :else -1)))))))
-
-(defn ^:no-doc graded-lex-order [xs ys]
-  (let [xd (monomial-degree xs)
-        yd (monomial-degree ys)]
-    (if (= xd yd)
-      (lex-order xs ys)
-      (- xd yd))))
-
-(defn ^:no-doc graded-reverse-lex-order [xs ys]
-  (let [xd (monomial-degree xs)
-        yd (monomial-degree ys)]
-    (if (= xd yd)
-      (lex-order (rseq ys)
-                 (rseq xs))
-      (- xd yd))))
-
-;; the default.
 
 (def ^{:dynamic true
        :doc "The order. NOTE that this currently breaks if we customize it."}
   *monomial-order*
-  graded-lex-order)
+  xpt/graded-lex-order)
 
 ;; ## Polynomial Terms
 ;;
@@ -195,13 +56,13 @@
 
 (defn make-term
   "Takes a monomial and a coefficient and returns a polynomial term."
-  ([coef] [empty-expts coef])
+  ([coef] [xpt/empty coef])
   ([expts coef] [expts coef]))
 
 (defn constant->terms [coef]
   (if (v/zero? coef)
     empty-terms
-    (let [term [empty-expts coef]]
+    (let [term [xpt/empty coef]]
       [term])))
 
 (defn exponents
@@ -209,7 +70,7 @@
 
   TODO rename to monomial."
   [term]
-  (nth term 0 empty-expts))
+  (nth term 0 xpt/empty))
 
 (defn coefficient
   "Returns the coefficient entry of the term."
@@ -288,7 +149,7 @@
     (let [one (if-let [term (nth terms 0)]
                 (v/one-like (coefficient term))
                 1)
-          term (make-term (expt:make 0 1) one)]
+          term (make-term (xpt/make 0 1) one)]
       (Polynomial. 1 [term] m)))
 
   (exact? [_] false)
@@ -465,7 +326,7 @@
                 :let [coef-sum (transduce
                                 (map coefficient) g/+ terms)
                       expts (if (vector? expts)
-                              (dense->exponents expts)
+                              (xpt/dense->exponents expts)
                               expts)]
                 :when (not (v/zero? coef-sum))]
             (make-term expts coef-sum))
@@ -480,8 +341,8 @@
                  (if (v/zero? coef)
                    []
                    [(make-term (if (zero? i)
-                                 empty-expts
-                                 (expt:make 0 i))
+                                 xpt/empty
+                                 (xpt/make 0 i))
                                coef)]))
         xform  (comp (map-indexed ->term)
                      cat)]
@@ -553,7 +414,7 @@
    (identity arity 1))
   ([arity i]
    {:pre [(and (> i 0) (<= i arity))]}
-   (let [expts (expt:make (dec i) 1)]
+   (let [expts (xpt/make (dec i) 1)]
      (->Polynomial arity [(make-term expts 1)]))))
 
 (defn new-variables
@@ -580,7 +441,7 @@
         (v/zero? c) c
         (v/zero? n) (constant arity c)
         :else
-        (let [term (make-term (expt:make 0 n) c)]
+        (let [term (make-term (xpt/make 0 n) c)]
           (->Polynomial arity [term]))))
 
 ;; ###  Accessors, Predicates
@@ -642,7 +503,7 @@
   ([p]
    (cond (v/zero? p) zero-arity
          (polynomial? p)
-         (monomial-degree
+         (xpt/monomial-degree
           (exponents
            (leading-term p)))
          :else coeff-arity))
@@ -652,7 +513,7 @@
            (polynomial? p)
            (letfn [(i-degree [term]
                      (-> (exponents term)
-                         (monomial-degree i)))]
+                         (xpt/monomial-degree i)))]
              (transduce (map i-degree)
                         max 0
                         (bare-terms p)))
@@ -702,7 +563,7 @@
   TODO this is a change, returning an explicit term always. NOTE, test."
   [p]
   (or (peek (->terms p))
-      [empty-expts 0]))
+      [xpt/empty 0]))
 
 (defn leading-coefficient [p]
   (if (polynomial? p)
@@ -725,11 +586,11 @@
   (if (polynomial? p)
     (exponents
      (peek (bare-terms p)))
-    empty-expts))
+    xpt/empty))
 
 (defn lowest-order [p]
   (if (polynomial? p)
-    (monomial-degree
+    (xpt/monomial-degree
      (exponents
       (nth (bare-terms p) 0)))
     coeff-arity))
@@ -807,7 +668,7 @@
         acc
         (let [t  (first terms)
               e  (exponents t)
-              md (monomial-degree e 0)]
+              md (xpt/monomial-degree e 0)]
           (if (= md i)
             (recur (rest terms)
                    (conj acc (coefficient t))
@@ -846,9 +707,9 @@
          p
          (map-exponents
           (fn [m]
-            (let [v (monomial-degree m i)
+            (let [v (xpt/monomial-degree m i)
                   v' (- d v)]
-              (expt:assoc m i v')))
+              (xpt/assoc m i v')))
           p)))
      p)))
 
@@ -921,7 +782,7 @@
         acc
 	      (let [[tags1 coeff1] t]
 	        (recur (conj acc (make-term
-		                        (expt:+ tags tags1)
+		                        (xpt/+ tags tags1)
 		                        (g/* coeff coeff1)))
 		             (inc i)))))))
 
@@ -986,7 +847,7 @@
         (if (v/zero? remainder)
           [quotient remainder]
           (let [[r-exponents r-coefficient] (leading-term remainder)
-                residues (expt:- r-exponents vn-exponents)]
+                residues (xpt/- r-exponents vn-exponents)]
             (if (good? residues)
               (let [new-coef (g/div r-coefficient vn-coefficient)
                     new-term (->Polynomial arity [(make-term residues new-coef)])]
@@ -1050,7 +911,7 @@
         (u/illegal
          (str "Polynomial not contractible: " p " in position " n))
         :else
-        (map-exponents #(expt:lower % n)
+        (map-exponents #(xpt/lower % n)
                        p
                        (dec (bare-arity p)))))
 
@@ -1064,7 +925,7 @@
           new-arity (inc (max a n))]
       (if (> n a)
         (->Polynomial (inc n) (bare-terms p))
-        (map-exponents #(expt:raise % n 0)
+        (map-exponents #(xpt/raise % n 0)
                        p
                        (inc a))))))
 
@@ -1079,13 +940,13 @@
     (letfn [(lower-terms [terms]
               (make (dec A)
                     (for [[xs c] terms]
-                      [(expt:lower xs 0) c])))]
+                      [(xpt/lower xs 0) c])))]
       (->> (bare-terms p)
-           (group-by #(monomial-degree (exponents %) 0))
+           (group-by #(xpt/monomial-degree (exponents %) 0))
            (map (fn [[x terms]]
                   (let [expts (if (zero? x)
-                                empty-expts
-                                (expt:make 0 x))]
+                                xpt/empty
+                                (xpt/make 0 x))]
                     (make-term expts (lower-terms terms)))))
            (make 1)))))
 
@@ -1098,7 +959,7 @@
         (let [terms (sparse->terms
                      (for [[x q] (bare-terms p)
                            [ys c] (->terms q)]
-                       [(expt:raise ys 0 (monomial-degree x 0)) c]))]
+                       [(xpt/raise ys 0 (xpt/monomial-degree x 0)) c]))]
           (->Polynomial a terms)))
     (constant a p)))
 
@@ -1116,7 +977,7 @@
            x**e   1
            e      0]
       (if-let [[expts c] (nth terms 0)]
-        (let [e' (monomial-degree expts 0)
+        (let [e' (xpt/monomial-degree expts 0)
               x**e' (g/* x**e (g/expt x (- e' e)))]
           (recur (next terms)
                  (g/+ result (g/* c x**e'))
@@ -1295,7 +1156,7 @@
          (not (v/zero? v))]}
   (let [[vn-exponents vn-coefficient] (leading-term v)
         *vn (fn [p] (scale p vn-coefficient))
-        n (monomial-degree vn-exponents)]
+        n (xpt/monomial-degree vn-exponents)]
     (loop [remainder u
            d 0]
       (let [m (degree remainder)
@@ -1373,7 +1234,7 @@
                          (transduce
                           (map-indexed
                            (fn [i v]
-                             (let [pow (monomial-degree expts i)]
+                             (let [pow (xpt/monomial-degree expts i)]
                                (expt v pow))))
                           * c vars)))
             high->low (rseq (bare-terms p))]

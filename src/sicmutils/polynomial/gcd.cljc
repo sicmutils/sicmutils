@@ -24,6 +24,7 @@
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -145,7 +146,7 @@
     [identity identity]
     (sort->permutations
      (transduce (map p/exponents)
-                p/expt:max
+                xpt/max
                 (p/exponents (first terms))
                 (rest terms)))))
 
@@ -273,7 +274,7 @@
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
         mono-keys (keys mono-expts)
         xs (transduce (map p/exponents)
-                      p/expt:gcd
+                      xpt/gcd
                       mono-expts
                       (p/bare-terms p))
         c (gcd-poly-number p mono-coeff)]

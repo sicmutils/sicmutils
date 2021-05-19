@@ -31,25 +31,9 @@
             [sicmutils.generic :as g]
             [sicmutils.modint :as modular]
             [sicmutils.polynomial :as p]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
-
-(deftest monomial-ordering-tests
-  (testing "monomial orderings"
-    (let [x3 (p/dense->exponents [3 0 0])
-          x2z2 (p/dense->exponents [2 0 2])
-          xy2z (p/dense->exponents [1 2 1])
-          z2   (p/dense->exponents [0 0 2])
-          monomials [x3 x2z2 xy2z z2]
-          sort-with #(sort % monomials)]
-      (is (= [z2 xy2z x2z2 x3]
-             (sort-with p/lex-order)))
-
-      (is (= [z2 x3 x2z2 xy2z]
-             (sort-with p/graded-reverse-lex-order)))
-
-      (is (= [z2 x3 xy2z x2z2]
-             (sort-with p/graded-lex-order))))))
 
 (deftest polynomial-type-tests
   (checking "polynomials are both explicit polys and polynomial? == true" 100
@@ -64,14 +48,14 @@
   (checking "make-term round trip" 100
             [expts (gen/vector gen/nat)
              coef sg/number]
-            (let [expts (p/dense->exponents expts)
+            (let [expts (xpt/dense->exponents expts)
                   term  (p/make-term expts coef)]
               (is (= expts (p/exponents term)))
               (is (= coef (p/coefficient term)))))
 
   (testing "term getter defaults"
     (is (= 0 (p/coefficient [])))
-    (is (= p/empty-expts (p/exponents []))))
+    (is (= xpt/empty (p/exponents []))))
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))

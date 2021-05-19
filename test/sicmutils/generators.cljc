@@ -16,6 +16,7 @@
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.ratio :as r]
             [sicmutils.series :as ss]
             [sicmutils.structure :as s]
@@ -300,7 +301,7 @@
            coefs small-integral}}]
   (letfn [(poly-gen [arity]
             (let [expts (->> (gen/vector gen/nat arity)
-                             (gen/fmap poly/dense->exponents))
+                             (gen/fmap xpt/dense->exponents))
                   term (gen/tuple expts coefs)
                   pgen (gen/fmap (fn [terms]
                                    (let [p (poly/make arity terms)]
