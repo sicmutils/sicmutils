@@ -127,8 +127,10 @@
            (and (= {0 1} (exponents term))
                 (v/one? (coefficient term))))))
 
-  ;; TODO good idea?
-  (zero-like [_] 0)
+  (zero-like [_]
+    (if-let [term (nth terms 0)]
+      (v/zero-like (coefficient term))
+      0))
 
   (one-like [_]
     (if-let [term (nth terms 0)]
@@ -187,24 +189,24 @@
                (evaluate this [a b c d e f g h i j k]))
        (invoke [this a b c d e f g h i j k l]
                (evaluate this [a b c d e f g h i j k l]))
-       (invoke [this a b c d e f g h i j k l m-arg]
-               (evaluate this [a b c d e f g h i j k l m-arg]))
-       (invoke [this a b c d e f g h i j k l m-arg n]
-               (evaluate this [a b c d e f g h i j k l m-arg n]))
-       (invoke [this a b c d e f g h i j k l m-arg n o]
-               (evaluate this [a b c d e f g h i j k l m-arg n o]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p q]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p q]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p q r]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p q r]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p q r s]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p q r s]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p q r s t]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p q r s t]))
-       (invoke [this a b c d e f g h i j k l m-arg n o p q r s t rest]
-               (evaluate this [a b c d e f g h i j k l m-arg n o p q r s t rest]))
+       (invoke [this a b c d e f g h i j k l m]
+               (evaluate this [a b c d e f g h i j k l m]))
+       (invoke [this a b c d e f g h i j k l m n]
+               (evaluate this [a b c d e f g h i j k l m n]))
+       (invoke [this a b c d e f g h i j k l m n o]
+               (evaluate this [a b c d e f g h i j k l m n o]))
+       (invoke [this a b c d e f g h i j k l m n o p]
+               (evaluate this [a b c d e f g h i j k l m n o p]))
+       (invoke [this a b c d e f g h i j k l m n o p q]
+               (evaluate this [a b c d e f g h i j k l m n o p q]))
+       (invoke [this a b c d e f g h i j k l m n o p q r]
+               (evaluate this [a b c d e f g h i j k l m n o p q r]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s]
+               (evaluate this [a b c d e f g h i j k l m n o p q r s]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s t]
+               (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+               (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
        (applyTo [this xs] (AFn/applyToHelper this xs))]
 
       :cljs
@@ -250,24 +252,24 @@
                 (evaluate this [a b c d e f g h i j k]))
        (-invoke [this a b c d e f g h i j k l]
                 (evaluate this [a b c d e f g h i j k l]))
-       (-invoke [this a b c d e f g h i j k l m-arg]
-                (evaluate this [a b c d e f g h i j k l m-arg]))
-       (-invoke [this a b c d e f g h i j k l m-arg n]
-                (evaluate this [a b c d e f g h i j k l m-arg n]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o]
-                (evaluate this [a b c d e f g h i j k l m-arg n o]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p q]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p q]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p q r]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p q r]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p q r s]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p q r s]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p q r s t]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p q r s t]))
-       (-invoke [this a b c d e f g h i j k l m-arg n o p q r s t rest]
-                (evaluate this [a b c d e f g h i j k l m-arg n o p q r s t rest]))
+       (-invoke [this a b c d e f g h i j k l m]
+                (evaluate this [a b c d e f g h i j k l m]))
+       (-invoke [this a b c d e f g h i j k l m n]
+                (evaluate this [a b c d e f g h i j k l m n]))
+       (-invoke [this a b c d e f g h i j k l m n o]
+                (evaluate this [a b c d e f g h i j k l m n o]))
+       (-invoke [this a b c d e f g h i j k l m n o p]
+                (evaluate this [a b c d e f g h i j k l m n o p]))
+       (-invoke [this a b c d e f g h i j k l m n o p q]
+                (evaluate this [a b c d e f g h i j k l m n o p q]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r]
+                (evaluate this [a b c d e f g h i j k l m n o p q r]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s]
+                (evaluate this [a b c d e f g h i j k l m n o p q r s]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
+                (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+                (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
