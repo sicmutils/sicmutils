@@ -18,10 +18,6 @@
 ;;
 
 (ns sicmutils.rational-function
-  #?(:clj
-     (:refer-clojure
-      :rename {denominator core-denominator
-               numerator core-numerator}))
   (:require [clojure.set :as set]
             [sicmutils.complex :refer [complex?]]
             [sicmutils.differential :as sd]
@@ -40,10 +36,6 @@
      (:import (clojure.lang AFn IFn IObj Seqable))))
 
 (declare evaluate eq)
-
-;; TODO check arity on CONSTRUCTION; make sure that either `u` or `v` is a
-;; scalar AND we match the other, or that we are passing arities. But you can
-;; totally pass scalars as either side.
 
 (deftype RationalFunction [arity u v m]
   f/IArity
@@ -228,6 +220,10 @@
   [r]
   (instance? RationalFunction r))
 
+(defn coeff? [x]
+  (and (not (rational-function? x))
+       (p/coeff? x)))
+
 (defn bare-arity [^RationalFunction rf]
   (.-arity rf))
 
@@ -298,19 +294,7 @@
 
         :else 1))
 
-(comment
-  ;; TEST that this works!
-  (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
-            (p/make 2 {[1 2] 1/2 [2 0] 3}))
-      (make 2)))
-
-;; TODO make a `->reduced` function.
-
-(defn make
-  "Make the fraction of the two polynomials p and q, after dividing out their
-  greatest common divisor and normalizing any ratios that appear in numerator or
-  denominator."
-  [u v]
+(defn- ->reduced [u v]
   (when (v/zero? v)
     (u/arithmetic-ex
      "Can't form rational function with zero denominator"))
@@ -335,6 +319,21 @@
                     [(p/evenly-divide u' g)
                      (p/evenly-divide v' g)])]
     (make-reduced a u'' v'')))
+
+(comment
+  ;; TEST that this works!
+  (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
+            (p/make 2 {[1 2] 1/2 [2 0] 3}))
+      (make 2)))
+
+(defn make
+  "Make the fraction of the two polynomials p and q, after dividing out their
+  greatest common divisor and normalizing any ratios that appear in numerator or
+  denominator."
+  [u v]
+  (if (and (coeff? u) (coeff? v))
+    (g/div u v)
+    (->reduced u v)))
 
 ;; ## RF Arithmetic
 ;;
@@ -398,12 +397,22 @@
         (v/zero? s) r
         :else (binary-combine r s p/poly:+ uv:+)))
 
+(defn negative? [r]
+  (if-not (rational-function? r)
+    (p/negative? r)
+    (p/negative? (bare-u r))))
+
 (defn negate [r]
   (if-not (rational-function? r)
     (p/negate r)
     (->RationalFunction (bare-arity r)
                         (p/negate (bare-u r))
                         (bare-v r))))
+
+(defn abs [p]
+  (if (negative? p)
+    (negate p)
+    p))
 
 (defn rf:- [r s]
   (cond (v/zero? r) (negate s)
@@ -469,7 +478,7 @@
 
 (defn- uv:gcd [u u' v v']
   (let [d1 (pg/gcd u v)
-        d2 (pg/gcd u' v')]
+        d2 (pg/lcm u' v')]
     (let [result (make d1 d2)]
       [(r/numerator result)
        (r/denominator result)])))
@@ -533,6 +542,15 @@
                      (p/poly:* u (p/partial-derivative v i)))
            (p/square v)))))
 
+(defn partial-derivatives
+  "The sequence of partial derivatives of p with respect to each
+  indeterminate. Return value has length `(arity p)`."
+  [r]
+  (if-not (rational-function? r)
+    (p/partial-derivatives r)
+    (for [i (range (bare-arity r))]
+      (partial-derivative r i))))
+
 ;; TODO make a note that this operator table can handle polynomials,
 ;; coefficients AND rational functions, nothing else.
 
@@ -559,14 +577,13 @@
 
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
-    ;; expression should be an unwrapped expression, i.e., not an instance
-    ;; of the Literal type, nor should subexpressions contain type
-    ;; information. This kind of simplification proceeds purely
-    ;; symbolically over the known Rational Function operations;;  other
-    ;; operations outside the arithmetic available R(x...) should be
-    ;; factored out by an expression analyzer before we get here. The
-    ;; result is a RationalFunction object representing the structure of
-    ;; the input over the unknowns."
+    ;; expression should be an unwrapped expression, i.e., not an instance of
+    ;; the Literal type, nor should subexpressions contain type information.
+    ;; This kind of simplification proceeds purely symbolically over the known
+    ;; Rational Function operations;; other operations outside the arithmetic
+    ;; available R(x...) should be factored out by an expression analyzer before
+    ;; we get here. The result is a RationalFunction object representing the
+    ;; structure of the input over the unknowns."
     (let [expression-vars (sort v-compare
                                 (set/difference (x/variables-in expr)
                                                 operators-known))
@@ -576,9 +593,9 @@
       (cont expr' expression-vars)))
 
   (->expression [_ r vars]
-    ;; This is the output stage of Rational Function canonical form simplification.
-    ;; The input is a RationalFunction, and the output is an expression
-    ;; representing the evaluation of that function over the
+    ;; This is the output stage of Rational Function canonical form
+    ;; simplification. The input is a RationalFunction, and the output is an
+    ;; expression representing the evaluation of that function over the
     ;; indeterminates extracted from the expression at the start of this
     ;; process."
     (if-not (rational-function? r)
@@ -598,7 +615,7 @@
 ;;
 ;; TODO figure out MORE methods to install here... cos etc?
 ;;
-;; `exact-divide`, `abs`, `partial-derivative`, `simplify`,
+;; `exact-divide`, `partial-derivative`,
 ;; `solve-linear-right`, `solve-linear`
 
 ;; TODO can I make them inherit... and then just do the top one ONLY?
@@ -609,13 +626,34 @@
 (defmethod v/= [::polynomial ::rational-function] [u v] (eq v u))
 (defmethod v/= [::p/coeff ::rational-function] [u v] (eq v u))
 
+;; TODO put this somewhere where I can depend on the `down` structure!
+#_
+(defmethod g/partial-derivative [::rational-function v/seqtype]
+  [p selectors]
+  (cond (empty? selectors)
+        (ss/down* (partial-derivatives p))
+
+        (= 1 (count selectors))
+        (partial-derivatives p (first selectors))
+
+        :else
+        (u/illegal
+         (str "Invalid selector! Only 1 deep supported."))))
+
+(defmethod g/simplify [::rational-function] [r]
+  (->RationalFunction (g/simplify (bare-u r))
+                      (g/simplify (bare-v r))
+                      (meta r)))
+
 (defmethod g/add [::rational-function ::rational-function] [u v] (rf:+ u v))
 (defmethod g/add [::rational-function ::p/polynomial] [u v] (rf:+ u v))
 (defmethod g/add [::rational-function ::p/coeff] [u v] (rf:+ u v))
 (defmethod g/add [::p/polynomial ::rational-function] [u v] (rf:+ u v))
 (defmethod g/add [::p/coeff ::rational-function] [u v] (rf:+ u v))
 
+(defmethod g/negative? [::rational-function] [a] (negative? a))
 (defmethod g/negate [::rational-function] [a] (negate a))
+(defmethod g/abs [::rational-function] [a] (abs a))
 
 (defmethod g/sub [::rational-function ::rational-function] [a b] (rf:- a b))
 (defmethod g/sub [::rational-function ::p/polynomial] [u v] (rf:- u v))

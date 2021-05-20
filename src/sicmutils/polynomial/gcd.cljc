@@ -439,6 +439,14 @@
   gcd
   #'gcd-dispatch)
 
+(defn lcm [u v]
+  (if (or (p/polynomial? u)
+          (p/polynomial? v))
+    (p/abs
+     (p/evenly-divide (p/poly:* u v)
+                      (gcd u v)))
+    (g/lcm u v)))
+
 ;; TODO test `gcd` between OTHER types and polynomials here...
 
 (defmethod g/gcd [::p/polynomial ::p/polynomial] [u v]
@@ -453,6 +461,10 @@
   (if (v/zero? u)
     v
     (gcd-poly-number v u)))
+
+(defmethod g/lcm [::p/polynomial ::p/polynomial] [u v] (lcm u v))
+(defmethod g/lcm [::p/coeff ::p/polynomial] [u v] (lcm u v))
+(defmethod g/lcm [::p/polynomial ::p/coeff] [u v] (lcm u v))
 
 (defn- gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
