@@ -42,23 +42,39 @@
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
   #?(:clj (:import (clojure.lang BigInt Ratio))))
 
-(def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
+(def ^:no-doc ratiotype
+  #?(:clj Ratio :cljs Fraction))
+
 (derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
      :cljs (fn [r] (instance? Fraction r))))
 
-(def numerator
-  #?(:clj core-numerator
-     :cljs (fn [^Fraction x]
-             (if (pos? (obj/get x "s"))
-               (obj/get x "n")
-               (- (obj/get x "n"))))))
+(defprotocol IRational
+  (numerator [_])
+  (denominator [_]))
 
-(def denominator
-  #?(:clj core-denominator
-     :cljs #(obj/get % "d")))
+(extend-protocol IRational
+  #?(:clj Object :cljs default)
+  (numerator [x] x)
+  (denominator [_] 1)
+
+  #?@(:clj
+      [Ratio
+       (numerator [r] (core-numerator r))
+       (denominator [r] (core-denominator r))]
+
+      :cljs
+      [Fraction
+       (numerator
+        [x]
+        (if (pos? (obj/get x "s"))
+          (obj/get x "n")
+          (- (obj/get x "n"))))
+       (denominator
+        [x]
+        (obj/get x "d"))]))
 
 (defn- promote [x]
   (if (v/one? (denominator x))

@@ -44,12 +44,14 @@
 ;; TODO check arity on CONSTRUCTION; make sure that either `u` or `v` is a
 ;; scalar AND we match the other, or that we are passing arities. But you can
 ;; totally pass scalars as either side.
-;;
-;; TODO generic numerator and denominator functions.
 
 (deftype RationalFunction [arity u v m]
   f/IArity
   (arity [_] [:between 0 arity])
+
+  r/IRational
+  (numerator [_] u)
+  (denominator [_] v)
 
   sd/IPerturbed
   (perturbed? [_]
@@ -248,16 +250,6 @@
     (bare-arity r)
     (p/arity r)))
 
-(defn numerator [x]
-  (cond (rational-function? x) (bare-u x)
-        (r/ratio? x) (r/numerator x)
-        :else x))
-
-(defn denominator [x]
-  (cond (rational-function? x) (bare-v x)
-        (r/ratio? x) (r/denominator x)
-        :else 1))
-
 (defn- check-same-arity [u v]
   (let [ua (arity u)
         va (arity v)]
@@ -324,7 +316,7 @@
      "Can't form rational function with zero denominator"))
   (let [a (check-same-arity u v)
         xform (comp (distinct)
-                    (map denominator))
+                    (map r/denominator))
         coefs  (concat
                 (p/coefficients u)
                 (p/coefficients v))
@@ -353,10 +345,10 @@
 
 (defn- binary-combine [l r poly-op uv-op]
   (let [a (check-same-arity l r)
-        l-n (numerator l)
-        l-d (denominator l)
-        r-n (numerator r)
-        r-d (denominator r)]
+        l-n (r/numerator l)
+        l-d (r/denominator l)
+        r-n (r/numerator r)
+        r-d (r/denominator r)]
     (let [[n d] (if (and (v/one? l-d) (v/one? r-d))
                   [(poly-op l-n r-n) 1]
                   (uv-op l-n l-d r-n r-d))]
@@ -479,8 +471,8 @@
   (let [d1 (pg/gcd u v)
         d2 (pg/gcd u' v')]
     (let [result (make d1 d2)]
-      [(numerator result)
-       (denominator result)])))
+      [(r/numerator result)
+       (r/denominator result)])))
 
 (defn gcd [r s]
   (binary-combine r s pg/gcd uv:gcd))
@@ -530,8 +522,7 @@
                          [nr2 dr2])]
       (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
             (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
-            :else (g/div pn pd)))
-    ))
+            :else (g/div pn pd)))))
 
 (defn partial-derivative [r i]
   (if-not (rational-function? r)

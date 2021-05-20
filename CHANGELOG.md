@@ -27,6 +27,10 @@
 
   - new `arg-scale`, `arg-shift` for series!
 
+  - ratio protocol
+
+  - divide out terms == true
+
   - polynomials have metadata, can be evaluated
 
   - rational functions have metadata, can be evaluated

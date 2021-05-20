@@ -41,7 +41,9 @@
                            partial core-partial
                            compare core-compare
                            = core=}
-                  :exclude [+ - * / zero? compare divide #?@(:cljs [= partial])])
+                  :exclude [+ - * / zero? compare divide
+                            numerator denominator
+                            #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -244,8 +246,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator anticommutator]
- #?(:cljs [sicmutils.ratio
-           ratio? rationalize numerator denominator])
+ [sicmutils.ratio numerator denominator #?@(:cljs [ratio? rationalize])]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.util bigint? #?@(:cljs [bigint])]
 

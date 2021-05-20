@@ -154,7 +154,7 @@
   operation is not available to the polynomial canonicalizer, and restore it
   afterwards."
   ([backend]
-   (make-analyzer backend (a/monotonic-symbol-generator "-g-")))
+   (make-analyzer backend (monotonic-symbol-generator "-g-")))
   ([backend symbol-generator]
    (let [ref #?(:clj ref :cljs atom)
          alter #?(:clj alter :cljs swap!)
