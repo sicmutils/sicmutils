@@ -126,7 +126,7 @@
        ([x] x)
        ([x y] (plus x y))
        ([x y & more]
-        (reduce acc (plus x y) more))))))
+        (reduce acc x (cons y more)))))))
 
 (defn group
   "Similar to [[monoid]] for types with invertible elements. Accepts:
