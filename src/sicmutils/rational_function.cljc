@@ -330,11 +330,11 @@
   (fn [u v]
     (if (rational-function? u)
       (if (rational-function? v)
-	      (rf*rf u v)
-	      (rf*v u v))
+        (rf*rf u v)
+        (rf*v u v))
       (if (rational-function? v)
-	      (u*rf u v)
-	      (u*v u v)))))
+        (u*rf u v)
+        (u*v u v)))))
 
 (defn rf:+
   "Add the [[RationalFunction]] instances `r` and `s`."
@@ -348,29 +348,29 @@
         v  (numerator s)
         v' (denominator s)]
     (if (v/= u' v')
-	    (let [n (p/poly:+ u v)
+      (let [n (p/poly:+ u v)
             g (pg/gcd u' n)]
-	      (if (v/one? g)
-		      (make-reduced a n u')
-		      (make-reduced a
+        (if (v/one? g)
+          (make-reduced a n u')
+          (make-reduced a
                         (p/evenly-divide n g)
                         (p/evenly-divide u' g))))
-	    (let [d1 (pg/gcd u' v')]
-	      (if (v/one? d1)
-		      (make-reduced a
+      (let [d1 (pg/gcd u' v')]
+        (if (v/one? d1)
+          (make-reduced a
                         (p/poly:+ (p/poly:* u v')
                                   (p/poly:* u' v))
-			                  (p/poly:* u' v'))
-		      (let [u':d1 (p/evenly-divide u' d1)
+                        (p/poly:* u' v'))
+          (let [u':d1 (p/evenly-divide u' d1)
                 v':d1 (p/evenly-divide v' d1)
-			          t (p/poly:+ (p/poly:* u v':d1)
-				                    (p/poly:* u':d1 v))]
-		        (if (v/zero? t)
-		          0
-		          (let [d2 (pg/gcd t d1)]
-			          (if (v/one? d2)
-			            (make-reduced a t (p/poly:* u':d1 v'))
-			            (let [n (p/evenly-divide t d2)
+                t (p/poly:+ (p/poly:* u v':d1)
+                            (p/poly:* u':d1 v))]
+            (if (v/zero? t)
+              0
+              (let [d2 (pg/gcd t d1)]
+                (if (v/one? d2)
+                  (make-reduced a t (p/poly:* u':d1 v'))
+                  (let [n (p/evenly-divide t d2)
                         d (p/poly:* u':d1 (p/evenly-divide v' d2))]
                     (make-reduced a n d)))))))))))
 
@@ -436,19 +436,19 @@
 #_
 (fn [u u' v v']
   (let [d1 (pg/gcd u v')
-	      d2 (pg/gcd u' v)]
-	  (if (v/one? d1)
-	    (if (v/one? d2)
-		    (make-rcf (p/poly:* u v) (p/poly:* u' v'))
-		    (make-rcf (p/poly:* u (p/evenly-divide v d2))
-			            (p/poly:* (p/evenly-divide u' d2) v')))
-	    (if (v/one? d2)
-		    (make-rcf (p/poly:* (p/evenly-divide u d1) v)
-			            (p/poly:* u' (p/evenly-divide v' d1)))
-		    (make-rcf (p/poly:* (p/evenly-divide u d1)
-				                    (p/evenly-divide v d2))
-			            (p/poly:* (p/evenly-divide u' d2)
-				                    (p/evenly-divide v' d1)))))))
+        d2 (pg/gcd u' v)]
+    (if (v/one? d1)
+      (if (v/one? d2)
+        (make-rcf (p/poly:* u v) (p/poly:* u' v'))
+        (make-rcf (p/poly:* u (p/evenly-divide v d2))
+                  (p/poly:* (p/evenly-divide u' d2) v')))
+      (if (v/one? d2)
+        (make-rcf (p/poly:* (p/evenly-divide u d1) v)
+                  (p/poly:* u' (p/evenly-divide v' d1)))
+        (make-rcf (p/poly:* (p/evenly-divide u d1)
+                            (p/evenly-divide v d2))
+                  (p/poly:* (p/evenly-divide u' d2)
+                            (p/evenly-divide v' d1)))))))
 
 (defn rf:* [r s]
   {:pre [(rational-function? r)
@@ -489,13 +489,13 @@
   #_
   (fn [u u' v]
     (cond (v/zero? v) rcf:zero
-	        (v/one? v) u:u'
-	        :else
-	        (let [d (pg/gcd u' v)]
-	          (if (v/one? d)
-		          (make-rcf (p/poly:* u v) u')
-		          (make-rcf (p/poly:* u (p/evenly-divide v d))
-			                  (p/evenly-divide u' d)))))))
+          (v/one? v) u:u'
+          :else
+          (let [d (pg/gcd u' v)]
+            (if (v/one? d)
+              (make-rcf (p/poly:* u v) u')
+              (make-rcf (p/poly:* u (p/evenly-divide v d))
+                        (p/evenly-divide u' d)))))))
 
 (defn other*rf [u v]
   ;; ratio on left:
@@ -526,13 +526,13 @@
   #_
   (fn [u v v']
     (cond (v/zero? u) rcf:zero
-	        (v/one? u) v:v'
-	        :else
-	        (let [d (pg/gcd u v')]
-	          (if (v/one? d)
-		          (make-rcf (p/poly:* u v) v')
-		          (make-rcf (p/poly:* (p/evenly-divide u d) v)
-			                  (p/evenly-divide v' d)))))))
+          (v/one? u) v:v'
+          :else
+          (let [d (pg/gcd u v')]
+            (if (v/one? d)
+              (make-rcf (p/poly:* u v) v')
+              (make-rcf (p/poly:* (p/evenly-divide u d) v)
+                        (p/evenly-divide v' d)))))))
 
 (defn expt [r n]
   {:pre [(rational-function? r)
@@ -580,38 +580,38 @@
 (defn rf:gcd [u v]
   (let [d1 (pg/gcd (numerator u)
                    (numerator v))
-	      d2 (pg/gcd (denominator u)
+        d2 (pg/gcd (denominator u)
                    (denominator v))]
-	  (make d1 d2)))
+    (make d1 d2)))
 
 (defn rf-gcd-other [u v]
   (cond (v/zero? v) u
-	      (v/one? v)  1
-	      :else (pg/gcd (numerator u) v)))
+        (v/one? v)  1
+        :else (pg/gcd (numerator u) v)))
 
 (defn other-gcd-rf [u v]
   (cond (v/zero? u) v
-	      (v/one? u)  1
-	      :else (pg/gcd u (numerator v))))
+        (v/one? u)  1
+        :else (pg/gcd u (numerator v))))
 
 ;; TODO don't use `g/div`, build the `div` function!
 
 (defn arg-scale [r points]
   (if (rational-function? r)
     (g/div (p/arg-scale (numerator r) points)
-	         (p/arg-scale (denominator r) points))
+           (p/arg-scale (denominator r) points))
     (p/arg-scale r points)))
 
 (defn arg-shift [r points]
   (if (rational-function? r)
     (g/div (p/arg-shift (numerator r) points)
-	         (p/arg-shift (denominator r) points))
+           (p/arg-shift (denominator r) points))
     (p/arg-shift r points)))
 
 (defn evaluate [r xs]
   (if (rational-function? r)
     (g/div (p/evaluate (numerator r) xs)
-	         (p/evaluate (denominator r) xs))
+           (p/evaluate (denominator r) xs))
     (p/evaluate r xs)))
 
 (defn compose
@@ -622,33 +622,33 @@
   (if (rational-function? r2)
     (let [nr1 (numerator r1)
           nr2 (numerator r2)
-	        dr1 (denominator r1)
+          dr1 (denominator r1)
           dr2 (denominator r2)
           dn  (p/degree nr1)
-	        dd  (p/degree dr1)
-	        narity (+ (p/arity dr1) 1)
+          dd  (p/degree dr1)
+          narity (+ (p/arity dr1) 1)
           nnr1 (p/extend 1 (p/reciprocal nr1))
           ndr1 (p/extend 1 (p/reciprocal dr1))
           scales [(second (p/new-variables narity)) 1]
           pn (p/evaluate (p/reciprocal
-				                  (p/arg-scale nnr1 scales))
-				                 [nr2 dr2])
+                          (p/arg-scale nnr1 scales))
+                         [nr2 dr2])
           pd (p/evaluate (p/reciprocal
-				                  (p/arg-scale ndr1 scales))
-				                 [nr2 dr2])]
-	    (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
-		        (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
-		        :else (g/div pn pd)))
+                          (p/arg-scale ndr1 scales))
+                         [nr2 dr2])]
+      (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
+            (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
+            :else (g/div pn pd)))
     (g/div (p/evaluate (numerator r1) r2)
-	         (p/evaluate (denominator r1) r2))))
+           (p/evaluate (denominator r1) r2))))
 
 (defn partial-derivative [r i]
   (if (rational-function? r)
     (let [u (numerator r)
           v (denominator r)]
-	    (g/div (p/poly:- (p/poly:* (p/partial-derivative u i) v)
-		                   (p/poly:* u (p/partial-derivative v i)))
-	           (p/poly:* v v)))
+      (g/div (p/poly:- (p/poly:* (p/partial-derivative u i) v)
+                       (p/poly:* u (p/partial-derivative v i)))
+             (p/poly:* v v)))
     (p/partial-derivative r i)))
 
 ;; I don't know if this stuff is ever important...GJS
@@ -660,38 +660,38 @@
                   (empty? (rest rats)) (first rats)
 
                   (rational-function? (first rats))
-	                (cond (rational-function? (second rats))
-		                    (operate
+                  (cond (rational-function? (second rats))
+                        (operate
                          (cons (rat:op (first rats)
                                        (second rats))
-				                       (drop 2 rats)))
+                               (drop 2 rats)))
 
-		                    (empty? (drop 2 rats))
+                        (empty? (drop 2 rats))
                         (rat:op (first rats)
                                 (second rats))
 
-		                    (not (rational-function? (nth rats 2)))
-		                    (operate
+                        (not (rational-function? (nth rats 2)))
+                        (operate
                          (cons (first rats)
-				                       (cons (poly:op (second rats)
+                               (cons (poly:op (second rats)
                                               (nth rats 2))
-				                             (drop 3 rats))))
+                                     (drop 3 rats))))
 
-		                    :else (operate
+                        :else (operate
                                (cons (rat:op (first rats)
                                              (second rats))
-				                             (drop 2 rats))))
+                                     (drop 2 rats))))
 
                   (rational-function? (second rats))
-	                (operate
+                  (operate
                    (cons (rat:op (first rats)
                                  (second rats))
-			                   (drop 2 rats)))
-	                :else
-	                (operate
+                         (drop 2 rats)))
+                  :else
+                  (operate
                    (cons (poly:op (first rats)
                                   (second rats))
-			                   (drop 2 rats)))))]
+                         (drop 2 rats)))))]
     (fn [& xs]
       (operate xs))))
 
