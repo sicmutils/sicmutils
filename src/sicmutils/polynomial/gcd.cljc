@@ -244,11 +244,12 @@
   (ua/monoid binary-gcd 0 v/one?))
 
 (def primitive-gcd
-  (comp g/abs (->gcd g/gcd)))
+  (->gcd g/gcd))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
 (defn- gcd-poly-number
+  "TODO note, gcd of number with the content."
   [p n]
   {:pre [(p/polynomial? p)
          (p/coeff? n)]}
