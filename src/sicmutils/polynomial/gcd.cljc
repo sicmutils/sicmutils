@@ -293,7 +293,7 @@
                        (g/gcd u v)
                        (gcd-poly-number v u))
         (p/coeff? v) (gcd-poly-number u v)
-        (= u v) u
+        (= u v) (p/abs u)
         :else nil))
 
 (defn- euclid-inner-loop
