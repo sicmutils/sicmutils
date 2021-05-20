@@ -565,7 +565,7 @@
    '/ (ua/group div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
-   'gcd (ua/monoid gcd 0 v/one?)
+   'gcd (ua/monoid gcd 0)
    'lcm (ua/monoid lcm 1 v/zero?)
    'floor floor
    'ceiling ceiling

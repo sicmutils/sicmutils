@@ -1228,7 +1228,7 @@
    'expt expt
    'square square
    'cube cube
-   'gcd (ua/monoid g/gcd 0 v/one?)
+   'gcd (ua/monoid g/gcd 0)
    'lcm (ua/monoid g/lcm 1 v/zero?)})
 
 (def ^:no-doc operators-known

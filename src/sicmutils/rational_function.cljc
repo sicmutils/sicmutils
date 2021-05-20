@@ -564,7 +564,7 @@
    'expt expt
    'square square
    'cube cube
-   'gcd (ua/monoid gcd 0 v/one?)
+   'gcd (ua/monoid gcd 0)
    'lcm (ua/monoid g/lcm 1 v/zero?)})
 
 (def operators-known

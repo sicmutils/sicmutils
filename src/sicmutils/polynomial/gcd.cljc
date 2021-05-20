@@ -241,7 +241,7 @@
 ;; ## Basic GCD for Coefficients, Monomials
 
 (defn ->gcd [binary-gcd]
-  (ua/monoid binary-gcd 0 v/one?))
+  (ua/monoid binary-gcd 0))
 
 (def primitive-gcd
   (->gcd g/gcd))
@@ -396,7 +396,9 @@
 
            :else
            (with-limited-time *poly-gcd-time-limit*
-             (fn [] (gcd-euclid u v))))))))
+             (fn [] (gcd-euclid u v)))))))
+  ([u v & more]
+   (reduce gcd-dispatch u (cons v more))))
 
 (def ^{:doc "main GCD entrypoint."}
   gcd
@@ -430,8 +432,9 @@
 (defmethod g/lcm [::p/polynomial ::p/coeff] [u v] (lcm u v))
 
 (defn- gcd-seq
-  "Compute the GCD of a sequence of polynomials (we take care to
-  break early if the gcd of an initial segment is unity)"
+  "Compute the GCD of a sequence of polynomials.
+
+  NOTE: Breaks early if the gcd of an initial segment is `one?`."
   [items]
   (transduce (ua/halt-at v/one?)
              gcd-dispatch
@@ -441,8 +444,7 @@
   "Compute the gcd of the all the partial derivatives of p."
   [p]
   (if (p/polynomial? p)
-    (gcd-seq
-     (p/partial-derivatives p))
+    (gcd-seq (p/partial-derivatives p))
     1))
 
 ;; NOTE from Colin:
