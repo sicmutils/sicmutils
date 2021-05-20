@@ -228,7 +228,7 @@
 
 (deftest rational-function-tests
   (testing "GH Issue #93"
-    (is (= '(/ 0.5 (* 2 x))
+    (is (= '(/ 0.25 x)
            (g/simplify
             (g/mul 0.5 (g/div 1 (g/mul 2 'x)))))
         "This test failed until we implemented g/invert for polynomials in the

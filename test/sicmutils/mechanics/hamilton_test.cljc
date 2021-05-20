@@ -107,8 +107,9 @@
                        (up x y)
                        (down p_x p_y))
                       't))))
-    (is (= '(/ (expt y 2) (* 4 c))
-           (simplify ((H/Legendre-transform (fn [x] (* 'c x x))) 'y))))
+    (is (= '(/ (* (/ 1 4) (expt y 2)) c)
+           (simplify
+            ((H/Legendre-transform (fn [x] (* 'c x x))) 'y))))
 
     (is (= '(* (/ 1 4) (expt p 2))
            (v/freeze
@@ -120,15 +121,20 @@
            (v/freeze
             (simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y)))))))
 
-    (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2)) (* 2 m))
+    (is (= '(/ (+ (* m (V x y))
+                  (* (/ 1 2) (expt p_x 2))
+                  (* (/ 1 2) (expt p_y 2)))
+               m)
            (simplify ((H/Lagrangian->Hamiltonian
                        (L/L-rectangular 'm V))
                       (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest gjs-tests
   (is (= '(up 0
-              (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
-              (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t))) (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
+              (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
+                  (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
+              (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t)))
+                    (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
 
          (f/with-literal-functions [x y p_x p_y [V [0 1] 2]]
            (simplify (((H/Hamilton-equations
@@ -138,7 +144,10 @@
                        (H/momentum-tuple p_x p_y))
                       't)))))
 
-  (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
+  (is (= '(/ (+ (* m (expt r 2) (V r))
+                (* (/ 1 2) (expt p_r 2) (expt r 2))
+                (* (/ 1 2) (expt p_phi 2)))
+             (* m (expt r 2)))
          (f/with-literal-functions [[V [0 1] 2]]
            (simplify
             ((H/Lagrangian->Hamiltonian

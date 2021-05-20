@@ -177,7 +177,7 @@ is okay due to the 'equality of mixed partials'."}
 
 This setting is `false` by default."}
   *divide-numbers-through-simplify?*
-  false)
+  true)
 
 (def ^{:dynamic true
        :doc "Transforms products of trig functions into functions of sums of

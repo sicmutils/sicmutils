@@ -69,20 +69,40 @@
         one (p/make [1])]
     (is (= (rf/make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
            (rf/make (p/make [1 2 3]) (p/make [4 5 -6]))))
+
     (is (= (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))
            (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))))
+
     (is (= one (rf/rf:* x+1:x-1 x-1:x+1)))
     (is (= one (rf/rf:* x-1:x+1 x+1:x-1)))
-    (is (= (rf/make (p/make [1 -1]) (p/make [1 1])) (rf/negate x-1:x+1)))
+
+    (is (= (rf/make (p/make [1 -1]) (p/make [1 1]))
+           (rf/negate x-1:x+1)))
+
     (is (= x+1:x-1 (rf/invert x-1:x+1)))
+
     (is (= one (rf/rf:* x-1:x+1 (rf/invert x-1:x+1))))
-    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1])) (rf/rf:+ x-1:x+1 x+1:x-1)))
-    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1])) (rf/rf:+ x+1:x-1 x-1:x+1)))
-    (is (= (rf/make (p/make [1 2 1]) (p/make [1 -2 1])) (rf/expt x+1:x-1 2)))
-    (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1])) (rf/expt x+1:x-1 -2)))
+
+    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1]))
+           (rf/rf:+ x-1:x+1 x+1:x-1)))
+
+    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1]))
+           (rf/rf:+ x+1:x-1 x-1:x+1)))
+
+    (is (= (rf/make (p/make [1 2 1]) (p/make [1 -2 1]))
+           (rf/expt x+1:x-1 2)))
+
+    (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1]))
+           (rf/expt x+1:x-1 -2)))
+
     (is (= (p 3) (rf/rf:+ (rf 3 2) (rf 3 2))))
-    (is (= #sicm/ratio 5/3 (rf/rf:div (rf 5 2) (rf 3 2))))
-    (is (= #sicm/ratio 14/3 (rf/rf:div (rf 8 3) (rf 4 7))))
+
+    (is (= #sicm/ratio 5/3
+           (rf/div (rf 5 2) (rf 3 2))))
+
+    (is (= #sicm/ratio 14/3
+           (rf/div (rf 8 3) (rf 4 7))))
+
     (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
            (rf/make (p/make [0 #sicm/ratio 1/2 #sicm/ratio 1/3])
                     (p/make [0 0 #sicm/ratio 1/2 #sicm/ratio 3/5]))))))
@@ -158,11 +178,11 @@
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
     (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z)))))
-    (is (= '(* (/ 1 6) y)
+    (is (= 'y
            (v/freeze
             (rf-simp
              '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z)))))
-        "Can handle rational gcd!"))
+        "Can handle rational gcd! TODO note..."))
 
   (testing "quotients"
     (is (= '(/ 1 (* 2 x))

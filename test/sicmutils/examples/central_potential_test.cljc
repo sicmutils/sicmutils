@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+                                        ;
+                                        ; Copyright © 2017 Colin Smith.
+                                        ; This work is based on the Scmutils system of MIT/GNU Scheme:
+                                        ; Copyright © 2002 Massachusetts Institute of Technology
+                                        ;
+                                        ; This is free software;  you can redistribute it and/or modify
+                                        ; it under the terms of the GNU General Public License as published by
+                                        ; the Free Software Foundation; either version 3 of the License, or (at
+                                        ; your option) any later version.
+                                        ;
+                                        ; This software is distributed in the hope that it will be useful, but
+                                        ; WITHOUT ANY WARRANTY; without even the implied warranty of
+                                        ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+                                        ; General Public License for more details.
+                                        ;
+                                        ; You should have received a copy of the GNU General Public License
+                                        ; along with this code; if not, see <http://www.gnu.org/licenses/>.
+                                        ;
 
 (ns sicmutils.examples.central-potential-test
   (:refer-clojure :exclude [+ - * / partial])
@@ -40,15 +40,15 @@
                (e/simplify
                 ((central/V 'm1 'm2) state))))
 
-
       ;; (is (println "unsimplified central" ((central/L 'm1 'm2) state)))
-      (is (v/= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                      (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                      (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                      (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                      (* 2 m1 m2))
-                   (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
-               (e/simplify ((central/L 'm1 'm2) state))))
+      (is (= '(/ (+ (* (/ 1 2) (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (/ 1 2) (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (/ 1 2) (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (/ 1 2) (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* m1 m2))
+                 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+             (e/freeze
+              (e/simplify ((central/L 'm1 'm2) state)))))
       (let [F ((partial 1) (central/L 'm1 'm2))
             P ((partial 2) (central/L 'm1 'm2))
             N (- F

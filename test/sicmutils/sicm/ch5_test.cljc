@@ -36,8 +36,10 @@
 
 (deftest section-5-1
   (testing "central field"
-    (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2))
-               (* 2 m (expt r 2)))
+    (is (= '(/ (+ (* m (expt r 2) (V r))
+                  (* (/ 1 2) (expt p_r 2) (expt r 2))
+                  (* (/ 1 2) (expt p_phi 2)))
+               (* m (expt r 2)))
            (simplify ((compose (H/H-central 'm (literal-function 'V))
                                (F->CT p->r))
                       (up 't
@@ -211,65 +213,72 @@
         Dsol ((D sol) 't)]))
 
 (deftest section-5-10
-  (let [H-harmonic (fn [m k]
-                     (fn [state]
-                       (+ (/ (square (e/momentum state)) (* 2 m))
-                          (* (/ 1 2) k (square (e/coordinate state))))))]
+  (letfn [(H-harmonic [m k]
+            (fn [state]
+              (+ (/ (square (e/momentum state)) (* 2 m))
+                 (* (/ 1 2) k (square (e/coordinate state))))))]
     (is (= '(x0
              (/ (* dt p0) m)
-             (/ (* -1 (expt dt 2) k x0) (* 2 m))
-             (/ (* -1 (expt dt 3) k p0) (* 6 (expt m 2)))
-             (/ (* (expt dt 4) (expt k 2) x0) (* 24 (expt m 2)))
-             (/ (* (expt dt 5) (expt k 2) p0) (* 120 (expt m 3))))
-           (simplify (take 6 (seq
-                              (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
-                                e/coordinate)
-                               (up 0 'x0 'p0)))))))
+             (/ (* (/ -1 2) (expt dt 2) k x0) m)
+             (/ (* (/ -1 6) (expt dt 3) k p0) (expt m 2))
+             (/ (* (/ 1 24) (expt dt 4) (expt k 2) x0) (expt m 2))
+             (/ (* (/ 1 120) (expt dt 5) (expt k 2) p0) (expt m 3)))
+           (simplify
+            (take 6 (seq
+                     (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
+                       e/coordinate)
+                      (up 0 'x0 'p0)))))))
     (is (= '(p0
              (* -1 dt k x0)
-             (/ (* -1 (expt dt 2) k p0) (* 2 m))
-             (/ (* (expt dt 3) (expt k 2) x0) (* 6 m))
-             (/ (* (expt dt 4) (expt k 2) p0) (* 24 (expt m 2)))
-             (/ (* -1 (expt dt 5) (expt k 3) x0) (* 120 (expt m 2))))
-           (simplify (take 6 (seq
-                              (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
-                                e/momentum)
-                               (up 0 'x0 'p0)))))))
-    (is (= '((/ (+ (* k m (expt x0 2)) (expt p0 2)) (* 2 m))
+             (/ (* (/ -1 2) (expt dt 2) k p0) m)
+             (/ (* (/ 1 6) (expt dt 3) (expt k 2) x0) m)
+             (/ (* (/ 1 24) (expt dt 4) (expt k 2) p0) (expt m 2))
+             (/ (* (/ -1 120) (expt dt 5) (expt k 3) x0) (expt m 2)))
+           (simplify
+            (take 6 (seq
+                     (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
+                       e/momentum)
+                      (up 0 'x0 'p0)))))))
+
+    (is (= '((/ (+ (* (/ 1 2) k m (expt x0 2))
+                   (* (/ 1 2)(expt p0 2)))
+                m)
              0
              0
              0
              0
              0)
-           (simplify (take 6 (seq
-                              (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
-                                (H-harmonic 'm 'k))
-                               (up 0 'x0 'p0)))))))
+           (simplify
+            (take 6 (seq
+                     (((e/Lie-transform (H-harmonic 'm 'k) 'dt)
+                       (H-harmonic 'm 'k))
+                      (up 0 'x0 'p0)))))))
     (let [state (up 't
                     (up 'r_0 'phi_0)
                     (down 'p_r_0 'p_phi_0))]
-      (is (= '(/ (+ (* 2 m (expt r_0 2) (U r_0))
-                    (* (expt p_r_0 2) (expt r_0 2))
-                    (expt p_phi_0 2))
-                 (* 2 m (expt r_0 2)))
+      (is (= '(/ (+ (* m (expt r_0 2) (U r_0))
+                    (* (/ 1 2) (expt p_r_0 2) (expt r_0 2))
+                    (* (/ 1 2) (expt p_phi_0 2)))
+                 (* m (expt r_0 2)))
              (simplify
               ((H/H-central-polar 'm (literal-function 'U)) state))))
+
       (is (= '((up r_0 phi_0)
-               (up (/ (* dt p_r_0) m)
-                   (/ (* dt p_phi_0)
-                      (* m (expt r_0 2))))
-               (up (/ (+ (* -1N (expt dt 2) m (expt r_0 3) ((D U) r_0))
-                         (* (expt dt 2) (expt p_phi_0 2)))
-                      (* 2N (expt m 2) (expt r_0 3)))
-                   (/ (* -1N (expt dt 2) p_phi_0 p_r_0)
-                      (* (expt m 2) (expt r_0 3))))
-               (up (/ (+ (* -1 (expt dt 3) m p_r_0 (expt r_0 4) (((expt D 2) U) r_0))
-                         (* -3 (expt dt 3) (expt p_phi_0 2) p_r_0))
-                      (* 6 (expt m 3) (expt r_0 4)))
-                   (/ (+ (* (expt dt 3) m p_phi_0 (expt r_0 3) ((D U) r_0))
-                         (* 3 (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
-                         (* -1 (expt dt 3) (expt p_phi_0 3)))
-                      (* 3N (expt m 3) (expt r_0 6)))))
+               (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
+               (up
+                (/ (+ (* (/ -1 2) (expt dt 2) m (expt r_0 3) ((D U) r_0))
+                      (* (/ 1 2) (expt dt 2) (expt p_phi_0 2)))
+                   (* (expt m 2) (expt r_0 3)))
+                (/ (* -1 (expt dt 2) p_phi_0 p_r_0)
+                   (* (expt m 2) (expt r_0 3))))
+               (up
+                (/ (+ (* (/ -1 6) (expt dt 3) m p_r_0 (expt r_0 4) (((expt D 2) U) r_0))
+                      (* (/ -1 2) (expt dt 3) (expt p_phi_0 2) p_r_0))
+                   (* (expt m 3) (expt r_0 4)))
+                (/ (+ (* (/ 1 3) (expt dt 3) m p_phi_0 (expt r_0 3) ((D U) r_0))
+                      (* (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
+                      (* (/ -1 3) (expt dt 3) (expt p_phi_0 3)))
+                   (* (expt m 3) (expt r_0 6)))))
              (simplify
               (take 4 (((e/Lie-transform
                          (H/H-central-polar 'm (literal-function 'U)) 'dt)
