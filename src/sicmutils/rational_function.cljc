@@ -617,11 +617,25 @@
   analyzer
   (->RationalFunctionAnalyzer))
 
+;; ## Polynomial Extensions
+;;
+;; Made possible since we can now invert OUT of the ring.
+
+(defmethod g/invert [::p/polynomial] [p]
+  (let [a (p/bare-arity p)]
+    (if (g/negative? p)
+      (->RationalFunction a -1 (g/negate p))
+      (->RationalFunction a 1 p))))
+
+(p/defbinary g/div make)
+(p/defbinary g/solve-linear-right make)
+(p/defbinary g/solve-linear (fn [l r] (div r l)))
+
 ;; ## Generic Method Implementations
 ;;
 ;; TODO `exact-divide`, `quotient`, `remainder`, `lcm`
 
-(defn- defbinary [generic-op f]
+(defn ^:no-doc defbinary [generic-op f]
   (let [pairs [[::rational-function ::rational-function]
                [::p/polynomial ::rational-function]
                [::p/coeff ::rational-function]
@@ -631,7 +645,12 @@
       (defmethod generic-op [l r] [r s]
         (f r s)))))
 
-(defbinary v/= eq)
+(defmethod v/= [::rational-function ::rational-function] [l r] (eq l r))
+(defmethod v/= [::p/polynomial ::rational-function] [l r] (eq r l))
+(defmethod v/= [::p/coeff ::rational-function] [l r] (eq r l))
+(defmethod v/= [::rational-function ::p/polynomial] [l r] (eq l r))
+(defmethod v/= [::rational-function ::p/coeff] [l r] (eq l r))
+
 (defbinary g/add rf:+)
 (defbinary g/sub rf:-)
 (defbinary g/mul rf:*)
@@ -667,25 +686,3 @@
         :else
         (u/illegal
          (str "Invalid selector! Only 1 deep supported."))))
-
-;; ## Polynomial Extensions
-;;
-;; Made possible since we can now invert OUT of the ring.
-
-(defmethod g/invert [::p/polynomial] [p]
-  (let [a (p/bare-arity p)]
-    (if (g/negative? p)
-      (->RationalFunction a -1 (g/negate p))
-      (->RationalFunction a 1 p))))
-
-(defmethod g/div [::p/polynomial ::p/polynomial] [p q] (make p q))
-(defmethod g/div [::p/coeff ::p/polynomial] [c p] (make c p))
-(defmethod g/div [::p/polynomial ::p/coeff] [p c] (make p c))
-
-(defmethod g/solve-linear-right [::p/polynomial ::p/polynomial] [s t] (make s t))
-(defmethod g/solve-linear-right [::p/coeff ::p/polynomial] [c s] (make c s))
-(defmethod g/solve-linear-right [::p/polynomial ::p/coeff] [s c] (make s c))
-
-(defmethod g/solve-linear [::p/polynomial ::p/polynomial] [s t] (make t s))
-(defmethod g/solve-linear [::p/coeff ::p/polynomial] [c s] (make s c))
-(defmethod g/solve-linear [::p/polynomial ::p/coeff] [s c] (make c s))
