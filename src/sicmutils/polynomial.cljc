@@ -1305,6 +1305,7 @@
 (derive ::v/scalar ::coeff)
 (derive ::mi/modint ::coeff)
 
+(defmethod v/= [::polynomial ::polynomial] [l r] (eq l r))
 (defmethod v/= [::polynomial ::coeff] [l r] (eq l r))
 (defmethod v/= [::coeff ::polynomial] [l r] (eq r l))
 
@@ -1328,23 +1329,13 @@
 (defmethod g/negative? [::polynomial] [a] (negative? a))
 (defmethod g/abs [::polynomial] [a] (abs a))
 
-(defmethod g/add [::polynomial ::polynomial] [a b]
-  (poly:+ a b))
+(defmethod g/add [::polynomial ::polynomial] [a b] (poly:+ a b))
+(defmethod g/add [::coeff ::polynomial] [c p] (poly:+ c p))
+(defmethod g/add [::polynomial ::coeff] [p c] (poly:+ p c))
 
-(defmethod g/add [::coeff ::polynomial] [c p]
-  (poly:+ (constant (bare-arity p) c) p))
-
-(defmethod g/add [::polynomial ::coeff] [p c]
-  (poly:+ p (constant (bare-arity p) c)))
-
-(defmethod g/sub [::polynomial ::polynomial] [a b]
-  (poly:- a b))
-
-(defmethod g/sub [::coeff ::polynomial] [c p]
-  (poly:- (constant (bare-arity p) c) p))
-
-(defmethod g/sub [::polynomial ::coeff] [p c]
-  (poly:- p (constant (bare-arity p) c)))
+(defmethod g/sub [::polynomial ::polynomial] [a b] (poly:- a b))
+(defmethod g/sub [::coeff ::polynomial] [c p] (poly:- c p))
+(defmethod g/sub [::polynomial ::coeff] [p c] (poly:- p c))
 
 (defmethod g/mul [::polynomial ::polynomial] [a b] (poly:* a b))
 (defmethod g/mul [::coeff ::polynomial] [c p] (scale-l c p))
@@ -1354,8 +1345,6 @@
 (defmethod g/cube [::polynomial] [a] (cube a))
 (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
 
-;; TODO `modulo`, how to handle?
-
 (defmethod g/quotient [::polynomial ::polynomial] [p q] (nth (divide p q) 0))
 (defmethod g/quotient [::polynomial ::coeff] [p q] (nth (divide p q) 0))
 (defmethod g/quotient [::coeff ::polynomial] [p q] (nth (divide p q) 0))
@@ -1364,12 +1353,10 @@
 (defmethod g/remainder [::polynomial ::coeff] [p q] (nth (divide p q) 1))
 (defmethod g/remainder [::coeff ::polynomial] [p q] (nth (divide p q) 1))
 
-(defmethod g/exact-divide [::polynomial ::polynomial] [p q]
-  (evenly-divide p q))
+;; TODO `modulo`, how to handle?
 
-(defmethod g/exact-divide [::polynomial ::coeff] [p c]
-  (evenly-divide p c))
-
+(defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
+(defmethod g/exact-divide [::polynomial ::coeff] [p c] (evenly-divide p c))
 (defmethod g/exact-divide [::coeff ::polynomial] [c p]
   (let [[term :as terms] (bare-terms p)]
     (if (and (= (count terms) 1)

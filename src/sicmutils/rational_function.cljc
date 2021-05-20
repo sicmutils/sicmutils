@@ -619,18 +619,40 @@
 
 ;; ## Generic Method Implementations
 ;;
-;; TODO figure out MORE methods to install here... cos etc?
-;;
-;; `exact-divide`, `partial-derivative`,
-;; `solve-linear-right`, `solve-linear`
+;; TODO `exact-divide`, `quotient`, `remainder`, `lcm`
 
-;; TODO can I make them inherit... and then just do the top one ONLY?
+(defn- defbinary [generic-op f]
+  (let [pairs [[::rational-function ::rational-function]
+               [::p/polynomial ::rational-function]
+               [::p/coeff ::rational-function]
+               [::rational-function ::p/polynomial]
+               [::rational-function ::p/coeff]]]
+    (doseq [[l r] pairs]
+      (defmethod generic-op [l r] [r s]
+        (f r s)))))
 
-(defmethod v/= [::rational-function ::rational-function] [u v] (eq u v))
-(defmethod v/= [::rational-function ::polynomial] [u v] (eq u v))
-(defmethod v/= [::rational-function ::coeff] [u v] (eq u v))
-(defmethod v/= [::polynomial ::rational-function] [u v] (eq v u))
-(defmethod v/= [::p/coeff ::rational-function] [u v] (eq v u))
+(defbinary v/= eq)
+(defbinary g/add rf:+)
+(defbinary g/sub rf:-)
+(defbinary g/mul rf:*)
+(defbinary g/div div)
+(defbinary g/solve-linear-right div)
+(defbinary g/solve-linear (fn [l r] (div r l)))
+(defbinary g/gcd gcd)
+
+(defmethod g/negative? [::rational-function] [a] (negative? a))
+(defmethod g/abs [::rational-function] [a] (abs a))
+(defmethod g/negate [::rational-function] [a] (negate a))
+(defmethod g/invert [::rational-function] [a] (invert a))
+(defmethod g/square [::rational-function] [a] (square a))
+(defmethod g/cube [::rational-function] [a] (square a))
+
+(defmethod g/expt [::rational-function ::v/integral] [b x] (expt b x))
+
+(defmethod g/simplify [::rational-function] [r]
+  (->RationalFunction (g/simplify (bare-u r))
+                      (g/simplify (bare-v r))
+                      (meta r)))
 
 ;; TODO put this somewhere where I can depend on the `down` structure!
 #_
@@ -646,44 +668,15 @@
         (u/illegal
          (str "Invalid selector! Only 1 deep supported."))))
 
-(defmethod g/simplify [::rational-function] [r]
-  (->RationalFunction (g/simplify (bare-u r))
-                      (g/simplify (bare-v r))
-                      (meta r)))
-
-(defmethod g/add [::rational-function ::rational-function] [u v] (rf:+ u v))
-(defmethod g/add [::rational-function ::p/polynomial] [u v] (rf:+ u v))
-(defmethod g/add [::rational-function ::p/coeff] [u v] (rf:+ u v))
-(defmethod g/add [::p/polynomial ::rational-function] [u v] (rf:+ u v))
-(defmethod g/add [::p/coeff ::rational-function] [u v] (rf:+ u v))
-
-(defmethod g/negative? [::rational-function] [a] (negative? a))
-(defmethod g/negate [::rational-function] [a] (negate a))
-(defmethod g/abs [::rational-function] [a] (abs a))
-
-(defmethod g/sub [::rational-function ::rational-function] [a b] (rf:- a b))
-(defmethod g/sub [::rational-function ::p/polynomial] [u v] (rf:- u v))
-(defmethod g/sub [::rational-function ::p/coeff] [u v] (rf:- u v))
-(defmethod g/sub [::p/polynomial ::rational-function] [u v] (rf:- u v))
-(defmethod g/sub [::p/coeff ::rational-function] [u v] (rf:- u v))
-
-(defmethod g/mul [::rational-function ::rational-function] [u v] (rf:* u v))
-(defmethod g/mul [::rational-function ::p/polynomial] [u v] (rf:* u v))
-(defmethod g/mul [::rational-function ::p/coeff] [u v] (rf:* u v))
-(defmethod g/mul [::p/polynomial ::rational-function] [u v] (rf:* u v))
-(defmethod g/mul [::p/coeff ::rational-function] [u v] (rf:* u v))
+;; ## Polynomial Extensions
+;;
+;; Made possible since we can now invert OUT of the ring.
 
 (defmethod g/invert [::p/polynomial] [p]
   (let [a (p/bare-arity p)]
     (if (g/negative? p)
       (->RationalFunction a -1 (g/negate p))
       (->RationalFunction a 1 p))))
-
-(defmethod g/div [::rational-function ::rational-function] [u v] (div u v))
-(defmethod g/div [::rational-function ::p/polynomial] [u v] (div u v))
-(defmethod g/div [::rational-function ::p/coeff] [r c] (div r c))
-(defmethod g/div [::p/polynomial ::rational-function] [u v] (div u v))
-(defmethod g/div [::p/coeff ::rational-function] [c r] (div c r))
 
 (defmethod g/div [::p/polynomial ::p/polynomial] [p q] (make p q))
 (defmethod g/div [::p/coeff ::p/polynomial] [c p] (make c p))
@@ -696,11 +689,3 @@
 (defmethod g/solve-linear [::p/polynomial ::p/polynomial] [s t] (make t s))
 (defmethod g/solve-linear [::p/coeff ::p/polynomial] [c s] (make s c))
 (defmethod g/solve-linear [::p/polynomial ::p/coeff] [s c] (make c s))
-
-(defmethod g/expt [::rational-function ::v/integral] [b x] (expt b x))
-
-(defmethod g/gcd [::rational-function ::rational-function] [u v] (gcd u v))
-(defmethod g/gcd [::p/polynomial ::rational-function] [u v] (gcd u v))
-(defmethod g/gcd [::p/coeff ::rational-function] [u v] (gcd u v))
-(defmethod g/gcd [::rational-function ::p/polynomial] [u v] (gcd u v))
-(defmethod g/gcd [::rational-function ::p/coeff] [u v] (gcd u v))
