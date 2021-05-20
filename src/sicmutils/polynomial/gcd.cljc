@@ -244,7 +244,7 @@
   (ua/monoid binary-gcd 0 v/one?))
 
 (def primitive-gcd
-  (comp g/abs (->gcd g/gcd)))
+  (->gcd g/gcd))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
@@ -286,8 +286,6 @@
   [u v]
   (cond (v/zero? u) (g/abs v)
         (v/zero? v) (g/abs u)
-        (v/one? u) u
-        (v/one? v) v
         (p/coeff? u) (if (p/coeff? v)
                        (g/gcd u v)
                        (gcd-poly-number v u))

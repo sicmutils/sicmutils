@@ -35,16 +35,19 @@
             [taoensso.timbre :as log]))
 
 (deftest gcd-tests
-  (checking "gcd matches pg behavior for numbers" 100
-            [x sg/any-integral
-             y sg/any-integral]
+  (checking "gcd matches pg behavior for rationals" 100
+            [x sg/rational
+             y sg/rational]
             (is (= (pg/gcd x y)
                    (g/gcd x y))))
 
-  (checking "primitive-gcd matches normal gcd" 100
+  (checking "primitive-gcd matches normal gcd, for more than ONE input." 100
             [xs (gen/vector sg/any-integral)]
-            (is (= (reduce g/gcd 0 xs)
-                   (apply pg/primitive-gcd xs))))
+            (let [xs (if (= 1 (count xs))
+                       (concat xs xs)
+                       xs)]
+              (is (= (reduce g/gcd 0 xs)
+                     (apply pg/primitive-gcd xs)))))
 
   (testing "inexact coefficients"
     (is (= 1.0 (g/gcd
@@ -476,9 +479,3 @@
               (is (g/exact-divide ud g))
               (is (g/exact-divide vd g))
               (is (g/exact-divide g d)))))
-
-
-(comment
-  (g/gcd
-   (p/make 1 {[1 2] 2 [2 1] 3})
-   (p/make 1 {[1 3] 2 [2 1] 3})))
