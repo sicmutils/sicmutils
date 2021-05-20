@@ -241,17 +241,21 @@
 
 ;; ## Basic GCD for Coefficients, Monomials
 
-(defn primitive-gcd
+(defn ^:no-doc primitive-gcd
   "A function which will return the gcd of a sequence of numbers. TODO put this in
-  `numbers`... NOT here."
+  `numbers`... NOT here.
+
+  TODO note that this only works for integral coefficients... otherwise we can't
+  bail, since we can of COURSE have fractional inputs. So why EVER stop at 1?"
   [xs]
   (g/abs
    (reduce (fn
              ([] 0)
              ([x] x)
-             ([x y] (if (v/one? x)
-                      (reduced x)
-                      (g/gcd x y))))
+             ([x y]
+              (if (v/one? x)
+                (reduced x)
+                (g/gcd x y))))
            xs)))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.

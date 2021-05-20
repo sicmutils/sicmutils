@@ -653,47 +653,39 @@
 
 ;; I don't know if this stuff is ever important...GJS
 
-(defn assoc-monoid [rat:op poly:op rat:identity]
-  (letfn [(operate [rats]
-            (cond (empty? rats) rat:identity
+(defn assoc-monoid
+  "TODO change this to some sort of partition-by... and then reduce each partition
+  by what it wants.
 
-                  (empty? (rest rats)) (first rats)
+  ALSO I think this is not going to be something we need. Fun though!"
+  [rat:op poly:op rat:identity]
+  (fn operate
+    ([] rat:identity)
+    ([x] x)
+    ([x y & more]
+     (cond (rational-function? x)
+           (cond (rational-function? y)
+                 (operate
+                  (cons (rat:op x y) more))
 
-                  (rational-function? (first rats))
-                  (cond (rational-function? (second rats))
-                        (operate
-                         (cons (rat:op (first rats)
-                                       (second rats))
-                               (drop 2 rats)))
+                 (empty? more)
+                 (rat:op x y)
 
-                        (empty? (drop 2 rats))
-                        (rat:op (first rats)
-                                (second rats))
+                 (not (rational-function? (first more)))
+                 (operate
+                  (cons x (cons (poly:op y (first more))
+                                (rest more))))
 
-                        (not (rational-function? (nth rats 2)))
-                        (operate
-                         (cons (first rats)
-                               (cons (poly:op (second rats)
-                                              (nth rats 2))
-                                     (drop 3 rats))))
+                 :else (operate
+                        (cons (rat:op x y) more)))
 
-                        :else (operate
-                               (cons (rat:op (first rats)
-                                             (second rats))
-                                     (drop 2 rats))))
+           (rational-function? y)
+           (operate
+            (cons (rat:op x y) more))
 
-                  (rational-function? (second rats))
-                  (operate
-                   (cons (rat:op (first rats)
-                                 (second rats))
-                         (drop 2 rats)))
-                  :else
-                  (operate
-                   (cons (poly:op (first rats)
-                                  (second rats))
-                         (drop 2 rats)))))]
-    (fn [& xs]
-      (operate xs))))
+           :else
+           (operate
+            (cons (poly:op x y) more))))))
 
 (def +$rf (assoc-monoid rf:+ p/poly:+ 0))
 (def *$rf (assoc-monoid rf:* p/poly:* 1))

@@ -41,31 +41,29 @@
             (is (= (pg/gcd x y)
                    (g/gcd x y))))
 
-  ;; TODO let's see if we can expand this to work with integrals by NOT
-
   (checking "primitive-gcd matches normal gcd" 100
             [xs (gen/vector sg/any-integral)]
             (is (= (reduce g/gcd 0 xs)
                    (pg/primitive-gcd xs))))
 
   (testing "inexact coefficients"
-    (is (v/= 1.0 (g/gcd
-                  (p/make [0.2 0.4 0.6])
-                  (p/make [0.4 0.6 0.8])))))
+    (is (= 1.0 (g/gcd
+                (p/make [0.2 0.4 0.6])
+                (p/make [0.4 0.6 0.8])))))
 
   (testing "divide constant arity 2"
     (let [X (p/make 2 [[[1 0] 1]])
           Y (p/make 2 [[[0 1] 1]])]
-      (is (= [(p/make 2 []) X] (p/divide X Y)))
-      (is (= [(p/make 2 []) Y] (p/divide Y X)))))
+      (is (= [0 X] (p/divide X Y)))
+      (is (= [0 Y] (p/divide Y X)))))
 
-  (testing "constant case"
-    (is (= 4 (g/gcd (p/constant 8)
-                    (p/constant 4))))
-    (is (= 1 (g/gcd (p/constant 7)
-                    (p/constant 11))))
-    (is (= (p/constant 11)
-           (g/gcd 0 (p/constant 11)))))
+  (checking "constant case" 100
+            [x sg/any-integral
+             y sg/any-integral]
+            (is (v/= (g/gcd x y)
+                     (g/gcd
+                      (p/constant x)
+                      (p/constant y)))))
 
   (testing "GCD: arity 1 case"
     (let [x+1 (p/make [1 1])
@@ -478,3 +476,9 @@
               (is (g/exact-divide ud g))
               (is (g/exact-divide vd g))
               (is (g/exact-divide g d)))))
+
+
+(comment
+  (g/gcd
+   (p/make 1 {[1 2] 2 [2 1] 3})
+   (p/make 1 {[1 3] 2 [2 1] 3})))
