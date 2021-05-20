@@ -294,7 +294,13 @@
 
         :else 1))
 
-(defn- ->reduced [u v]
+(defn- ->reduced
+  "First , cancels out any rational numbers in coefficients in the numerator or
+  denominator.
+
+  Then, cancel out common factors... finally, reduce to a poly OR constant if
+  necessary."
+  [u v]
   (when (v/zero? v)
     (u/arithmetic-ex
      "Can't form rational function with zero denominator"))

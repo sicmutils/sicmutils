@@ -169,8 +169,6 @@
            (p/map-exponents unsort)))
     (continue u v)))
 
-;; TODO fix these bullshits!
-
 (defn ->content+primitive
   "The 'content' of a polynomial is the greatest common divisor of its
   coefficients. The 'primitive part' of a polynomial is the quotient of the
@@ -410,9 +408,9 @@
 (defn lcm [u v]
   (if (or (p/polynomial? u)
           (p/polynomial? v))
-    (p/abs
-     (p/evenly-divide (p/poly:* u v)
-                      (gcd u v)))
+    (let [g (gcd u v)]
+      (p/abs
+       (p/poly:* (p/evenly-divide u g) v)))
     (g/lcm u v)))
 
 ;; TODO test `gcd` between OTHER types and polynomials here...
