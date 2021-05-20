@@ -240,8 +240,11 @@
 
 ;; ## Basic GCD for Coefficients, Monomials
 
-(defn ->gcd [binary-gcd]
-  (ua/monoid binary-gcd 0))
+(defn ->gcd
+  "TODO figure out what the hell... the factor tests fail if we let rational
+  coefficients in. What is the deal there? How can we fix it and relax `v/one?`"
+  [binary-gcd]
+  (ua/monoid binary-gcd 0 v/one?))
 
 (def primitive-gcd
   (->gcd g/gcd))
@@ -432,9 +435,8 @@
 (defmethod g/lcm [::p/polynomial ::p/coeff] [u v] (lcm u v))
 
 (defn- gcd-seq
-  "Compute the GCD of a sequence of polynomials.
-
-  NOTE: Breaks early if the gcd of an initial segment is `one?`."
+  "Compute the GCD of a sequence of polynomials (we take care to break early if
+  the gcd of an initial segment is [[sicmutils.value/one?]])"
   [items]
   (transduce (ua/halt-at v/one?)
              gcd-dispatch
