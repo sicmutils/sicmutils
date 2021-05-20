@@ -126,7 +126,7 @@
     (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
 
 (def ^:private rf-analyzer
-  (rf/->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
+  (rf/->RationalFunctionAnalyzer))
 
 (def ^:private rf-simp
   #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))

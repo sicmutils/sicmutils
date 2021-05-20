@@ -1215,10 +1215,10 @@
       (partial-derivative p i))))
 
 ;; ## Canonicalizer
-
-;; The operator-table represents the operations that can be understood
-;; from the point of view of a polynomial over a commutative ring. The
-;; functions take polynomial inputs and return polynomials.
+;;
+;; The operator-table represents the operations that can be understood from the
+;; point of view of a polynomial over a commutative ring. The functions take
+;; polynomial inputs and return polynomials.
 
 (def ^:private operator-table
   {'+ (ua/monoid poly:+ 0)
@@ -1228,8 +1228,8 @@
    'expt expt
    'square square
    'cube cube
-   'gcd g/gcd
-   'lcm g/lcm})
+   'gcd (ua/monoid g/gcd 0 v/one?)
+   'lcm (ua/monoid g/lcm 1 v/zero?)})
 
 (def ^:no-doc operators-known
   (u/keyset operator-table))

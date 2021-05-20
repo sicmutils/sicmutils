@@ -55,8 +55,7 @@
   functions.
   NOTE: This is rcf:analyzer."
   []
-  (let [backend (rf/->RationalFunctionAnalyzer
-                 (poly/->PolynomialAnalyzer))
+  (let [backend (rf/->RationalFunctionAnalyzer)
         gensym  (a/monotonic-symbol-generator "-r-")]
     (a/make-analyzer backend gensym)))
 

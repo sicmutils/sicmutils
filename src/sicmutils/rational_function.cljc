@@ -555,13 +555,13 @@
    'expt expt
    'square square
    'cube cube
-   'gcd gcd
-   'lcm g/lcm})
+   'gcd (ua/monoid gcd 0 v/one?)
+   'lcm (ua/monoid g/lcm 1 v/zero?)})
 
 (def operators-known
   (u/keyset operator-table))
 
-(deftype RationalFunctionAnalyzer [poly-analyzer]
+(deftype RationalFunctionAnalyzer []
   a/ICanonicalize
   (expression-> [this expr cont]
     (a/expression-> this expr cont compare))
@@ -591,17 +591,17 @@
     ;; indeterminates extracted from the expression at the start of this
     ;; process."
     (if-not (rational-function? r)
-      (a/->expression poly-analyzer r vars)
+      (p/->expression r vars)
       ((sym/symbolic-operator '/)
-       (a/->expression poly-analyzer (bare-u r) vars)
-       (a/->expression poly-analyzer (bare-v r) vars))))
+       (p/->expression (bare-u r) vars)
+       (p/->expression (bare-v r) vars))))
 
   (known-operation? [_ o]
     (contains? operators-known o)))
 
 (def ^{:doc "Singleton [[a/ICanonicalize]] instance."}
   analyzer
-  (->RationalFunctionAnalyzer p/analyzer))
+  (->RationalFunctionAnalyzer))
 
 ;; ## Generic Method Implementations
 ;;
