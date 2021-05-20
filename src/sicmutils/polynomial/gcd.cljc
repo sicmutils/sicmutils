@@ -244,7 +244,7 @@
   (ua/monoid binary-gcd 0 v/one?))
 
 (def primitive-gcd
-  (->gcd g/gcd))
+  (comp g/abs (->gcd g/gcd)))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
@@ -265,14 +265,14 @@
   {:pre [(p/monomial? m)
          (p/polynomial? p)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
-        mono-keys (keys mono-expts)
-        xs (transduce (map p/exponents)
-                      xpt/gcd
-                      mono-expts
-                      (p/bare-terms p))
-        c (gcd-poly-number p mono-coeff)]
+        expts (transduce (map p/exponents)
+                         xpt/gcd
+                         mono-expts
+                         (p/bare-terms p))
+        coeff (gcd-poly-number p mono-coeff)]
     (swap! gcd-monomials inc)
-    (p/terms->polynomial (p/bare-arity m) [[xs c]])))
+    (p/terms->polynomial (p/bare-arity m)
+                         [(p/make-term expts coeff)])))
 
 (comment
   (is (= (p/make 2 {[1 2] 3})
@@ -281,6 +281,20 @@
 
 ;; ## GCD Routines
 
+(defn trivial-gcd
+  "Checks trivial conditions, or returns nil."
+  [u v]
+  (cond (v/zero? u) (g/abs v)
+        (v/zero? v) (g/abs u)
+        (v/one? u) u
+        (v/one? v) v
+        (p/coeff? u) (if (p/coeff? v)
+                       (g/gcd u v)
+                       (gcd-poly-number v u))
+        (p/coeff? v) (gcd-poly-number u v)
+        (= u v) u
+        :else nil))
+
 (defn- euclid-inner-loop
   "TODO THIS is sort of messed up, since this damned thing does a RECUR and can
   potentially drop down to non... polynomial stuff. I think the whole codebase
@@ -288,21 +302,12 @@
   [coeff-gcd]
   (fn [u v]
     (maybe-bail-out "euclid inner loop")
-    (cond (v/zero? u) v
-          (v/zero? v) u
-          (v/one? u) u
-          (v/one? v) v
-          (p/coeff? u) (if (p/coeff? v)
-                         (g/gcd u v)
-                         (gcd-poly-number v u))
-          (p/coeff? v) (gcd-poly-number u v)
-          (= u v) u
-          :else
-          (let [[r _] (p/pseudo-remainder u v)]
-            (if (v/zero? r)
-              v
-              (let [[_ prim] (->content+primitive r coeff-gcd)]
-                (recur v prim)))))))
+    (or (trivial-gcd u v)
+        (let [[r _] (p/pseudo-remainder u v)]
+          (if (v/zero? r)
+            v
+            (let [[_ prim] (->content+primitive r coeff-gcd)]
+              (recur v prim)))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -312,8 +317,9 @@
   [u v]
   {:pre [(p/univariate? u)
          (p/univariate? v)]}
-  (with-content-removed
-    primitive-gcd u v univariate-euclid-inner-loop))
+  (g/abs
+   (with-content-removed
+     primitive-gcd u v univariate-euclid-inner-loop)))
 
 ;; Helpers
 
@@ -336,40 +342,31 @@
 (defn- inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a polynomial gcd. Delegates to gcd1 for univariate
-  polynomials."
+  polynomials.
+
+  TODO move the wrapping to with-wrapped or something."
   [level u v]
   (dbg level "inner-gcd" u v)
   (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
     (do (swap! gcd-cache-hit inc)
         g)
-    ;; TODO SHARE these trivial conditions!
-    ;; TODO do we need abs?
-    (let [g (cond (v/zero? u) (g/abs v)
-                  (v/zero? v) (g/abs u)
-                  (p/coeff? u)(if (p/coeff? v)
-                                (g/gcd u v)
-                                (gcd-poly-number v u))
-                  (p/coeff? v)(gcd-poly-number u v)
-                  (v/one? u)  u
-                  (v/one? v)  v
-                  (= u v) u
-                  :else
-                  (let [arity (p/check-same-arity u v)]
-                    (cond
-                      (= arity 1) (gcd1 u v)
-                      (p/monomial? u) (monomial-gcd u v)
-                      (p/monomial? v) (monomial-gcd v u)
-                      :else
-                      (let [next-gcd (->gcd
-                                      (fn [u v]
-                                        (inner-gcd (inc level) u v)))
-                            content-remover (fn [u v cont]
-                                              (with-content-removed next-gcd u v cont))]
-                        (maybe-bail-out "polynomial GCD")
-                        (gcd-continuation-chain u v
-                                                with-lower-arity
-                                                content-remover
-                                                (euclid-inner-loop next-gcd))))))]
+    (let [g (or (trivial-gcd u v)
+                (let [arity (p/check-same-arity u v)]
+                  (cond
+                    (= arity 1) (gcd1 u v)
+                    (p/monomial? u) (monomial-gcd u v)
+                    (p/monomial? v) (monomial-gcd v u)
+                    :else
+                    (let [next-gcd (->gcd
+                                    (fn [u v]
+                                      (inner-gcd (inc level) u v)))
+                          content-remover (fn [u v cont]
+                                            (with-content-removed next-gcd u v cont))]
+                      (maybe-bail-out "polynomial GCD")
+                      (gcd-continuation-chain u v
+                                              with-lower-arity
+                                              content-remover
+                                              (euclid-inner-loop next-gcd))))))]
       (when *poly-gcd-cache-enable*
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g))
@@ -390,28 +387,18 @@
   ([] 0)
   ([u] u)
   ([u v]
-   ;; TODO I... think we can kill ALL of these... since we do them inside `inner-gcd`??
-   (cond (v/zero? u) (g/abs v)
-         (v/zero? v) (g/abs u)
-         (p/coeff? u) (if (p/coeff? v)
-                        (g/gcd u v)
-                        (gcd-poly-number v u))
-         (p/coeff? v) (gcd-poly-number u v)
-         (v/one? u) u
-         (v/one? v) v
-         (= u v) (g/abs u)
-         :else
-         (let [arity (p/check-same-arity u v)]
-           (cond
-             (not (and (every? v/exact? (p/coefficients u))
-                       (every? v/exact? (p/coefficients v))))
-             (v/one-like u)
+   (or (trivial-gcd u v)
+       (let [arity (p/check-same-arity u v)]
+         (cond
+           (not (and (every? v/exact? (p/coefficients u))
+                     (every? v/exact? (p/coefficients v))))
+           (v/one-like u)
 
-             (= arity 1) (g/abs (gcd1 u v))
+           (= arity 1) (gcd1 u v)
 
-             :else
-             (with-limited-time *poly-gcd-time-limit*
-               (fn [] (gcd-euclid u v))))))))
+           :else
+           (with-limited-time *poly-gcd-time-limit*
+             (fn [] (gcd-euclid u v))))))))
 
 (def ^{:doc "main GCD entrypoint."}
   gcd

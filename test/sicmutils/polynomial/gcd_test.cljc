@@ -35,16 +35,16 @@
             [taoensso.timbre :as log]))
 
 (deftest gcd-tests
-  (checking "gcd between numbers" 100
-            [x sg/rational
-             y sg/rational]
+  (checking "gcd matches pg behavior for numbers" 100
+            [x sg/any-integral
+             y sg/any-integral]
             (is (= (pg/gcd x y)
                    (g/gcd x y))))
 
   (checking "primitive-gcd matches normal gcd" 100
             [xs (gen/vector sg/any-integral)]
             (is (= (reduce g/gcd 0 xs)
-                   (reduce pg/primitive-gcd 0 xs))))
+                   (apply pg/primitive-gcd xs))))
 
   (testing "inexact coefficients"
     (is (= 1.0 (g/gcd
