@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.tex-web-test
-  (:refer-clojure :exclude [+ - * / = compare ref partial zero?])
+  (:refer-clojure :exclude [+ - * / = compare ref partial zero?
+                            numerator denominator])
   (:require [hiccup.core :refer :all]
             [hiccup.page :refer :all]
             [clojure.string :as s]

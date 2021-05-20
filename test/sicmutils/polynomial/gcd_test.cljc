@@ -44,7 +44,7 @@
   (checking "primitive-gcd matches normal gcd" 100
             [xs (gen/vector sg/any-integral)]
             (is (= (reduce g/gcd 0 xs)
-                   (pg/primitive-gcd xs))))
+                   (reduce pg/primitive-gcd 0 xs))))
 
   (testing "inexact coefficients"
     (is (= 1.0 (g/gcd

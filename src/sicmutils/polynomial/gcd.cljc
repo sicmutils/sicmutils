@@ -169,40 +169,39 @@
            (p/map-exponents unsort)))
     (continue u v)))
 
-(defn ->gcd [binary-gcd]
-  (fn [coefs]
-    (reduce (fn
-              ([] 0)
-              ([x] x)
-              ([x y]
-               (if (v/one? x)
-                 (reduced x)
-                 (binary-gcd x y))))
-            coefs)))
-
 ;; TODO fix these bullshits!
+
+(defn ->content+primitive
+  "The 'content' of a polynomial is the greatest common divisor of its
+  coefficients. The 'primitive part' of a polynomial is the quotient of the
+  polynomial by its content.
+
+  This function returns a pair of `[content, primitive]`.
+
+  See more: https://en.wikipedia.org/wiki/Primitive_part_and_content"
+  [p gcd]
+  (let [k (apply gcd (p/coefficients p))
+        prim (if (v/one? k)
+               p
+               (p/map-coefficients
+                #(g/exact-divide % k) p))]
+    [k prim]))
 
 (defn- with-content-removed
   "For multivariate polynomials. u and v are considered here as univariate
-  polynomials with polynomial coefficients. Using the supplied gcd function, the
-  content of u and v is divided out and the primitive parts are supplied to the
-  continuation, the result of which has the content reattached and is returned."
+  polynomials with polynomial coefficients.
+
+  Using the supplied gcd function, the content of u and v is divided out and the
+  primitive parts are supplied to the continuation, the result of which has the
+  content reattached and is returned."
   [gcd u v continue]
-  (let [content (fn [p]
-                  (gcd (p/coefficients p)))
-        ku (content u)
-        kv (content v)
-        pu (if (v/one? ku)
-             u
-             (p/map-coefficients #(g/exact-divide % ku) u))
-        pv (if (v/one? kv)
-             v
-             (p/map-coefficients #(g/exact-divide % kv) v))
-        d (gcd [ku kv])
-        result (continue pu pv)
-        result (if (p/polynomial? result)
-                 result
-                 (p/constant 1 result))]
+  (let [[ku pu] (->content+primitive u gcd)
+        [kv pv] (->content+primitive v gcd)
+        d       (gcd ku kv)
+        result  (continue pu pv)
+        result  (if (p/polynomial? result)
+                  result
+                  (p/constant 1 result))]
     (p/scale-l d result)))
 
 (defn- with-lower-arity
@@ -234,29 +233,18 @@
                                (p/bare-terms v)))]
     (if (empty? (cs/intersection umax vmax))
       (do (swap! gcd-trivial-constant inc)
-          (primitive-gcd
-           (concat (p/coefficients u)
-                   (p/coefficients v))))
+          (apply primitive-gcd
+                 (concat (p/coefficients u)
+                         (p/coefficients v))))
       (continue u v))))
 
 ;; ## Basic GCD for Coefficients, Monomials
 
-(defn ^:no-doc primitive-gcd
-  "A function which will return the gcd of a sequence of numbers. TODO put this in
-  `numbers`... NOT here.
+(defn ->gcd [binary-gcd]
+  (ua/monoid binary-gcd 0 v/one?))
 
-  TODO note that this only works for integral coefficients... otherwise we can't
-  bail, since we can of COURSE have fractional inputs. So why EVER stop at 1?"
-  [xs]
-  (g/abs
-   (reduce (fn
-             ([] 0)
-             ([x] x)
-             ([x y]
-              (if (v/one? x)
-                (reduced x)
-                (g/gcd x y))))
-           xs)))
+(def primitive-gcd
+  (comp g/abs (->gcd g/gcd)))
 
 ;; Next simplest! We have a poly on one side, coeff on the other.
 
@@ -264,7 +252,7 @@
   [p n]
   {:pre [(p/polynomial? p)
          (p/coeff? n)]}
-  (primitive-gcd (cons n (p/coefficients p))))
+  (apply primitive-gcd n (p/coefficients p)))
 
 (defn- monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
@@ -290,12 +278,6 @@
          (monomial-gcd (p/make 2 {[1 2] 12})
                        (p/make 2 {[4 3] 15})))))
 
-;; The content of a polynomial is the GCD of its coefficients. The content of a
-;; polynomial has the arity of its coefficients.
-
-;; The primitive-part of a polynomial is the polynomial with the content
-;; removed.
-
 ;; ## GCD Routines
 
 (defn- euclid-inner-loop
@@ -303,29 +285,23 @@
   potentially drop down to non... polynomial stuff. I think the whole codebase
   needs to get RID of this thing."
   [coeff-gcd]
-  (letfn [(content [p]
-            (coeff-gcd
-             (p/coefficients p)))]
-    (fn [u v]
-      (maybe-bail-out "euclid inner loop")
-      (cond (v/zero? u) v
-            (v/zero? v) u
-            (v/one? u) u
-            (v/one? v) v
-            (p/coeff? u) (if (p/coeff? v)
-                           (g/gcd u v)
-                           (gcd-poly-number v u))
-            (p/coeff? v) (gcd-poly-number u v)
-            (= u v) u
-            :else
-            (let [[r _] (p/pseudo-remainder u v)]
-              (if (v/zero? r)
-                v
-                (let [kr (content r)]
-                  (recur v (if (v/one? kr)
-                             r
-                             (p/map-coefficients
-                              #(g/exact-divide % kr) r))))))))))
+  (fn [u v]
+    (maybe-bail-out "euclid inner loop")
+    (cond (v/zero? u) v
+          (v/zero? v) u
+          (v/one? u) u
+          (v/one? v) v
+          (p/coeff? u) (if (p/coeff? v)
+                         (g/gcd u v)
+                         (gcd-poly-number v u))
+          (p/coeff? v) (gcd-poly-number u v)
+          (= u v) u
+          :else
+          (let [[r _] (p/pseudo-remainder u v)]
+            (if (v/zero? r)
+              v
+              (let [[_ prim] (->content+primitive r coeff-gcd)]
+                (recur v prim)))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop primitive-gcd))
@@ -335,7 +311,8 @@
   [u v]
   {:pre [(p/univariate? u)
          (p/univariate? v)]}
-  (with-content-removed primitive-gcd u v univariate-euclid-inner-loop))
+  (with-content-removed
+    primitive-gcd u v univariate-euclid-inner-loop))
 
 ;; Helpers
 
