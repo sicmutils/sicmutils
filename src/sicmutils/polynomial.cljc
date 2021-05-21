@@ -771,45 +771,45 @@
   TODO to be REALLY slick and match plus etc... this would work JUST on terms.
   DO IT! That would let return constants when we need to. And you can see we want it below!"
   [u v]
-  (let [arity (check-same-arity u v)
-        v-terms (bare-terms v)
-        [vn-expts vn-coeff] (leading-term v)
-        good?  #(xpt/every-power? pos? %)
-        term*v #(terms->polynomial arity (t*ts % v-terms))]
-    (loop [quotient  0
+  (let [[vn-expts vn-coeff] (peek v)
+        good?  #(xpt/every-power? pos? %)]
+    (loop [quotient []
            remainder u]
       ;; find a term in the remainder into which the
       ;; lead term of the divisor can be divided.
-      (if (v/zero? remainder)
+      (if (empty? remainder)
         [quotient remainder]
-        (let [[r-exponents r-coeff] (leading-term remainder)
+        (let [[r-exponents r-coeff] (peek remainder)
               residues (xpt/- r-exponents vn-expts)]
           (if (good? residues)
             (let [new-coeff (g/div r-coeff vn-coeff)
                   new-term  (make-term residues new-coeff)]
-              (recur (poly:+ quotient (->Polynomial arity [new-term]))
-                     (poly:- remainder (term*v new-term))))
+              (recur (terms:+ quotient [new-term])
+                     (terms:- remainder (t*ts new-term v))))
             [quotient remainder]))))))
 
 ;; ## Polynomial Arithmetic
 
-(defn- binary-combine [l r coeff-op terms-op]
+(defn- binary-combine
+  [l r coeff-op terms-op
+   & {:keys [->poly]
+      :or {->poly terms->polynomial}}]
   (let [l-poly? (polynomial? l)
         r-poly? (polynomial? r)]
     (cond (and l-poly? r-poly?)
-          (terms->polynomial
+          (->poly
            (check-same-arity l r)
            (terms-op (bare-terms l)
                      (bare-terms r)))
 
           l-poly?
-          (terms->polynomial
+          (->poly
            (bare-arity l)
 	         (terms-op (bare-terms l)
 			               (constant->terms r)))
 
           r-poly?
-          (terms->polynomial
+          (->poly
            (bare-arity r)
            (terms-op (constant->terms l)
                      (bare-terms r)))
@@ -823,7 +823,6 @@
   (if (negative? p)
     (negate p)
     p))
-
 
 (defn poly:+
   "Adds the polynomials p and q"
@@ -893,18 +892,14 @@
         (or (v/zero? u) (v/one? v))
         [u 0]
 
-        ;; TODO change these to work on terms.
-        (and (polynomial? u)
-             (polynomial? v))
-        (terms:div u v)
-
-        (polynomial? u)
-        (terms:div u (constant (bare-arity u) v))
-
-        (polynomial? v)
-        (terms:div (constant (bare-arity v) u) v)
-
-        :else [(g/quotient u v) (g/remainder u v)]))
+        :else
+        (letfn [(coeff:div [l r]
+                  [(g/quotient l r) (g/remainder l r)])]
+          (binary-combine u v coeff:div terms:div
+                          :->poly
+                          (fn [a [q r]]
+                            [(terms->polynomial a q)
+                             (terms->polynomial a r)])))))
 
 (defn divisible?
   "Returns true of the numerator `n` is evenly divisible by `d`, false otherwise."
