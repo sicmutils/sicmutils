@@ -625,6 +625,13 @@
 
 ;; ## Polynomial API
 
+(defn- terms:map-coefficients [f terms]
+  (into empty-terms
+        (for [[expts c] terms
+              :let [f-c (f c)]
+              :when (not (v/zero? f-c))]
+          (make-term expts f-c))))
+
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial.
 
@@ -633,11 +640,7 @@
   (if (polynomial? p)
     (terms->polynomial
      (bare-arity p)
-     (into empty-terms
-           (for [[expts c] (bare-terms p)
-                 :let [f-c (f c)]
-                 :when (not (v/zero? f-c))]
-             (make-term expts f-c))))
+     (terms:map-coefficients f (bare-terms p)))
     (f p)))
 
 (defn map-exponents
@@ -726,18 +729,69 @@
       (terms->polynomial a terms))
     0))
 
-;; ## Polynomial Arithmetic
-
-(defn negate [p]
-  (map-coefficients g/negate p))
-
-(defn abs [p]
-  (if (negative? p)
-    (negate p)
-    p))
+;; ## Term Arithmetic
 
 (def terms:+
   (ua/merge-fn #'*monomial-order* g/add v/zero? make-term))
+
+(defn terms:- [l r]
+  (terms:+ l (terms:map-coefficients g/negate r)))
+
+;; ## Polynomial Arithmetic
+
+(defn- t*ts
+  "Multiplies a single term on the left by a vector of `terms` on the right.
+  Returns a new vector of terms."
+  [[tags coeff] terms]
+  (loop [acc (transient [])
+         i 0]
+    (let [t (nth terms i nil)]
+      (if (nil? t)
+        (persistent! acc)
+	      (let [[tags1 coeff1] t]
+	        (recur (conj! acc (make-term
+		                         (xpt/+ tags tags1)
+		                         (g/mul coeff coeff1)))
+		             (inc i)))))))
+
+(defn- terms:* [xlist ylist]
+  (letfn [(call [i]
+            (let [x (nth xlist i nil)]
+              (if (nil? x)
+                []
+                (terms:+ (t*ts x ylist)
+	                       (call (inc i))))))]
+    (call 0)))
+
+(declare poly:-)
+
+(defn- terms:div
+  "divide explicit polynomials.
+
+  TODO to be REALLY slick and match plus etc... this would work JUST on terms.
+  DO IT! That would let return constants when we need to. And you can see we want it below!"
+  [u v]
+  (let [arity (check-same-arity u v)
+        v-terms (bare-terms v)
+        [vn-expts vn-coeff] (leading-term v)
+        good?  #(xpt/every-power? pos? %)
+        term*v #(terms->polynomial arity (t*ts % v-terms))]
+    (loop [quotient  0
+           remainder u]
+      ;; find a term in the remainder into which the
+      ;; lead term of the divisor can be divided.
+      (if (v/zero? remainder)
+        [quotient remainder]
+        (let [[r-exponents r-coeff] (leading-term remainder)
+              residues (xpt/- r-exponents vn-expts)]
+          (if (good? residues)
+            (let [new-coeff (g/div r-coeff vn-coeff)
+                  new-term  (make-term residues new-coeff)]
+              (recur (poly:+ quotient (->Polynomial arity [new-term]))
+                     (poly:- remainder (term*v new-term))))
+            [quotient remainder]))))))
+
+;; ## Polynomial Arithmetic
 
 (defn- binary-combine [l r coeff-op terms-op]
   (let [l-poly? (polynomial? l)
@@ -762,6 +816,15 @@
 
           :else (coeff-op l r))))
 
+(defn negate [p]
+  (map-coefficients g/negate p))
+
+(defn abs [p]
+  (if (negative? p)
+    (negate p)
+    p))
+
+
 (defn poly:+
   "Adds the polynomials p and q"
   [p q]
@@ -770,36 +833,12 @@
 (defn poly:-
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (poly:+ p (negate q)))
-
-(defn- t*ts
-  "Multiplies a single term on the left by a vector of `terms` on the right.
-  Returns a new vector of terms."
-  [[tags coeff] terms]
-  (loop [acc (transient [])
-         i 0]
-    (let [t (nth terms i nil)]
-      (if (nil? t)
-        (persistent! acc)
-	      (let [[tags1 coeff1] t]
-	        (recur (conj! acc (make-term
-		                         (xpt/+ tags tags1)
-		                         (g/mul coeff coeff1)))
-		             (inc i)))))))
-
-(defn mul-terms [xlist ylist]
-  (letfn [(call [i]
-            (let [x (nth xlist i nil)]
-              (if (nil? x)
-                []
-                (terms:+ (t*ts x ylist)
-	                       (call (inc i))))))]
-    (call 0)))
+  (binary-combine p q g/sub terms:-))
 
 (defn poly:*
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (binary-combine p q g/mul mul-terms))
+  (binary-combine p q g/mul terms:*))
 
 (defn square [p]
   (poly:* p p))
@@ -818,7 +857,8 @@
       (not (polynomial? p)) (g/expt p n)
 
       (not (v/native-integral? n))
-      (u/illegal (str "Can only raise an FPF to an exact integer power: " p n))
+      (u/illegal
+       (str "Can only raise an FPF to an exact integer power: " p n))
 
       ;; Why not bump to a rational function? Not if you get into here...
       (neg? n)
@@ -830,34 +870,6 @@
                     p)
 
       :else (expt-iter p n 1))))
-
-(defn- poly:div
-  "divide explicit polynomials.
-
-  TODO to be REALLY slick and match plus etc... this would work JUST on terms.
-  DO IT! That would let return constants when we need to. And you can see we want it below!"
-  [u v]
-  {:pre [(polynomial? u)
-         (polynomial? v)]}
-  (let [arity (check-same-arity u v)
-        v-terms             (bare-terms v)
-        [vn-expts vn-coeff] (leading-term v)
-        good?  #(xpt/every-power? pos? %)
-        term*v #(terms->polynomial arity (t*ts % v-terms))]
-    (loop [quotient  0
-           remainder u]
-      ;; find a term in the remainder into which the
-      ;; lead term of the divisor can be divided.
-      (if (v/zero? remainder)
-        [quotient remainder]
-        (let [[r-exponents r-coeff] (leading-term remainder)
-              residues (xpt/- r-exponents vn-expts)]
-          (if (good? residues)
-            (let [new-coeff (g/div r-coeff vn-coeff)
-                  new-term  (make-term residues new-coeff)]
-              (recur (poly:+ quotient (->Polynomial arity [new-term]))
-                     (poly:- remainder (term*v new-term))))
-            [quotient remainder]))))))
 
 (comment
   ;; TODO test:
@@ -884,13 +896,13 @@
         ;; TODO change these to work on terms.
         (and (polynomial? u)
              (polynomial? v))
-        (poly:div u v)
+        (terms:div u v)
 
         (polynomial? u)
-        (poly:div u (constant (bare-arity u) v))
+        (terms:div u (constant (bare-arity u) v))
 
         (polynomial? v)
-        (poly:div (constant (bare-arity v) u) v)
+        (terms:div (constant (bare-arity v) u) v)
 
         :else [(g/quotient u v) (g/remainder u v)]))
 
