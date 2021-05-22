@@ -680,7 +680,7 @@
         (ss/down* (partial-derivatives p))
 
         (= 1 (count selectors))
-        (partial-derivatives p (first selectors))
+        (partial-derivative p (first selectors))
 
         :else
         (u/illegal

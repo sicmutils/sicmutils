@@ -28,7 +28,6 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.simplify]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
