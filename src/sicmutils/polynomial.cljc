@@ -30,6 +30,8 @@
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial.exponent :as xpt]
+            [sicmutils.series :as series]
+            [sicmutils.structure :as ss]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v])
@@ -60,9 +62,7 @@
   ([expts coef] [expts coef]))
 
 (defn exponents
-  "Returns the exponent vector of the term.
-
-  TODO rename to monomial."
+  "Returns the exponent vector of the term."
   [term]
   (nth term 0 xpt/empty))
 
@@ -567,6 +567,12 @@
      (peek (bare-terms p)))
     p))
 
+(defn leading-monomial [p]
+  (if (polynomial? p)
+    (exponents
+     (peek (bare-terms p)))
+    xpt/empty))
+
 (defn leading-base-coefficient [p]
   (if (polynomial? p)
     (recur (leading-coefficient p))
@@ -577,12 +583,6 @@
     (coefficient
      (nth (bare-terms p) 0))
     p))
-
-(defn leading-monomial [p]
-  (if (polynomial? p)
-    (exponents
-     (peek (bare-terms p)))
-    xpt/empty))
 
 (defn lowest-order [p]
   (if (polynomial? p)
@@ -679,6 +679,20 @@
                    (conj! acc 0)
                    (inc i))))))))
 
+(defn ->power-series [p]
+  (cond (series/power-series? p) p
+
+        (univariate? p)
+        (series/power-series*
+         (univariate->dense p))
+
+        (polynomial? p)
+        (u/illegal
+         "Only univariate polynomials can be converted to [[PowerSeries]].
+         Use [[polynomial/lower]] to generate a univariate.")
+
+        :else (series/constant p)))
+
 (defn scale [p c]
   (if (v/zero? c)
     c
@@ -762,8 +776,6 @@
                 (terms:+ (t*ts x ylist)
 	                       (call (inc i))))))]
     (call 0)))
-
-(declare poly:-)
 
 (defn- terms:div
   "divide explicit polynomials.
@@ -919,8 +931,71 @@
          (str "expected even division left a remainder! " u " / " v " r " r)))
       q)))
 
+
+;; ## GCD Related Things
+;;
+;; Pseudo division produces only a remainder--no quotient. This can be used to
+;; generalize Euclid's algorithm for polynomials over a unique factorization
+;; domain (UFD).
+;;
+;; Comment from GJS that does NOT apply to our implementation:
+;;
+;; This implementation differs from Knuth's Algorithm R in that Knuth's
+;; contributes to the integerizing factor, making it l(v)^(m-n+1), even though
+;; no factor of l(v) is needed if a u_j is zero for some n<j<m. This matters a
+;; great deal in the multivariate case.
+;;
+;; Sussman's code -- good for Euclid Algorithm
+
+#?(:cljs
+   (defn- ->big [c]
+     (if (v/integral? c)
+       (u/bigint c)
+       c)))
+
+(defn pseudo-remainder
+  "Compute the pseudo-remainder of univariate polynomials u and v.
+
+  Fractions won't appear in the result; instead the divisor is multiplied by the
+  leading coefficient of the dividend before quotient terms are generated so
+  that division will not result in fractions. Only the remainder is returned,
+  together with the integerizing factor needed to make this happen.
+
+  Similar in spirit to Knuth's algorithm 4.6.1R, except we don't multiply the
+  remainder through during gaps in the remainder. Since you don't know up front
+  how many times the integerizing multiplication will be done, we also return
+  the number d for which d * u = q * v + r.
+
+  TODO note that `d` is the integerizing coefficient.
+
+  Notes from GJS that we took on:
+
+  Pseudo division produces only a remainder--no quotient. This can be used to
+  generalize Euclid's algorithm for polynomials over a unique factorization
+  domain (UFD)."
+  [u v]
+  {:pre [(univariate? u)
+         (univariate? v)
+         (not (v/zero? v))]}
+  (let [[vn-expts vn-coeff] (leading-term v)
+        #?@(:cljs [vn-coeff (->big vn-coeff)])
+        *vn (fn [p] (scale p vn-coeff))
+        n (xpt/monomial-degree vn-expts)]
+    (loop [remainder u
+           d 0]
+      (let [m (degree remainder)
+            c (leading-coefficient remainder)
+            #?@(:cljs [c (->big c)])]
+        (if (< m n)
+          [remainder d]
+          (recur (poly:- (*vn remainder)
+                         (poly:* (c*xn 1 c (- m n))
+                                 v))
+                 (inc d)))))))
+
 (defn contractible? [n p]
-  (zero? (degree p n)))
+  (zero?
+   (degree p n)))
 
 (defn contract
   "IF the variable is dead everywhere, contracts it!"
@@ -1131,67 +1206,6 @@
                    shifts
 		               (new-variables (arity p)))))
 
-;; ## GCD Related Things
-;;
-;; Pseudo division produces only a remainder--no quotient. This can be used to
-;; generalize Euclid's algorithm for polynomials over a unique factorization
-;; domain (UFD).
-;;
-;; Comment from GJS that does NOT apply to our implementation:
-;;
-;; This implementation differs from Knuth's Algorithm R in that Knuth's
-;; contributes to the integerizing factor, making it l(v)^(m-n+1), even though
-;; no factor of l(v) is needed if a u_j is zero for some n<j<m. This matters a
-;; great deal in the multivariate case.
-;;
-;; Sussman's code -- good for Euclid Algorithm
-
-#?(:cljs
-   (defn ->big [c]
-     (if (v/integral? c)
-       (u/bigint c)
-       c)))
-
-(defn pseudo-remainder
-  "Compute the pseudo-remainder of univariate polynomials u and v.
-
-  Fractions won't appear in the result; instead the divisor is multiplied by the
-  leading coefficient of the dividend before quotient terms are generated so
-  that division will not result in fractions. Only the remainder is returned,
-  together with the integerizing factor needed to make this happen.
-
-  Similar in spirit to Knuth's algorithm 4.6.1R, except we don't multiply the
-  remainder through during gaps in the remainder. Since you don't know up front
-  how many times the integerizing multiplication will be done, we also return
-  the number d for which d * u = q * v + r.
-
-  TODO note that `d` is the integerizing coefficient.
-
-  Notes from GJS that we took on:
-
-  Pseudo division produces only a remainder--no quotient. This can be used to
-  generalize Euclid's algorithm for polynomials over a unique factorization
-  domain (UFD)."
-  [u v]
-  {:pre [(univariate? u)
-         (univariate? v)
-         (not (v/zero? v))]}
-  (let [[vn-expts vn-coeff] (leading-term v)
-        #?@(:cljs [vn-coeff (->big vn-coeff)])
-        *vn (fn [p] (scale p vn-coeff))
-        n (xpt/monomial-degree vn-expts)]
-    (loop [remainder u
-           d 0]
-      (let [m (degree remainder)
-            c (leading-coefficient remainder)
-            #?@(:cljs [c (->big c)])]
-        (if (< m n)
-          [remainder d]
-          (recur (poly:- (*vn remainder)
-                         (poly:* (c*xn 1 c (- m n))
-                                 v))
-                 (inc d)))))))
-
 ;; ## Derivatives
 
 (defn partial-derivative
@@ -1354,8 +1368,6 @@
 (defmethod g/simplify [::polynomial] [p]
   (map-coefficients g/simplify p))
 
-;; TODO put this somewhere where I can depend on the `down` structure!
-#_
 (defmethod g/partial-derivative [::polynomial v/seqtype] [p selectors]
   (cond (empty? selectors)
         (ss/down* (partial-derivatives p))

@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.simplify
-  (:require [sicmutils.expression.analyze :as a]
+  (:require [sicmutils.abstract.number :as an]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as poly]
@@ -56,7 +57,7 @@
   NOTE: This is rcf:analyzer."
   []
   (let [backend (rf/->RationalFunctionAnalyzer)
-        gensym  (a/monotonic-symbol-generator "-r-")]
+        gensym (a/monotonic-symbol-generator "-r-")]
     (a/make-analyzer backend gensym)))
 
 (def ^:dynamic *poly-simplify*
@@ -209,3 +210,8 @@
                              (simplify-and-canonicalize simplify-and-flatten)))
                 simplify-and-flatten)]
       (simple expr))))
+
+(defmethod g/simplify [::x/numeric] [a]
+  (an/literal-number
+   (simplify-expression
+    (v/freeze a))))

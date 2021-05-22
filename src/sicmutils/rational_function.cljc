@@ -29,6 +29,7 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.ratio :as r]
+            [sicmutils.structure :as ss]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v])
@@ -673,8 +674,6 @@
                       (g/simplify (bare-v r))
                       (meta r)))
 
-;; TODO put this somewhere where I can depend on the `down` structure!
-#_
 (defmethod g/partial-derivative [::rational-function v/seqtype]
   [p selectors]
   (cond (empty? selectors)
