@@ -207,10 +207,19 @@
 (defn lex-order
   "Comparator that responds based on the [lexicographic
   order](https://en.wikipedia.org/wiki/Monomial_order#Lexicographic_order), or
-  'lex order', of the exponent vectors `xs` and `ys`.
+  'lex order', of the exponent vectors `xs` and `ys`. Accepts any sequence of
+  pairs of the form `[variable, power]` for `xs` and `ys`.
 
   Lex order first compares the power of variable `0`, then, in case of equality,
-  variable `1` and so on. If all powers match, returns `0`."
+  variable `1` and so on. If all powers match, returns `0`.
+
+  If `:reverse? true` is passed, the inputs are compared in reverse lexicographic order.
+
+  Reverse here means two things:
+
+  1. the variables are considered in reverse order; the variable with the
+     largest index is compared first, then the next-largest, and on down the line.
+  2. The _smaller_ exponent is grevlex-greater in this comparison."
   ([xs ys & {:keys [reverse?]}]
    (let [xs (vec (if reverse? (rseq xs) xs))
          ys (vec (if reverse? (rseq ys) ys))]
@@ -234,8 +243,9 @@
 
 (defn graded-lex-order
   "Comparator that responds based on the [graded lexicographic
-  order](https://en.wikipedia.org/wiki/Monomial_order#Graded_lexicographic_order), or
-  'grlex order', of the exponent vectors `xs` and `ys`.
+  order](https://en.wikipedia.org/wiki/Monomial_order#Graded_lexicographic_order),
+  or 'grlex order', of the exponent vectors `xs` and `ys`. Accepts any sequence
+  of pairs of the form `[variable, power]` for `xs` and `ys`.
 
   grlex order first compares the total degree of `xs` and `ys`, and falls back
   to [[lex-order]] in case of a tie. See [[lex-order]] for details on this
@@ -250,11 +260,15 @@
 (defn graded-reverse-lex-order
   "Comparator that responds based on the [graded reverse lexicographic
   order](https://en.wikipedia.org/wiki/Monomial_order#Graded_reverse_lexicographic_order),
-  or 'grevlex order', of the exponent vectors `xs` and `ys`.
+  or 'grevlex order', of the exponent vectors `xs` and `ys`. Accepts any
+  sequence of pairs of the form `[variable, power]` for `xs` and `ys`.
 
   grevlex order first compares the total degree of `xs` and `ys`, and falls back
-  to [[lex-order]] in case of a tie. See [[lex-order]] for details on this
-  case."
+  to reverse [[lex-order]] in case of a tie. Reverse here means two things:
+
+  1. the variables are considered in reverse order; the variable with the
+     largest index is compared first, then the next-largest, and on down the line.
+  2. The _smaller_ exponent is grevlex-greater in this comparison."
   [xs ys]
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
