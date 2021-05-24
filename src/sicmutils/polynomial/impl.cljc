@@ -30,7 +30,7 @@
 ;; builds these into terms, then polynomials with a proper type definition.
 
 (def ^{:dynamic true
-       :doc "The order. NOTE that this currently breaks if we customize it."}
+       :doc "The order."}
   *monomial-order*
   xpt/graded-lex-order)
 

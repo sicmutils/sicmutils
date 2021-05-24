@@ -862,13 +862,13 @@
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
-  (cond (v/one? v) u
-        (coeff? v) (map-coefficients #(g/exact-divide % v) u)
-        :else (let [[q r] (divide u v)]
-                (when-not (v/zero? r)
-                  (u/illegal-state
-                   (str "expected even division left a remainder! " u " / " v " r " r)))
-                q)))
+  (if (v/one? v)
+    u
+    (let [[q r] (divide u v)]
+      (when-not (v/zero? r)
+        (u/illegal-state
+         (str "expected even division left a remainder! " u " / " v " r " r)))
+      q)))
 
 
 ;; ## GCD Related Things

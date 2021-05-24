@@ -178,7 +178,7 @@
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
     (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z)))))
-    (is (= '(/ y 6)
+    (is (= '(* (/ 1 6) y)
            (v/freeze
             (rf-simp
              '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z)))))
