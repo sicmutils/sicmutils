@@ -862,13 +862,13 @@
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
-  (if (v/one? v)
-    u
-    (let [[q r] (divide u v)]
-      (when-not (v/zero? r)
-        (u/illegal-state
-         (str "expected even division left a remainder! " u " / " v " r " r)))
-      q)))
+  (cond (v/one? v) u
+        (coeff? v) (map-coefficients #(g/exact-divide % v) u)
+        :else (let [[q r] (divide u v)]
+                (when-not (v/zero? r)
+                  (u/illegal-state
+                   (str "expected even division left a remainder! " u " / " v " r " r)))
+                q)))
 
 
 ;; ## GCD Related Things
@@ -1180,14 +1180,14 @@
 ;; point of view of a polynomial over a commutative ring. The functions take
 ;; polynomial inputs and return polynomials.
 
-(def ^:private operator-table
-  {'+ (ua/monoid poly:+ 0)
-   '- (ua/group poly:- poly:+ negate 0)
-   '* (ua/monoid poly:* 1 v/zero?)
-   'negate negate
-   'expt expt
-   'square square
-   'cube cube
+(def ^:no-doc operator-table
+  {'+ (ua/monoid g/add 0)
+   '- (ua/group g/sub g/add g/negate 0)
+   '* (ua/monoid g/mul 1 v/zero?)
+   'negate g/negate
+   'expt g/expt
+   'square g/square
+   'cube g/cube
    'gcd (ua/monoid g/gcd 0)
    'lcm (ua/monoid g/lcm 1 v/zero?)})
 

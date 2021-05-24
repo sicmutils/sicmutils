@@ -32,7 +32,7 @@
 (def ^{:dynamic true
        :doc "The order. NOTE that this currently breaks if we customize it."}
   *monomial-order*
-  xpt/graded-reverse-lex-order)
+  xpt/graded-lex-order)
 
 ;; ## Polynomial Terms
 ;;

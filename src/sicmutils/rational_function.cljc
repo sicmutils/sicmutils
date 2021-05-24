@@ -558,21 +558,10 @@
     (for [i (range (bare-arity r))]
       (partial-derivative r i))))
 
-;; TODO make a note that this operator table can handle polynomials,
-;; coefficients AND rational functions, nothing else.
-
-(def ^:private operator-table
-  {'+ (ua/monoid rf:+ 0)
-   '- (ua/group rf:- rf:+ negate 0)
-   '* (ua/monoid rf:* 1 v/zero?)
-   '/ (ua/group div rf:* invert 1 v/zero?)
-   'negate negate
-   'invert invert
-   'expt expt
-   'square square
-   'cube cube
-   'gcd (ua/monoid gcd 0)
-   'lcm (ua/monoid g/lcm 1 v/zero?)})
+(def ^:no-doc operator-table
+  (assoc p/operator-table
+         '/ (ua/group g/div g/mul g/invert 1 v/zero?)
+         'invert g/invert))
 
 (def operators-known
   (u/keyset operator-table))
