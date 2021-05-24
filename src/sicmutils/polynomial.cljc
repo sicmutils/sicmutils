@@ -568,13 +568,22 @@
 (declare leading-term)
 
 (defn degree
-  "TODO what's the difference between arity and degree?
+  "Returns the [degree](https://en.wikipedia.org/wiki/Degree_of_a_polynomial) of
+  the supplied polynomial.
 
-  https://en.wikipedia.org/wiki/Degree_of_a_polynomial
+  the degree of a polynomial is the highest of the degrees of the polynomial's
+  individual terms with non-zero coefficients. The degree of an individual term
+  is the sum of all exponents in the term.
 
-  zero polynomial: https://en.wikipedia.org/wiki/Degree_of_a_polynomial#Degree_of_the_zero_polynomial
+  Optionally, [[degree]] takes an indeterminate index `i`; in this
+  case, [[degree]] returns the maximum power found for the `i`th indeterminate
+  across all terms.
 
-  If you supply an arity, AND you have a polynomial, you'll get the max degree in that position."
+  NOTE when passed either a `0` or a zero-polynomial, [[degree]] returns -1. See
+  Wikipedia's ['degree of the zero
+  polynomial'](https://en.wikipedia.org/wiki/Degree_of_a_polynomial#Degree_of_the_zero_polynomial)
+  for color on why this is the case.
+  "
   ([p]
    (cond (v/zero? p) zero-degree
          (polynomial? p)
@@ -596,8 +605,12 @@
            :else coeff-arity))))
 
 (defn eq
-  "Polynomials are equal to a number if the polynomial is constant; otherwise
-  it's only equal to other polynomials."
+  "Returns true if the [[Polynomial]] this is equal to `that`. If `that` is
+  a [[Polynomial]], `this` and `that` are equal if they have equal terms and
+  equal arity. Coefficients are compared using [[sicmutils.value/=]].
+
+  If `that` Non-[[Polynomial]], `eq` only returns true if `this` is a monomial
+  and its coefficient is equal to `that` (again using [[sicmutils.value/=]])."
   [^Polynomial this that]
   (if (instance? Polynomial that)
     (let [p ^Polynomial that]
@@ -612,6 +625,10 @@
                   (v/= that (i/coefficient term))))))))
 
 (defn ->str
+  "Returns a string representation of the supplied [[Polynomial]] instance `p`.
+
+  The optional argument `n` specifies how many terms to include in the returned
+  string before an ellipsis cuts them off."
   ([p] (->str p 10))
   ([p n]
    {:pre [polynomial? p]}
@@ -623,57 +640,90 @@
                      (str "... and " (- n-terms n) " more terms"))]
      (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
 
-;; ## Relaxed Accessors
-
 (defn coefficients
-  "Returns a sequence of the coefficients of the polynomial."
+  "Returns a sequence of the coefficients of the supplied polynomial `p`. A
+  coefficient is treated here as a monomial, and returns a sequence of itself.
+
+  If `p` is zero, returns an empty list."
   [p]
-  (if (polynomial? p)
-    (map i/coefficient (->terms p))
-    [p]))
+  (cond (polynomial? p) (map i/coefficient (->terms p))
+        (v/zero? p) []
+        :else [p]))
 
 (defn leading-term
-  "Return the leading (i.e., highest degree) term of the polynomial p. The return
-  value is a pair of [exponents coefficient].
+  "Returns the leading (highest degree) term of the [[Polynomial]] `p`.
 
-  TODO this is a change, returning an explicit term always. NOTE, test."
+  If `p` is a non-[[Polynomial]] coefficient, returns a term with zero exponents
+  and `p` as its coefficient."
   [p]
   (or (peek (->terms p))
       [xpt/empty 0]))
 
-(defn leading-coefficient [p]
+(defn leading-coefficient
+  "Returns the coefficient of the leading (highest degree) term of
+  the [[Polynomial]] `p`.
+
+  If `p` is a non-[[Polynomial]] coefficient, acts as identity."
+  [p]
   (if (polynomial? p)
     (i/coefficient
      (peek (bare-terms p)))
     p))
 
-(defn leading-monomial [p]
+(defn leading-exponents
+  "Returns the exponents of the leading (highest degree) term of
+  the [[Polynomial]] `p`.
+
+  If `p` is a non-[[Polynomial]] coefficient, returns [[exponent/empty]]."
+  [p]
   (if (polynomial? p)
     (i/exponents
      (peek (bare-terms p)))
     xpt/empty))
 
-(defn leading-base-coefficient [p]
+(defn leading-base-coefficient
+  "Similar to [[leading-coefficient]], but of the coefficient itself is
+  a [[Polynomial]], recurses down until it reaches a non-[[Polynomial]] lead
+  coefficient.
+
+  If `p` is a non-[[Polynomial]] coefficient, acts as identity."
+  [p]
   (if (polynomial? p)
     (recur (leading-coefficient p))
     p))
 
-(defn trailing-coefficient [p]
+(defn trailing-coefficient
+  "Returns the coefficient of the trailing (lowest degree) term of
+  the [[Polynomial]] `p`.
+
+  If `p` is a non-[[Polynomial]] coefficient, acts as identity."
+  [p]
   (if (polynomial? p)
     (i/coefficient
      (nth (bare-terms p) 0))
     p))
 
-(defn lowest-order [p]
-  (if (polynomial? p)
-    (xpt/monomial-degree
-     (i/exponents
-      (nth (bare-terms p) 0)))
-    coeff-arity))
+(defn lowest-degree
+  "Returns the lowest degree found across any term in the supplied [[Polynomial]].
+  If a non-[[Polynomial]] is supplied, returns either `0` or `-1` if the input
+  is itself a `0`.
+
+  See [[degree]] for a discussion of this `-1` case."
+  [p]
+  (cond (polynomial? p)
+        (xpt/monomial-degree
+         (i/exponents
+          (nth (bare-terms p) 0)))
+        (v/zero? p) zero-degree
+        :else coeff-arity))
 
 (defn monomial?
-  "Returns true if `p` is a polynomial with a single term OR not a [[Polynomial]]
-  at all, false otherwise."
+  "Returns true if `p` is either:
+
+  - a [[Polynomial]] instance with a single term, or
+  - a non-[[Polynomial]] coefficient,
+
+  false otherwise."
   [p]
   (or (not (polynomial? p))
       (= 1 (count (bare-terms p)))))
@@ -682,8 +732,10 @@
   "Returns true if `p` is a [monic
   polynomial](https://en.wikipedia.org/wiki/Monic_polynomial), false otherwise.
 
-  TODO test that you can normalize by the lead coefficient to get a monic.
-  Generate a dense then do that."
+  A monic polynomial is a univariate polynomial with a leading coefficient that
+  responds `true` to [[sicmutils.value/one?]]. This means that any coefficient
+  that responds `true` to [[sicmutils.value/one?]] also qualifies as a monic
+  polynomial."
   [p]
   (if (polynomial? p)
     (and (= 1 (arity p))
@@ -691,24 +743,36 @@
           (leading-coefficient p)))
     (v/one? p)))
 
-(defn univariate? [p]
+(defn univariate?
+  "Returns true if `p` is a [[Polynomial]] of arity 1, false otherwise."
+  [p]
   (and (polynomial? p)
        (= (bare-arity p) 1)))
 
-(defn multivariate? [p]
+(defn multivariate?
+  "Returns true if `p` is a [[Polynomial]] of arity > 1, false otherwise."
+  [p]
   (and (polynomial? p)
        (> (bare-arity p) 1)))
 
-(defn negative? [p]
+(defn negative?
+  "Returns true if the [[leading-base-coefficient]] of `p`
+  is [[generic/negative?]], false otherwise."
+  [p]
   (g/negative?
    (leading-base-coefficient p)))
 
 ;; ## Polynomial API
 
 (defn map-coefficients
-  "Map the function f over the coefficients of p, returning a new Polynomial.
+  "Given a [[Polynomial]], returns a new [[Polynomial]] instance generated by
+  applying `f` to the coefficient of each term in `p` and filtering out all
+  resulting zeros.
 
-  TODO this demotes to coefficient when it needs to, and can take a bare coef."
+  Given a non-[[Polynomial]] coefficient, returns `(f p)`.
+
+  NOTE that [[map-coefficients]] will return a non-[[Polynomial]] if the result
+  of the mapping has only a constant term."
   [f p]
   (if (polynomial? p)
     (terms->polynomial
@@ -717,10 +781,14 @@
     (f p)))
 
 (defn map-exponents
-  "Map the function f over the exponents of each monomial in p,
-  returning a new Polynomial.
+  "Given a [[Polynomial]], returns a new [[Polynomial]] instance generated by
+  applying `f` to the exponents of each term in `p` and filtering out all
+  resulting zeros.
 
-  TODO can handle bare coef now."
+  Given a non-[[Polynomial]] coefficient, acts as identity.
+
+  NOTE that [[map-exponents]] will return a non-[[Polynomial]] if the result
+  of the mapping has only a constant term."
   ([f p]
    (map-exponents f p (arity p)))
   ([f p new-arity]
@@ -733,7 +801,20 @@
 
 ;; ## Manipulations
 
-(defn univariate->dense [x]
+(defn univariate->dense
+  "Given a univariate [[Polynomial]] (see [[univariate?]]) returns a dense vector
+  of the coefficients of each term in ascending order.
+
+  For example:
+
+  ```clojure
+  (univariate->dense (make [1 0 0 2 3 4]))
+  ;;=> [1 0 0 2 3 4]
+  ```
+
+  NOTE use [[lower-arity]] to generate a univariate polynomial in the first
+  indeterminate, given a multivariate polynomial."
+  [x]
   {:pre [(univariate? x)]}
   (let [d (degree x)]
     (loop [terms (bare-terms x)
@@ -752,7 +833,18 @@
                    (conj! acc 0)
                    (inc i))))))))
 
-(defn ->power-series [p]
+(defn ->power-series
+  "Given a univariate polynomial `p`, returns a [[series/PowerSeries]]
+  representation of the supplied [[Polynomial]].
+
+  Given a [[series/PowerSeries]], acts as identity.
+
+  Non-[[Polynomial]] coefficients return [[series/PowerSeries]] instances
+  via [[series/constant]]; any multivariate [[Polynomial]] throws an exception.
+
+  NOTE use [[lower-arity]] to generate a univariate polynomial in the first
+  indeterminate, given a multivariate polynomial."
+  [p]
   (cond (series/power-series? p) p
 
         (univariate? p)
@@ -766,12 +858,28 @@
 
         :else (series/constant p)))
 
-(defn scale [p c]
+(defn scale
+  "Given some polynomial `p` and a coefficient `c`, returns a new [[Polynomial]]
+  generated by multiplying each coefficient of `p` by `c` (on the right).
+
+  See [[scale-l]] if left multiplication is important.
+
+  NOTE that [[scale]] will return a non-[[Polynomial]] if the result of the
+  mapping has only a constant term."
+  [p c]
   (if (v/zero? c)
     c
     (map-coefficients #(g/* % c) p)))
 
-(defn scale-l [c p]
+(defn scale-l
+  "Given some polynomial `p` and a coefficient `c`, returns a new [[Polynomial]]
+  generated by multiplying each coefficient of `p` by `c` (on the left).
+
+  See [[scale]] if right multiplication is important.
+
+  NOTE that [[scale-l]] will return a non-[[Polynomial]] if the result of the
+  mapping has only a constant term."
+  [c p]
   (if (v/zero? c)
     c
     (map-coefficients #(g/* c %) p)))

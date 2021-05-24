@@ -751,7 +751,6 @@
                                      (* ((D phi) t) ((D phi) t) (r t))))
                      (* -1 ((D U) (r t))))))))))
 
-
 (deftest new-tests
   (testing "contract, expand tests"
     (is (= (p/make 1 {[1] 2 [2] 3})
@@ -764,5 +763,8 @@
 
     (is (= (-> (p/make 1 {[1] 2 [2] 3})
                (p/extend 12))
-           (p/make 13 {[1] 2 [2] 3}))))
-  )
+           (p/make 13 {[1] 2 [2] 3})))))
+
+
+;; TODO test that you can normalize by the lead coefficient to get a monic.
+;; Generate a dense then do that.
