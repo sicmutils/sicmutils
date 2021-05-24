@@ -20,6 +20,7 @@
 (ns ^:no-doc sicmutils.polynomial.impl
   (:require [sicmutils.generic :as g]
             [sicmutils.polynomial.exponent :as xpt]
+            [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
@@ -31,7 +32,7 @@
 (def ^{:dynamic true
        :doc "The order. NOTE that this currently breaks if we customize it."}
   *monomial-order*
-  xpt/graded-lex-order)
+  xpt/graded-reverse-lex-order)
 
 ;; ## Polynomial Terms
 ;;
@@ -86,9 +87,10 @@
                 :let [coef-sum (transduce
                                 (map coefficient) g/+ terms)]
                 :when (not (v/zero? coef-sum))
-                :let [expts (if (vector? expts)
-                              (xpt/dense->exponents expts)
-                              expts)]]
+                :let [expts (cond (vector? expts) (xpt/dense->exponents expts)
+                                  (sorted? expts) expts
+                                  (map? expts) (into xpt/empty expts)
+                                  :else (u/illegal "Invalid inputs to sparse->terms TODO"))]]
             (make-term expts coef-sum))
           (sort-by exponents comparator)
           (into empty-terms)))))

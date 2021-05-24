@@ -32,8 +32,25 @@
       (is (= [z2 xy2z x2z2 x3]
              (sort-with xpt/lex-order)))
 
-      (is (= [z2 x3 x2z2 xy2z]
-             (sort-with xpt/graded-reverse-lex-order)))
-
       (is (= [z2 x3 xy2z x2z2]
-             (sort-with xpt/graded-lex-order))))))
+             (sort-with xpt/graded-lex-order)))
+
+      (is (= [z2 x3 x2z2 xy2z]
+             (sort-with xpt/graded-reverse-lex-order))))
+
+    (testing "monomial ordering example from wikipedia"
+      (let [x2 (xpt/make 0 2)
+            xy (xpt/make 0 1 1 1)
+            xz (xpt/make 0 1 2 1)
+            y2 (xpt/make 1 2)
+            yz (xpt/make 1 1 2 1)
+            z2 (xpt/make 2 2)
+            monomials [x2 xy xz y2 yz z2]
+            sort-with #(sort % monomials)]
+        (is (= [z2 yz y2 xz xy x2]
+               (sort-with xpt/lex-order)
+               (sort-with xpt/graded-lex-order))
+            "grlex and lex match when all orders are the same")
+
+        (is (= [z2 yz xz y2 xy x2]
+               (sort-with xpt/graded-reverse-lex-order)))))))

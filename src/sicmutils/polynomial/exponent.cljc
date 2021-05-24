@@ -211,24 +211,26 @@
 
   Lex order first compares the power of variable `0`, then, in case of equality,
   variable `1` and so on. If all powers match, returns `0`."
-  [xs ys]
-  (let [xs (vec xs)
-        ys (vec ys)]
-    (loop [i (long 0)]
-      (let [x (nth xs i nil)
-            y (nth ys i nil)]
-        (cond (and (not x) (not y)) 0
-              (not x) -1
-              (not y)  1
-              :else (let [bit (compare (nth x 0) (nth y 0))]
-                      (cond (zero? bit)
-                            (let [xv (nth x 1)
-                                  yv (nth y 1)]
-                              (if (= xv yv)
-                                (recur (inc i))
-                                (- xv yv)))
-                            (neg? bit) 1
-                            :else -1)))))))
+  ([xs ys & {:keys [reverse?]}]
+   (let [xs (vec (if reverse? (rseq xs) xs))
+         ys (vec (if reverse? (rseq ys) ys))]
+     (loop [i (long 0)]
+       (let [x (nth xs i nil)
+             y (nth ys i nil)]
+         (cond (and (not x) (not y)) 0
+               (not x) -1
+               (not y)  1
+               :else (let [bit (compare (nth x 0) (nth y 0))]
+                       (cond (zero? bit)
+                             (let [xv (nth x 1)
+                                   yv (nth y 1)]
+                               (if (= xv yv)
+                                 (recur (inc i))
+                                 (if reverse?
+                                   (- yv xv)
+                                   (- xv yv))))
+                             (neg? bit) 1
+                             :else -1))))))))
 
 (defn graded-lex-order
   "Comparator that responds based on the [graded lexicographic
@@ -257,6 +259,5 @@
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
     (if (= xd yd)
-      (- (lex-order (rseq ys)
-                    (rseq xs)))
+      (lex-order xs ys :reverse? true)
       (- xd yd))))
