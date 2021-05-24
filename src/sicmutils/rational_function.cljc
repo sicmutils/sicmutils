@@ -327,12 +327,6 @@
                      (p/evenly-divide v' g)])]
     (make-reduced a u'' v'')))
 
-(comment
-  ;; TEST that this works!
-  (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
-            (p/make 2 {[1 2] 1/2 [2 0] 3}))
-      (make 2)))
-
 (defn make
   "Make the fraction of the two polynomials p and q, after dividing out their
   greatest common divisor and normalizing any ratios that appear in numerator or
@@ -364,7 +358,7 @@
   "Add the [[RationalFunction]] instances `r` and `s`."
   [u u' v v']
   (if (v/= u' v')
-    (let [n (p/poly:+ u v)
+    (let [n (p/add u v)
           g (pg/gcd u' n)]
       (if (v/one? g)
         [n u']
@@ -372,20 +366,20 @@
          (p/evenly-divide u' g)]))
     (let [d1 (pg/gcd u' v')]
       (if (v/one? d1)
-        [(p/poly:+ (p/poly:* u v')
-                   (p/poly:* u' v))
-         (p/poly:* u' v')]
+        [(p/add (p/mul u v')
+                (p/mul u' v))
+         (p/mul u' v')]
         (let [u':d1 (p/evenly-divide u' d1)
               v':d1 (p/evenly-divide v' d1)
-              t (p/poly:+ (p/poly:* u v':d1)
-                          (p/poly:* u':d1 v))]
+              t (p/add (p/mul u v':d1)
+                       (p/mul u':d1 v))]
           (if (v/zero? t)
             [0 1]
             (let [d2 (pg/gcd t d1)]
               (if (v/one? d2)
-                [t (p/poly:* u':d1 v')]
+                [t (p/mul u':d1 v')]
                 (let [n (p/evenly-divide t d2)
-                      d (p/poly:* u':d1 (p/evenly-divide v' d2))]
+                      d (p/mul u':d1 (p/evenly-divide v' d2))]
                   [n d])))))))))
 
 (defn- uv:* [u u' v v']
@@ -393,16 +387,16 @@
         (v/zero? v) [u u']
         :else (let [d1 (pg/gcd u v')
                     d2 (pg/gcd u' v)
-                    u'' (p/poly:* (p/evenly-divide u d1)
-                                  (p/evenly-divide v d2))
-                    v'' (p/poly:* (p/evenly-divide u' d2)
-                                  (p/evenly-divide v' d1))]
+                    u'' (p/mul (p/evenly-divide u d1)
+                               (p/evenly-divide v d2))
+                    v'' (p/mul (p/evenly-divide u' d2)
+                               (p/evenly-divide v' d1))]
                 [u'' v''])))
 
 (defn rf:+ [r s]
   (cond (v/zero? r) s
         (v/zero? s) r
-        :else (binary-combine r s p/poly:+ uv:+)))
+        :else (binary-combine r s p/add uv:+)))
 
 (defn negative? [r]
   (if-not (rational-function? r)
@@ -426,7 +420,7 @@
         (v/zero? s) r
         :else
         (binary-combine r s
-                        p/poly:-
+                        p/sub
                         (fn [u u' v v']
                           (uv:+ u u' (p/negate v) v')))))
 
@@ -435,7 +429,7 @@
         (v/zero? s) s
         (v/one? r) s
         (v/one? s) r
-        :else (binary-combine r s p/poly:* uv:*)))
+        :else (binary-combine r s p/mul uv:*)))
 
 (defn expt [r n]
   {:pre [(v/native-integral? n)]}
@@ -536,8 +530,8 @@
           pd (p/evaluate (p/reciprocal
                           (p/arg-scale ndr1 scales))
                          [nr2 dr2])]
-      (cond (> dn dd) (g/div pn (p/poly:* (p/expt dr2 (- dn dd)) pd))
-            (< dn dd) (g/div (p/poly:* (p/expt dr2 (- dd dn)) pn) pd)
+      (cond (> dn dd) (g/div pn (p/mul (p/expt dr2 (- dn dd)) pd))
+            (< dn dd) (g/div (p/mul (p/expt dr2 (- dd dn)) pn) pd)
             :else (g/div pn pd)))))
 
 (defn partial-derivative [r i]
@@ -545,8 +539,8 @@
     (p/partial-derivative r i)
     (let [u (bare-u r)
           v (bare-v r)]
-      (div (p/poly:- (p/poly:* (p/partial-derivative u i) v)
-                     (p/poly:* u (p/partial-derivative v i)))
+      (div (p/sub (p/mul (p/partial-derivative u i) v)
+                  (p/mul u (p/partial-derivative v i)))
            (p/square v)))))
 
 (defn partial-derivatives
@@ -566,46 +560,43 @@
 (def operators-known
   (u/keyset operator-table))
 
-(deftype RationalFunctionAnalyzer []
-  a/ICanonicalize
-  (expression-> [this expr cont]
-    (a/expression-> this expr cont compare))
-
-  (expression-> [this expr cont v-compare]
-    ;; Convert an expression into Rational Function canonical form. The
-    ;; expression should be an unwrapped expression, i.e., not an instance of
-    ;; the Literal type, nor should subexpressions contain type information.
-    ;; This kind of simplification proceeds purely symbolically over the known
-    ;; Rational Function operations;; other operations outside the arithmetic
-    ;; available R(x...) should be factored out by an expression analyzer before
-    ;; we get here. The result is a RationalFunction object representing the
-    ;; structure of the input over the unknowns."
-    (let [expression-vars (sort v-compare
-                                (set/difference (x/variables-in expr)
-                                                operators-known))
-          arity (count expression-vars)
-          sym->var (zipmap expression-vars (p/new-variables arity))
-          expr' (x/evaluate expr sym->var operator-table)]
-      (cont expr' expression-vars)))
-
-  (->expression [_ r vars]
-    ;; This is the output stage of Rational Function canonical form
-    ;; simplification. The input is a RationalFunction, and the output is an
-    ;; expression representing the evaluation of that function over the
-    ;; indeterminates extracted from the expression at the start of this
-    ;; process."
-    (if-not (rational-function? r)
-      (p/->expression r vars)
-      ((sym/symbolic-operator '/)
-       (p/->expression (bare-u r) vars)
-       (p/->expression (bare-v r) vars))))
-
-  (known-operation? [_ o]
-    (contains? operators-known o)))
-
 (def ^{:doc "Singleton [[a/ICanonicalize]] instance."}
   analyzer
-  (->RationalFunctionAnalyzer))
+  (reify a/ICanonicalize
+    (expression-> [this expr cont]
+      (a/expression-> this expr cont compare))
+
+    (expression-> [this expr cont v-compare]
+      ;; Convert an expression into Rational Function canonical form. The
+      ;; expression should be an unwrapped expression, i.e., not an instance of
+      ;; the Literal type, nor should subexpressions contain type information.
+      ;; This kind of simplification proceeds purely symbolically over the known
+      ;; Rational Function operations;; other operations outside the arithmetic
+      ;; available R(x...) should be factored out by an expression analyzer before
+      ;; we get here. The result is a RationalFunction object representing the
+      ;; structure of the input over the unknowns."
+      (let [expression-vars (sort v-compare
+                                  (set/difference (x/variables-in expr)
+                                                  operators-known))
+            arity (count expression-vars)
+            sym->var (zipmap expression-vars (p/new-variables arity))
+            expr' (x/evaluate expr sym->var operator-table)]
+        (cont expr' expression-vars)))
+
+    (->expression [_ r vars]
+      ;; This is the output stage of Rational Function canonical form
+      ;; simplification. The input is a RationalFunction, and the output is an
+      ;; expression representing the evaluation of that function over the
+      ;; indeterminates extracted from the expression at the start of this
+      ;; process."
+      (if-not (rational-function? r)
+        (p/->expression r vars)
+        ((sym/symbolic-operator '/)
+         (p/->expression (bare-u r) vars)
+         (p/->expression (bare-v r) vars))))
+
+    (known-operation? [_ o]
+      (contains? operators-known o))))
 
 ;; ## Polynomial Extensions
 ;;

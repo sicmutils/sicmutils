@@ -410,7 +410,7 @@
           (p/polynomial? v))
     (let [g (gcd u v)]
       (p/abs
-       (p/poly:* (p/evenly-divide u g) v)))
+       (p/mul (p/evenly-divide u g) v)))
     (g/lcm u v)))
 
 ;; TODO test `gcd` between OTHER types and polynomials here...

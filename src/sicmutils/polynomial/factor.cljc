@@ -65,7 +65,7 @@
           (recur new-m
                  ;; the following has all factors to the 1 or 2 power
                  ;; completely removed, others now to the power-2.
-                 (poly/evenly-divide h (poly/poly:* new-m new-s))
+                 (poly/evenly-divide h (poly/mul new-m new-s))
 
                  ;; tracker of the form
                  ;;  h(vi) = (* (exponent (get tracker k) k))

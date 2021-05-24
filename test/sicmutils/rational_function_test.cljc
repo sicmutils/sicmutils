@@ -192,3 +192,10 @@
     (is (= '(/ 1 (expt x 21))
            (rf-simp
             (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
+
+
+(comment
+  ;; TEST that this works!
+  (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
+            (p/make 2 {[1 2] 1/2 [2 0] 3}))
+      (make 2)))

@@ -768,3 +768,21 @@
 
 ;; TODO test that you can normalize by the lead coefficient to get a monic.
 ;; Generate a dense then do that.
+
+
+(comment
+  ;; TODO test:
+  ;;
+  ;; TODO make this work JUST on terms and then turn the result into a poly!
+  (let [u (make [10])
+        v (make [10 20])
+        [q r] (divide u v)]
+    (g/+ (g/* q v) r))
+
+  (= (make 3 {[3 0 0] 5 [2 0 1] 2 [0 2 1] 3})
+     (reciprocal
+      (make 3 {[0 0 0] 5 [1 0 1] 2 [3 2 1] 3})))
+
+  (let [p (make 3 {[3 0 0] 5 [2 0 1] 2 [0 2 1] 3})]
+    ;; because there is a constant term...
+    (= p (reciprocal (reciprocal p)))))
