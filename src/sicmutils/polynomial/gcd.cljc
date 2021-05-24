@@ -25,6 +25,7 @@
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.exponent :as xpt]
+            [sicmutils.polynomial.impl :as pi]
             [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -140,15 +141,14 @@
 
 (defn- terms->permutations
   "Returns a pair of functions that sort and unsort terms into the order of terms
-  with max degree in ANY monomial."
+  in the LCM of any monomial."
   [terms]
   (if (<= (count terms) 1)
     [identity identity]
     (sort->permutations
-     (transduce (map p/exponents)
-                xpt/max
-                (p/exponents (first terms))
-                (rest terms)))))
+     (transduce (map pi/exponents)
+                xpt/lcm
+                terms))))
 
 (defn- with-optimized-variable-order
   "Rearrange the variables in u and v to make GCD go faster.
@@ -225,9 +225,9 @@
   [u v continue]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)]}
-  (let [umax (reduce into (map (comp u/keyset p/exponents)
+  (let [umax (reduce into (map (comp u/keyset pi/exponents)
                                (p/bare-terms u)))
-        vmax (reduce into (map (comp u/keyset p/exponents)
+        vmax (reduce into (map (comp u/keyset pi/exponents)
                                (p/bare-terms v)))]
     (if (empty? (cs/intersection umax vmax))
       (do (swap! gcd-trivial-constant inc)
@@ -266,14 +266,14 @@
   {:pre [(p/monomial? m)
          (p/polynomial? p)]}
   (let [[mono-expts mono-coeff] (nth (p/bare-terms m) 0)
-        expts (transduce (map p/exponents)
+        expts (transduce (map pi/exponents)
                          xpt/gcd
                          mono-expts
                          (p/bare-terms p))
         coeff (gcd-poly-number p mono-coeff)]
     (swap! gcd-monomials inc)
     (p/terms->polynomial (p/bare-arity m)
-                         [(p/make-term expts coeff)])))
+                         [(pi/make-term expts coeff)])))
 
 (comment
   (is (= (p/make 2 {[1 2] 3})

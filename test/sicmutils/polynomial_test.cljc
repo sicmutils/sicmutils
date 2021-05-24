@@ -32,6 +32,7 @@
             [sicmutils.modint :as modular]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.exponent :as xpt]
+            [sicmutils.polynomial.impl :as pi]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -49,13 +50,13 @@
             [expts (gen/vector gen/nat)
              coef sg/number]
             (let [expts (xpt/dense->exponents expts)
-                  term  (p/make-term expts coef)]
-              (is (= expts (p/exponents term)))
-              (is (= coef (p/coefficient term)))))
+                  term  (pi/make-term expts coef)]
+              (is (= expts (pi/exponents term)))
+              (is (= coef (pi/coefficient term)))))
 
   (testing "term getter defaults"
-    (is (= 0 (p/coefficient [])))
-    (is (= xpt/empty (p/exponents []))))
+    (is (= 0 (pi/coefficient [])))
+    (is (= xpt/empty (pi/exponents []))))
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))

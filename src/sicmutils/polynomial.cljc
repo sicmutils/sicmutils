@@ -1,4 +1,4 @@
-;;xpt
+;;
 ;; Copyright © 2021 Sam Richie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
@@ -30,6 +30,7 @@
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial.exponent :as xpt]
+            [sicmutils.polynomial.impl :as i]
             [sicmutils.series :as series]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
@@ -40,58 +41,91 @@
 
 ;; # Flat Polynomial Form, for Commutative Rings
 ;;
-;; The namespace starts by defining exponents (also called monomials), then
-;; builds these into terms, then polynomials with a proper type definition.
-
-(def ^{:dynamic true
-       :doc "The order. NOTE that this currently breaks if we customize it."}
-  *monomial-order*
-  xpt/graded-lex-order)
-
-;; ## Polynomial Terms
+;; This namespace builds up an implementation of a
+;; multivariate [polynomial](https://en.wikipedia.org/wiki/Polynomial) data
+;; structure and installs it into the tower of generic operations.
 ;;
-;; Terms are represented as pairs of [<exponents>, <coef>]. A polynomial (called
-;; an `fpf` in scmutils, for Flat Polynomial Form), is a sorted list of terms. A
-;; single term is called a 'monomial' below.
-
-(def ^:no-doc empty-terms [])
-
-(defn make-term
-  "Takes a monomial and a coefficient and returns a polynomial term."
-  ([coef] [xpt/empty coef])
-  ([expts coef] [expts coef]))
-
-(defn exponents
-  "Returns the exponent vector of the term."
-  [term]
-  (nth term 0 xpt/empty))
-
-(defn coefficient
-  "Returns the coefficient entry of the term."
-  [term]
-  (nth term 1 0))
-
-(defn- term->str [term]
-  (let [expts (exponents term)
-        coef  (coefficient term)]
-    (str (pr-str coef) "*" (pr-str expts))))
-
-(defn constant->terms [coef]
-  (if (v/zero? coef)
-    empty-terms
-    [(make-term xpt/empty coef)]))
-
-(defn constant-term?
-  "Returns true if the term has monomial with that is all zeros, false
-  otherwise."
-  [term]
-  (v/zero?
-   (exponents term)))
-
+;; Summarizing the [Wikipedia entry](https://en.wikipedia.org/wiki/Polynomial),
+;; a polynomial is an expression of any number of 'variables', or
+;; 'indeterminates' and concrete 'coefficients', combined using only the
+;; operations of addition, subtraction and multiplication of coefficients and
+;; variables.
+;;
+;; Here's an example of a polynomial of arity 2, ie, a polynomial in two
+;; variables:
+;;
+;; $$4 + 3x^2y + 5y^3 + 6x^4$$
+;;
+;; ## Terminology
+;;
+;; In the above example:
+;;
+;; - The full expression is called a 'polynomial'.
+;;
+;; - A polynomial is a sum of
+;;   many ['monomial'](https://en.wikipedia.org/wiki/Monomial) terms; these are
+;;   $4$, $3x^2y$, $5y^3$ and $6x^4$ in the example above.
+;;
+;; - Each monomial term is a product of a coefficient and a sequence of
+;;   'exponents', some product of the term's variables. The monomial $3x^2y$ has
+;;   coefficient $3$ and exponents $x^2y$.
+;;
+;; NOTE that sometimes the exponents here are called "monomials", without the
+;; coefficient. If you find that usage, the full 'coefficient * exponents' is
+;; usually called a 'polynomial term'.
+;;
+;; - The number of variables present in a polynomial is called the 'arity' of
+;;   the polynomial. (The arity of our example is 2.)
+;;
+;; - A polynomial with a single variable is called a 'univariate' polynomial; a
+;;   multivariable polynomial is called a 'multivariate' polynomial.
+;;
+;; - The [degree](https://en.wikipedia.org/wiki/Degree_of_a_polynomial#Multiplication)
+;;   of a monomial term is the sum of the exponents of each variable in the
+;;   term, with the special case that the [degree of a 0
+;;   term](https://en.wikipedia.org/wiki/Degree_of_a_polynomial#Degree_of_the_zero_polynomial)
+;;   is defined as -1. The degrees of each term in our example are 0, 3, 3 and
+;;   4, respectively.
+;;
+;; - The degree of a polynomial is the maximum of the degrees of the
+;;   polynomial's terms.
+;;
+;; There are, of course, more definitions! Whenever these come up in the
+;; implementation below, see the documentation for explanation.
+;;
+;; ## Implementation
+;;
+;; SICMUtils makes the following implementation choices:
+;;
+;; - The exponents of a monomial are represented by an ordered mapping of
+;;   variable index => the exponent of that variable. $x^2z^3$ is represented as
+;;   `{0 2, 2 3}`, for example. See `sicmutils.polynomial.exponent` for the full
+;;   set of operations you can perform on a term's exponents.
+;;
+;;  This representation is called `sparse` because variables with a 0 exponent
+;;  aren't included.
+;;
+;; - A monomial term is a vector of the form `[<exponents>, <coefficient>]`. The
+;;   coefficient can be any type! It's up to the user to supply coefficients
+;;   drawn from a commutative ring. See [[sicmutils.laws/ring]] for a
+;;   description of the properties coefficients should satisfy.
+;;
+;; - A polynomial is a sorted vector of monomials, sorted in some
+;;   consistent [Monomial order](https://en.wikipedia.org/wiki/Monomial_order).
+;;   See [[sicmutils.polynomial.impl/*monomial-order*]] for the current default.
+;;
+;; `sicmutils.polynomial.impl` builds up polynomial arithmetic on bare vectors
+;; of monomials, for efficiency's sake. This namespace builds this base out into
+;; a full [[Polynomial]] data structure with a fleshed-out API.
+;;
+;; To follow along in full, first read `sicmutils.polynomial.exponent`, then
+;; `sicmutils.polynomial.impl`... then come back and continue from here.
+;;
 ;; ## Polynomial Type Definition
 ;;
-;; A polynomial is a sorted sequence of terms, plus an `arity` and maybe some
-;; metadata.
+;; As noted above, a polynomial is defined by a sorted vector of terms.
+;; The [[Polynomial]] type wraps up these `terms`, the `arity` of the polynomial
+;; and optional metadata `m`.
 
 (declare evaluate constant ->str eq map-coefficients)
 
@@ -101,7 +135,7 @@
 
   sd/IPerturbed
   (perturbed? [_]
-    (let [coefs (map coefficient terms)]
+    (let [coefs (map i/coefficient terms)]
       (boolean (some sd/perturbed? coefs))))
 
   (replace-tag [this old new]
@@ -117,33 +151,33 @@
   (one? [_]
     (and (= (count terms) 1)
          (let [[term] terms]
-           (and (constant-term? term)
-                (v/one? (coefficient term))))))
+           (and (i/constant-term? term)
+                (v/one? (i/coefficient term))))))
 
   (identity? [_]
     (and (v/one? arity)
          (= (count terms) 1)
          (let [[term] terms]
-           (and (= {0 1} (exponents term))
-                (v/one? (coefficient term))))))
+           (and (= {0 1} (i/exponents term))
+                (v/one? (i/coefficient term))))))
 
   (zero-like [_]
     (if-let [term (nth terms 0)]
-      (v/zero-like (coefficient term))
+      (v/zero-like (i/coefficient term))
       0))
 
   (one-like [_]
     (if-let [term (nth terms 0)]
-      (v/one-like (coefficient term))
+      (v/one-like (i/coefficient term))
       1))
 
   (identity-like [_]
     (assert (v/one? arity)
             "identity-like unsupported on multivariate monomials!")
     (let [one (if-let [term (nth terms 0)]
-                (v/one-like (coefficient term))
+                (v/one-like (i/coefficient term))
                 1)
-          term (make-term (xpt/make 0 1) one)]
+          term (i/make-term (xpt/make 0 1) one)]
       (Polynomial. 1 [term] m)))
 
   (exact? [_] false)
@@ -307,39 +341,8 @@
   {:pre [(polynomial? p)]}
   (.-terms ^Polynomial p))
 
+
 ;; ## Constructors
-
-(defn- sparse->terms
-  "NOTE: Optionally takes a comparator, defaults to the dynamically bound one."
-  ([expts->coef]
-   (sparse->terms expts->coef *monomial-order*))
-  ([expts->coef comparator]
-   (if (empty? expts->coef)
-     empty-terms
-     (->> (for [[expts terms] (group-by exponents expts->coef)
-                :let [coef-sum (transduce
-                                (map coefficient) g/+ terms)]
-                :when (not (v/zero? coef-sum))
-                :let [expts (if (vector? expts)
-                              (xpt/dense->exponents expts)
-                              expts)]]
-            (make-term expts coef-sum))
-          (sort-by exponents comparator)
-          (into empty-terms)))))
-
-(defn- dense->terms
-  "Takes a sequence of coefficients of a univariate polynomial and returns a
-  sequence of terms."
-  [coefs]
-  (let [->term (fn [i coef]
-                 (when-not (v/zero? coef)
-                   (let [expts (if (zero? i)
-                                 xpt/empty
-                                 (xpt/make 0 i))]
-                     [(make-term expts coef)])))
-        xform  (comp (map-indexed ->term)
-                     cat)]
-    (into empty-terms xform coefs)))
 
 (defn ^:no-doc terms->polynomial
   "Returns a [[Polynomial]] instance generated from a vector of terms. This method
@@ -356,8 +359,8 @@
   (cond (empty? terms) 0
 
         (and (= (count terms) 1)
-             (constant-term? (nth terms 0)))
-        (let [c (coefficient (nth terms 0))]
+             (i/constant-term? (nth terms 0)))
+        (let [c (i/coefficient (nth terms 0))]
           (if (polynomial? c)
             (->Polynomial arity terms)
             c))
@@ -385,10 +388,10 @@
 
   TODO ALSO check that this is bailing out correctly."
   ([dense-coefficients]
-   (let [terms (dense->terms dense-coefficients)]
+   (let [terms (i/dense->terms dense-coefficients)]
      (terms->polynomial 1 terms)))
   ([arity expts->coef]
-   (let [terms (sparse->terms expts->coef)]
+   (let [terms (i/sparse->terms expts->coef)]
      (terms->polynomial arity terms))))
 
 (defn constant
@@ -397,7 +400,7 @@
   NOTE that zero coefficients always get filtered out."
   ([c] (constant 1 c))
   ([arity c]
-   (->Polynomial arity (constant->terms c))))
+   (->Polynomial arity (i/constant->terms c))))
 
 (defn identity
   "TODO modeled on sparse-identity-term, check interface."
@@ -408,7 +411,7 @@
   ([arity i]
    {:pre [(and (> i 0) (<= i arity))]}
    (let [expts (xpt/make (dec i) 1)]
-     (->Polynomial arity [(make-term expts 1)]))))
+     (->Polynomial arity [(i/make-term expts 1)]))))
 
 (defn new-variables
   "Returns a lazy sequence of new variables.
@@ -436,7 +439,7 @@
         (v/zero? c) c
         (zero? n) (constant arity c)
         :else
-        (let [term (make-term (xpt/make 0 n) c)]
+        (let [term (i/make-term (xpt/make 0 n) c)]
           (->Polynomial arity [term]))))
 
 ;; ###  Accessors, Predicates
@@ -457,7 +460,7 @@
   (cond (polynomial? p) (bare-terms p)
         (vector? p) p
         (v/zero? p) []
-        :else [(make-term p)]))
+        :else [(i/make-term p)]))
 
 (defn ^:no-doc check-same-arity
   "TODO works now for constants, check!
@@ -499,7 +502,7 @@
    (cond (v/zero? p) zero-arity
          (polynomial? p)
          (xpt/monomial-degree
-          (exponents
+          (i/exponents
            (leading-term p)))
          :else coeff-arity))
   ([p i]
@@ -507,7 +510,7 @@
      (cond (v/zero? p) zero-arity
            (polynomial? p)
            (letfn [(i-degree [term]
-                     (-> (exponents term)
+                     (-> (i/exponents term)
                          (xpt/monomial-degree i)))]
              (transduce (map i-degree)
                         max
@@ -528,8 +531,8 @@
     (let [terms (.-terms this)]
       (and (<= (count terms) 1)
            (let [term (peek terms)]
-             (and (constant-term? term)
-                  (v/= that (coefficient term))))))))
+             (and (i/constant-term? term)
+                  (v/= that (i/coefficient term))))))))
 
 (defn ->str
   ([p] (->str p 10))
@@ -538,7 +541,7 @@
    (let [terms     (bare-terms p)
          arity     (bare-arity p)
          n-terms   (count terms)
-         term-strs (take n (map term->str terms))
+         term-strs (take n (map i/term->str terms))
          suffix    (when (> n-terms n)
                      (str "... and " (- n-terms n) " more terms"))]
      (str arity  ": (" (cs/join " + " term-strs) suffix ")"))))
@@ -549,7 +552,7 @@
   "Returns a sequence of the coefficients of the polynomial."
   [p]
   (if (polynomial? p)
-    (map coefficient (->terms p))
+    (map i/coefficient (->terms p))
     [p]))
 
 (defn leading-term
@@ -563,13 +566,13 @@
 
 (defn leading-coefficient [p]
   (if (polynomial? p)
-    (coefficient
+    (i/coefficient
      (peek (bare-terms p)))
     p))
 
 (defn leading-monomial [p]
   (if (polynomial? p)
-    (exponents
+    (i/exponents
      (peek (bare-terms p)))
     xpt/empty))
 
@@ -580,14 +583,14 @@
 
 (defn trailing-coefficient [p]
   (if (polynomial? p)
-    (coefficient
+    (i/coefficient
      (nth (bare-terms p) 0))
     p))
 
 (defn lowest-order [p]
   (if (polynomial? p)
     (xpt/monomial-degree
-     (exponents
+     (i/exponents
       (nth (bare-terms p) 0)))
     coeff-arity))
 
@@ -625,13 +628,6 @@
 
 ;; ## Polynomial API
 
-(defn- terms:map-coefficients [f terms]
-  (into empty-terms
-        (for [[expts c] terms
-              :let [f-c (f c)]
-              :when (not (v/zero? f-c))]
-          (make-term expts f-c))))
-
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial.
 
@@ -640,7 +636,7 @@
   (if (polynomial? p)
     (terms->polynomial
      (bare-arity p)
-     (terms:map-coefficients f (bare-terms p)))
+     (i/map-coefficients f (bare-terms p)))
     (f p)))
 
 (defn map-exponents
@@ -655,7 +651,7 @@
      (make new-arity
            (for [[expts c] (bare-terms p)
                  :let [f-expts (f expts)]]
-             (make-term f-expts c)))
+             (i/make-term f-expts c)))
      p)))
 
 ;; ## Manipulations
@@ -669,11 +665,11 @@
       (if (> i d)
         (persistent! acc)
         (let [t  (first terms)
-              e  (exponents t)
+              e  (i/exponents t)
               md (xpt/monomial-degree e 0)]
           (if (= md i)
             (recur (rest terms)
-                   (conj! acc (coefficient t))
+                   (conj! acc (i/coefficient t))
                    (inc i))
             (recur terms
                    (conj! acc 0)
@@ -743,63 +739,6 @@
       (terms->polynomial a terms))
     0))
 
-;; ## Term Arithmetic
-
-(def terms:+
-  (ua/merge-fn #'*monomial-order* g/add v/zero? make-term))
-
-(defn terms:- [l r]
-  (terms:+ l (terms:map-coefficients g/negate r)))
-
-;; ## Polynomial Arithmetic
-
-(defn- t*ts
-  "Multiplies a single term on the left by a vector of `terms` on the right.
-  Returns a new vector of terms."
-  [[tags coeff] terms]
-  (loop [acc (transient [])
-         i 0]
-    (let [t (nth terms i nil)]
-      (if (nil? t)
-        (persistent! acc)
-	      (let [[tags1 coeff1] t]
-	        (recur (conj! acc (make-term
-		                         (xpt/+ tags tags1)
-		                         (g/mul coeff coeff1)))
-		             (inc i)))))))
-
-(defn- terms:* [xlist ylist]
-  (letfn [(call [i]
-            (let [x (nth xlist i nil)]
-              (if (nil? x)
-                []
-                (terms:+ (t*ts x ylist)
-	                       (call (inc i))))))]
-    (call 0)))
-
-(defn- terms:div
-  "divide explicit polynomials.
-
-  TODO to be REALLY slick and match plus etc... this would work JUST on terms.
-  DO IT! That would let return constants when we need to. And you can see we want it below!"
-  [u v]
-  (let [[vn-expts vn-coeff] (peek v)
-        good?  #(xpt/every-power? pos? %)]
-    (loop [quotient []
-           remainder u]
-      ;; find a term in the remainder into which the
-      ;; lead term of the divisor can be divided.
-      (if (empty? remainder)
-        [quotient remainder]
-        (let [[r-exponents r-coeff] (peek remainder)
-              residues (xpt/- r-exponents vn-expts)]
-          (if (good? residues)
-            (let [new-coeff (g/div r-coeff vn-coeff)
-                  new-term  (make-term residues new-coeff)]
-              (recur (terms:+ quotient [new-term])
-                     (terms:- remainder (t*ts new-term v))))
-            [quotient remainder]))))))
-
 ;; ## Polynomial Arithmetic
 
 (defn- binary-combine
@@ -818,12 +757,12 @@
           (->poly
            (bare-arity l)
 	         (terms-op (bare-terms l)
-			               (constant->terms r)))
+			               (i/constant->terms r)))
 
           r-poly?
           (->poly
            (bare-arity r)
-           (terms-op (constant->terms l)
+           (terms-op (i/constant->terms l)
                      (bare-terms r)))
 
           :else (coeff-op l r))))
@@ -839,17 +778,17 @@
 (defn poly:+
   "Adds the polynomials p and q"
   [p q]
-  (binary-combine p q g/add terms:+))
+  (binary-combine p q g/add i/add))
 
 (defn poly:-
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (binary-combine p q g/sub terms:-))
+  (binary-combine p q g/sub i/sub))
 
 (defn poly:*
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (binary-combine p q g/mul terms:*))
+  (binary-combine p q g/mul i/mul))
 
 (defn square [p]
   (poly:* p p))
@@ -907,7 +846,7 @@
         :else
         (letfn [(coeff:div [l r]
                   [(g/quotient l r) (g/remainder l r)])]
-          (binary-combine u v coeff:div terms:div
+          (binary-combine u v coeff:div i/div
                           :->poly
                           (fn [a [q r]]
                             [(terms->polynomial a q)
@@ -1038,12 +977,12 @@
                     (for [[xs c] terms]
                       [(xpt/lower xs 0) c])))]
       (->> (bare-terms p)
-           (group-by #(xpt/monomial-degree (exponents %) 0))
+           (group-by #(xpt/monomial-degree (i/exponents %) 0))
            (map (fn [[x terms]]
                   (let [expts (if (zero? x)
                                 xpt/empty
                                 (xpt/make 0 x))]
-                    (make-term expts (lower-terms terms)))))
+                    (i/make-term expts (lower-terms terms)))))
            (make 1)))))
 
 (defn raise-arity
@@ -1052,11 +991,11 @@
   [p a]
   (if (polynomial? p)
     (do (assert (= (bare-arity p) 1))
-        (let [terms (sparse->terms
+        (let [terms (i/sparse->terms
                      (for [[x q] (bare-terms p)
                            [ys c] (->terms q)
                            :let [expts (xpt/raise ys 0 (xpt/monomial-degree x 0))]]
-                       (make-term expts c)))]
+                       (i/make-term expts c)))]
           (->Polynomial a terms)))
     (constant a p)))
 
@@ -1224,7 +1163,7 @@
                           (dissoc xs i)
                           (update xs i dec))
                   coeff (g/* xi c)]
-              (make-term expts coeff))))))
+              (i/make-term expts coeff))))))
 
 (defn partial-derivatives
   "The sequence of partial derivatives of p with respect to each
@@ -1361,8 +1300,8 @@
 (defmethod g/exact-divide [::coeff ::polynomial] [c p]
   (let [[term :as terms] (bare-terms p)]
     (if (and (= (count terms) 1)
-             (constant-term? term))
-      (g/exact-divide c (coefficient term))
+             (i/constant-term? term))
+      (g/exact-divide c (i/coefficient term))
       (u/illegal (str "Can't divide coefficient by polynomial: " c ", " p)))))
 
 (defmethod g/simplify [::polynomial] [p]

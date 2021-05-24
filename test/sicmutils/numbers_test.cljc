@@ -410,7 +410,10 @@
                   (is (not (g/negative? gxy)))
                   (is (= x (g/exact-divide xz g)))
                   (is (= y (g/exact-divide yz g)))
-                  (is (= (g/abs z) g)))))))
+                  (is (= (g/abs z) g)))))
+
+    (testing "lcm"
+      (is (zero? (g/lcm 0 0))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

@@ -465,9 +465,11 @@
   inputs `a` and `b`.")
 
 (defmethod lcm :default [a b]
-  (abs
-   (divide (* a b)
-           (gcd a b))))
+  (let [g (gcd a b)]
+    (if (v/zero? g)
+      g
+      (abs
+       (* (exact-divide a g) b)))))
 
 ;; ### Trigonometric functions
 
