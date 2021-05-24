@@ -130,6 +130,9 @@
 (declare evaluate constant ->str eq map-coefficients)
 
 (deftype Polynomial [arity terms m]
+  ;; Polynomial evaluation works for any number of arguments up to and including
+  ;; the full arity. Evaluating a polynomial with fewer arguments `n` than arity
+  ;; triggers a partial evaluation of the first `n` indeterminates.
   f/IArity
   (arity [_] [:between 0 arity])
 
@@ -329,18 +332,23 @@
   (instance? Polynomial x))
 
 (defn coeff?
-  "Anything that is NOT an explicit polynomial is, helpfully, a potential coefficient."
+  "Returns true if the input `x` is explicitly _not_ an instance of [[Polynomial]], false otherwise.
+
+  Equivalent to `(not (polynomial? x))`."
   [x]
   (not (polynomial? x)))
 
-(defn ^:no-doc bare-arity [p]
+(defn ^:no-doc bare-arity
+  "Given a [[Polynomial]] instance `p`, returns the `arity` field."
+  [p]
   {:pre [(polynomial? p)]}
   (.-arity ^Polynomial p))
 
-(defn ^:no-doc bare-terms [p]
+(defn ^:no-doc bare-terms
+  "Given a [[Polynomial]] instance `p`, returns the `terms` field."
+  [p]
   {:pre [(polynomial? p)]}
   (.-terms ^Polynomial p))
-
 
 ;; ## Constructors
 
