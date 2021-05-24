@@ -20,7 +20,7 @@
 (ns ^:no-doc sicmutils.polynomial.exponent
   "This namespace provides an implementation of a sparse representation of the
   exponent portion of a term of a polynomial, sometimes called a 'monomial'."
-  (:refer-clojure :exclude [empty #?@(:cljs [+ - assoc])]
+  (:refer-clojure :exclude [empty #?@(:cljs [assoc])]
                   :rename {assoc core-assoc})
   (:require [sicmutils.util :as u]))
 

@@ -353,16 +353,19 @@
 ;; ## Constructors
 
 (defn ^:no-doc terms->polynomial
-  "Returns a [[Polynomial]] instance generated from a vector of terms. This method
-  will do some mild cleanup:
+  "Accepts an explicit `arity` and a vector of terms and returns either:
 
-  - any empty term list will return 0
-  - a singleton term list with all zero exponents will return its coefficient
+  - `0`, in the case of an empty list
+  - a bare coefficient, given a singleton term list with a constant term
+  - else, a [[Polynomial]] instance.
+
+  In the second case, if the coefficient is _itself_ a [[Polynomial]], wraps
+  that [[Polynomial]] instance up in an explicit [[Polynomial]]. In cases where
+  polynomials have polynomial coefficients, this flattening should never happen
+  automatically.
 
   NOTE this method assumes that the terms are properly sorted, and contain no
-  zero coefficients.
-
-  NOTE: Analogous to to `terms->differential`."
+  zero coefficients."
   [arity terms]
   (cond (empty? terms) 0
 
@@ -376,25 +379,49 @@
         :else (->Polynomial arity terms)))
 
 (defn make
-  "When called with two arguments, the first is the arity
-  (number of indeterminates) of the polynomial followed by a sequence of
-  exponent-coefficient pairs. Each exponent should be a vector with length equal
-  to the arity, with integer exponent values. To make 4 x^2 y + 5 x y^2, an
-  arity 2 polynomial (since it has two variables, x and y), we could write the
-  following for xc-pairs:
-   [[[2 1] 4] [[1 2] 5]]
+  "Generates a [[Polynomial]] instance (or a bare coefficient!) from either:
 
-  When called with one argument, the sequence is interpreted as a dense sequence
-  of coefficients of an arity-1 (univariate) polynomial. The coefficients begin
+  - a sequence of dense coefficients of a univariate polynomial (in ascending
+  order)
+  - an explicit `arity`, and a sparse mapping (or sequence of pairs) of exponent
+  => coefficient
+
+  In the first case, the sequence is interpreted as a dense sequence of
+  coefficients of an arity-1 (univariate) polynomial. The coefficients begin
   with the constant term and proceed to each higher power of the indeterminate.
   For example, x^2 - 1 can be constructed by (make [-1 0 1]).
 
-  TODO note that we now return a coefficient for constant, even if they sum to a
-  constant. We try hard to get OUT of poly land!
+  In the 2-arity case,
 
-  TODO note that we have to have ALL the same arity!
+  - `arity` is the number of indeterminates
+  - `expts->coef` is a map of an exponent representation to a coefficient.
 
-  TODO ALSO check that this is bailing out correctly."
+  The `exponent` portion of the mapping can be any of:
+
+  - a proper exponent entry created by `sicmutils.polynomial.exponent`
+  - a map of the form `{variable-index, power}`
+  - a dense vector of variable powers, like `[3 0 1]` for $x^3z$. The length of
+    each vector should be equal to `arity`, in this case.
+
+  For example, any of the following would generate $4x^2y + 5xy^2$:
+
+  ```clojure
+  (make 2 [[[2 1] 4] [[1 2] 5]])
+  (make 2 {[2 1] 4, [1 2] 5})
+  (make 2 {{0 2, 1 1} 4, {0 1, 1 2} 5})
+  ```
+
+  NOTE: [[make]] will try and return a bare coefficient if possible. For
+  example, the following form will return a constant, since there are no
+  explicit indeterminates with powers > 0:
+
+  ```clojure
+  (make 10 [[{} 1] [{} 2]])
+  ;;=> 3
+  ```
+
+  See [[constant]] if you need an explicit [[Polynomial]] instance wrapping a
+  constant."
   ([dense-coefficients]
    (let [terms (i/dense->terms dense-coefficients)]
      (terms->polynomial 1 terms)))
@@ -403,15 +430,27 @@
      (terms->polynomial arity terms))))
 
 (defn constant
-  "Return a constant polynomial of the given arity.
+  "Given some coefficient `c`, returns a [[Polynomial]] instance with a single
+  constant term referencing `c`.
 
-  NOTE that zero coefficients always get filtered out."
+  `arity` defaults to 1; supply it to set the arity of the
+  returned [[Polynomial]]."
   ([c] (constant 1 c))
   ([arity c]
    (->Polynomial arity (i/constant->terms c))))
 
 (defn identity
-  "TODO modeled on sparse-identity-term, check interface."
+  "Generates a [[Polynomial]] instance representing a single indeterminate with
+  constant 1.
+
+  When called with no arguments, returns a monomial of arity 1 that acts as
+  identity in the first indeterminate.
+
+  The one-argument version takes an explicit `arity`, but still sets the
+  identity to the first indeterminate.
+
+  The two-argument version takes an explicit `i` and returns a monomial of arity
+  `arity` with an exponent of 1 in the `i`th indeterminate."
   ([]
    (identity 1 1))
   ([arity]
@@ -422,10 +461,9 @@
      (->Polynomial arity [(i/make-term expts 1)]))))
 
 (defn new-variables
-  "Returns a lazy sequence of new variables.
-
-  TODO NOTE: returns a sequence of `n` new polynomials of arity `n`, with the
-  coefficient 1 and new indeterminates for each."
+  "Returns a sequence of `n` monomials of arity `n`, each with an exponent of `1`
+  for the `i`th indeterminate (where `i` matches the position in the returned
+  sequence)."
   [n]
   (map #(identity n %)
        (range 1 (inc n))))
@@ -433,7 +471,12 @@
 (declare poly:+)
 
 (defn linear
-  "Makes a polynomial representing a linear equation."
+  "Given some `arity`, an indeterminate index `i` and some constant `root`,
+  returns a polynomial of the form `x_i - root`. The returned polynomial
+  represents a linear equation in the `i`th indeterminate.
+
+  If `root` is 0, [[linear]] is equivalent to the two-argument version
+  of [[identity]]."
   [arity i root]
   (if (v/zero? root)
     (identity arity i)
@@ -441,29 +484,47 @@
             (identity arity i))))
 
 (defn c*xn
-  "Polynomial representing c*x^n, where x is the first indeterminate."
+  "Given some `arity`, a coefficient `c` and an exponent `n`, returns a monomial
+  representing $c{x_0}^n$. The first indeterminate is always exponentiated.
+
+  Similar to [[make]], this function attempts to drop down to scalar-land if
+  possible:
+
+  - If `c` is [[sicmutils.value/zero?]], returns `c`
+  - if `n` is `zero?`, returns `(constant arity c)`
+
+  NOTE that negative exponents are not allowed."
   [arity c n]
-  (cond (<= n -1)   0
-        (v/zero? c) c
-        (zero? n) (constant arity c)
+  {:pre [(>= n 0)]}
+  (cond (v/zero? c) c
+        (zero? n)   (constant arity c)
         :else
         (let [term (i/make-term (xpt/make 0 n) c)]
           (->Polynomial arity [term]))))
 
 ;; ###  Accessors, Predicates
+;;
+;; The functions in the next section all work on both explicit [[Polynomial]]
+;; instances _and_ on bare coefficients. Any non-polynomial type is treated as a
+;; constant polynomial.
 
-(def ^:no-doc zero-arity -1)
 (def ^:no-doc coeff-arity 0)
+(def ^:no-doc zero-degree -1)
 
 (defn arity
-  "TODO what's the difference between arity and degree?"
+  "Returns the declared arity of the supplied [[Polynomial]], or `0` for
+  non-polynomial arguments."
   [p]
   (if (polynomial? p)
     (bare-arity p)
     coeff-arity))
 
 (defn ->terms
-  "NOTE this is JUST like `->terms` in `differential`."
+  "Given some [[Polynomial]], returns the `terms` entry of the type. Handles other types as well:
+
+  - Acts as identity on vectors, interpreting them as vectors of terms
+  - any zero-valued `p` returns `[]`
+  - any other coefficient returns a vector of a single constant term."
   [p]
   (cond (polynomial? p) (bare-terms p)
         (vector? p) p
@@ -471,9 +532,11 @@
         :else [(i/make-term p)]))
 
 (defn ^:no-doc check-same-arity
-  "TODO works now for constants, check!
+  "Given two polynomials (or coefficients) `p` and `q`, checks that their arities
+  are equal and returns the value, or throws an exception if not.
 
-  TODO this will NOT return proper zero arity. Check?"
+  If either `p` or `q` is a coefficient, [[check-same-arity]] successfully
+  returns the other argument's arity."
   [p q]
   (let [poly-p? (polynomial? p)
         poly-q? (polynomial? q)]
@@ -488,7 +551,13 @@
           poly-q? (bare-arity p)
           :else coeff-arity)))
 
-(defn ^:no-doc validate-arity [p i]
+(defn ^:no-doc validate-arity
+  "Given some input `p` and an indeterminate index `i`, returns `i` if `0 <= i
+  < (arity p)`, and throws an exception otherwise.
+
+  NOTE [[validate-arity]] is meant to validate indeterminate indices; thus it
+  will always throw for non-[[Polynomial]] inputs."
+  [p i]
   (let [a (arity p)]
     (if (or (< i 0)
             (>= i (arity p)))
@@ -507,7 +576,7 @@
 
   If you supply an arity, AND you have a polynomial, you'll get the max degree in that position."
   ([p]
-   (cond (v/zero? p) zero-arity
+   (cond (v/zero? p) zero-degree
          (polynomial? p)
          (xpt/monomial-degree
           (i/exponents
@@ -515,7 +584,7 @@
          :else coeff-arity))
   ([p i]
    (let [i (validate-arity p i)]
-     (cond (v/zero? p) zero-arity
+     (cond (v/zero? p) zero-degree
            (polynomial? p)
            (letfn [(i-degree [term]
                      (-> (i/exponents term)
