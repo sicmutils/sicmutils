@@ -47,18 +47,16 @@
   across the fraction bar.
   NOTE: I think this is fpf:analyzer in the scheme code."
   []
-  (let [backend (poly/->PolynomialAnalyzer)
-        gensym (a/monotonic-symbol-generator "-s-")]
-    (a/make-analyzer backend gensym)))
+  (let [gensym (a/monotonic-symbol-generator "-s-")]
+    (a/make-analyzer poly/analyzer gensym)))
 
 (defn ^:no-doc rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions.
   NOTE: This is rcf:analyzer."
   []
-  (let [backend (rf/->RationalFunctionAnalyzer)
-        gensym (a/monotonic-symbol-generator "-r-")]
-    (a/make-analyzer backend gensym)))
+  (let [gensym (a/monotonic-symbol-generator "-r-")]
+    (a/make-analyzer rf/analyzer gensym)))
 
 (def ^:dynamic *poly-simplify*
   (memoize

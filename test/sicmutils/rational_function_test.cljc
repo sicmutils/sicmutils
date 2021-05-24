@@ -125,21 +125,18 @@
         x-1 (p/make [-1 1])]
     (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
 
-(def ^:private rf-analyzer
-  (rf/->RationalFunctionAnalyzer))
-
 (def ^:private rf-simp
-  #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))
+  #(a/expression-> rf/analyzer % (fn [a b] (a/->expression rf/analyzer a b))))
 
 (deftest rf-as-simplifier
   (testing "expr"
     (let [exp1 (x/expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (x/expression-of (g/expt (g/+ 1 'y) 5))
           exp3 (x/expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
-      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf-analyzer exp2 vector)))
-      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf-analyzer exp3 vector)))))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf/analyzer exp1 vector)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf/analyzer exp1 vector)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf/analyzer exp2 vector)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf/analyzer exp3 vector)))))
 
   (testing "expr-simplify"
     (let [exp1 (x/expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))

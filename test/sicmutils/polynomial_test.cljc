@@ -456,11 +456,8 @@
       (is (= (p/make [i o o o i i i o o i o i i])
              r2)))))
 
-(def poly-analyzer
-  (p/->PolynomialAnalyzer))
-
 (defn ->poly [x]
-  (a/expression-> poly-analyzer x (fn [p _] p)))
+  (a/expression-> p/analyzer x (fn [p _] p)))
 
 (deftest poly-evaluate
   (testing "arity 1"
@@ -551,23 +548,23 @@
           receive (fn [a b] [a b])]
       (is (= '#{* + x} (variables-in exp1)))
       (is (= [(p/make [-3 -2 1]) '(x)]
-             (a/expression-> poly-analyzer exp1 receive)))
+             (a/expression-> p/analyzer exp1 receive)))
 
       (is (= [(p/make [-3 -2 1]) '(x)]
-             (a/expression-> poly-analyzer exp1 receive)))
+             (a/expression-> p/analyzer exp1 receive)))
 
       (is (= [(p/make [1 5 10 10 5 1]) '(y)]
-             (a/expression-> poly-analyzer exp2 receive)))
+             (a/expression-> p/analyzer exp2 receive)))
 
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)]
-             (a/expression-> poly-analyzer exp3 receive)))))
+             (a/expression-> p/analyzer exp3 receive)))))
 
   (testing "monomial order"
     (let [poly-simp #(a/expression->
-                      poly-analyzer
+                      p/analyzer
                       (expression-of %)
                       (fn [p vars]
-                        (a/->expression poly-analyzer p vars)))]
+                        (a/->expression p/analyzer p vars)))]
       (is (= '(+ (expt x 2) x 1)
              (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
 
@@ -590,10 +587,10 @@
 
   (testing "expr-simplify"
     (let [poly-simp #(a/expression->
-                      poly-analyzer
+                      p/analyzer
                       %
                       (fn [p vars]
-                        (a/->expression poly-analyzer p vars)))
+                        (a/->expression p/analyzer p vars)))
           exp1 (expression-of (g/+ (g/* 'x 'x 'x)
                                    (g/* 'x 'x)
                                    (g/* 'x 'x)))
@@ -729,7 +726,7 @@
 
 (deftest analyzer-test
   (let [new-analyzer (fn [] (a/make-analyzer
-                            (p/->PolynomialAnalyzer)
+                            p/analyzer
                             (a/monotonic-symbol-generator "k%08d")))
         A #((a/default-simplifier
              (new-analyzer)) %)]

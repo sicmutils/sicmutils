@@ -31,15 +31,12 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def poly-analyzer
-  (p/->PolynomialAnalyzer))
-
 (defn ->poly [x]
-  (a/expression-> poly-analyzer x (fn [p _] p)))
+  (a/expression-> p/analyzer x (fn [p _] p)))
 
 (deftest factoring
   (testing "simple test cases"
-    (let [fpe #(pf/factor-polynomial-expression g/simplify poly-analyzer %)
+    (let [fpe #(pf/factor-polynomial-expression g/simplify p/analyzer %)
           x-y (->poly '(- x y))
           x+y (->poly '(+ x y))]
       (is (= [1 1 x-y x+y]
