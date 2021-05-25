@@ -52,7 +52,11 @@
   (testing "inexact coefficients"
     (is (= 1.0 (g/gcd
                 (p/make [0.2 0.4 0.6])
-                (p/make [0.4 0.6 0.8])))))
+                (p/make [0.4 0.6 0.8]))))
+    (is (= (p/make [0 1])
+           (g/gcd
+            (p/make [0 1])
+            (p/make [0 0.2 1])))))
 
   (testing "divide constant arity 2"
     (let [X (p/make 2 [[[1 0] 1]])

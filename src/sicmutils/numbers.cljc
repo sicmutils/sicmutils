@@ -159,6 +159,11 @@
   (g/quotient a b))
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
+(defmethod g/exact-divide [::v/scalar ::v/real] [b a]
+  (cond (= a b) (v/one-like a)
+        (v/one? a) b
+        :else (u/illegal
+               (str "exact not allowed: " b ", " a))))
 
 (defmethod g/integer-part [::v/integral] [a] a)
 (defmethod g/fractional-part [::v/integral] [a] 0)

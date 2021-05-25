@@ -378,7 +378,10 @@
 ;; 'classical' way to do this is with the [Euclidean
 ;; algorithm](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm)
 ;; for univariate polynomials. This method can be extended to multivariate
-;; polynomials by using [[p/lower-arity]] to push
+;; polynomials by using [[p/lower-arity]] to push all but the first variable
+;; into the coefficients, and passing a `gcd` argument to [[euclidean-gcd]] that
+;; will recursively do the same until we hit bottom, at a univariate polynomial
+;; with non-polynomial coefficients.
 
 (defn- euclidean-gcd
   "Given some multivariate `gcd` function, returns a function of polynomials `u`
@@ -399,7 +402,12 @@
             (let [[_ prim] (->content+primitive r gcd)]
               (recur v prim)))))))
 
-(defn- univariate-gcd
+;; The next function pairs [[euclidean-gcd]] with one of our continuations from
+;; above; [[with-content-removed]] removes the initial greatest common divisor
+;; of the coefficients of `u` and `v` before calling [[euclidean-gcd]], to keep
+;; the size of the coefficients small.
+
+(defn univariate-gcd
   "Given two univariate polynomials `u` and `v`, returns the greatest common
   divisor of `u` and `v` calculated using Knuth's algorithm 4.6.1E."
   [u v]
@@ -409,14 +417,30 @@
           (with-content-removed primitive-gcd)
           (euclidean-gcd primitive-gcd)))
 
-;; Multivariate GCD builds on the univariate case
+;; [[full-gcd]] extends [[univariate-gcd]] by using [[p/with-lower-arity]]
+;; and [[with-content-removed]] to recursively handle the first, principal
+;; variable using [[euclidean-gcd]], but passing a recursive call
+;; to [[full-gcd]] that the functions will use to handle their
+;; coefficients (which are polynomials of one less arity!)
 
-(defn- full-gcd
-  "gcd is just a wrapper for this function, which does the real work
-  of computing a polynomial gcd. Delegates to [[univariate-gcd]] for univariate
-  polynomials.
+(defn full-gcd
+  "Given two polynomials `u` and `v` (potentially multivariate) with
+  non-polynomial coefficients, returns the greatest common divisor of `u` and
+  `v` calculated using a multivariate extension of Knuth's algorithm 4.6.1E.
 
-  TODO move the wrapping to with-wrapped or something."
+  Optionally takes a debugging `level`. To see the debugging logs generated over
+  the course of the run, set [[*poly-gcd-debug*]] to true.
+
+  NOTE: [[full-gcd]] Internally checks that it hasn't run out a stopwatch set
+  with [[with-limited-time]]; you can wrap a call to [[full-gcd]] in this
+  function to limit its execution time.
+
+  For example, this form will throw a TimeoutException after 1 second:
+
+  ```clojure
+  (with-limited-time [1 :seconds]
+    (fn [] (full-gcd u v)))
+  ```"
   ([u v] (full-gcd 0 u v))
   ([level u v]
    (letfn [(attempt [u v]
@@ -429,54 +453,91 @@
                          (let [rec (fn [u v]
                                      (full-gcd (inc level) u v))
                                next-gcd (->gcd rec)]
-                           (maybe-bail-out! "polynomial GCD")
+                           (maybe-bail-out! "full-gcd")
                            (cont-> [u v]
                                    p/with-lower-arity
                                    (with-content-removed next-gcd)
                                    (euclidean-gcd next-gcd)))))))]
-     (dbg level "multivariate-gcd" u v)
+     (dbg level "full-gcd" u v)
      (let [result (cached attempt u v)]
        (dbg level "<-" result)
        result))))
 
-(defn classical-gcd [u v]
+(defn classical-gcd
+  "Higher-level wrapper around [[full-gcd]] that:
+
+  - optimizes the case where `u` and `v` share no variables
+  - sorts the variables in `u` and `v` in order of increasing degree
+
+  before attempting [[full-gcd]]. See [[full-gcd]] for a full description."
+  [u v]
   (cont-> [u v]
           (with-trivial-constant-gcd-check primitive-gcd)
           with-optimized-variable-order
           full-gcd))
 
 (defn- gcd-dispatch
-  "Dispatcher for GCD routines.
+  "Dispatches to [[classical-gcd]] with an enforced time limit
+  of [[*poly-gcd-time-limit*]].
 
-  TODO isn't... the defmethod sort of the dispatcher??"
-  ([] 0)
-  ([u] u)
-  ([u v]
-   (or (trivial-gcd u v)
-       (cond
-         (not (and (every? v/exact? (p/coefficients u))
-                   (every? v/exact? (p/coefficients v))))
-         (v/one-like u)
+  NOTE this function is the place to add support for other GCD methods, like
+  sparse polynomial GCD, that are coming down the pipe."
+  [u v]
+  (or (trivial-gcd u v)
+      (with-limited-time *poly-gcd-time-limit*
+        (fn [] (classical-gcd u v)))))
 
-         :else
-         (with-limited-time *poly-gcd-time-limit*
-           (fn [] (classical-gcd u v))))))
-  ([u v & more]
-   (reduce gcd-dispatch u (cons v more))))
+(def
+  ^{:doc "Returns the greatest common divisor of `u` and `v`, calculated by a
+  multivariate extension to the [Euclidean algorithm for multivariate
+  polynomials](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm).
 
-(def ^{:doc "main GCD entrypoint."}
+  `u` and `v` can be polynomials or non-polynomials coefficients."
+    :arglists '([]
+                [u]
+                [u v]
+                [u v & more])}
   gcd
-  #'gcd-dispatch)
+  (ua/monoid gcd-dispatch 0))
 
-(defn lcm [u v]
+(defn lcm
+  "Returns the least common multiple of (possibly polynomial) arguments `u` and
+  `v`, using [[gcd]] to calculate the gcd portion of
+
+  ```
+  (/ (g/abs (* u v))
+     (gcd u v))
+  ```"
+  [u v]
   (if (or (p/polynomial? u)
           (p/polynomial? v))
-    (let [g (gcd u v)]
+    (let [g (gcd-dispatch u v)]
       (p/abs
        (p/mul (p/evenly-divide u g) v)))
     (g/lcm u v)))
 
-;; TODO test `gcd` between OTHER types and polynomials here...
+(defn gcd-Dp
+  "Returns the greatest common divisor of all partial derivatives of the
+  polynomial `p` using binary applications of the [[gcd]] algorithm between each
+  partial derivative.
+
+  This algorithm assumes that all coefficients are integral, and halts when it
+  encounters a result that responds true to [[sicmutils.value/one?]].
+
+  If a non-[[p/Polynomial]] is supplied, returns 1."
+  [p]
+  (if (p/polynomial? p)
+    (transduce (ua/halt-at v/one?)
+               gcd
+               (p/partial-derivatives p))
+    1))
+
+;; ## Generic GCD Installation
+;;
+;; The following block installs appropriate GCD and LCM routines between
+;; polynomial and coefficient instances.
+
+(p/defbinary g/lcm lcm)
 
 (defmethod g/gcd [::p/polynomial ::p/polynomial] [u v]
   (gcd-dispatch u v))
@@ -490,32 +551,3 @@
   (if (v/zero? u)
     v
     (gcd-poly-number v u)))
-
-(defmethod g/lcm [::p/polynomial ::p/polynomial] [u v] (lcm u v))
-(defmethod g/lcm [::p/coeff ::p/polynomial] [u v] (lcm u v))
-(defmethod g/lcm [::p/polynomial ::p/coeff] [u v] (lcm u v))
-
-(defn- gcd-seq
-  "Compute the GCD of a sequence of polynomials (we take care to break early if
-  the gcd of an initial segment is [[sicmutils.value/one?]])"
-  [items]
-  (transduce (ua/halt-at v/one?)
-             gcd-dispatch
-             items))
-
-(defn gcd-Dp
-  "Compute the gcd of the all the partial derivatives of p."
-  [p]
-  (if (p/polynomial? p)
-    (gcd-seq (p/partial-derivatives p))
-    1))
-
-;; NOTE from Colin:
-;;
-;; many of the gcds we find when attempting the troublesome GCD are the case
-;; where we have two monomials. This can be done trivially without lowering
-;; arity.
-;;
-;; open question: why was dividing out the greatest monomial factor such a lose?
-;; it's much cheaper to do that than to find a gcd by going down the arity
-;; chain.
