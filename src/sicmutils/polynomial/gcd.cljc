@@ -18,8 +18,6 @@
 ;;
 
 (ns sicmutils.polynomial.gcd
-  #?(:cljs (:require-macros
-            [sicmutils.polynomial.gcd :refer [dbg gcd-continuation-chain]]))
   (:require [clojure.set :as cs]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
@@ -33,17 +31,40 @@
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
-;; TODO these are new ones.
+;; ## Multivariate Polynomial GCD
+;;
+;; This namespace contains functions for calculating the greatest common divisor
+;; of multivariate `p/Polynomial` instances.
+;;
+;; This namespace will eventually dispatch between a sparse GCD algorithm and
+;; Euclid's; for now it only contains a "classical" implementation of Euclid's
+;; algorithm.
 
-(def ^:dynamic *poly-gcd-time-limit* [1000 :millis])
+(def ^{:dynamic true
+       :doc "Pair of the form [number
+  Keyword], where keyword is one of the supported units from
+  [[sicmutils.util.stopwatch]]. If Euclidean GCD takes longer than this time
+  limit, the system will bail out by throwing an exception."}
+  *poly-gcd-time-limit*
+  [1000 :millis])
+
 (def ^:dynamic *clock* nil)
-(def ^:dynamic *euclid-breakpoint-arity* 3)
-(def ^:dynamic *gcd-cut-losses* nil)
 
-(def ^:dynamic *poly-gcd-cache-enable* true)
-(def ^:dynamic *poly-gcd-debug* false)
+(def ^{:dynamic true
+       :doc "When true, multivariate GCD will cache each recursive step in the
+  Euclidean GCD algorithm, and attempt to shortcut out on a successful cache
+  hit. True by default."}
+  *poly-gcd-cache-enable*
+  true)
 
-;; TODO these make the memoization work. It is probably great.
+(def ^{:dynamic true
+       :doc "When true, multivariate GCD will log each `u` and `v` input and the
+  result of each step, along with the recursive level of the logged GCD
+  computation. False by default."}
+  *poly-gcd-debug*
+  false)
+
+;; Stateful instances required for GCD memoization and stats tracking.
 
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
@@ -52,8 +73,15 @@
 (def ^:private gcd-monomials (atom 0))
 
 ;; ## Stats, Debugging
+;;
+;; This first block of functions provides utilities for logging statistics on
+;; the GCD search, as well as for limiting the time of attempts with a time
+;; limit and stopwatch.
 
-(defn gcd-stats []
+(defn gcd-stats
+  "When called, logs statistics about the GCD memoization cache, and the number of
+  times the system has encountered monomial or other trivial GCDs. "
+  []
   (let [memo-count (count @gcd-memo)]
     (when (> memo-count 0)
       (let [hits   @gcd-cache-hit
@@ -72,38 +100,95 @@
   [level & args]
   (apply println (apply str (repeat level "  ")) args))
 
-(defmacro ^:private dbg
+(defn- dbg
+  "Generates a logging statement guarded by the [[*poly-gcd-debug*]] dynamic
+  variable."
   [level where & xs]
-  `(when *poly-gcd-debug*
-     (println-indented
-      ~level ~where ~level
-      ~@(map #(list 'str %) xs))))
+  (when *poly-gcd-debug*
+    (println-indented
+     level where level
+     (map str xs))))
 
-;; TODO move these somewhere better! To the stopwatch namespace is the best
-;; place.
-
-(defn time-expired? []
+(defn time-expired?
+  "Returns true if the [[*clock*]] dynamic variable contains a Stopwatch with an
+  elapsed time that's passed the limit allowed by the
+  dynamic [[*poly-gcd-time-limit*]], false otherwise."
+  []
   (and *clock*
        (let [[ticks units] *poly-gcd-time-limit*]
          (> (us/elapsed *clock* units) ticks))))
 
-(defn- maybe-bail-out
-  "Returns a function that checks if clock has been running longer than timeout
-  and if so throws an exception after logging the event. Timeout should be of
-  the form [number Keyword], where keyword is one of the supported units from
-  sicmutils.util.stopwatch."
+(defn- maybe-bail-out!
+  "When called, if [[time-expired?]] returns `true`, logs a warning and throws a
+  TimeoutException, signaling that the GCD process has gone on past its allowed
+  time limit."
   [description]
   (when (time-expired?)
     (let [s (format "Timed out: %s after %s" description (us/repr *clock*))]
       (log/warn s)
       (u/timeout-ex s))))
 
-(defn with-limited-time [timeout thunk]
+(defn with-limited-time
+  "Given an explicit `timeout` and a no-argument function `thunk`, calls `thunk`
+  in a context where [[*poly-gcd-time-limit*]] is dynamically bound to
+  `timeout`. Calling [[time-expired?]] or [[maybe-bail-out!]] inside `thunk`
+  will signal failure appropriately if `thunk` has taken longer than `timeout`."
+  [timeout thunk]
   (binding [*poly-gcd-time-limit* timeout
             *clock* (us/stopwatch)]
     (thunk)))
 
+(defn- cached
+  "Attempts to call `f` with arguments `u` and `v`, but only after checking that
+  `[u v]` is not present in the global GCD memoization cache. If not, calls `(f
+  u v)` and registers the result in [[gcd-memo]] before returning the result.
+
+  Use the [[*poly-gcd-cache-enable*]] dynamic variable to turn the cache on and
+  off."
+  [f u v]
+  (if-let [g (and *poly-gcd-cache-enable*
+                  (@gcd-memo [u v]))]
+    (do (swap! gcd-cache-hit inc)
+        g)
+    (let [result (f u v)]
+      (when *poly-gcd-cache-enable*
+        (swap! gcd-cache-miss inc)
+        (swap! gcd-memo assoc [u v] result))
+      result)))
+
 ;; Continuation Helpers
+;;
+;; The GCD implementation below uses a continuation-passing style to apply
+;; transformations to each polynomial that make the process more efficient. The
+;; built-in `->` and `->>`
+
+(defn cont->
+  "Takes two polynomials `u` and `v` and any number of 'continuation' functions,
+  and returns the result of threading `u` and `v` through all continuation
+  functions.
+
+  Each function, except the last, should have signature `[p q k]`, where `p` and
+  `q` are polynomials and k is a continuation of the same type.
+
+  The last function should have signature `[p q]` without a continuation
+  argument.
+
+  For example, the following forms are equivalent:
+
+  ```clojure
+  (cont-> u v f1 f2 f3)
+  (f1 u v (fn [u' v']
+            (f2 u' v' f3)))
+  ```"
+  ([[u v]] [u v])
+  ([[u v] f]
+   (f u v))
+  ([[u v] f1 f2]
+   (f1 u v f2))
+  ([[u v] f1 f2 & more]
+   (f1 u v
+       (fn [u' v']
+         (apply cont-> [u' v'] f2 more)))))
 
 (defn- terms->permutations
   "Returns a pair of functions that sort and unsort terms into the order of terms
@@ -256,7 +341,7 @@
   needs to get RID of this thing."
   [coeff-gcd]
   (fn [u v]
-    (maybe-bail-out "euclid inner loop")
+    (maybe-bail-out! "euclid inner loop")
     (or (trivial-gcd u v)
         (let [[r _] (p/pseudo-remainder u v)]
           (if (v/zero? r)
@@ -276,21 +361,7 @@
    (with-content-removed
      primitive-gcd u v univariate-euclid-inner-loop)))
 
-;; Helpers
 
-(defmacro gcd-continuation-chain
-  "Takes two polynomials and a chain of functions. Each function, except
-  the last, should have signature [p q k] where p and q are polynomials
-  and k is a continuation of the same type. The last function should have
-  signature [p q], without a continuation argument, since there's nowhere
-  to go from there."
-  [u v & fs]
-  (condp < (count fs)
-    2 `(~(first fs) ~u ~v
-        (fn [u# v#]
-          (gcd-continuation-chain u# v# ~@(next fs))))
-    1 `(~(first fs) ~u ~v ~(second fs))
-    0 `(~(first fs) ~u ~v)))
 
 ;; Continuations
 
@@ -301,39 +372,34 @@
 
   TODO move the wrapping to with-wrapped or something."
   [level u v]
-  (dbg level "inner-gcd" u v)
-  (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
-    (do (swap! gcd-cache-hit inc)
-        g)
-    (let [g (or (trivial-gcd u v)
+  (letfn [(generate [u v]
+            (or (trivial-gcd u v)
                 (let [arity (p/check-same-arity u v)]
-                  (cond
-                    (= arity 1) (gcd1 u v)
-                    (p/monomial? u) (monomial-gcd u v)
-                    (p/monomial? v) (monomial-gcd v u)
-                    :else
-                    (let [next-gcd (->gcd
-                                    (fn [u v]
-                                      (inner-gcd (inc level) u v)))
-                          content-remover (fn [u v cont]
-                                            (with-content-removed next-gcd u v cont))]
-                      (maybe-bail-out "polynomial GCD")
-                      (gcd-continuation-chain u v
-                                              p/with-lower-arity
-                                              content-remover
-                                              (euclid-inner-loop next-gcd))))))]
-      (when *poly-gcd-cache-enable*
-        (swap! gcd-cache-miss inc)
-        (swap! gcd-memo assoc [u v] g))
-      (dbg level "<-" g)
-      g)))
+                  (cond (= arity 1) (gcd1 u v)
+                        (p/monomial? u) (monomial-gcd u v)
+                        (p/monomial? v) (monomial-gcd v u)
+                        :else
+                        (let [next-gcd (->gcd
+                                        (fn [u v]
+                                          (inner-gcd (inc level) u v)))
+                              content-remover (fn [u v cont]
+                                                (with-content-removed next-gcd u v cont))]
+                          (maybe-bail-out! "polynomial GCD")
+                          (cont-> [u v]
+                                  p/with-lower-arity
+                                  content-remover
+                                  (euclid-inner-loop next-gcd)))))))]
+    (dbg level "inner-gcd" u v)
+    (let [result (cached generate u v)]
+      (dbg level "<-" result)
+      result)))
 
 (defn gcd-euclid [u v]
   (g/abs
-   (gcd-continuation-chain u v
-                           with-trivial-constant-gcd-check
-                           with-optimized-variable-order
-                           #(inner-gcd 0 %1 %2))))
+   (cont-> [u v]
+           with-trivial-constant-gcd-check
+           with-optimized-variable-order
+           #(inner-gcd 0 %1 %2))))
 
 (defn- gcd-dispatch
   "Dispatcher for GCD routines.
