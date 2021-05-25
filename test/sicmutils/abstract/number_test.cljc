@@ -749,7 +749,7 @@
 
   (checking "imag-part" 100 [z gen/symbol]
             (is (= (g/* (g// 1 2)
-                        (g/* (c/parse-complex "0-1i")
+                        (g/* (c/complex 0 -1)
                              (g/- z (g/conjugate z))))
                    (g/imag-part z))))
 
