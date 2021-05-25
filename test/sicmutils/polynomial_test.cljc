@@ -785,4 +785,14 @@
 
   (let [p (make 3 {[3 0 0] 5 [2 0 1] 2 [0 2 1] 3})]
     ;; because there is a constant term...
-    (= p (reciprocal (reciprocal p)))))
+    (= p (reciprocal (reciprocal p))))
+
+  (map-exponents (fn [m] (xpt/assoc m 10 2)) 10 12)
+
+
+  (is (= (p/make 2 {[1 2] 3 [3 4] 5})
+         (p/contract
+          (p/make 3 {[0 1 2] 3 [0 3 4] 5}) 0)))
+
+  (checking "contractible is false for all coeffs" 100 [x sg/number]
+            (is (false? (p/contractible? x 0)))))

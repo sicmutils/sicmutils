@@ -105,47 +105,13 @@
 
 ;; Continuation Helpers
 
-;; Continuation Menu
-
-;; TODO I THINK we have this very similar thing in `permute.cljc`, which we
-;; should port over here first!! But not for sorted maps.
-
-(defn sort->permutations [m]
-  (def sort-m m)
-  (let [indices (range (count m))
-        order (into [] (sort-by m (keys m)))
-        sort (fn [m']
-               (into (sorted-map)
-                     (mapcat (fn [i]
-                               (when-let [v (m' (order i))]
-                                 [[i v]])))
-                     indices))
-        unsort (fn [m']
-                 (into (sorted-map)
-                       (mapcat (fn [i]
-                                 (when-let [v (m' i)]
-                                   [[(order i) v]])))
-                       indices))]
-    [sort unsort]))
-
-(comment
-  (defn tester [m]
-    (let [[sort unsort] (sort->permutations' m)]
-      (and (= (vals (sort m))
-              (clojure.core/sort (vals m)))
-           (= m (unsort (sort m))))))
-
-  (tester (sorted-map 1 2, 3 1, 5 4))
-  (tester (sorted-map 1 3, 3 1, 5 4))
-  (tester (sorted-map 1 8, 3 1, 5 4)))
-
 (defn- terms->permutations
   "Returns a pair of functions that sort and unsort terms into the order of terms
   in the LCM of any monomial."
   [terms]
   (if (<= (count terms) 1)
     [identity identity]
-    (sort->permutations
+    (xpt/->sort-fns
      (transduce (map pi/exponents)
                 xpt/lcm
                 terms))))
@@ -201,16 +167,6 @@
                   result
                   (p/constant 1 result))]
     (p/scale-l d result)))
-
-(defn- with-lower-arity
-  [u v continue]
-  (let [a (p/check-same-arity u v)
-        result (continue
-                (p/lower-arity u)
-                (p/lower-arity v))]
-    (if (p/polynomial? result)
-      (p/raise-arity result a)
-      result)))
 
 (declare primitive-gcd)
 
@@ -363,7 +319,7 @@
                                             (with-content-removed next-gcd u v cont))]
                       (maybe-bail-out "polynomial GCD")
                       (gcd-continuation-chain u v
-                                              with-lower-arity
+                                              p/with-lower-arity
                                               content-remover
                                               (euclid-inner-loop next-gcd))))))]
       (when *poly-gcd-cache-enable*

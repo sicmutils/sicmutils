@@ -54,3 +54,14 @@
 
         (is (= [z2 yz xz y2 xy x2]
                (sort-with xpt/graded-reverse-lex-order)))))))
+
+(comment
+  (defn tester [m]
+    (let [[sort-m unsort-m] (->sort-fns m)]
+      (and (= (vals (sort-m m))
+              (sort (vals m)))
+           (= m (unsort-m (sort-m m))))))
+
+  (tester (xpt/make 1 2, 3 1, 5 4))
+  (tester (xpt/make 1 3, 3 1, 5 4))
+  (tester (xpt/make 1 8, 3 1, 5 4)))

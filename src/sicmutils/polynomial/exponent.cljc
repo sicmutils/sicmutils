@@ -30,7 +30,7 @@
 ;; `sicmutils.polynomial` to implement a full polynomial data structure.
 ;;
 ;; Polynomials are sums of monomial terms; a monomial is a pair of some non-zero
-;; exponent and a product of some number of variables, each raised to some
+;; coefficient and a product of some number of variables, each raised to some
 ;; power.
 ;;
 ;; We represent the exponents of a monomial with an ordered mapping of variable
@@ -190,6 +190,23 @@
    (apply + (vals m)))
   ([m i]
    (m i 0)))
+
+(defn ->sort-fns [m]
+  (let [indices (range (count m))
+        order (into [] (sort-by m (keys m)))]
+    (letfn [(sort [m']
+              (into empty
+                    (mapcat (fn [i]
+                              (when-let [v (m' (order i))]
+                                [[i v]])))
+                    indices))
+            (unsort [m']
+              (into empty
+                    (mapcat (fn [i]
+                              (when-let [v (m' i)]
+                                [[(order i) v]])))
+                    indices))]
+      [sort unsort])))
 
 ;; ## Monomial Orderings
 ;;
