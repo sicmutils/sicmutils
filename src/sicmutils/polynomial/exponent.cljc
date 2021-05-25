@@ -191,7 +191,13 @@
   ([m i]
    (m i 0)))
 
-(defn ->sort-fns [m]
+(defn ->sort+unsort
+  "Given a power product `m`, returns a pair of `sort` and `unsort` functions of a
+  single power product argument.
+
+  `sort` rearranges the indices of its argument to match the order of increasing
+  variable degree in `m`. `unsort` undoes this transformation."
+  [m]
   (let [indices (range (count m))
         order (into [] (sort-by m (keys m)))]
     (letfn [(sort [m']

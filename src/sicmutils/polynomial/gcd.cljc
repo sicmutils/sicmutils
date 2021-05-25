@@ -19,6 +19,7 @@
 
 (ns sicmutils.polynomial.gcd
   (:require [clojure.set :as cs]
+            [clojure.string :as string]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
@@ -96,18 +97,16 @@
            @gcd-trivial-constant
            @gcd-monomials)))
 
-(defn- println-indented
-  [level & args]
-  (apply println (apply str (repeat level "  ")) args))
-
 (defn- dbg
-  "Generates a logging statement guarded by the [[*poly-gcd-debug*]] dynamic
+  "Generates a DEBUG logging statement guarded by the [[*poly-gcd-debug*]] dynamic
   variable."
   [level where & xs]
   (when *poly-gcd-debug*
-    (println-indented
-     level where level
-     (map str xs))))
+    (let [xs     (map str xs)
+          xs'    (into [where level] xs)
+          xs-s   (string/join " " xs')
+          prefix (apply str (repeat level "  "))]
+      (log/debug prefix xs-s))))
 
 (defn time-expired?
   "Returns true if the [[*clock*]] dynamic variable contains a Stopwatch with an
@@ -156,13 +155,14 @@
         (swap! gcd-memo assoc [u v] result))
       result)))
 
-;; Continuation Helpers
+;; Continuations
 ;;
 ;; The GCD implementation below uses a continuation-passing style to apply
-;; transformations to each polynomial that make the process more efficient. The
-;; built-in `->` and `->>`
+;; transformations to each polynomial that make the process more efficient.
+;; First, a few helper functions, and then a number of continuations used to
+;; compute GCDs.
 
-(defn cont->
+(defn- cont->
   "Takes two polynomials `u` and `v` and any number of 'continuation' functions,
   and returns the result of threading `u` and `v` through all continuation
   functions.
@@ -190,29 +190,37 @@
        (fn [u' v']
          (apply cont-> [u' v'] f2 more)))))
 
-(defn- terms->permutations
-  "Returns a pair of functions that sort and unsort terms into the order of terms
-  in the LCM of any monomial."
+(defn- terms->sort+unsort
+  "Given a sequence of polynomial terms, returns a pair of functions of one
+  polynomial argument that respectively sort and unsort the variables in the
+  polynomial by increasing degree."
   [terms]
   (if (<= (count terms) 1)
     [identity identity]
-    (xpt/->sort-fns
+    (xpt/->sort+unsort
      (transduce (map pi/exponents)
                 xpt/lcm
                 terms))))
 
 (defn- with-optimized-variable-order
-  "Rearrange the variables in u and v to make GCD go faster.
-  Calls the continuation with the rearranged polynomials. Undoes the
-  rearrangement on return. Variables are sorted by increasing degree.
+  "Accepts two polynomials `u` and `v` and calls `continuation` with the variable
+  indices in each polynomial rearranged to make GCD go faster. Undoes the
+  rearrangement on return.
 
-  Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao and
-  Fateman [1995]."
+  When passed either non-polynomials or univariate polynomials,
+  returns `(continue u v)` unchanged.
+
+  Variables are sorted by increasing degree, where the degree is considered
+  across terms of both `u` and `v`. Discussed in ['Evaluation of the Heuristic
+  Polynomial
+  GCD'](https://people.eecs.berkeley.edu/~fateman/282/readings/liao.pdf) by Liao
+  and Fateman [1995]."
   [u v continue]
-  (if (or (p/polynomial? u) (p/polynomial? v))
+  (if (or (p/multivariate? u)
+          (p/multivariate? v))
     (let [l-terms (if (p/polynomial? u) (p/bare-terms u) [])
           r-terms (if (p/polynomial? v) (p/bare-terms v) [])
-          [sort unsort] (terms->permutations
+          [sort unsort] (terms->sort+unsort
                          (into l-terms r-terms))]
       (->> (continue
             (p/map-exponents sort u)
@@ -221,88 +229,138 @@
     (continue u v)))
 
 (defn ->content+primitive
-  "The 'content' of a polynomial is the greatest common divisor of its
+  "Given some polynomial `p`, and a multi-arity `gcd` function for its
+  coefficients, returns a pair of the polynomial's content and primitive.
+
+  The 'content' of a polynomial is the greatest common divisor of its
   coefficients. The 'primitive part' of a polynomial is the quotient of the
   polynomial by its content.
 
-  This function returns a pair of `[content, primitive]`.
-
-  See more: https://en.wikipedia.org/wiki/Primitive_part_and_content"
+  See Wikipedia's ['Primitive Part and
+  Content'](https://en.wikipedia.org/wiki/Primitive_part_and_content) page for
+  more details. "
   [p gcd]
-  (let [k (apply gcd (p/coefficients p))
-        prim (if (v/one? k)
-               p
-               (p/map-coefficients
-                #(g/exact-divide % k) p))]
-    [k prim]))
+  (let [content (apply gcd (p/coefficients p))
+        primitive (if (v/one? content)
+                    p
+                    (p/map-coefficients
+                     #(g/exact-divide % content) p))]
+    [content primitive]))
 
 (defn- with-content-removed
-  "For multivariate polynomials. u and v are considered here as univariate
-  polynomials with polynomial coefficients.
+  "Given a multi-arity `gcd` routine, returns a function of polynomials `u` and
+  `v` and a continuation `continue`.
 
-  Using the supplied gcd function, the content of u and v is divided out and the
-  primitive parts are supplied to the continuation, the result of which has the
-  content reattached and is returned."
-  [gcd u v continue]
-  (let [[ku pu] (->content+primitive u gcd)
-        [kv pv] (->content+primitive v gcd)
-        d       (gcd ku kv)
-        result  (continue pu pv)
-        result  (if (p/polynomial? result)
-                  result
-                  (p/constant 1 result))]
-    (p/scale-l d result)))
+  The returned function calls the `continue` continuation with the [primitive
+  parts](https://en.wikipedia.org/wiki/Primitive_part_and_content) of `u` and
+  `v` respectively.
 
-(declare primitive-gcd)
+  On return, [[with-content-removed]]'s returned function scales the result back
+  up by the `gcd` of the contents of `u` and `v` (ie, the greatest common
+  divisor across the coefficients of both polynomials).
+
+  [[with-content-removed]] is intended for use with multivariate polynomials. In
+  this case, `u` and `v` are considered to be univariate polynomials with
+  polynomial coefficients."
+  [gcd]
+  (fn [u v continue]
+    (let [[ku pu] (->content+primitive u gcd)
+          [kv pv] (->content+primitive v gcd)
+          d       (gcd ku kv)
+          result  (continue pu pv)
+          result  (if (p/polynomial? result)
+                    result
+                    (p/constant 1 result))]
+      (p/scale-l d result))))
 
 (defn- with-trivial-constant-gcd-check
-  "We consider the maximum exponent found for each variable in any term of each
-  polynomial. A nontrivial GCD would have to fit in this exponent limit for both
-  polynomials. This is basically a test for a kind of disjointness of the
-  variables. If this happens we just return the constant gcd and do not invoke
-  the continuation.
+  "Given a multi-arity `gcd` routine, returns a function of polynomials `u` and
+  `v` and a continuation `continue`.
 
-  TODO note that this will now return a constant, NOT a polynomial."
-  [u v continue]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)]}
-  (let [umax (reduce into (map (comp u/keyset pi/exponents)
-                               (p/bare-terms u)))
-        vmax (reduce into (map (comp u/keyset pi/exponents)
-                               (p/bare-terms v)))]
-    (if (empty? (cs/intersection umax vmax))
-      (do (swap! gcd-trivial-constant inc)
-          (apply primitive-gcd
-                 (concat (p/coefficients u)
-                         (p/coefficients v))))
-      (continue u v))))
+  This function determines whether or not `u` and `v` have any variables in
+  common. If they don't, then it's not possible for any common divisor to share
+  variables; the function returns the `gcd` of the coefficients of `u` and `v`.
+
+  If they do, the function returns `(continue u v)`."
+  [gcd]
+  (fn [u v continue]
+    {:pre [(p/polynomial? u)
+           (p/polynomial? v)]}
+    (let [u-vars (reduce into (map (comp u/keyset pi/exponents)
+                                   (p/bare-terms u)))
+          v-vars (reduce into (map (comp u/keyset pi/exponents)
+                                   (p/bare-terms v)))]
+      (if (empty? (cs/intersection u-vars v-vars))
+        (do (swap! gcd-trivial-constant inc)
+            (apply gcd
+                   (concat (p/coefficients u)
+                           (p/coefficients v))))
+        (continue u v)))))
 
 ;; ## Basic GCD for Coefficients, Monomials
+;;
+;; Now we come to the GCD routines. There are a few here, to handle simple cases
+;; like dividing a monomial into a larger polynomial, or taking the GCD of
+;; sequences of coefficients.
 
-(defn ->gcd
-  "TODO figure out what the hell... the factor tests fail if we let rational
-  coefficients in. What is the deal there? How can we fix it and relax `v/one?`"
+(defn- ->gcd
+  "Given a `binary-gcd` function for computing greatest common divisors, returns a
+  multi-arity function that returns `0` when called with no arguments, and
+  reduces multiple arguments with `binary-gcd`, aborting if any `one?` is
+  reached.
+
+  NOTE: This is only appropriate if you don't expect rational coefficients; the
+  GCD of 1 and a rational number IS that other number, so the `v/one?` guard is
+  not appropriate."
   [binary-gcd]
   (ua/monoid binary-gcd 0 v/one?))
 
-(def primitive-gcd
+(def ^:no-doc primitive-gcd
   (->gcd g/gcd))
 
-;; Next simplest! We have a poly on one side, coeff on the other.
+;; The GCD of a sequence of integers is the simplest case; simply reduce across
+;; the sequence using `g/gcd`. The next-easiest case is the GCD of a coefficient
+;; and a polynomial.
 
 (defn- gcd-poly-number
-  "TODO note, gcd of number with the content."
+  "Returns the GCD of some polynomial `p` and a non-polynomial `n`; this is simply
+  the GCD of `n` and all coefficients of `p`."
   [p n]
   {:pre [(p/polynomial? p)
          (p/coeff? n)]}
   (apply primitive-gcd n (p/coefficients p)))
 
-(defn- monomial-gcd
-  "Computing the GCD is easy if one of the polynomials is a monomial.
-  The monomial is the first argument.
+;; Wih these two in hand, there are a few trivial cases that are nice to catch
+;; before dispatching more heavyweight routines.
 
-  Basically... take the GCD of the coeffs for the coefficient, and the MINIMUM
-  exp of each variable across all, pinned at the top by the monomial."
+(defn trivial-gcd
+  "Given two polynomials `u` and `v`, attempts to return the greatest common
+  divisor of `u` and `v` by testing for trivial cases. If no trivial case
+  applies, returns `nil`."
+  [u v]
+  (cond (v/zero? u) (g/abs v)
+        (v/zero? v) (g/abs u)
+        (p/coeff? u) (if (p/coeff? v)
+                       (primitive-gcd u v)
+                       (gcd-poly-number v u))
+        (p/coeff? v) (gcd-poly-number u v)
+        (= u v) (p/abs u)
+        :else nil))
+
+;; Next, the case of the GCD of polynomials. If one of the sides is a monomial,
+;; the GCD is easy.
+;;
+;; For example, $3xy$ divides $6xy^2 + 9x$ trivially; the GCD is $3x$.
+;;
+;; See the docstring below for a description.
+
+(defn- monomial-gcd
+  "Returns the greatest common divisor of some monomial `m` and a polynomial `p`.
+  The GCD of these two inputs is a monomial (or bare coefficient) with:
+
+  - coefficient portion equal to the GCD of the coefficient of both sides
+  - power product equal to the GCD of the power products of all `p` terms with
+    the power product of `m`"
   [m p]
   {:pre [(p/monomial? m)
          (p/polynomial? p)]}
@@ -316,90 +374,76 @@
     (p/terms->polynomial (p/bare-arity m)
                          [(pi/make-term expts coeff)])))
 
-(comment
-  (is (= (p/make 2 {[1 2] 3})
-         (monomial-gcd (p/make 2 {[1 2] 12})
-                       (p/make 2 {[4 3] 15})))))
+;; The next-toughest case is the GCD of two univariate polynomials. The
+;; 'classical' way to do this is with the [Euclidean
+;; algorithm](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm)
+;; for univariate polynomials. This method can be extended to multivariate
+;; polynomials by using [[p/lower-arity]] to push
 
-;; ## GCD Routines
+(defn- euclidean-gcd
+  "Given some multivariate `gcd` function, returns a function of polynomials `u`
+  and `v` that returns greatest common divisor of `u` and `v` using
+  the [Euclidean algorithm for multivariate
+  polynomials](https://en.wikipedia.org/wiki/Polynomial_greatest_common_divisor#Euclidean_algorithm).
 
-(defn trivial-gcd
-  "Checks trivial conditions, or returns nil."
-  [u v]
-  (cond (v/zero? u) (g/abs v)
-        (v/zero? v) (g/abs u)
-        (p/coeff? u) (if (p/coeff? v)
-                       (g/gcd u v)
-                       (gcd-poly-number v u))
-        (p/coeff? v) (gcd-poly-number u v)
-        (= u v) (p/abs u)
-        :else nil))
-
-(defn- euclid-inner-loop
-  "TODO THIS is sort of messed up, since this damned thing does a RECUR and can
-  potentially drop down to non... polynomial stuff. I think the whole codebase
-  needs to get RID of this thing."
-  [coeff-gcd]
+  `u` and `v` are assumed to be either non-polynomial coefficients or univariate
+  polynomials. To use [[euclidean-gcd]] for multivariate polynomials, convert
+  the polynomial to univariate first using [[p/lower-arity]] recursively."
+  [gcd]
   (fn [u v]
     (maybe-bail-out! "euclid inner loop")
     (or (trivial-gcd u v)
         (let [[r _] (p/pseudo-remainder u v)]
           (if (v/zero? r)
-            v
-            (let [[_ prim] (->content+primitive r coeff-gcd)]
+            (g/abs v)
+            (let [[_ prim] (->content+primitive r gcd)]
               (recur v prim)))))))
 
-(def ^:private univariate-euclid-inner-loop
-  (euclid-inner-loop primitive-gcd))
-
-(defn- gcd1
-  "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
+(defn- univariate-gcd
+  "Given two univariate polynomials `u` and `v`, returns the greatest common
+  divisor of `u` and `v` calculated using Knuth's algorithm 4.6.1E."
   [u v]
   {:pre [(p/univariate? u)
          (p/univariate? v)]}
-  (g/abs
-   (with-content-removed
-     primitive-gcd u v univariate-euclid-inner-loop)))
+  (cont-> [u v]
+          (with-content-removed primitive-gcd)
+          (euclidean-gcd primitive-gcd)))
 
+;; Multivariate GCD builds on the univariate case
 
-
-;; Continuations
-
-(defn- inner-gcd
+(defn- full-gcd
   "gcd is just a wrapper for this function, which does the real work
-  of computing a polynomial gcd. Delegates to gcd1 for univariate
+  of computing a polynomial gcd. Delegates to [[univariate-gcd]] for univariate
   polynomials.
 
   TODO move the wrapping to with-wrapped or something."
-  [level u v]
-  (letfn [(generate [u v]
-            (or (trivial-gcd u v)
-                (let [arity (p/check-same-arity u v)]
-                  (cond (= arity 1) (gcd1 u v)
-                        (p/monomial? u) (monomial-gcd u v)
-                        (p/monomial? v) (monomial-gcd v u)
-                        :else
-                        (let [next-gcd (->gcd
-                                        (fn [u v]
-                                          (inner-gcd (inc level) u v)))
-                              content-remover (fn [u v cont]
-                                                (with-content-removed next-gcd u v cont))]
-                          (maybe-bail-out! "polynomial GCD")
-                          (cont-> [u v]
-                                  p/with-lower-arity
-                                  content-remover
-                                  (euclid-inner-loop next-gcd)))))))]
-    (dbg level "inner-gcd" u v)
-    (let [result (cached generate u v)]
-      (dbg level "<-" result)
-      result)))
+  ([u v] (full-gcd 0 u v))
+  ([level u v]
+   (letfn [(attempt [u v]
+             (or (trivial-gcd u v)
+                 (let [arity (p/check-same-arity u v)]
+                   (cond (p/monomial? u) (monomial-gcd u v)
+                         (p/monomial? v) (monomial-gcd v u)
+                         (= arity 1) (univariate-gcd u v)
+                         :else
+                         (let [rec (fn [u v]
+                                     (full-gcd (inc level) u v))
+                               next-gcd (->gcd rec)]
+                           (maybe-bail-out! "polynomial GCD")
+                           (cont-> [u v]
+                                   p/with-lower-arity
+                                   (with-content-removed next-gcd)
+                                   (euclidean-gcd next-gcd)))))))]
+     (dbg level "multivariate-gcd" u v)
+     (let [result (cached attempt u v)]
+       (dbg level "<-" result)
+       result))))
 
-(defn gcd-euclid [u v]
-  (g/abs
-   (cont-> [u v]
-           with-trivial-constant-gcd-check
-           with-optimized-variable-order
-           #(inner-gcd 0 %1 %2))))
+(defn classical-gcd [u v]
+  (cont-> [u v]
+          (with-trivial-constant-gcd-check primitive-gcd)
+          with-optimized-variable-order
+          full-gcd))
 
 (defn- gcd-dispatch
   "Dispatcher for GCD routines.
@@ -409,17 +453,14 @@
   ([u] u)
   ([u v]
    (or (trivial-gcd u v)
-       (let [arity (p/check-same-arity u v)]
-         (cond
-           (not (and (every? v/exact? (p/coefficients u))
-                     (every? v/exact? (p/coefficients v))))
-           (v/one-like u)
+       (cond
+         (not (and (every? v/exact? (p/coefficients u))
+                   (every? v/exact? (p/coefficients v))))
+         (v/one-like u)
 
-           (= arity 1) (gcd1 u v)
-
-           :else
-           (with-limited-time *poly-gcd-time-limit*
-             (fn [] (gcd-euclid u v)))))))
+         :else
+         (with-limited-time *poly-gcd-time-limit*
+           (fn [] (classical-gcd u v))))))
   ([u v & more]
    (reduce gcd-dispatch u (cons v more))))
 

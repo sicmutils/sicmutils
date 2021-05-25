@@ -479,3 +479,8 @@
               (is (g/exact-divide ud g))
               (is (g/exact-divide vd g))
               (is (g/exact-divide g d)))))
+
+(comment
+  (is (= (p/make 2 {[1 2] 3})
+         (monomial-gcd (p/make 2 {[1 2] 12})
+                       (p/make 2 {[4 3] 15})))))
