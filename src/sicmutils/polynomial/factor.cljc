@@ -19,18 +19,17 @@
 
 (ns sicmutils.polynomial.factor
   (:require [clojure.walk :as w]
-            [sicmutils.value :as v]
-            [sicmutils.expression.analyze :as a]
-            [sicmutils.generic :as g]
             [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.gcd :refer [gcd gcd-Dp]]
             [sicmutils.util.logic :as ul]
-            [taoensso.timbre :as log]))
+            [sicmutils.value :as v]))
 
 (defn split-polynomial
-  "Note: Split a polynomial into factors of various multiplicities."
+  "Given some polynomial `p`, returns a sequence of factors of various
+  multiplicities."
   [p]
   (letfn [(answer [tracker const]
             (let [final (peek tracker)]
@@ -56,7 +55,7 @@
               ;; initial old-m=1 will be 1, so it won't result in
               ;; incorrect doublefacts or singlefacts.
               doublefacts (gcd facts old-m)
-              ;; doublefacts gets all the factors which w ere to
+              ;; doublefacts gets all the factors which were to
               ;; the power x>1, x<=2, (ergo x=2), in the last step.
 
               ;; takes out p = all factors only to the 1st power.
@@ -73,9 +72,9 @@
                  new-s
                  new-m))))))
 
-;; ### Reconstructions
+;; ## Reconstructions
 
-(defn actual-factors [factors]
+(defn- actual-factors [factors]
   (let [expt (sym/symbolic-operator 'expt)]
     (filter (fn [f]
               (or (not (v/number? f))
@@ -86,20 +85,20 @@
                                (rest factors))))))
 
 (defn factor-polynomial-expression
-  [simplifier analyzer P]
-  (a/expression->
-   analyzer
-   (x/expression-of P)
-   (fn [p v]
-     (map (fn [factor]
-            (simplifier
-             (a/->expression analyzer factor v)))
-          (split-polynomial p)))))
+  [simplifier P]
+  (letfn [(cont [p vars]
+            (map (fn [factor]
+                   (simplifier
+                    (poly/->expression factor vars)))
+                 (split-polynomial p)))]
+    (poly/expression->
+     (x/expression-of P)
+     cont)))
 
 (defn split-polynomial->expression
   "TODO this is unused but I want it!"
-  [simplifier analyzer P]
-  (let [factors (factor-polynomial-expression simplifier analyzer P)]
+  [simplifier P]
+  (let [factors (factor-polynomial-expression simplifier P)]
     (cons '* (actual-factors factors))))
 
 (defn- flatten-product
@@ -118,9 +117,9 @@
   NOTE: this is from split-poly.scm, `pcf:->factors`.
 
   poly-> is pcf:->expression."
-  [p poly-> v]
+  [p v]
   (let [factors (map (fn [factor]
-                       (poly-> factor v))
+                       (poly/->expression factor v))
                      (split-polynomial p))
         ff (actual-factors factors)]
     (condp = (count ff)
@@ -128,22 +127,19 @@
       1 (first ff)
       (cons '* (flatten-product ff)))))
 
-(def ^:no-doc factor-analyzer
-  (let [poly-> (partial a/->expression poly/analyzer)]
-    (a/make-analyzer
-     (reify a/ICanonicalize
-       (expression-> [_ expr cont v-compare]
-         (a/expression-> poly/analyzer expr cont v-compare))
-       (->expression [_ p vars]
-         (->factors p poly-> vars))
-       (known-operation? [_ o]
-         (a/known-operation? poly/analyzer o)))
-     (a/monotonic-symbol-generator "-f-"))))
+(def ^:no-doc analyzer
+  (let [symgen (a/monotonic-symbol-generator "-f-")]
+    (-> (reify a/ICanonicalize
+          (expression-> [_ expr cont v-compare]
+            (poly/expression-> expr cont v-compare))
+          (->expression [_ p vars]
+            (->factors p vars))
+          (known-operation? [_ o]
+            (a/known-operation? poly/analyzer o)))
+        (a/make-analyzer symgen))))
 
 (def factor
-  (a/default-simplifier factor-analyzer))
-
-;; TODO assumptions are missing! Check, add more!
+  (a/default-simplifier analyzer))
 
 (defn- process-sqrt
   "NOTE: Comes from split-poly.scm."

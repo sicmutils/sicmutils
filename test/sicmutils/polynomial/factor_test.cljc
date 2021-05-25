@@ -36,7 +36,7 @@
 
 (deftest factoring
   (testing "simple test cases"
-    (let [fpe #(pf/factor-polynomial-expression g/simplify p/analyzer %)
+    (let [fpe #(pf/factor-polynomial-expression g/simplify %)
           x-y (->poly '(- x y))
           x+y (->poly '(+ x y))]
       (is (= [1 1 x-y x+y]
