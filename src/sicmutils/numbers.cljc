@@ -185,23 +185,29 @@
          (.gcd ^BigInteger a
                ^BigInteger b))
 
+       (defmethod g/gcd [BigInt BigInt] [a b]
+         (.gcd (biginteger a)
+               (biginteger b)))
+
        (defmethod g/gcd [Long Long] [a b]
          (ArithmeticUtils/gcd ^long a ^long b))
-
-       (defmethod g/gcd [BigInteger Long] [a b]
-         (.gcd ^BigInteger a (biginteger b)))
-
-       (defmethod g/gcd [Long BigInteger] [a b]
-         (.gcd (biginteger a) b))
 
        (defmethod g/gcd [Integer Integer] [a b]
          (ArithmeticUtils/gcd ^int a ^int b))
 
-       (defmethod g/gcd [BigInteger Integer] [a b]
-         (.gcd ^BigInteger a (biginteger b)))
+       (doseq [from [Long BigInt Integer]]
+         (defmethod g/gcd [BigInteger from] [a b]
+           (.gcd ^BigInteger a (biginteger b)))
 
-       (defmethod g/gcd [Integer BigInteger] [a b]
-         (.gcd (biginteger a) b))))
+         (defmethod g/gcd [from BigInteger] [a b]
+           (.gcd (biginteger a) b)))
+
+       (doseq [from [Long Integer]]
+         (defmethod g/gcd [BigInt from] [a b]
+           (.gcd (biginteger a) (biginteger b)))
+
+         (defmethod g/gcd [from BigInt] [a b]
+           (.gcd (biginteger a) (biginteger b))))))
 
 #?(:cljs
    (do
