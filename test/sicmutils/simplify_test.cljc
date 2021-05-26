@@ -21,14 +21,16 @@
   (:refer-clojure :exclude [=])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
-            [sicmutils.abstract.number]
+            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture
-                                        simplify-expression
-                                        rational-function-analyzer]]
+            [sicmutils.simplify
+             :as sim
+             :refer [hermetic-simplify-fixture
+                     simplify-expression
+                     rational-function-analyzer]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v :refer [=]]))
 
@@ -54,7 +56,17 @@
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))
   (is (= #sicm/ratio 2/3
-         (simplify-expression '(/ 2 3)))))
+         (simplify-expression '(/ 2 3))))
+
+  (is (= '(+ x x x)
+         (sim/simplify-numerical-expression
+          '(+ x x x)))
+      "acts as identity for non-Literal instances...")
+
+  (is (= '(* 3 x)
+         (sim/simplify-numerical-expression
+          (an/literal-number '(+ x x x))))
+      "expressions are simplified."))
 
 (deftest trivial-simplifications
   (is (= 1 (g/simplify 1)))

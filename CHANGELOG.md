@@ -7,10 +7,22 @@
   - `v/kind` now works for sorted maps, bugfix!
 
   - fast GCD in Clojurescript between all combinations of `js/BigInt` and
-    `js/Number`.
+    `js/Number`, and in Clojure between `clojure.lang.BigInt`, `BigInteger`,
+    `Long` and `Integer`.
 
   - on the JVM, GCD now works between rational numbers and integers. Previously
     this combination would always return `1`.
+
+  - `g/exact-divide` now succeeds for all non-exact `::v/scalar` types (symbols,
+    floats, etc) either if the denominator is zero, or if the two arguments are
+    equal. Else, it throws, just like before.
+
+  - A multi-arity call to `sicmutils.generic/*` now stops if it encounters a
+    `0`, rather than attempting to multiply more and more items by 0.
+
+  - default `sicmutils.generic/lcm` protects against overflow by dividing only a
+    single one of its arguments `a` and `b` by `(gcd a b)`. Also, `(g/lcm 0 0)`
+    now properly returns 0.
 
   - New `sicmutils.util.aggregate/{monoid,group}` functions let you build
     any-arity aggregations out of binary combination functions.
@@ -27,17 +39,94 @@
 
   - new `arg-scale`, `arg-shift` for series!
 
-  - ratio protocol
+  - ratio protocol - `numerator` and `denominator` are now protocols,
+    `IRational` etc. This is implemented by RationalFunction too.
 
-  - divide out terms == true
+  - divide out terms == true by default.
 
-  - new `factor` function
+  - all of the analyzers work on wrapped expressions now... feel free to call
+    rcf-simplify etc, factor etc.
 
-  - all of the analyzers work on wrapped expressions now
+  - `sicmutils.expression.Literal` instances now compare their contained
+    expression via `sicmutils.value/=`. bugfix.
 
-  - polynomials have metadata, can be evaluated
+  - `sicmutils.rules/constant-elimination` can now eliminate constants from
+    expressions with any arity, not just binary forms.
 
-  - rational functions have metadata, can be evaluated
+  - polynomial overhaul:
+
+    - polynomials have metadata, can be evaluated, now `seqable?`
+
+    - they now extend `sicmutils.function/IArity` and `differential/IPerturbed`,
+      so you can take derivatives of functions that return polynomials
+
+    - new, much faster sparse representation
+
+    - polynomial operations will drop down to non-polynomial coefficients
+      wherever possible. All of the functions in the namespace treat
+      non-polynomials as constant polynomials.
+
+    - TONS of new functions. Some choice ones are:
+
+      - constructors `make`, `constant`, `linear`, `c*xn`, `identity`, and
+        `new-variables`
+
+      - accessor functions `arity`, `degree`, `coefficients`, `leading-term`,
+        `leading-coefficient`, `leading-exponents`, `leading-base-coefficient`,
+        `trailing-coefficient`, `lowest-degree`
+
+      - predicates: `monomial?`, `monic?`, `univariate?`, `multivariate?`,
+        `negative?`
+
+      - functions to generate new polynomials: `map-coefficients`,
+        `map-exponents`, `scale`, `scale-l`, `normalize`, `reciprocal`,
+        `drop-leading-term`, `contract` and `extend` alongside `contractible?`,
+        `lower-arity`, `raise-arity`, `with-lower-arity`, `arg-scale`,
+        `arg-shift`
+
+      - arithmetic: `negate`, `abs`, `add`, `sub`, `mul`, `square`, `cube`,
+        `expt`, `divide` along with `divisible?`, `evenly-divide`,
+        `pseudo-remainder`, and LOTS of functions installed into the generic
+        arithmetic system.
+
+      - different ways to evaluate polynomials: `evaluate`, `horner-with-error`
+
+      - calculus! `partial-derivative` and `partial-derivatives` are alive and
+        well, and work with the `D` operator
+
+      - Functions to get in and out of polynomials from other types:
+        `univariate->dense`, `->power-series`, `expression->`, `->expression`
+
+  - rational functions overhaul:
+
+    - have metadata, can be evaluated, now `seqable?`
+
+    - they now extend `sicmutils.function/IArity` and `differential/IPerturbed`,
+      so you can take derivatives of functions that return rational functions
+
+    - constructor: `make` drops to polynomial or coefficient where needed
+
+    - functions to generate new rational functions: `arg-scale`, `arg-shift`
+
+    - predicates: `negative?`
+
+    - arithmetic: `negate`, `abs`, `add`, `sub`, `mul`, `square`, `cube`,
+      `expt`, `invert`, `div`, `gcd`, and LOTS of functions installed into the
+      generic arithmetic system.
+
+      - evaluation via `evaluate`
+
+      - calculus! `partial-derivative` and `partial-derivatives` are alive and
+        well, and work with the `D` operator
+
+      - Functions to get in and out of rational functions from symbolic
+        expressions: `expression->`, `->expression`
+
+  - GCD rewrite, tidied this namespace up and got us ready to implement sparse
+    polynomial GCD whenever that happens.
+
+  - `sicmutils.polynomial.factor` now has `poly->factored-expression`,
+    `factor-expression` and `factor`. `factor` is aliased into `sicmutils.env`.
 
 - #360 introduces a number of performance improvements to the
   `sicmutils.differential.Differential` implementation, primarily in `terms:+`

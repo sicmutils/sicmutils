@@ -75,7 +75,28 @@
                  (expt (+ y (cos (expt (+ (* x (expt y 2)) x) 2))) 2)
                  (expt (+ y (* -1 (cos (expt (+ (* x (expt y 2)) x) 2)))) 3))
              (pf/factor
-              (v/freeze test-poly)))))))
+              (v/freeze test-poly))))))
+
+  (testing "factoring works on literals"
+    (let [expr (g// (g/square (g/+ 'x 'y))
+                    (g/square (g/+ 'x 'z)))]
+      (is (= '(/ (expt (+ x y) 2)
+                 (expt (+ x z) 2))
+             (v/freeze expr))
+          "unfactored before simplification.")
+
+      (is (= '(/ (+ (expt x 2) (* 2 x y) (expt y 2))
+                 (+ (expt x 2) (* 2 x z) (expt z 2)))
+             (v/freeze
+              (g/simplify expr)))
+          "simplification expands by default.")
+
+      (is (= '(/ (expt (+ x y) 2)
+                 (expt (+ x z) 2))
+             (v/freeze
+              (pf/factor
+               (g/simplify expr))))
+          "calling factor re-factors the expression!"))))
 
 (deftest root-out-squares-test
   (testing "one step"

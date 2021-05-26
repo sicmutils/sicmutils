@@ -291,6 +291,18 @@
 
 ;; ## Polynomials
 
+(defn poly:exponents [arity-gen]
+  (->> (gen/vector gen/nat arity-gen)
+       (gen/fmap xpt/dense->exponents)))
+
+(defn poly:terms
+  ([arity-gen]
+   (poly:terms arity-gen small-integral))
+  ([arity-gen coef-gen & opts]
+   (let [expt-gen (poly:exponents arity-gen)
+         term-gen (gen/tuple expt-gen coef-gen)]
+     (apply gen/vector term-gen opts))))
+
 (defn polynomial
   "Returns a generator that produces instances of [[polynomial.Polynomial]].
 
@@ -300,15 +312,13 @@
            arity gen/nat
            coefs small-integral}}]
   (letfn [(poly-gen [arity]
-            (let [expts (->> (gen/vector gen/nat arity)
-                             (gen/fmap xpt/dense->exponents))
-                  term (gen/tuple expts coefs)
+            (let [terms (poly:terms arity coefs)
                   pgen (gen/fmap (fn [terms]
                                    (let [p (poly/make arity terms)]
                                      (if (poly/polynomial? p)
                                        p
                                        (poly/constant arity p))))
-                                 (gen/vector term))]
+                                 terms)]
               (if nonzero?
                 (gen/such-that (complement v/zero?) pgen)
                 pgen)))]
