@@ -112,9 +112,7 @@
           factors))
 
 (defn ->factors
-  "Recursive generalization. [Rather terse comment. --Ed.]
-
-  NOTE: this is from split-poly.scm, `pcf:->factors`.
+  "NOTE: this is from split-poly.scm, `pcf:->factors`.... noted as 'recursive generalization'.
 
   poly-> is pcf:->expression."
   [p v]
@@ -141,8 +139,10 @@
 (def factor
   (a/default-simplifier analyzer))
 
+;; ## Square Root Simplifier
+
 (defn- process-sqrt
-  "NOTE: Comes from split-poly.scm."
+  "Given a symbolic expression of the form `(sqrt x)`, TODO finish!"
   [expr]
   (let [fact-exp (factor (first (sym/operands expr)))
         expt     (sym/symbolic-operator 'expt)

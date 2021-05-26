@@ -332,7 +332,8 @@
   (instance? Polynomial x))
 
 (defn coeff?
-  "Returns true if the input `x` is explicitly _not_ an instance of [[Polynomial]], false otherwise.
+  "Returns true if the input `x` is explicitly _not_ an instance
+  of [[Polynomial]], false otherwise.
 
   Equivalent to `(not (polynomial? x))`."
   [x]
@@ -614,8 +615,9 @@
   a [[Polynomial]], `this` and `that` are equal if they have equal terms and
   equal arity. Coefficients are compared using [[sicmutils.value/=]].
 
-  If `that` Non-[[Polynomial]], `eq` only returns true if `this` is a monomial
-  and its coefficient is equal to `that` (again using [[sicmutils.value/=]])."
+  If `that` is non-[[Polynomial]], `eq` only returns true if `this` is a
+  monomial and its coefficient is equal to `that` (again
+  using [[sicmutils.value/=]])."
   [^Polynomial this that]
   (if (instance? Polynomial that)
     (let [p ^Polynomial that]

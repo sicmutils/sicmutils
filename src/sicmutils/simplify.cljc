@@ -209,6 +209,14 @@
                 simplify-and-flatten)]
       (simple expr))))
 
+(def ^:private memoized-simplify
+  (memoize g/simplify))
+
+(defn ^:no-doc simplify-numerical-expression [x]
+  (if (an/literal-number? x)
+    (memoized-simplify x)
+    x))
+
 (defmethod g/simplify [::x/numeric] [a]
   (an/literal-number
    (simplify-expression

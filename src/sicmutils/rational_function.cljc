@@ -36,6 +36,18 @@
   #?(:clj
      (:import (clojure.lang AFn IFn IObj Seqable))))
 
+;; ## Rational Functions
+;;
+;; This namespace contains an implementation of rational functions, or rational
+;; fractions; the data structure wraps a numerator `u` and denominator `v` where
+;; either or both are instances of [[p/Polynomial]]. (If both become
+;; non-polynomial, the functions in this namespace drop the [[RationalFunction]]
+;; instance down to whatever type is produced by `(g/divide u v)`).
+;;
+;; The [[RationalFunction]] type wraps up `u` and `v`, the `arity` of the
+;; rational function (which must match the arity of `u` and `v`) and optional
+;; metadata `m`.
+
 (declare evaluate eq)
 
 (deftype RationalFunction [arity u v m]
@@ -70,7 +82,6 @@
 
   (zero-like [_] (v/zero-like u))
   (one-like [_] (v/one-like u))
-
   (identity-like [_]
     (RationalFunction. arity
                        (v/identity-like u)
@@ -87,12 +98,14 @@
 
        IObj
        (meta [_] m)
-       (withMeta [_ m] (RationalFunction. arity u v m))
+       (withMeta [_ meta] (RationalFunction. arity u v meta))
 
        Seqable
        (seq [_] (list u v))
 
        IFn
+       (invoke [this]
+               (evaluate this []))
        (invoke [this a]
                (evaluate this [a]))
        (invoke [this a b]
@@ -154,6 +167,8 @@
        (-seq [_] (list u v))
 
        IFn
+       (-invoke [this]
+                (evaluate this []))
        (-invoke [this a]
                 (evaluate this [a]))
        (-invoke [this a b]
@@ -221,58 +236,86 @@
   [r]
   (instance? RationalFunction r))
 
-(defn coeff? [x]
+(defn coeff?
+  "Returns true if `x` is explicitly _not_ an instance of [[RationalFunction]]
+  or [[polynomial/Polynomial]], false if it is."
+  [x]
   (and (not (rational-function? x))
        (p/coeff? x)))
 
-(defn bare-arity [^RationalFunction rf]
-  (.-arity rf))
+(defn ^:no-doc bare-arity
+  "Given a [[RationalFunction]] instance `rf`, returns the `arity` field."
+  [rf]
+  (.-arity ^RationalFunction rf))
 
-(defn bare-u
-  "Returns the numerator of the supplied [[RationalFunction]] instance `rf`.
+(defn ^:no-doc bare-u
+  "Given a [[RationalFunction]] instance `rf`, returns the `u` (numerator) field."
+  [rf]
+  (.-u ^RationalFunction rf))
 
-  TODO handle polynomial too and make this BARE numerator??"
-  [^RationalFunction rf]
-  (.-u rf))
-
-(defn bare-v
-  "Returns the denominator of the supplied [[RationalFunction]] instance `rf`.
-
-  TODO handle polynomial too??"
+(defn ^:no-doc bare-v
+  "Given a [[RationalFunction]] instance `rf`, returns the `v` (denominator) field."
   [^RationalFunction rf]
   (.-v rf))
 
-(defn arity [r]
+(defn arity
+  "Returns the declared arity of the supplied [[RationalFunction]]
+  or [[polynomial/Polynomial]], or `0` for arguments of other types."
+  [r]
   (if (rational-function? r)
     (bare-arity r)
     (p/arity r)))
 
-(defn- check-same-arity [u v]
+(defn- check-same-arity
+  "Given two inputs `u` and `v`, checks that their arities are equal and returns
+  the value, or throws an exception if not.
+
+  If either `p` or `q` is a coefficient with [[arity]] equal to
+  0, [[check-same-arity]] successfully returns the other argument's arity."
+  [u v]
   (let [ua (arity u)
         va (arity v)]
-    (cond (not (p/polynomial? u)) va
-          (not (p/polynomial? v)) ua
+    (cond (zero? ua) va
+          (zero? va) ua
           (= ua va) ua
           :else (u/illegal (str "Unequal arities: " u ", " v)))))
 
 (defn eq
-  "TODO test the equal case where we have a 1 in the denom."
+  "Returns true if the [[RationalFunction]] this is equal to `that`. If `that` is
+  a [[RationalFunction]], `this` and `that` are equal if they have equal `u` and
+  `v` and equal arity. `u` and `v` entries are compared
+  using [[sicmutils.value/=]].
+
+  If `that` is non-[[RationalFunction]], `eq` only returns true if `u` and `v`
+  respectively match the [[ratio/numerator]] and [[ratio/denominator]] of
+  `that`."
   [^RationalFunction this that]
-  (cond (instance? RationalFunction that)
-        (let [that ^RationalFunction that]
-          (and (= (.-arity this) (.-arity that))
-               (v/= (.-u this) (.-u that))
-               (v/= (.-v this) (.-v that))))
+  (if (instance? RationalFunction that)
+    (let [that ^RationalFunction that]
+      (and (= (.-arity this) (.-arity that))
+           (v/= (.-u this) (.-u that))
+           (v/= (.-v this) (.-v that))))
 
-        (v/one? (.-v this))
-        (v/= (.-u this) that)
-
-        :else false))
+    (and (v/= (.-v this) (r/denominator that))
+         (v/= (.-u this) (r/numerator that)))))
 
 ;; ## Constructors
 
 (defn- make-reduced
-  "NOTE: IF you've already reduced it yourself, call this. This is like [[p/terms->polynomial]]."
+  "Accepts an explicit `arity`, numerator `u` and denominator `v` and returns
+  either:
+
+  - `0`, in the case of a [[value/zero?]] numerator
+  - `u`, in the case of a [[value/one?]] denominator
+  - a [[RationalFunction]] instance if _either_ `u` or `v` is a [[polynomial/Polynomial]]
+  - `(g/div u v)` otherwise.
+
+  Call this function when you've already reduced `u` and `v` such that they
+  share no common factors and are dropped down to coefficients if possible, and
+  want to wrap them in [[RationalFunction]] only when necessary.
+
+  NOTE: The behavior of this mildly-opinionated constructor is similar
+  to [[polynomial/terms->polynomial]]"
   [arity u v]
   (cond (v/zero? u) 0
         (v/one? v)  u
@@ -284,8 +327,14 @@
         :else (g/div u v)))
 
 (defn- coef-sgn
-  "This is a kludge, needed so that rational functions can be canonicalized, even
-  if coefficients are complex."
+  "Returns `1` if the input is non-numeric or numeric and non-negative, `-1`
+  otherwise. In the slightly suspect case of a complex number
+  input, [[coef-sgn]] only examines the [[generic/real-part]] of the complex
+  number.
+
+  NOTE Negative [[RationalFunction]] instances attempt to keep the negative sign
+  in the numerator `u`. The complex number behavior is a kludge, but allows
+  canonicalization with complex coefficients."
   [x]
   (cond (v/real? x)
         (if (g/negative? x) -1 1)

@@ -214,14 +214,14 @@
         (is (= '(down (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
                       (/ y0 (sqrt (+ (expt x0 2) (expt y0 2))))
                       0)
-               (v/freeze
+               (simplify
                 ((ff/oneform-field->components dr R3-rect)
                  (up 'x0 'y0 'z0)))))
 
         (is (= '(down (/ (* -1 y0) (+ (expt x0 2) (expt y0 2)))
                       (/ x0 (+ (expt x0 2) (expt y0 2)))
                       0)
-               (v/freeze
+               (simplify
                 ((ff/oneform-field->components dtheta R3-rect)
                  (up 'x0 'y0 'z0)))))
         (is (= '(/ (+ (* V↑0 r0 w_0 (cos theta0))

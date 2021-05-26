@@ -198,4 +198,6 @@
   ;; TEST that this works!
   (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
             (p/make 2 {[1 2] 1/2 [2 0] 3}))
-      (make 2)))
+      (make 2))
+
+  (eq (->RationalFunction 10 (p/constant 10 2) 3) #sicm/ratio 2/3))
