@@ -31,6 +31,10 @@
 
   - divide out terms == true
 
+  - new `factor` function
+
+  - all of the analyzers work on wrapped expressions now
+
   - polynomials have metadata, can be evaluated
 
   - rational functions have metadata, can be evaluated

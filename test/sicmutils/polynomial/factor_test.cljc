@@ -20,6 +20,7 @@
 (ns sicmutils.polynomial.factor-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.abstract.number]
+            [sicmutils.expression :refer [expression-of]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
@@ -32,32 +33,36 @@
 (use-fixtures :each hermetic-simplify-fixture)
 
 (defn ->poly [x]
-  (a/expression-> p/analyzer x (fn [p _] p)))
+  (a/expression-> p/analyzer
+                  (expression-of x)
+                  (fn [p _] p)))
 
 (deftest factoring
   (testing "simple test cases"
-    (let [fpe #(pf/factor-polynomial-expression g/simplify %)
-          x-y (->poly '(- x y))
+    (let [x-y (->poly '(- x y))
           x+y (->poly '(+ x y))]
       (is (= [1 1 x-y x+y]
              (pf/split-polynomial
-              (->poly '(* (square (- x y)) (cube (+ x y)))))))
+              (->poly
+               '(* (square (- x y))
+                   (cube (+ x y)))))))
 
-      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)]
-             (fpe
+      (is (= '(* (expt (+ x (* -1 y)) 2)
+                 (expt (+ x y) 3))
+             (pf/factor-expression
               (g/* (g/square (g/- 'x 'y))
                    (g/cube (g/+ 'x 'y))))))
 
-      (is (= [1 1 '(+ x (* -1 y)) 1]
-             (fpe
+      (is (= '(expt (+ x (* -1 y)) 2)
+             (pf/factor-expression
               (g/square (g/- 'x 'y)))))
 
-      (is (= [3 '(+ (expt x 2) y) 1 'z]
-             (fpe
+      (is (= '(* 3 (+ (expt x 2) y) (expt z 3))
+             (pf/factor-expression
               (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y)))))
 
-      (is (= [3 '(+ (expt x 2) y) 'z 1]
-             (fpe
+      (is (= '(* 3 (+ (expt x 2) y) (expt z 2))
+             (pf/factor-expression
               (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))))))))
 
 (deftest factoring-2

@@ -274,15 +274,16 @@ For example:
 
 (defn constant-elimination
   "Takes an operator symbol `op` and an identity element `constant` and returns a
-  rule that eliminates instances of `constant` inside binary forms like
+  rule that eliminates instances of `constant` inside any-arity forms like
 
   ```clojure
-  (<op> l r)
+  (<op> ,,,args,,,)
   ```"
   [op constant]
   (ruleset
-   (~op ~constant ?x) => (~op ?x)
-   (~op ?x ~constant) => (~op ?x)))
+   (~op ??xs)
+   => (~op (?? (fn [{xs '??xs}]
+                 (remove #{constant} xs))))))
 
 (defn constant-promotion
   "Takes an operator symbol `op` and an identity element `constant` and returns a

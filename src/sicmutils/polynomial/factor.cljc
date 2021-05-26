@@ -18,18 +18,26 @@
 ;;
 
 (ns sicmutils.polynomial.factor
+  "This namespace contains functions for factoring polynomials and symbolic
+  expressions."
   (:require [clojure.walk :as w]
+            [pattern.rule :as r :refer [=> rule-simplifier]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.gcd :refer [gcd gcd-Dp]]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
 
 (defn split-polynomial
-  "Given some polynomial `p`, returns a sequence of factors of various
-  multiplicities."
+  "Given a [[Polynomial]] `p`, returns a sequence of factors of in order of
+  increasing power.
+
+  The first element is a constant factor, the next is a factor with power 1, and
+  so on."
   [p]
   (letfn [(answer [tracker const]
             (let [final (peek tracker)]
@@ -72,113 +80,151 @@
                  new-s
                  new-m))))))
 
-;; ## Reconstructions
+;; ## Symbolic Expression Factoring
 
-(defn- actual-factors [factors]
-  (let [expt (sym/symbolic-operator 'expt)]
-    (filter (fn [f]
-              (or (not (v/number? f))
-                  (not (v/one? f))))
-            (cons (first factors)
-                  (map-indexed (fn [i f]
-                                 (expt f (+ i 1)))
-                               (rest factors))))))
+(defn ^:no-doc factors->expression
+  "Given some sequence of polynomial factors ordered by increasing power,
+  symbolically evaluates each power and generates a symbolic expression
+  representing the product of all factors.
 
-(defn factor-polynomial-expression
-  [simplifier P]
-  (letfn [(cont [p vars]
-            (map (fn [factor]
-                   (simplifier
-                    (poly/->expression factor vars)))
-                 (split-polynomial p)))]
-    (poly/expression->
-     (x/expression-of P)
-     cont)))
+  For example:
 
-(defn split-polynomial->expression
-  "TODO this is unused but I want it!"
-  [simplifier P]
-  (let [factors (factor-polynomial-expression simplifier P)]
-    (cons '* (actual-factors factors))))
-
-(defn- flatten-product
-  "Construct a list with all the top-level products in args spliced
-  in; other items left wrapped."
+  ```clojure
+  (factors->expression ['c 'x 'y 1 'z])
+  ;;=> (* c x (expt y 2) (expt z 4))
+  ```"
   [factors]
-  (mapcat (fn [factor]
-            (if (sym/product? factor)
-              (sym/operands factor)
-              [factor]))
-          factors))
+  (let [expt (sym/symbolic-operator 'expt)
+        one? (every-pred v/number? v/one?)]
+    (cons '* (map-indexed
+              (fn [i f]
+                (if (zero? i)
+                  f
+                  (expt f i)))
+              factors))))
 
-(defn ->factors
-  "NOTE: this is from split-poly.scm, `pcf:->factors`.... noted as 'recursive generalization'.
+(def ^{:private true
+       :doc "Simplifier that flattens nested products, converts singleton calls
+  like `(* x) => x`, and squashes no-argument products like `(*)` into a
+  constant `1`."}
+  simplify-product
+  (rule-simplifier
+   (rules/associative '*)
+   (rules/unary-elimination '*)
+   (rules/constant-elimination '* 1)
+   (r/rule (*) => 1)))
 
-  poly-> is pcf:->expression."
-  [p v]
-  (let [factors (map (fn [factor]
-                       (poly/->expression factor v))
-                     (split-polynomial p))
-        ff (actual-factors factors)]
-    (condp = (count ff)
-      0 1
-      1 (first ff)
-      (cons '* (flatten-product ff)))))
+(defn poly->factored-expression
+  "Given a polynomial `p`, and a sequence of variables `vars` (one for each
+  indeterminate in `p`), returns a symbolic expression representing the product
+  of all factors of `p`.
 
-(def ^:no-doc analyzer
+  Optionally accepts a `simplify` function that will be called on each factor of
+  exponent 0, 1, 2 etc. Defaults to `identity`."
+  ([p vars]
+   (poly->factored-expression p vars identity))
+  ([p vars simplify]
+   (let [factors (map (fn [factor]
+                        (simplify
+                         (poly/->expression factor vars)))
+                      (split-polynomial p))]
+     (simplify-product
+      (factors->expression factors)))))
+
+(defn factor-expression
+  "Given some symbolic expression containing only polynomial operations, returns a
+  factored version of the expression with basic simplifications applied.
+
+  Optionally accepts a `simplify` function that will be called on each factor of
+  exponent 0, 1, 2 etc. Defaults to `identity`.
+
+  NOTE prefer [[factor]], as [[factor]] can handle expressions with
+  non-polynomial operations. The trigonometric functions, for example."
+  ([expr]
+   (factor-expression expr identity))
+  ([expr simplify]
+   (let [unwrapped (x/expression-of expr)
+         cont #(poly->factored-expression %1 %2 simplify)]
+     (poly/expression-> unwrapped cont))))
+
+(def ^{:doc "Expression analyzer, identical to [[polynomial/analyzer]] except
+  the symbolic expressions returned are in factored form."}
+  analyzer
   (let [symgen (a/monotonic-symbol-generator "-f-")]
     (-> (reify a/ICanonicalize
           (expression-> [_ expr cont v-compare]
             (poly/expression-> expr cont v-compare))
           (->expression [_ p vars]
-            (->factors p vars))
+            (poly->factored-expression p vars))
           (known-operation? [_ o]
             (a/known-operation? poly/analyzer o)))
         (a/make-analyzer symgen))))
 
-(def factor
+(def ^{:doc "Accepts a single symbolic expression and returns a factored version
+ of that expression.
+
+ Differs from [[factor-expression]] in that it can handle any expression, not
+ just expressions limited to polynomial operations."
+       :arglists '([expr])}
+  factor
   (a/default-simplifier analyzer))
 
-;; ## Square Root Simplifier
+;; ## Square Root Simplification
 
 (defn- process-sqrt
-  "Given a symbolic expression of the form `(sqrt x)`, TODO finish!"
+  "Given an unwrapped symbolic expression of the form `(sqrt x)`, returns a new,
+  unsimplified symbolic expression with any even power removed from underneath
+  the square root.
+
+  For example:
+
+  ```clojure
+  (process-sqrt
+    '(sqrt (* x (expt y 2) (expt z 4))))
+  ;;=> (* (sqrt x) y (expt z 2))
+  ```"
   [expr]
   (let [fact-exp (factor (first (sym/operands expr)))
-        expt     (sym/symbolic-operator 'expt)
-        *        (sym/symbolic-operator '*)]
+        expt  (sym/symbolic-operator 'expt)
+        *     (sym/symbolic-operator '*)
+        sqrt  (sym/symbolic-operator 'sqrt)
+        even? (fn [n]
+                (and (v/native-integral? n)
+                     (even? n)))]
     (loop [factors (if (sym/product? fact-exp)
                      (sym/operands fact-exp)
-                     (list fact-exp))
-           odds 1
+                     [fact-exp])
+           odds  1
            evens 1]
-      (cond (nil? factors)
-            (do (if (not (and (v/number? evens)
-                              (= evens 1)))
-                  (ul/assume! `(~'non-negative? ~evens) 'root-out-squares))
-                (* (sym/sqrt odds) evens))
-
-            (sym/expt? (first factors))
-            (let [[b e] (sym/operands (first factors))]
-              (if (and (v/native-integral? e)
-                       (even? e))
-                (recur (next factors)
+      (if (empty? factors)
+        (do (when-not (= evens 1)
+              (ul/assume! `(~'non-negative? ~evens)
+                          'root-out-squares))
+            (* (sqrt odds) evens))
+        (let [[f & more] factors]
+          (if (sym/expt? f)
+            (let [[b e] (sym/operands f)]
+              (if (even? e)
+                (recur more
                        odds
                        (let [power (quot e 2)]
                          (cond (> power 1) (* evens (expt b power))
                                (= power 1) (* evens b)
                                :else evens)))
-                (recur (next factors)
-                       (* (first factors) odds)
+                (recur more
+                       (* f odds)
                        evens)))
-
-            :else
-            (recur (next factors)
-                   (* (first factors) odds)
-                   evens)))))
+            (recur more
+                   (* f odds)
+                   evens)))))))
 
 (defn root-out-squares
-  "Removes perfect squares from under square roots."
+  "Given an unwrapped symbolic expression, returns a new symbolic expression with
+  any perfect square (exponent with an even power) removed from underneath any
+  `sqrt` that appears in the expression.
+
+  To use [[root-out-squares]] with a wrapped symbolic expression,
+  use [[sicmutils.expression/fmap]]."
   [expr]
   (w/prewalk
    (fn [t]

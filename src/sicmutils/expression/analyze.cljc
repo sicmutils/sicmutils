@@ -262,9 +262,20 @@
              ;; Default simplifier
              (simplify [expr]
                (new-analysis!)
-               (simplify-expression expr))]
-       {:simplify simplify
-        :simplify-expression simplify-expression
+               (simplify-expression
+                (x/expression-of expr)))]
+       {:simplify
+        (fn [expr]
+          (if (x/literal? expr)
+            (x/fmap simplify expr)
+            (simplify expr)))
+
+        :simplify-expression
+        (fn [expr]
+          (if (x/literal? expr)
+            (x/fmap simplify-expression expr)
+            (simplify-expression expr)))
+
         :initializer new-analysis!
         :analyze-expression analyze-expression
         :get-var->expr (fn [] @var->expr)
