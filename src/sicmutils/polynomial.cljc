@@ -1544,8 +1544,8 @@
 ;; This section defines functions that allow conversion back and forth
 ;; between [[Polynomial]] instances and symbolic expressions.
 ;;
-;; The operator-table represents the operations that can be understood from the
-;; point of view of a polynomial over a commutative ring.
+;; The `operator-table` represents the operations that can be understood from
+;; the point of view of a polynomial over a commutative ring.
 
 (def ^{:no-doc true
        :doc "These operations are those allowed between [[Polynomial]] and
@@ -1579,7 +1579,7 @@
   The second optional argument `v-compare` allows you to provide a Comparator
   between variables. Sorting indeterminates by `v-compare` will determine the
   order of the indeterminates in the generated [[Polynomial]]. The list of
-  variables passed to `cont` will be sorted using `v-compare`
+  variables passed to `cont` will be sorted using `v-compare`.
 
   Absorbing an expression with [[expression->]] and emitting it again
   with [[->expression]] will generate the canonical form of an expression, with
@@ -1705,12 +1705,6 @@
 
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/exact-divide [::polynomial ::coeff] [p c] (evenly-divide p c))
-(defmethod g/exact-divide [::coeff ::polynomial] [c p]
-  (let [[term :as terms] (bare-terms p)]
-    (if (and (= (count terms) 1)
-             (i/constant-term? term))
-      (g/exact-divide c (i/coefficient term))
-      (u/illegal (str "Can't divide coefficient by polynomial: " c ", " p)))))
 
 (defmethod g/simplify [::polynomial] [p]
   (map-coefficients g/simplify p))

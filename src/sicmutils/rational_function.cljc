@@ -28,6 +28,7 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
+            [sicmutils.polynomial.impl :as pi]
             [sicmutils.ratio :as r]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
@@ -280,6 +281,14 @@
           (= ua va) ua
           :else (u/illegal (str "Unequal arities: " u ", " v)))))
 
+(defn negative?
+  "Returns true if the numerator of `r` is [[polynomial/negative?]], false
+  otherwise."
+  [r]
+  (if-not (rational-function? r)
+    (p/negative? r)
+    (p/negative? (bare-u r))))
+
 (defn eq
   "Returns true if the [[RationalFunction]] this is equal to `that`. If `that` is
   a [[RationalFunction]], `this` and `that` are equal if they have equal `u` and
@@ -345,15 +354,21 @@
         :else 1))
 
 (defn- ->reduced
-  "First , cancels out any rational numbers in coefficients in the numerator or
-  denominator.
+  "Given a numerator `u` and denominator `v`, returns the result of:
 
-  Then, cancel out common factors... finally, reduce to a poly OR constant if
-  necessary."
+  - multiplying `u` and `v` by the least common multiple of all denominators
+    found in either `u` or `v`, so that `u` and `v` contain
+    no [[RationalFunction]]e or ratio-like coefficients
+  - normalizing the denominator `v` to be positive by negating `u`, if
+    applicable
+  - Cancelling out any common divisors between `u` and `v`
+
+  The result can be either a [[RationalFunction]], [[polynomial/Polynomial]] or
+  a `(g/div u v)`. See [[make-reduced]] for the details."
   [u v]
   (when (v/zero? v)
     (u/arithmetic-ex
-     "Can't form rational function with zero denominator"))
+     (str "Can't form rational function with zero denominator: " v)))
   (let [a (check-same-arity u v)
         xform (comp (distinct)
                     (map r/denominator))
@@ -369,7 +384,7 @@
                   [u v]
                   [(g/mul factor u)
                    (g/mul factor v)])
-        g (pg/gcd u' v')
+        g (g/gcd u' v')
         [u'' v''] (if (v/one? g)
                     [u' v']
                     [(p/evenly-divide u' g)
@@ -377,110 +392,212 @@
     (make-reduced a u'' v'')))
 
 (defn make
-  "Make the fraction of the two polynomials p and q, after dividing out their
-  greatest common divisor and normalizing any ratios that appear in numerator or
-  denominator."
+  "Given a numerator `u` and denominator `v`, attempts to form
+  a [[RationalFunction]] instance by
+
+  - cancelling out any common factors between `u` and `v`
+  - normalizing `u` and `v` such that `v` is always positive
+  - multiplying `u` and `v` through by a commo factor, such that neither term
+    contains any rational coefficients
+
+  Returns a [[RationalFunction]] instance if either `u` or `v` remains
+  a [[polynomial/Polynomial]] after this process; else, returns `(g/div u' v')`,
+  where `u'` and `v'` are the reduced numerator and denominator."
   [u v]
   (if (and (coeff? u) (coeff? v))
     (g/div u v)
     (->reduced u v)))
 
-;; ## RF Arithmetic
+;; ## Rational Function Arithmetic
 ;;
-;; Rational arithmetic is from Knuth vol 2 section 4.5.1
+;; The goal of this section is to implement `+`, `-`, `*` and `/` for rational
+;; function instances. The catch is that we want to hold to the contract
+;; that [[make]] provides - numerator and denominator should not acquire their
+;; own internal denominators! - without explicitly calling the
+;; expensive [[make]] each time.
 ;;
-;; The notation here is from Knuth (p. 291). In various places we take the gcd
-;; of two polynomials and then use quotient to reduce those polynomials.
+;; The Rational arithmetic algorithms used below come from Knuth, vol 2, section
+;; 4.5.1.
 
-(defn- binary-combine [l r poly-op uv-op]
-  (let [a (check-same-arity l r)
-        l-n (r/numerator l)
-        l-d (r/denominator l)
-        r-n (r/numerator r)
-        r-d (r/denominator r)]
-    (let [[n d] (if (and (v/one? l-d) (v/one? r-d))
-                  [(poly-op l-n r-n) 1]
-                  (uv-op l-n l-d r-n r-d))]
+(defn- binary-combine
+  "Given two arguments `u` and `v`, as well as:
+
+  - `poly-op` - a function of two numerators
+  - `uv-op` - a function of four arguments, (`u-n`, `u-d`, `v-n`, `v-d` the
+    numerator and denominator of `u` and `v` respectively)
+
+  Returns the result of `(poly-op u-n v-n)` if `u-d` and `v-d` are
+  both [[value/one?]], or `(uv-op u-n u-d v-n v-d)` otherwise.
+
+  The result is reduced to a potentially-non-[[RationalFunction]] result
+  using [[make-reduced]]."
+  [u v poly-op uv-op]
+  (let [a (check-same-arity u v)
+        u-n (r/numerator u)
+        u-d (r/denominator u)
+        v-n (r/numerator v)
+        v-d (r/denominator v)]
+    (let [[n d] (if (and (v/one? u-d) (v/one? v-d))
+                  [(poly-op u-n v-n) 1]
+                  (uv-op u-n u-d v-n v-d))]
       (make-reduced a n d))))
 
+;; The following functions act on full numerator, denominator pairs, and are
+;; suitable for use as the `uv-op` argument to [[binary-combine]].
+
 (defn- uv:+
-  "Add the [[RationalFunction]] instances `r` and `s`."
+  "Returns the `[numerator, denominator]` pair resulting from rational function
+  addition of `(/ u u')` and `(/ v v')`.
+
+  If the denominators are equal, [[uv:+]] adds the numerators and divides out
+  any factor common with the shared denominator.
+
+  Else, if the denominators are relatively prime, [[uv:+]] multiplies each side
+  by the other's denominator to create a single rational expression, then
+  divides out any common factors before returning.
+
+  In the final case, where the denominators are _not_ relatively prime, [[uv:+]]
+  attempts to efficiently divide out the GCD of the denominators without
+  creating large products."
   [u u' v v']
-  (if (v/= u' v')
-    (let [n (p/add u v)
-          g (pg/gcd u' n)]
-      (if (v/one? g)
-        [n u']
-        [(p/evenly-divide n g)
-         (p/evenly-divide u' g)]))
-    (let [d1 (pg/gcd u' v')]
-      (if (v/one? d1)
-        [(p/add (p/mul u v')
-                (p/mul u' v))
-         (p/mul u' v')]
-        (let [u':d1 (p/evenly-divide u' d1)
-              v':d1 (p/evenly-divide v' d1)
-              t (p/add (p/mul u v':d1)
-                       (p/mul u':d1 v))]
-          (if (v/zero? t)
-            [0 1]
-            (let [d2 (pg/gcd t d1)]
-              (if (v/one? d2)
-                [t (p/mul u':d1 v')]
-                (let [n (p/evenly-divide t d2)
-                      d (p/mul u':d1 (p/evenly-divide v' d2))]
-                  [n d])))))))))
+  (letfn [(divide-through [n d]
+            (if (v/zero? n)
+              [0 1]
+              (let [g (g/gcd d n)]
+                (if (v/one? g)
+                  [n d]
+                  [(p/evenly-divide n g)
+                   (p/evenly-divide d g)]))))]
+    (if (v/= u' v')
+      ;; Denominators are equal:
+      (let [n (p/add u v)]
+        (divide-through n u'))
+      (let [g (g/gcd u' v')]
+        (if (v/one? g)
+          ;; Denominators are relatively prime:
+          (divide-through
+           (p/add (p/mul u v')
+                  (p/mul u' v))
+           (p/mul u' v'))
 
-(defn- uv:* [u u' v v']
-  (cond (v/zero? u) [v v']
-        (v/zero? v) [u u']
-        :else (let [d1 (pg/gcd u v')
-                    d2 (pg/gcd u' v)
-                    u'' (p/mul (p/evenly-divide u d1)
-                               (p/evenly-divide v d2))
-                    v'' (p/mul (p/evenly-divide u' d2)
-                               (p/evenly-divide v' d1))]
-                [u'' v''])))
+          ;; Denominators are NOT relatively prime:
+          (let [u':g (p/evenly-divide u' g)
+                v':g (p/evenly-divide v' g)]
+            (divide-through
+             (p/add (p/mul u v':g)
+                    (p/mul u':g v))
+             (p/mul u':g v'))))))))
 
-(defn rf:+ [r s]
-  (cond (v/zero? r) s
-        (v/zero? s) r
-        :else (binary-combine r s p/add uv:+)))
+(defn- uv:-
+  "Returns the `[numerator, denominator]` pair resulting from rational function
+  difference of `(/ u u')` and `(/ v v')`.
 
-(defn negative? [r]
-  (if-not (rational-function? r)
-    (p/negative? r)
-    (p/negative? (bare-u r))))
+  Similar to [[uv:+]]; inverts `v` before calling [[uv:+]] with the supplied arguments."
+  [u u' v v']
+  (uv:+ u u' (p/negate v) v'))
 
-(defn negate [r]
+(defn- uv:*
+  "Returns the `[numerator, denominator]` pair resulting from rational function
+  multiplication of `(/ u u')` and `(/ v v')`."
+  [u u' v v']
+  (if (or (v/zero? u) (v/zero? v))
+    [0 1]
+    (let [d1 (g/gcd u v')
+          d2 (g/gcd u' v)
+          u'' (p/mul (p/evenly-divide u d1)
+                     (p/evenly-divide v d2))
+          v'' (p/mul (p/evenly-divide u' d2)
+                     (p/evenly-divide v' d1))]
+      [u'' v''])))
+
+(defn- uv:gcd
+  "Returns the `[numerator, denominator]` pair that represents the greatest common
+  divisor of `(/ u u')` and `(/ v v')`."
+  [u u' v v']
+  (let [d1 (g/gcd u v)
+        d2 (g/lcm u' v')]
+    (let [result (make d1 d2)]
+      [(r/numerator result)
+       (r/denominator result)])))
+
+;; ## RationalFunction versions
+;;
+;; Armed with [[binary-combine]] and the functions above, we can now implement
+;; the full set of arithmetic functions for [[RationalFunction]] instances.
+
+(defn negate
+  "Returns the negation of rational function `r`, ie, a [[RationalFunction]] with
+  its numerator negated.
+
+  Acts as [[generic/negate]] for non-[[RationalFunction]] inputs."
+  [r]
   (if-not (rational-function? r)
     (p/negate r)
     (->RationalFunction (bare-arity r)
                         (p/negate (bare-u r))
                         (bare-v r))))
 
-(defn abs [p]
-  (if (negative? p)
-    (negate p)
-    p))
+(defn abs
+  "If the numerator of `r` is negative, returns `(negate r)`, else acts as
+  identity."
+  [r]
+  (if (negative? r)
+    (negate r)
+    r))
 
-(defn rf:- [r s]
+(defn add
+  "Returns the sum of rational functions `r` and `s`, with appropriate handling
+  of [[RationalFunction]], [[polynomial/Polynomial]] or coefficients of neither
+  type on either side."
+  [r s]
+  (cond (v/zero? r) s
+        (v/zero? s) r
+        :else (binary-combine r s p/add uv:+)))
+
+
+
+(defn sub
+  "Returns the difference of rational functions `r` and `s`, with appropriate
+  handling of [[RationalFunction]], [[polynomial/Polynomial]] or coefficients of
+  neither type on either side."
+  [r s]
   (cond (v/zero? r) (negate s)
         (v/zero? s) r
-        :else
-        (binary-combine r s
-                        p/sub
-                        (fn [u u' v v']
-                          (uv:+ u u' (p/negate v) v')))))
+        :else (binary-combine r s p/sub uv:-)))
 
-(defn rf:* [r s]
+(defn mul
+  "Returns the product of rational functions `r` and `s`, with appropriate
+  handling of [[RationalFunction]], [[polynomial/Polynomial]] or coefficients of
+  neither type on either side."
+  [r s]
   (cond (v/zero? r) r
         (v/zero? s) s
         (v/one? r) s
         (v/one? s) r
         :else (binary-combine r s p/mul uv:*)))
 
-(defn expt [r n]
+(defn square
+  "Returns the square of rational function `r`. Equivalent to `(mul r r)`."
+  [r]
+  (if-not (rational-function? r)
+    (p/square r)
+    (->RationalFunction (bare-arity r)
+                        (p/square (bare-u r))
+                        (p/square (bare-v r)))))
+
+(defn cube
+  "Returns the cube of rational function `r`. Equivalent to `(mul r (mul r r))`."
+  [r]
+  (if-not (rational-function? r)
+    (p/cube r)
+    (->RationalFunction (bare-arity r)
+                        (p/cube (bare-u r))
+                        (p/cube (bare-v r)))))
+
+(defn expt
+  "Returns a rational function generated by raising the input rational function
+  `r` to the (integer) power `n`."
+  [r n]
   {:pre [(v/native-integral? n)]}
   (if-not (rational-function? r)
     (p/expt r n)
@@ -493,28 +610,20 @@
                           (p/expt top e)
                           (p/expt bottom e)))))
 
-(defn square [r]
-  (if-not (rational-function? r)
-    (p/square r)
-    (->RationalFunction (bare-arity r)
-                        (p/square (bare-u r))
-                        (p/square (bare-v r)))))
+(defn invert
+  "Given some rational function `r`, returns the inverse of `r`, ie, a rational
+  function with numerator and denominator reversed. The returned rational
+  function guarantees a positive denominator.
 
-(defn cube [r]
-  (if-not (rational-function? r)
-    (p/cube r)
-    (->RationalFunction (bare-arity r)
-                        (p/cube (bare-u r))
-                        (p/cube (bare-v r)))))
-
-(defn invert [r]
+  Acts as [[generic/invert]] for non-[[RationalFunction]] inputs."
+  [r]
   (if-not (rational-function? r)
     (g/invert r)
     (let [u (bare-u r)
           v (bare-v r)]
       (cond (v/zero? u)
             (u/arithmetic-ex
-             "Can't form rational function with zero denominator")
+             "Can't form rational function with zero denominator.")
 
             (g/negative? u)
             (->RationalFunction (bare-arity r)
@@ -523,67 +632,71 @@
 
             :else (->RationalFunction (bare-arity r) v u)))))
 
-(defn div [r s]
-  (rf:* r (invert s)))
+(defn div
+  "Returns the quotient of rational functions `r` and `s`, with appropriate
+  handling of [[RationalFunction]], [[polynomial/Polynomial]] or coefficients of
+  neither type on either side."
+  [r s]
+  (mul r (invert s)))
 
-(defn- uv:gcd [u u' v v']
-  (let [d1 (pg/gcd u v)
-        d2 (pg/lcm u' v')]
-    (let [result (make d1 d2)]
-      [(r/numerator result)
-       (r/denominator result)])))
+(defn gcd
+  "Returns the greatest common divisor of rational functions `r` and `s`, with
+  appropriate handling of [[RationalFunction]], [[polynomial/Polynomial]] or
+  coefficients of neither type on either side. "
+  [r s]
+  (binary-combine r s g/gcd uv:gcd))
 
-(defn gcd [r s]
-  (binary-combine r s pg/gcd uv:gcd))
+;; ## Function Evaluation, Composition
+;;
+;; The following functions provide the ability to compose rational functions
+;; together without wrapping them in black-box functions.
 
-(defn arg-scale [r factors]
-  (if-not (rational-function? r)
-    (p/arg-scale r factors)
-    (div (p/arg-scale (bare-u r) factors)
-         (p/arg-scale (bare-v r) factors))))
+(defn evaluate
+  "Given some rational function `xs` and a sequence of arguments with length >= 0
+  and < the [[arity]] of `r`, returns the result of evaluating the numerator and
+  denominator using `xs` and re-forming a rational function with the results.
 
-(defn arg-shift [r shifts]
-  (if-not (rational-function? r)
-    (p/arg-shift r shifts)
-    (div (p/arg-shift (bare-u r) shifts)
-         (p/arg-shift (bare-v r) shifts))))
-
-(defn evaluate [r xs]
+  Supplying fewer arguments than the arity will result in a partial evaluation.
+  Supplying too many arguments will error."
+  [r xs]
   (if-not (rational-function? r)
     (p/evaluate r xs)
     (g/div (p/evaluate (bare-u r) xs)
            (p/evaluate (bare-v r) xs))))
 
-(defn compose
-  "only plugs r2 in for the principal indeterminate.
+(defn arg-scale
+  "Given some [[RationalFunction]] `r`, returns a new [[RationalFunction]]
+  generated by substituting each indeterminate `x_i` for `f_i * x_i`, where
+  `f_i` is a factor supplied in the `factors` sequence.
 
-  TODO we COULD do a version that composes with a different one??"
-  [r1 r2]
-  {:pre [(rational-function? r1)]}
-  (if-not (rational-function? r2)
-    (g/div (p/evaluate (bare-u r1) r2)
-           (p/evaluate (bare-v r1) r2))
-    (let [nr1 (bare-u r1)
-          nr2 (bare-u r2)
-          dr1 (bare-v r1)
-          dr2 (bare-v r2)
-          dn  (p/degree nr1)
-          dd  (p/degree dr1)
-          narity (+ (p/arity dr1) 1)
-          nnr1 (p/extend 1 (p/reciprocal nr1))
-          ndr1 (p/extend 1 (p/reciprocal dr1))
-          scales [(second (p/new-variables narity)) 1]
-          pn (p/evaluate (p/reciprocal
-                          (p/arg-scale nnr1 scales))
-                         [nr2 dr2])
-          pd (p/evaluate (p/reciprocal
-                          (p/arg-scale ndr1 scales))
-                         [nr2 dr2])]
-      (cond (> dn dd) (g/div pn (p/mul (p/expt dr2 (- dn dd)) pd))
-            (< dn dd) (g/div (p/mul (p/expt dr2 (- dd dn)) pn) pd)
-            :else (g/div pn pd)))))
+  Given a non-[[RationalFunction]], delegates to [[polynomial/arg-scale]]."
+  [r factors]
+  (if-not (rational-function? r)
+    (p/arg-scale r factors)
+    (div (p/arg-scale (bare-u r) factors)
+         (p/arg-scale (bare-v r) factors))))
 
-(defn partial-derivative [r i]
+(defn arg-shift
+  "Given some [[RationalFunction]] `r`, returns a new [[RationalFunction]]
+  generated by substituting each indeterminate `x_i` for `s_i + x_i`, where
+  `s_i` is a shift supplied in the `shifts` sequence.
+
+  Given a non-[[RationalFunction]], delegates to [[polynomial/arg-shift]]."
+  [r shifts]
+  (if-not (rational-function? r)
+    (p/arg-shift r shifts)
+    (div (p/arg-shift (bare-u r) shifts)
+         (p/arg-shift (bare-v r) shifts))))
+
+;; ## Derivatives
+
+(defn partial-derivative
+  "Given some [[RationalFunction]] or [[polynomial/Polynomial]] `r`, returns the
+  partial derivative of `r` with respect to the `i`th indeterminate. Throws if
+  `i` is an invalid indeterminate index for `r`.
+
+  For non-polynomial or rational function inputs, returns `0`."
+  [r i]
   (if-not (rational-function? r)
     (p/partial-derivative r i)
     (let [u (bare-u r)
@@ -593,63 +706,123 @@
            (p/square v)))))
 
 (defn partial-derivatives
-  "The sequence of partial derivatives of p with respect to each
-  indeterminate. Return value has length `(arity p)`."
+  "Returns the sequence of partial derivatives
+  of [[RationalFunction]] (or [[polynomial/Polynomial]]) `r` with respect to
+  each indeterminate. The returned sequence has length equal to the [[arity]] of
+  `r`.
+
+  For non-polynomial or rational function inputs, returns an empty sequence."
   [r]
   (if-not (rational-function? r)
     (p/partial-derivatives r)
     (for [i (range (bare-arity r))]
       (partial-derivative r i))))
 
-(def ^:no-doc operator-table
+;; ## Canonicalizer
+;;
+;; This section defines functions that allow conversion back and forth
+;; between [[RationalFunction]] instances and symbolic expressions.
+;;
+;; The `operator-table` represents the operations that can be understood from
+;; the point of view of a rational function over some field.
+
+(def ^{:no-doc true
+       :doc "These operations are those allowed
+       between [[RationalFunction]], [[polynomial/Polynomial]] and coefficient
+       instances."}
+  operator-table
   (assoc p/operator-table
          '/ (ua/group g/div g/mul g/invert 1 v/zero?)
          'invert g/invert))
 
-(def operators-known
+(def ^{:no-doc true
+       :doc "Set of all arithmetic functions allowed
+       between [[RationalFunction]], [[polynomial/Polynomial]] and coefficient
+       instances."}
+  operators-known
   (u/keyset operator-table))
+
+(defn expression->
+  "Converts the supplied symbolic expression `expr` into Rational Function
+  canonical form (ie, a [[RationalFunction]] instance). `expr` should be a bare,
+  unwrapped expression built out of Clojure data structures.
+
+  Returns the result of calling continuation `cont` with
+  the [[RationalFunction]] and the list of variables corresponding to each
+  indeterminate in the [[RationalFunction]]. (`cont `defaults to `vector`).
+
+  The second optional argument `v-compare` allows you to provide a Comparator
+  between variables. Sorting indeterminates by `v-compare` will determine the
+  order of the indeterminates in the generated [[RationalFunction]]. The list of
+  variables passed to `cont` will be sorted using `v-compare`.
+
+  Absorbing an expression with [[expression->]] and emitting it again
+  with [[->expression]] will generate the canonical form of an expression, with
+  respect to the operations in the [[operators-known]] set.
+
+  This kind of simplification proceeds purely symbolically over the known
+  Rational Function operations; other operations outside the arithmetic
+  available should be factored out by an expression
+  analyzer (see [[sicmutils.expression.analyze/make-analyzer]]) before
+  calling [[expression->]].
+
+  NOTE that `cont` might receive a scalar, fraction or [[polynomial/Polynomial]]
+  instance; both are valid 'rational functions'. The latter as a rational
+  function with a denominator equal to `1`, and the former 2 result from
+  non-polynomial numerator and denominator.
+
+  NOTE See [[analyzer]] for an instance usable
+  by [[sicmutils.expression.analyze/make-analyzer]]."
+  ([expr]
+   (expression-> expr vector compare))
+  ([expr cont]
+   (expression-> expr cont compare))
+  ([expr cont v-compare]
+   (let [vars     (-> (x/variables-in expr)
+                      (set/difference operators-known))
+         arity    (count vars)
+         sorted   (sort v-compare vars)
+         sym->var (zipmap sorted (p/new-variables arity))
+         rf       (x/evaluate expr sym->var operator-table)]
+     (cont rf sorted))))
+
+(defn ->expression
+  "Accepts a [[RationalFunction]] `r` and a sequence of symbols for each indeterminate,
+  and emits the canonical form of the symbolic expression that
+  represents [[RationalFunction]] `r`.
+
+  NOTE: this is the output stage of Rational Function canonical form
+  simplification. The input stage is handled by [[expression->]].
+
+  NOTE See [[analyzer]] for an instance usable
+  by [[sicmutils.expression.analyze/make-analyzer]]."
+  [r vars]
+  (if-not (rational-function? r)
+    (p/->expression r vars)
+    ((sym/symbolic-operator '/)
+     (p/->expression (bare-u r) vars)
+     (p/->expression (bare-v r) vars))))
 
 (def ^{:doc "Singleton [[a/ICanonicalize]] instance."}
   analyzer
   (reify a/ICanonicalize
     (expression-> [this expr cont]
-      (a/expression-> this expr cont compare))
+      (expression-> expr cont))
 
     (expression-> [this expr cont v-compare]
-      ;; Convert an expression into Rational Function canonical form. The
-      ;; expression should be an unwrapped expression, i.e., not an instance of
-      ;; the Literal type, nor should subexpressions contain type information.
-      ;; This kind of simplification proceeds purely symbolically over the known
-      ;; Rational Function operations;; other operations outside the arithmetic
-      ;; available R(x...) should be factored out by an expression analyzer before
-      ;; we get here. The result is a RationalFunction object representing the
-      ;; structure of the input over the unknowns."
-      (let [expression-vars (sort v-compare
-                                  (set/difference (x/variables-in expr)
-                                                  operators-known))
-            arity (count expression-vars)
-            sym->var (zipmap expression-vars (p/new-variables arity))
-            expr' (x/evaluate expr sym->var operator-table)]
-        (cont expr' expression-vars)))
+      (expression-> expr cont v-compare))
 
-    (->expression [_ r vars]
-      ;; This is the output stage of Rational Function canonical form
-      ;; simplification. The input is a RationalFunction, and the output is an
-      ;; expression representing the evaluation of that function over the
-      ;; indeterminates extracted from the expression at the start of this
-      ;; process."
-      (if-not (rational-function? r)
-        (p/->expression r vars)
-        ((sym/symbolic-operator '/)
-         (p/->expression (bare-u r) vars)
-         (p/->expression (bare-v r) vars))))
+    (->expression [_ rf vars]
+      (->expression rf vars))
 
     (known-operation? [_ o]
       (contains? operators-known o))))
 
-;; ## Polynomial Extensions
+;; ## Generic Implementations
 ;;
-;; Made possible since we can now invert OUT of the ring.
+;; [[polynomial/Polynomial]] gains a few more functions; inverting a polynomial,
+;; for example, results in a [[RationalFunction]] instance, so the generic
+;; installation of `g/invert` and `g/div` belong here.
 
 (defmethod g/invert [::p/polynomial] [p]
   (let [a (p/bare-arity p)]
@@ -661,11 +834,25 @@
 (p/defbinary g/solve-linear-right make)
 (p/defbinary g/solve-linear (fn [l r] (div r l)))
 
-;; ## Generic Method Implementations
-;;
-;; TODO `exact-divide`, `quotient`, `remainder`, `lcm`
+(defmethod g/exact-divide [::p/coeff ::p/polynomial] [c p]
+  (let [[term :as terms] (p/bare-terms p)]
+    (if (and (= (count terms) 1)
+             (pi/constant-term? term))
+      (g/exact-divide c (pi/coefficient term))
+      (make c p))))
 
-(defn ^:no-doc defbinary [generic-op f]
+;; ### Rational Function Generics
+;;
+;; TODO: `g/quotient`, `g/remainder` and `g/lcm` feel like valid methods to
+;; install for [[RationalFunction]] instances.
+;; Close [#365](https://github.com/sicmutils/sicmutils/issues/365) when these
+;; are implemented.
+
+(defn ^:no-doc defbinary
+  "Installs the supplied function `f` into `generic-op` such that it will act
+  between [[RationalFunction]] instances, or allow [[polynomial/Polynomial]]
+  instances or non-[[polynomial/Polynomial]] coefficients on either side."
+  [generic-op f]
   (let [pairs [[::rational-function ::rational-function]
                [::p/polynomial ::rational-function]
                [::p/coeff ::rational-function]
@@ -675,16 +862,20 @@
       (defmethod generic-op [l r] [r s]
         (f r s)))))
 
+;; `v/=` is not implemented with [[defbinary]] because the variable order needs
+;; to change so that a [[RationalFunction]] is always on the left.
+
 (defmethod v/= [::rational-function ::rational-function] [l r] (eq l r))
 (defmethod v/= [::p/polynomial ::rational-function] [l r] (eq r l))
 (defmethod v/= [::p/coeff ::rational-function] [l r] (eq r l))
 (defmethod v/= [::rational-function ::p/polynomial] [l r] (eq l r))
 (defmethod v/= [::rational-function ::p/coeff] [l r] (eq l r))
 
-(defbinary g/add rf:+)
-(defbinary g/sub rf:-)
-(defbinary g/mul rf:*)
+(defbinary g/add add)
+(defbinary g/sub sub)
+(defbinary g/mul mul)
 (defbinary g/div div)
+(defbinary g/exact-divide div)
 (defbinary g/solve-linear-right div)
 (defbinary g/solve-linear (fn [l r] (div r l)))
 (defbinary g/gcd gcd)
@@ -696,12 +887,13 @@
 (defmethod g/square [::rational-function] [a] (square a))
 (defmethod g/cube [::rational-function] [a] (square a))
 
-(defmethod g/expt [::rational-function ::v/integral] [b x] (expt b x))
+(defmethod g/expt [::rational-function ::v/integral] [b x]
+  (expt b x))
 
 (defmethod g/simplify [::rational-function] [r]
-  (->RationalFunction (g/simplify (bare-u r))
-                      (g/simplify (bare-v r))
-                      (meta r)))
+  (make (g/simplify (bare-u r))
+        (g/simplify (bare-v r))
+        (meta r)))
 
 (defmethod g/partial-derivative [::rational-function v/seqtype]
   [p selectors]

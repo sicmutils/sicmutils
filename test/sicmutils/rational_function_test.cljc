@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+                                        ;
+                                        ; Copyright © 2017 Colin Smith.
+                                        ; This work is based on the Scmutils system of MIT/GNU Scheme:
+                                        ; Copyright © 2002 Massachusetts Institute of Technology
+                                        ;
+                                        ; This is free software;  you can redistribute it and/or modify
+                                        ; it under the terms of the GNU General Public License as published by
+                                        ; the Free Software Foundation; either version 3 of the License, or (at
+                                        ; your option) any later version.
+                                        ;
+                                        ; This software is distributed in the hope that it will be useful, but
+                                        ; WITHOUT ANY WARRANTY; without even the implied warranty of
+                                        ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+                                        ; General Public License for more details.
+                                        ;
+                                        ; You should have received a copy of the GNU General Public License
+                                        ; along with this code; if not, see <http://www.gnu.org/licenses/>.
+                                        ;
 
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -73,21 +73,21 @@
     (is (= (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))
            (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))))
 
-    (is (= one (rf/rf:* x+1:x-1 x-1:x+1)))
-    (is (= one (rf/rf:* x-1:x+1 x+1:x-1)))
+    (is (= one (rf/mul x+1:x-1 x-1:x+1)))
+    (is (= one (rf/mul x-1:x+1 x+1:x-1)))
 
     (is (= (rf/make (p/make [1 -1]) (p/make [1 1]))
            (rf/negate x-1:x+1)))
 
     (is (= x+1:x-1 (rf/invert x-1:x+1)))
 
-    (is (= one (rf/rf:* x-1:x+1 (rf/invert x-1:x+1))))
+    (is (= one (rf/mul x-1:x+1 (rf/invert x-1:x+1))))
 
     (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1]))
-           (rf/rf:+ x-1:x+1 x+1:x-1)))
+           (rf/add x-1:x+1 x+1:x-1)))
 
     (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1]))
-           (rf/rf:+ x+1:x-1 x-1:x+1)))
+           (rf/add x+1:x-1 x-1:x+1)))
 
     (is (= (rf/make (p/make [1 2 1]) (p/make [1 -2 1]))
            (rf/expt x+1:x-1 2)))
@@ -95,7 +95,7 @@
     (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1]))
            (rf/expt x+1:x-1 -2)))
 
-    (is (= (p 3) (rf/rf:+ (rf 3 2) (rf 3 2))))
+    (is (= (p 3) (rf/add (rf 3 2) (rf 3 2))))
 
     (is (= #sicm/ratio 5/3
            (rf/div (rf 5 2) (rf 3 2))))
