@@ -54,21 +54,20 @@
         (let [gg (gcd-Dp h)
               new-s (poly/evenly-divide h (gcd h gg))
               new-m (gcd gg new-s)
+
+              ;; facts gets all the factors that were completely removed last
+              ;; step, i.e. all those that were to the 1 or 2 power. The first
+              ;; loop through will get a totally wrong `facts`, but its gcd with
+              ;; the initial old-m=1 will be 1, so it won't result in incorrect
+              ;; doublefacts or singlefacts.
               facts (poly/evenly-divide old-s new-s)
 
-              ;; facts gets all the factors that were completely
-              ;; removed last step, i.e. all those that were to
-              ;; the 1 or 2 power.  The first loop through will
-              ;; get a totally wrong facts, but its gcd with the
-              ;; initial old-m=1 will be 1, so it won't result in
-              ;; incorrect doublefacts or singlefacts.
+              ;; doublefacts gets all the factors which were to the power x > 1,
+              ;; x <= 2, (ergo x=2), in the last step.
               doublefacts (gcd facts old-m)
-              ;; doublefacts gets all the factors which were to
-              ;; the power x>1, x<=2, (ergo x=2), in the last step.
 
               ;; takes out p = all factors only to the 1st power.
               singlefacts (poly/evenly-divide new-s new-m)]
-
           (recur new-m
                  ;; the following has all factors to the 1 or 2 power
                  ;; completely removed, others now to the power-2.
@@ -94,8 +93,7 @@
   ;;=> (* c x (expt y 2) (expt z 4))
   ```"
   [factors]
-  (let [expt (sym/symbolic-operator 'expt)
-        one? (every-pred v/number? v/one?)]
+  (let [expt (sym/symbolic-operator 'expt)]
     (cons '* (map-indexed
               (fn [i f]
                 (if (zero? i)
@@ -204,16 +202,16 @@
         (let [[f & more] factors]
           (if (sym/expt? f)
             (let [[b e] (sym/operands f)]
-              (if (even? e)
+              (if-not (even? e)
+                (recur more
+                       (* f odds)
+                       evens)
                 (recur more
                        odds
                        (let [power (quot e 2)]
                          (cond (> power 1) (* evens (expt b power))
                                (= power 1) (* evens b)
-                               :else evens)))
-                (recur more
-                       (* f odds)
-                       evens)))
+                               :else evens)))))
             (recur more
                    (* f odds)
                    evens)))))))
