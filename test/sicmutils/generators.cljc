@@ -291,15 +291,15 @@
 
 ;; ## Polynomials
 
-(defn poly:exponents [arity-gen]
-  (->> (gen/vector gen/nat arity-gen)
+(defn poly:exponents [arity]
+  (->> (gen/vector gen/nat arity)
        (gen/fmap xpt/dense->exponents)))
 
 (defn poly:terms
-  ([arity-gen]
-   (poly:terms arity-gen small-integral))
-  ([arity-gen coef-gen & opts]
-   (let [expt-gen (poly:exponents arity-gen)
+  ([arity]
+   (poly:terms arity small-integral))
+  ([arity coef-gen & opts]
+   (let [expt-gen (poly:exponents arity)
          term-gen (gen/tuple expt-gen coef-gen)]
      (apply gen/vector term-gen opts))))
 

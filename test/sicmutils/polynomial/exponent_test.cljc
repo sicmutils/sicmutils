@@ -19,7 +19,42 @@
 
 (ns sicmutils.polynomial.exponent-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generators :as sg]
             [sicmutils.polynomial.exponent :as xpt]))
+
+(deftest exponents-tests
+  (checking "->sort+unsort" 100
+            [m (sg/poly:exponents 100)]
+            (let [[sort-m unsort-m] (xpt/->sort+unsort m)]
+              (and (= (vals (sort-m m))
+                      (sort (vals m)))
+                   (= m (unsort-m (sort-m m))))))
+
+  (checking "assoc" 100 [m (sg/poly:exponents 10)
+                         x gen/nat
+                         n gen/nat]
+            (is (= n (-> (xpt/assoc m x n)
+                         (xpt/monomial-degree x)))))
+
+  (checking "raise/lower" 100
+            [m (sg/poly:exponents 10)
+             x gen/nat]
+            (is (= m (xpt/lower
+                      (xpt/raise m)))
+                "raise, lower with defalt indices")
+
+            (is (= m (-> (xpt/raise m x)
+                         (xpt/lower x)))
+                "raise, lower with explicit index"))
+
+  (checking "lowering all the way == empty" 100
+            [m (sg/poly:exponents 10)]
+            (is (= xpt/empty
+                   (-> (iterate xpt/lower m)
+                       (nth 10))))))
 
 (deftest monomial-ordering-tests
   (testing "monomial orderings"
@@ -54,14 +89,3 @@
 
         (is (= [z2 yz xz y2 xy x2]
                (sort-with xpt/graded-reverse-lex-order)))))))
-
-(comment
-  (defn tester [m]
-    (let [[sort-m unsort-m] (->sort-fns m)]
-      (and (= (vals (sort-m m))
-              (sort (vals m)))
-           (= m (unsort-m (sort-m m))))))
-
-  (tester (xpt/make 1 2, 3 1, 5 4))
-  (tester (xpt/make 1 3, 3 1, 5 4))
-  (tester (xpt/make 1 8, 3 1, 5 4)))

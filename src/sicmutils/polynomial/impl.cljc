@@ -170,7 +170,8 @@
                 :let [expts (cond (vector? expts) (xpt/dense->exponents expts)
                                   (sorted? expts) expts
                                   (map? expts) (into xpt/empty expts)
-                                  :else (u/illegal "Invalid inputs to sparse->terms TODO"))]]
+                                  :else
+                                  (u/illegal "Invalid inputs to sparse->terms TODO"))]]
             (make-term expts coef-sum))
           (sort-by exponents comparator)
           (into empty-terms)))))
