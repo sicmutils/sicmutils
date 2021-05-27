@@ -15,7 +15,10 @@
             [sicmutils.matrix :as m]
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
+            [sicmutils.polynomial :as poly]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.ratio :as r]
+            [sicmutils.rational-function :as rf]
             [sicmutils.series :as ss]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -27,7 +30,7 @@
 (def bigint
   "js/BigInt in cljs, clojure.lang.BigInt in clj."
   #?(:cljs
-     (gen/fmap u/bigint gen/large-integer)
+     (gen/fmap u/bigint gen/small-integer)
      :clj
      gen/size-bounded-bigint))
 
@@ -73,11 +76,13 @@
                       (+ x 0.5)
                       x))))))
 
+(def small-integral
+  (gen/one-of [native-integral long integer]))
+
 (def any-integral
-  (gen/one-of [native-integral
+  (gen/one-of [small-integral
                bigint
-               long
-               integer]))
+               #?@(:clj [biginteger])]))
 
 (def ratio
   "Generates a small ratio (or integer) using gen/small-integer. Shrinks
@@ -284,6 +289,67 @@
                (d/differential? tangent-part) tangent-part
                :else (d/from-terms [(#'d/make-term [] primal)
                                     (#'d/make-term [0] 1)])))))))
+
+;; ## Polynomials
+
+(defn poly:exponents [arity]
+  (->> (gen/vector gen/nat arity)
+       (gen/fmap xpt/dense->exponents)))
+
+(defn poly:terms
+  ([arity]
+   (poly:terms arity small-integral))
+  ([arity coef-gen & opts]
+   (let [expt-gen (poly:exponents arity)
+         term-gen (gen/tuple expt-gen coef-gen)]
+     (apply gen/vector term-gen opts))))
+
+(defn polynomial
+  "Returns a generator that produces instances of [[polynomial.Polynomial]].
+
+  `arity` can be a number or a generator."
+  [& {:keys [arity coeffs nonzero?]
+      :or {nonzero? true
+           arity (gen/fmap inc gen/nat)
+           coeffs small-integral}}]
+  (letfn [(poly-gen [arity]
+            (let [terms (poly:terms arity coeffs)
+                  pgen (gen/fmap (fn [terms]
+                                   (let [p (poly/make arity terms)]
+                                     (if (poly/polynomial? p)
+                                       p
+                                       (poly/constant arity p))))
+                                 terms)]
+              (if nonzero?
+                (gen/such-that (complement v/zero?) pgen)
+                pgen)))]
+    (let [arity (if (integer? arity)
+                  (gen/return arity)
+                  arity)]
+      (gen/bind arity poly-gen))))
+
+(defn rational-function
+  "Returns a generator that produces instances
+  of [[rational-function/RationalFunction]].
+
+  `arity` can be a number or a generator."
+  ([]
+   (rational-function 1 {} {}))
+  ([arity]
+   (rational-function arity {} {}))
+  ([arity num-opts denom-opts]
+   (let [num-opts   (assoc num-opts
+                           :arity arity)
+         denom-opts (assoc denom-opts
+                           :nonzero? true
+                           :arity arity)
+         n  (apply polynomial (apply concat num-opts))
+         d  (apply polynomial (apply concat denom-opts))
+         rf (gen/fmap
+             (fn [[u v]]
+               (rf/->reduced u v))
+             (gen/tuple n d))]
+     (gen/such-that rf/rational-function? rf))))
 
 ;; ## Custom Almost-Equality
 

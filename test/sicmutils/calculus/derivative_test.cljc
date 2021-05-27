@@ -591,8 +591,8 @@
                    (g/square eta))))
           x  (s/up 0 0)
           dx (s/up 'xi 'eta)]
-      (is (= '(R_0 xi (/ (expt eta 2)
-                         (* 2 R_0)))
+      (is (= '(R_0 xi (/ (* (/ 1 2) (expt eta 2))
+                         R_0))
              (->> (d/taylor-series V x dx)
                   (take 3)
                   (simplify)))))))

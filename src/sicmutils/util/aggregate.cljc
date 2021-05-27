@@ -93,3 +93,103 @@
        (if (pred result)
          (reduced result)
          (rf result input))))))
+
+(defn- combiner
+  "If `stop?` is false, returns `f`. Else, returns a binary reducing function that
+  returns a `reduced` value if its left argument returns `true` for `stop?`,
+  else aggregates with `f`."
+  [f stop?]
+  (if stop?
+    (fn [l r]
+      (if (stop? l)
+        (reduced l)
+        (f l r)))
+    f))
+
+(defn monoid
+  "Accepts a binary (associative) aggregation function `plus` and an identity
+  element `id` and returns a multi-arity function that will combine its
+  arguments via `plus`. A 0-arity call returns `id`.
+
+  optionally takes an `annihilate?` function that should return true for any `x`
+  such that `(plus x <any>) == x`.
+
+  If the `annihilate?` function is supplied, then if the aggregation produces a
+  value that returns `(annihilate? true)` at any point, the reduction will
+  return immediately."
+  ([plus id]
+   (monoid plus id nil))
+  ([plus id annihilate?]
+   (let [acc (combiner plus annihilate?)]
+     (fn
+       ([] id)
+       ([x] x)
+       ([x y] (plus x y))
+       ([x y & more]
+        (reduce acc x (cons y more)))))))
+
+(defn group
+  "Similar to [[monoid]] for types with invertible elements. Accepts:
+
+  - binary `minus` and (associative) `plus` functions
+  - a unary `negate` function
+  - an element `id` that obeys `(plus id other) == (plus other id) == other`
+  - optionally, an `annihilate?` function that should return true for any `x`
+    such that `(plus x <any>) == x`.
+
+  Accepts a binary aggregation function `plus` and an identity element `id` and
+  returns a multi-arity function that will reduce its arguments via `plus`. A
+  0-arity call returns `id`.
+
+  If the `annihilate?` function is supplied, then if the aggregation produces a
+  value that returns `(annihilate? true)` at any point, the reduction will
+  return immediately."
+  ([minus plus invert id]
+   (group minus plus invert id nil))
+  ([minus plus invert id annihilate?]
+   (let [acc (combiner plus annihilate?)]
+     (fn
+       ([] id)
+       ([x] (invert x))
+       ([x y] (minus x y))
+       ([x y & more]
+        (minus x (reduce acc y more)))))))
+
+(defn merge-fn
+  "NOTE that the returned function recurs on increasing indices internally instead
+  of walking through the lists directly. This method of traversing vectors is
+  more efficient, and this function is called so often that the performance gain
+  is worth it, and reads almost like the explicit sequence traversal."
+  [compare add zero? make]
+  (fn
+    ([] [])
+    ([xs] xs)
+    ([xs ys]
+     (loop [i (long 0)
+            j (long 0)
+            result (transient [])]
+       (let [x (nth xs i nil)
+             y (nth ys j nil)]
+         (cond (not x) (into (persistent! result) (subvec ys j))
+               (not y) (into (persistent! result) (subvec xs i))
+               :else (let [[x-tags x-coef] x
+                           [y-tags y-coef] y
+                           compare-flag (compare x-tags y-tags)]
+                       (cond
+                         ;; If the terms have the same tag set, add the coefficients
+                         ;; together. Include the term in the result only if the new
+                         ;; coefficient is non-zero.
+                         (zero? compare-flag)
+                         (let [sum (add x-coef y-coef)]
+                           (recur (inc i)
+                                  (inc j)
+                                  (if (zero? sum)
+                                    result
+                                    (conj! result (make x-tags sum)))))
+
+                         ;; Else, pass the smaller term on unchanged and proceed.
+                         (neg? compare-flag)
+                         (recur (inc i) j (conj! result x))
+
+                         :else
+                         (recur i (inc j) (conj! result y))))))))))

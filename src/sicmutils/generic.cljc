@@ -186,7 +186,12 @@
            (and numy? (v/one? y)) x
            :else (mul x y))))
   ([x y & more]
-   (reduce * (* x y) more)))
+   (reduce (fn [l r]
+             (if (v/zero? l)
+               (reduced l)
+               (* l r)))
+           (* x y)
+           more)))
 
 (declare div)
 
@@ -460,9 +465,11 @@
   inputs `a` and `b`.")
 
 (defmethod lcm :default [a b]
-  (abs
-   (divide (* a b)
-           (gcd a b))))
+  (let [g (gcd a b)]
+    (if (v/zero? g)
+      g
+      (abs
+       (* (exact-divide a g) b)))))
 
 ;; ### Trigonometric functions
 

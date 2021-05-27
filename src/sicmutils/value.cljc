@@ -55,7 +55,8 @@
   (zero-like [this])
   (one-like [this])
   (identity-like [this])
-  (^boolean exact? [this])
+  (^boolean exact? [this] "Entries that are exact are available for `gcd`, among
+  other operations.")
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
   subexpressions, so that the result is basically a pure S-expression with the

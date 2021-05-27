@@ -177,7 +177,7 @@ is okay due to the 'equality of mixed partials'."}
 
 This setting is `false` by default."}
   *divide-numbers-through-simplify?*
-  false)
+  true)
 
 (def ^{:dynamic true
        :doc "Transforms products of trig functions into functions of sums of
@@ -274,21 +274,22 @@ For example:
 
 (defn constant-elimination
   "Takes an operator symbol `op` and an identity element `constant` and returns a
-  rule that eliminates instances of `constant` inside binary forms like
+  rule that eliminates instances of `constant` inside any-arity forms like
 
   ```clojure
-  (<op> l r)
+  (<op> ,,,args,,,)
   ```"
   [op constant]
   (ruleset
-   (~op ~constant ?x) => (~op ?x)
-   (~op ?x ~constant) => (~op ?x)))
+   (~op ??xs)
+   => (~op (?? (fn [{xs '??xs}]
+                 (remove #{constant} xs))))))
 
 (defn constant-promotion
   "Takes an operator symbol `op` and an identity element `constant` and returns a
   rule that turns binary forms with `constant` on either side into `constant`.
 
-  This rule is useful for commutative annihalators like:
+  This rule is useful for commutative annihilators like:
 
   ```clojure
   (* 0 <anything>) => 0

@@ -87,7 +87,7 @@
              (if (instance? Literal b)
                (let [b ^Literal b]
                  (and (= type (.-type b))
-                      (= expression (.-expression b))
+                      (v/= expression (.-expression b))
                       (= m (.-m b))))
                (v/= expression b))))
 
@@ -114,7 +114,7 @@
                (if (instance? Literal b)
                  (let [b ^Literal b]
                    (and (= type (.-type b))
-                        (= expression (.-expression b))
+                        (v/= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= expression b)))
 
@@ -221,7 +221,11 @@
                   (sequential? node)
                   (let [[f-sym & args] node]
                     (if-let [f (sym->f f-sym)]
-                      (apply f (map walk args))
+                      ;; NOTE: I'm not sure why this `doall` is required.
+                      ;; Without it, we were getting heisenbugs in the rational
+                      ;; function simplifier, and `mismatched-arity` notes.
+                      (apply f (doall
+                                (map walk args)))
                       (u/illegal (str "Missing fn for symbol - " f-sym))))
                   :else node))]
     (walk
