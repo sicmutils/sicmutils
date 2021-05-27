@@ -194,20 +194,25 @@
              (p/identity))
           "bare p/identity returns arity 1, first variable")
 
-      (checking "" 100 [arity (gen/fmap inc gen/nat)
-                        i     (gen/choose 0 (dec arity))]
+      (checking "p/identity constructor" 100
+                [arity (gen/fmap inc gen/nat)
+                 i (gen/choose 0 (dec arity))]
                 (is (= (p/make arity {{0 1} 1})
-                       (p/identity arity)))
+                       (p/identity arity)
+                       (p/identity arity 0))
+                    "index defaults to 0.")
 
                 (is (= (p/make arity {{i 1} 1})
-                       (p/identity arity (inc i)))
-                    "specifying an explicit variable index ")))
+                       (p/identity arity i))
+                    "specifying an explicit variable index sets that variable to
+                    1, all others to 0.")))
 
-    ;; TODO identity
+    #_(checking "p/linear constructor"
+                )
+
     ;; TODO linear
     ;; TODO new-variables
     ;; TODO c*xn
-    ;;
     )
 
   (testing "accessors"

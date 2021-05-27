@@ -453,12 +453,12 @@
   The two-argument version takes an explicit `i` and returns a monomial of arity
   `arity` with an exponent of 1 in the `i`th indeterminate."
   ([]
-   (identity 1 1))
+   (identity 1 0))
   ([arity]
-   (identity arity 1))
+   (identity arity 0))
   ([arity i]
-   {:pre [(and (> i 0) (<= i arity))]}
-   (let [expts (xpt/make (dec i) 1)]
+   {:pre [(and (>= i 0) (< i arity))]}
+   (let [expts (xpt/make i 1)]
      (->Polynomial arity [(i/make-term expts 1)]))))
 
 (defn new-variables
@@ -467,7 +467,7 @@
   sequence)."
   [n]
   (map #(identity n %)
-       (range 1 (inc n))))
+       (range 0 n)))
 
 (declare add)
 
