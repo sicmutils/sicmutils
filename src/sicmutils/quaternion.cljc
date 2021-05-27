@@ -185,7 +185,7 @@
        (-equiv [this that] (q:= this that))
 
        ISeqable
-       (-seq [_] (-seq v))
+       (-seq [_] (list r i j k))
 
        ICounted
        (-count [_] 4)
@@ -265,11 +265,9 @@
       ([r i j k m]
        (Quaternion. r i j k m))))
 
-(defmethod print-method Quaternion [^Quaternion q ^java.io.Writer w]
-  (.write w (.toString q)))
-
-(defmethod print-dup Quaternion [^Quaternion q ^java.io.Writer w]
-  (.write w (.toString q)))
+#?(:clj
+   (defmethod print-method Quaternion [^Quaternion q ^java.io.Writer w]
+     (.write w (.toString q))))
 
 (defn quaternion? [q]
   (instance? Quaternion q))
@@ -507,11 +505,11 @@
            a (f/arity (nth v 0))]
       (if (= i n)
         a
-        (if-let [b (f/joint-arity a (f/arity (nth v i)))]
+        (if-let [b (f/combine-arities a (f/arity (nth v i)))]
           (recur (inc i) b)
           false)))))
 
-(defn partial-derivative [q selectors]
+(defn partial-derivative [^Quaternion q selectors]
   (let [v (->vector q)]
     (->Quaternion
      (g/partial-derivative (.-r q) selectors)
@@ -687,14 +685,14 @@
         r31 (get-in M [2 0]) r32 (get-in M [2 1]) r33 (get-in M [2 2])
         quarter (g// 1 4)
 
-        q0-2 (g/* 1/4 (g/+ 1 r11 r22 r33))
+        q0-2 (g/* quarter (g/+ 1 r11 r22 r33))
 
-        q0q1 (g/* 1/4 (g/- r32 r23))
-        q0q2 (g/* 1/4 (g/- r13 r31))
-        q0q3 (g/* 1/4 (g/- r21 r12))
-        q1q2 (g/* 1/4 (g/+ r12 r21))
-        q1q3 (g/* 1/4 (g/+ r13 r31))
-        q2q3 (g/* 1/4 (g/+ r23 r32))]
+        q0q1 (g/* quarter (g/- r32 r23))
+        q0q2 (g/* quarter (g/- r13 r31))
+        q0q3 (g/* quarter (g/- r21 r12))
+        q1q2 (g/* quarter (g/+ r12 r21))
+        q1q3 (g/* quarter (g/+ r13 r31))
+        q2q3 (g/* quarter (g/+ r23 r32))]
     ;; If numerical, choose largest of squares.
     ;; If symbolic, choose nonzero square.
     (let [q0 (g/sqrt q0-2)
@@ -792,7 +790,7 @@
            (g/- (rotation-matrix->quaternion-mason M)
                 (rotation-matrix->quaternion M))))))
 
-(defn ->rotation-matrix [q]
+(defn ->rotation-matrix [^Quaternion q]
   {:pre [(quaternion? q)]}
   ;;(assert (q:unit? q))
   ;; This assertion is really:

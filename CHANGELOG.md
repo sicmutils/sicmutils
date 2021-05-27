@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- #361 - quaternions!
+
 - #341 takes on a large rewrite of the rational function and polynomial
   simplfiers. One goal of this project was to improve the performance of the
   Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that
