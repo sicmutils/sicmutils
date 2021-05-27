@@ -59,22 +59,7 @@
   (numerator [_] u)
   (denominator [_] v)
 
-  sd/IPerturbed
-  (perturbed? [_]
-    (or (sd/perturbed? u)
-        (sd/perturbed? v)))
 
-  (replace-tag [this old new]
-    (RationalFunction. arity
-                       (sd/replace-tag u old new)
-                       (sd/replace-tag v old new)
-                       m))
-
-  (extract-tangent [this tag]
-    (RationalFunction. arity
-                       (sd/extract-tangent u tag)
-                       (sd/extract-tangent v tag)
-                       m))
 
   v/Value
   (zero? [_] (v/zero? u))

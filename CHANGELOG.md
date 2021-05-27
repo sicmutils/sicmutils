@@ -101,8 +101,7 @@
 
     - have metadata, can be evaluated, now `seqable?`
 
-    - they now extend `sicmutils.function/IArity` and `differential/IPerturbed`,
-      so you can take derivatives of functions that return rational functions
+    - they now extend `sicmutils.function/IArity`
 
     - constructor: `make` drops to polynomial or coefficient where needed
 

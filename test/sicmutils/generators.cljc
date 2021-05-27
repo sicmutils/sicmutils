@@ -333,6 +333,8 @@
   of [[rational-function/RationalFunction]].
 
   `arity` can be a number or a generator."
+  ([]
+   (rational-function 1 {} {}))
   ([arity]
    (rational-function arity {} {}))
   ([arity num-opts denom-opts]

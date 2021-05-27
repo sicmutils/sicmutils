@@ -92,7 +92,7 @@
     (checking "meta, with-meta"
               100 [p (sg/polynomial)
                    m (gen/map gen/keyword gen/any)]
-              (is (nil? (meta m))
+              (is (nil? (meta p))
                   "nil by default")
 
               (is (= m (meta (with-meta p m)))

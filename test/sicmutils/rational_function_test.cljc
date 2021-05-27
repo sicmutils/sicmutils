@@ -23,8 +23,12 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
+            [sicmutils.calculus.derivative :as deriv :refer [D]]
+            [sicmutils.complex :as c]
+            [sicmutils.differential :as sd]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
+            [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.laws :as sl]
             [sicmutils.generic :as g]
@@ -35,7 +39,38 @@
             [sicmutils.structure :as s]
             [sicmutils.value :as v]))
 
+(def ^{:doc "Generating RFs quickly gets out of hand with larger ones. Stick to
+            a small number of tests to make sure it all completes."}
+  test-limit 10)
+
 (deftest protocol-tests
+  (checking "IArity" test-limit [r (sg/rational-function)]
+            (is (= (f/arity r)
+                   [:between 0 (rf/arity r)])))
+
+  (checking "->seq" test-limit [r (sg/rational-function)]
+            (is (= [(rf/bare-u r)
+                    (rf/bare-v r)]
+                   (seq r))
+                "calling `seq` returns a pair of numerator, denominator"))
+
+  (checking "meta, with-meta"
+            test-limit [r (sg/rational-function)
+                        m (gen/map gen/keyword gen/any)]
+            (is (nil? (meta r))
+                "nil by default")
+
+            (is (= m (meta (with-meta r m)))
+                "metadata works")
+
+            (is (= m (meta
+                      (rf/->RationalFunction
+                       (rf/bare-arity r)
+                       (rf/bare-u r)
+                       (rf/bare-v r)
+                       m)))
+                "four-arity constructor allows metadata"))
+
   (let [x+1     (p/make [1 1])
         x-1     (p/make [-1 1])
         x+1:x-1 (rf/make x+1 x-1)]
@@ -74,7 +109,22 @@
           equals a ratio.")
 
         (is (v/= r rf)
-            "the other way requires v/= in Clojure.")))))
+            "the other way requires v/= in Clojure."))))
+
+  (checking "negative?" test-limit [r (sg/rational-function)]
+            (is (not
+                 (rf/negative? (rf/abs r))))
+
+            (is (or (rf/negative? r)
+                    (rf/negative?
+                     (rf/negate r)))))
+
+  (testing "coef-sgn handling of complex"
+    (is (= (rf/->RationalFunction 1 (g/negate (p/identity))
+                                  (c/complex 1 -10))
+           (rf/make (p/identity)
+                    (c/complex -1 10)))
+        "complex denominator is negated, since its real part is negative.")) )
 
 (deftest rational-function-tests
   (testing "rf/make constructor tests"
@@ -165,19 +215,29 @@
               (s/down 9 -36 30)
               (s/down -36 192 -180)
               (s/down 30 -180 180))
-             (g/invert H))))))
+             (g/invert H)))))
+
+  (checking "square, cube" test-limit
+            [r (sg/rational-function)]
+            (is (= (rf/mul r r)
+                   (rf/square r)))
+
+            (is (= (rf/mul r (rf/square r))
+                   (rf/cube r)))))
 
 (deftest rf-operations
   (let [x+1 (p/make [1 1])
         x-1 (p/make [-1 1])]
     (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
 
-(def ^:private rf-simp
-  #(a/expression-> rf/analyzer % (fn [a b] (a/->expression rf/analyzer a b))))
+(defn rf-simp [expr]
+  (letfn [(cont [a b]
+            (rf/->expression a b))]
+    (rf/expression-> expr cont)))
 
 (deftest rf-as-simplifier
   (let [arity 20]
-    (checking "evaluate matches ->expression" 10
+    (checking "evaluate matches ->expression" test-limit
               [n  (sg/polynomial :arity arity)
                xs (gen/vector sg/symbol arity)]
               (let [rf (rf/->RationalFunction arity n 12)]
@@ -194,18 +254,35 @@
                       of args, [[rf/->expression]] matches the final result (but
                       not necessarily the same result!) as calling `apply`."))))
 
+  (checking "arg-scale, shift" test-limit
+            [r (sg/rational-function)
+             factor (gen/fmap inc gen/nat)]
+            (let [scaled (rf/arg-scale r [factor])]
+              (is (v/zero?
+                   (g/simplify
+                    (g/- (r (g/* 'x factor))
+                         (rf/evaluate scaled ['x]))))))
+
+            (let [shifted (rf/arg-shift r [factor])]
+              (is (v/zero?
+                   (g/simplify
+                    (g/- (r (g/+ 'x factor))
+                         (rf/evaluate shifted ['x])))))))
+
   (testing "expr"
     (let [exp1 (x/expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (x/expression-of (g/expt (g/+ 1 'y) 5))
           exp3 (x/expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf/analyzer exp1 vector)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf/analyzer exp1 vector)))
-      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf/analyzer exp2 vector)))
-      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf/analyzer exp3 vector)))))
+      (is (= [(p/make [-3 -2 1]) '(x)] (rf/expression-> exp1)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (rf/expression-> exp1)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (rf/expression-> exp2)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (rf/expression-> exp3)))))
 
   (testing "expr-simplify"
-    (let [exp1 (x/expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (x/expression-of (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+    (let [exp1 (x/expression-of
+                (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (x/expression-of
+                (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (rf-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (rf-simp exp2)))
@@ -258,3 +335,20 @@
     (is (= '(/ 1 (expt x 21))
            (rf-simp
             (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
+
+(deftest calculus-tests
+  (let [x+1     (p/make [1 1])
+        x-1     (p/make [-1 1])
+        x+1:x-1 (rf/make x+1 x-1)]
+    (is (= '(/ -2 (+ (expt x 2) (* -2 x) 1))
+           (v/freeze
+            (g/simplify
+             ((D x+1:x-1) 'x)))))
+
+    (is (= [(rf/partial-derivative x+1:x-1 0)]
+           (rf/partial-derivatives x+1:x-1)))
+
+    (is (= ((rf/partial-derivative x+1:x-1 0) 'x)
+           ((D x+1:x-1) 'x)
+           (((deriv/partial 0) x+1:x-1) 'x))
+        "D operator works, partial too with variable index.")))

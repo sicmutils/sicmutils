@@ -484,8 +484,11 @@
   sparse polynomial GCD, that are coming down the pipe."
   [u v]
   (or (trivial-gcd u v)
-      (with-limited-time *poly-gcd-time-limit*
-        (fn [] (classical-gcd u v)))))
+      (if (and (every? v/exact? (p/coefficients u))
+               (every? v/exact? (p/coefficients v)))
+        (with-limited-time *poly-gcd-time-limit*
+          (fn [] (classical-gcd u v)))
+        (v/one-like u))))
 
 (def
   ^{:doc "Returns the greatest common divisor of `u` and `v`, calculated by a
