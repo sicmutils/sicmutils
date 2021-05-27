@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.simplify
-  (:require [sicmutils.expression.analyze :as a]
+  (:require [sicmutils.abstract.number :as an]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as poly]
@@ -46,19 +47,16 @@
   across the fraction bar.
   NOTE: I think this is fpf:analyzer in the scheme code."
   []
-  (let [backend (poly/->PolynomialAnalyzer)
-        gensym  (a/monotonic-symbol-generator "-s-")]
-    (a/make-analyzer backend gensym)))
+  (let [gensym (a/monotonic-symbol-generator "-s-")]
+    (a/make-analyzer poly/analyzer gensym)))
 
 (defn ^:no-doc rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions.
   NOTE: This is rcf:analyzer."
   []
-  (let [backend (rf/->RationalFunctionAnalyzer
-                 (poly/->PolynomialAnalyzer))
-        gensym  (a/monotonic-symbol-generator "-r-")]
-    (a/make-analyzer backend gensym)))
+  (let [gensym (a/monotonic-symbol-generator "-r-")]
+    (a/make-analyzer rf/analyzer gensym)))
 
 (def ^:dynamic *poly-simplify*
   (memoize
@@ -210,3 +208,23 @@
                              (simplify-and-canonicalize simplify-and-flatten)))
                 simplify-and-flatten)]
       (simple expr))))
+
+(def ^:private memoized-simplify
+  (memoize g/simplify))
+
+(defn ^:no-doc simplify-numerical-expression
+  "This function will only simplify instances of [[expression/Literal]]; if `x` is
+  of that type, [[simplify-numerical-expression]] acts as a memoized version
+  of [[generic/simplify]]. Else, acts as identity.
+
+  This trick is used in [[sicmutils.calculus.manifold]] to memoize
+  simplification _only_ for non-[[differential/Differential]] types."
+  [x]
+  (if (an/literal-number? x)
+    (memoized-simplify x)
+    x))
+
+(defmethod g/simplify [::x/numeric] [a]
+  (an/literal-number
+   (simplify-expression
+    (v/freeze a))))

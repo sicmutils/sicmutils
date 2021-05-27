@@ -187,6 +187,13 @@
                            {:a 2 :c 1}))))
 
   (testing "Map protocol implementations"
+    (testing "sorted map"
+      (let [m (sorted-map 1 2 3 4)]
+        (is (= (type m) (v/kind m))
+            "This would fail without special handling when the `Value`
+            implementation attempts to pass a `:type` keyword to a sorted map
+            containing numbers, since keywords and numbers don't compare.")))
+
     (checking "f/arity" 100 [m (gen/map gen/keyword sg/any-integral)]
               (is (= [:between 1 2] (f/arity m))
                   "maps respond to f/arity correctly"))

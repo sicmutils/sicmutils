@@ -36,7 +36,7 @@
 
 (deftest analyzer-test
   (testing "interactive expression analysis and simplification"
-    (let [backend (poly/->PolynomialAnalyzer)
+    (let [backend poly/analyzer
           gensym (a/monotonic-symbol-generator "-s-")
           pa (a/make-analyzer backend gensym)
           new-analysis! (a/initializer pa)

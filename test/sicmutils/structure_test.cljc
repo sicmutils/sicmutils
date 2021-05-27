@@ -548,7 +548,7 @@
             (is (v/zero? (g/* s (s/transpose
                                  (s/unflatten (repeat 0) s))))
                 "flipping indices after replacing with all zeros creates a
-                structure that annihalates the original on multiplying."))
+                structure that annihilates the original on multiplying."))
 
   (testing "unflatten unit tests"
     (is (= (s/up (s/down 0 1) (s/down 2 3))

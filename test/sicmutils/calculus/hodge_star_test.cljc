@@ -82,29 +82,30 @@
                 an-event ((m/point SR) (up 't0 'x0 'y0 'z0))
                 SR-V (b/basis->vector-basis SR-basis)
                 SR-V1 (flatten (hs/Gram-Schmidt SR-V (g-Lorentz 'c)))]
-            (testing "SR-V1 is orthogonal"
+            (testing "SR-V1 is orthogonal (42s)"
               (doall
                (for [v1 SR-V1
                      v2 (rest (drop-while #(not= % v1) SR-V1))]
                  (is (= 0 (simplify
                            (((g-Lorentz 'c) v1 v2) an-event)))))))
 
-            (testing "SR-V1 is normal"
+            (testing "SR-V1 is normal (28s)"
               (is (= [-1 1 1 1]
                      (map (fn [v]
                             (simplify
                              (((g-Lorentz 'c) v v) an-event)))
                           SR-V1))))
 
-            (is (= '[(up (/ 1 c) 0 0 0)
-                     (up 0 1 0 0)
-                     (up 0 0 1 0)
-                     (up 0 0 0 1)]
-                   (map (fn [v]
-                          (simplify
-                           ((v (m/chart SR))
-                            an-event)))
-                        SR-V1))))))))
+            (testing "3.6s"
+              (is (= '[(up (/ 1 c) 0 0 0)
+                       (up 0 1 0 0)
+                       (up 0 0 1 0)
+                       (up 0 0 0 1)]
+                     (map (fn [v]
+                            (simplify
+                             ((v (m/chart SR))
+                              an-event)))
+                          SR-V1)))))))))
 
   (let-coordinates [[x y z] m/R3-rect]
     (let [R3-point ((m/point R3-rect) (up 'x0 'y0 'z0))

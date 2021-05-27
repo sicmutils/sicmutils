@@ -186,7 +186,9 @@
    (identity-like [m] (u/unsupported (str "identity-like: " m)))
    (exact? [m] (every? v/exact? (vals m)))
    (freeze [m] (u/map-vals v/freeze m))
-   (kind [m] (:type m (type m)))
+   (kind [m] (if (sorted? m)
+               (type m)
+               (:type m (type m))))
 
    f/IArity
    (arity [_] [:between 1 2])
