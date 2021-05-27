@@ -2,6 +2,183 @@
 
 ## [unreleased]
 
+- #341 takes on a large rewrite of the rational function and polynomial
+  simplfiers. One goal of this project was to improve the performance of the
+  Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that
+  they are now a good bit faster than the original scmutils implementation.
+
+  `sicmutils.polynomial` and `sicmutils.rational-function` are now solid data
+  structures of their own, with many operations installed into the generic
+  system. These are now valuable and useful outside of their role in the
+  simplifier.
+
+  This was a large project, and many small improvements and bugfixes snuck in.
+  Here is the full list:
+
+  - `v/kind` now works for `sorted-map` instances.
+
+  - GCD in Clojurescript is now fast and efficient between all combinations of
+    `js/BigInt` and `js/Number`, and in Clojure between all combinations of
+    `clojure.lang.BigInt`, `BigInteger`, `Long` and `Integer`.
+
+  - on the JVM, GCD now works properly with rational numbers. Previously
+    anything non-integral would return `1`; now `(gcd 1/2 1/3)` properly returns
+    `1/6`.
+
+  - `g/exact-divide` now succeeds for all non-exact `::v/scalar` types (symbols,
+    floats, etc) either if the denominator is zero, or if the two arguments are
+    equal. Else, it throws, just like before.
+
+  - A multi-arity call to `sicmutils.generic/*` now stops if it encounters a
+    0, rather than attempting to multiply all remaining items by 0.
+
+  - The default function for `sicmutils.generic/lcm` protects against overflow
+    by dividing only a single one of its arguments `a` and `b` by `(gcd a b)`.
+
+  - `(g/lcm 0 0)` now properly returns 0.
+
+  - New `sicmutils.util.aggregate/{monoid,group}` functions let you build
+    multi-arity aggregations out of binary combination functions, with an option
+    to bail early at "annihilator" values, like 0 for multiplication.
+
+  - New multi-arity `lcm` and `gcd` implementations for symbolic expressions
+    appropriately handle `0` and `1` on either side, as well as the case where
+    both arguments are equal.
+
+  - In the `sicmutils.numsymb` namespace, thanks to `monoid` and `group`, the
+    `'*`, `'/`, `'-`, `'+`, `'or`, `'and`, `'gcd`, `'lcm` and `'=` operations
+    now have efficient multi-arity implementations that stop computing when they
+    receive an annihilator, like `0` for multiplication or `true` for `or`.
+    Access these via `(sicmutils.numsymb/symbolic-operator <symbol>)`.
+
+  - `sicmutils.series/PowerSeries` gains `arg-scale` and `arg-shift` functions;
+    these are identical to `sicmutils.function/arg-{scale,shift}`, but preserve
+    the `PowerSeries` type. (#367 proposes making these functions generic.)
+
+  - New `sicmutils.ratio/IRational` protocol, with `numerator` and `denominator`
+    functions implemented for ratios and for the `RationalFunction` data type.
+    These two are now exposed in `sicmutils.env`.
+
+  - `sicmutils.simplify.rules/*divide-numbers-through-simplify?*` is now `true`
+    by default; numbers in the denominator will now automatically pull up into
+    the numerator. All tests now reflect this setting.
+
+  - Any analyzer generated from `sicmutils.expression.analyze` can now act on
+    both bare, unwrapped expressions (raw lists etc) and on
+    `sicmutils.expression.Literal` instances. This means that you can now call
+    `sicmutils.simplify/{*rf-simplify*,*poly-simplify*}` as functions and
+    canonicalize some form with either simplifier without triggering a full
+    simplification. A small win, but ice.
+
+  - `sicmutils.polynomial.factor` got a major rewrite, and now exposes a few
+    functions like `poly->factored-expression`, `factor-expression` and
+    `factor`.
+
+      - `factor` is _tremendously useful_! Call `factor` (it's aliased into
+        `sicmutils.env`) on any expression to factor out all possible terms.
+        This makes it much easier to see where there is some cancellation
+        lurking, in, say, some expression you know should equal zero (a
+        residual).
+
+  - bugfix: `sicmutils.expression.Literal` instances now compare their contained
+    expression via `sicmutils.value/=`.
+
+  - `sicmutils.rules/constant-elimination` can now eliminate constants from
+    expressions with any arity, not just binary forms.
+
+
+  Now, the three big namespaces... `sicmutils.polynomial`,
+  `sicmutils.rational-function` and `sicmutils.polynomial.gcd` all got a big
+  overhaul.
+
+  - `sicmutils.polynomial` notes:
+
+    - `Polynomial` uses a new sparse representation for its "power product"
+      term; this, plus an arithmetic rewrite, makes the whole system much faster
+      for larger numbers of variables (for all #s, really).
+
+    - `Polynomial` instances implement many more Clojure(script) protocols. They
+      can hold metadata; they can be evaluated as functions of their
+      indeterminates, and `seq` now returns a sequence of terms.
+
+    - `Polynomial` extends `sicmutils.function/IArity` and
+      `differential/IPerturbed`, so you can use `sicmutils.function/arity`, and
+      take derivatives of functions that return polynomials.
+
+    - In their arithmetic, `Polynomial` instances will drop down to bare
+      coefficients whenever some multiplication or addition removes all
+      indeterminates. All binary arithmetic exposed in the namespace can handle
+      non-`Polynomial` instances on either or both sides, so this is fine.
+      Coefficients are treated as constant polynomials.
+
+    - The namespace holds many new functions. Some choice ones are:
+
+      - constructors: `make`, `constant`, `linear`, `c*xn`, `identity`, and
+        `new-variables`
+
+      - accessor functions: `arity`, `degree`, `coefficients`, `leading-term`,
+        `leading-coefficient`, `leading-exponents`, `leading-base-coefficient`,
+        `trailing-coefficient`, `lowest-degree`
+
+      - predicates: `monomial?`, `monic?`, `univariate?`, `multivariate?`,
+        `negative?`
+
+      - functions to generate new polynomials: `map-coefficients`,
+        `map-exponents`, `scale`, `scale-l`, `normalize`, `reciprocal`,
+        `drop-leading-term`, `contract` and `extend` alongside `contractible?`,
+        `lower-arity`, `raise-arity`, `with-lower-arity`, `arg-scale`,
+        `arg-shift`
+
+      - arithmetic: `negate`, `abs`, `add`, `sub`, `mul`, `square`, `cube`,
+        `expt`, `divide` along with `divisible?`, `evenly-divide`,
+        `pseudo-remainder`, and _lots_ of functions installed into the generic
+        arithmetic system.
+
+      - different ways to evaluate polynomials: `evaluate`, `horner-with-error`
+
+      - calculus! `partial-derivative` and `partial-derivatives` are alive and
+        well, and work with the `D` operator.
+
+      - Functions to get in and out of polynomials from other types:
+        `univariate->dense`, `->power-series`, `expression->`, `->expression`
+
+  - `sicmutils.polynomial.gcd` also got a rewrite; it's fairly clear to read
+    now, and prepared for the eventual addition of the sparse multivariate GCD
+    routine that scmutils uses. There are some efficiency gains here too that
+    let us turn a number of tests back on, or demote them from `:long` markers.
+
+  - `sicmutils.rational-function` notes:
+
+    - `RationalFunction` instances implement many more Clojure(script)
+      protocols. They can hold metadata; they can be evaluated as functions of
+      their indeterminates, and `seq` now returns a pair of `numerator`,
+      `denominator`.
+
+    - `RationalFunction` extends `sicmutils.function/IArity` and
+      `sicmutils.ratio/IRational`, so our generic `arity`, `numerator` and
+      `denominator` work on these instances.
+
+    - Here are some new functions from the `RationalFunction` namespace:
+
+      - constructor: `make`, drops to polynomial or coefficient where needed
+        just like `Polynomial` functions
+
+      - functions to generate new rational functions: `arg-scale`, `arg-shift`
+
+      - predicates: `negative?`
+
+      - arithmetic: `negate`, `abs`, `add`, `sub`, `mul`, `square`, `cube`,
+        `expt`, `invert`, `div`, `gcd`, and many functions installed into the
+        generic arithmetic system.
+
+      - evaluation via `evaluate`
+
+      - calculus! `partial-derivative` and `partial-derivatives` are alive and
+        well, and work with the `D` operator.
+
+      - Functions to get in and out of rational functions from symbolic
+        expressions: `expression->`, `->expression`.
+
 - #360 introduces a number of performance improvements to the
   `sicmutils.differential.Differential` implementation, primarily in `terms:+`
   and `terms:*`. thanks again to @ptaoussanis and the

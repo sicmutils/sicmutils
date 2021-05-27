@@ -138,53 +138,39 @@
 
 (comment
   (testing "These are too hard for now!"
-    (deftest einstein-field-equations
-      (testing "first challenge"
-        (with-literal-functions [R rho p]
-          (let [basis  (e/coordinate-system->basis spacetime-sphere)
-                g      (FLRW-metric 'c 'k R)
-                T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
-                [d:dt] (e/coordinate-system->vector-basis spacetime-sphere)
-                K (/ (* 8 'pi 'G)
-                     (expt 'c 4))]
-            ((((Einstein-field-equation spacetime-sphere K)
-               g 'Lambda T_ij)
-              d:dt d:dt)
-             ((point spacetime-sphere) (up 't 'r 'theta 'phi))))))
 
-      (testing "second challenge"
-        (with-literal-functions [R rho p]
-          (let [basis  (e/coordinate-system->basis spacetime-sphere)
-                g      (FLRW-metric 'c 'k R)
-                T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
-                [d:dt] (e/coordinate-system->vector-basis spacetime-sphere)
-                K (/ (* 8 'pi 'G)
-                     (expt 'c 4))]
+    (deftest einstein-field-equations
+      (with-literal-functions [R rho p]
+        (let [basis  (e/coordinate-system->basis spacetime-sphere)
+              g      (FLRW-metric 'c 'k R)
+              T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
+              [d:dt d:dr] (e/coordinate-system->vector-basis spacetime-sphere)
+              K (/ (* 8 'pi 'G) (expt 'c 4))]
+
+          (testing "first challenge"
             (is (= '(+ (* -8 G pi (rho t))
                        (* -1 (expt c 2) Lambda)
                        (/ (* 3 k (expt c 2)) (expt (R t) 2))
                        (/ (* 3 (expt ((D R) t) 2)) (expt (R t) 2)))
-                   ((((Einstein-field-equation spacetime-sphere K)
-                      g 'Lambda T_ij)
-                     d:dt d:dt)
-                    ((point spacetime-sphere) (up 't 'r 'theta 'phi))))))))
+                   (simplify
+                    ((((Einstein-field-equation spacetime-sphere K)
+                       g 'Lambda T_ij)
+                      d:dt d:dt)
+                     ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
 
-      (with-literal-functions [R p rho]
-        (let [basis    (e/coordinate-system->basis spacetime-sphere)
-              g        (FLRW-metric 'c 'k R)
-              T_ij     ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
-              [_ d:dr] (e/coordinate-system->vector-basis spacetime-sphere)]
-          (is (= '(/ (+ (* -1 (expt c 4) Lambda (expt (R t) 2))
-                        (* 8 G pi (p t) (expt (R t) 2))
-                        (* (expt c 4) k)
-                        (* 2 (expt c 2) (R t) (((expt D 2) R) t))
-                        (* (expt c 2) (expt ((D R) t) 2)))
-                     (+ (* (expt c 4) k (expt r 2)) (* -1 (expt c 4))))
-                 ((((Einstein-field-equation spacetime-sphere
-                                             (/ (* 8 'pi 'G) (expt 'c 4)))
-                    g 'Lambda T_ij)
-                   d:dr d:dr)
-                  ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
+          (testing "second challenge"
+            (is (= '(/ (+ (* -1 (expt c 4) Lambda (expt (R t) 2))
+                          (* 8 G pi (p t) (expt (R t) 2))
+                          (* (expt c 4) k)
+                          (* 2 (expt c 2) (R t) (((expt D 2) R) t))
+                          (* (expt c 2) (expt ((D R) t) 2)))
+                       (+ (* (expt c 4) k (expt r 2)) (* -1 (expt c 4))))
+                   (simplify
+                    ((((Einstein-field-equation spacetime-sphere
+                                                (/ (* 8 'pi 'G) (expt 'c 4)))
+                       g 'Lambda T_ij)
+                      d:dr d:dr)
+                     ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))))
 
       (testing "Conservation of energy-momentum"
         (with-literal-functions [R p rho]
@@ -200,18 +186,19 @@
                         (R t))
                      0 0 0]
                    (map (fn [i]
-                          ((e/contract
-                            (fn [ej wj]
-                              (* (metric ej (nth es i))
-                                 (e/contract
-                                  (fn [ei wi]
-                                    (((nabla ei)
-                                      (Tperfect-fluid rho p 'c metric))
-                                     wj
-                                     wi))
-                                  basis)))
-                            basis)
-                           ((point spacetime-sphere) (up 't 'r 'theta 'phi))))
+                          (simplify
+                           ((e/contract
+                             (fn [ej wj]
+                               (* (metric ej (nth es i))
+                                  (e/contract
+                                   (fn [ei wi]
+                                     (((nabla ei)
+                                       (Tperfect-fluid rho p 'c metric))
+                                      wj
+                                      wi))
+                                   basis)))
+                             basis)
+                            ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
                         (range 4)))))))
 
       (with-literal-functions [R p rho]
@@ -226,12 +213,13 @@
                       (* (expt c 2) (R t)))
                   0 0 0]
                  (map (fn [i]
-                        ((e/contract
-                          (fn [ei wi]
-                            (((nabla ei)
-                              (Tperfect-fluid rho p 'c metric))
-                             (nth ws i)
-                             wi))
-                          basis)
-                         ((point spacetime-sphere) (up 't 'r 'theta 'phi))))
+                        (simplify
+                         ((e/contract
+                           (fn [ei wi]
+                             (((nabla ei)
+                               (Tperfect-fluid rho p 'c metric))
+                              (nth ws i)
+                              wi))
+                           basis)
+                          ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
                       (range 4)))))))))

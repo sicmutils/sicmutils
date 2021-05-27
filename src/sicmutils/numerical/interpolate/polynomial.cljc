@@ -50,8 +50,8 @@
         build-term (fn [i [a fa]]
                      (let [others (for [j (range n) :when (not= i j)]
                                     (get-in points [j 0]))
-                           p (reduce g/* (map #(g/- x %) others))
-                           q (reduce g/* (map #(g/- a %) others))]
+                           p (apply g/* (map #(g/- x %) others))
+                           q (apply g/* (map #(g/- a %) others))]
                        (g// (g/* fa p) q)))]
     (transduce (map-indexed build-term)
                g/+

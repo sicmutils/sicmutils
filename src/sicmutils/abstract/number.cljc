@@ -28,7 +28,6 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.simplify :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -217,8 +216,6 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+(defbinary g/lcm 'lcm)
 
 (defmethod g/simplify [Symbol] [a] a)
-(defmethod g/simplify [::x/numeric] [a]
-  (literal-number
-   (s/simplify-expression (v/freeze a))))

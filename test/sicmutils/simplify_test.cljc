@@ -21,12 +21,16 @@
   (:refer-clojure :exclude [=])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
-            [sicmutils.abstract.number]
+            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture
-                                        simplify-expression]]
+            [sicmutils.simplify
+             :as sim
+             :refer [hermetic-simplify-fixture
+                     simplify-expression
+                     rational-function-analyzer]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v :refer [=]]))
 
@@ -52,7 +56,17 @@
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))
   (is (= #sicm/ratio 2/3
-         (simplify-expression '(/ 2 3)))))
+         (simplify-expression '(/ 2 3))))
+
+  (is (= '(+ x x x)
+         (sim/simplify-numerical-expression
+          '(+ x x x)))
+      "acts as identity for non-Literal instances...")
+
+  (is (= '(* 3 x)
+         (sim/simplify-numerical-expression
+          (an/literal-number '(+ x x x))))
+      "expressions are simplified."))
 
 (deftest trivial-simplifications
   (is (= 1 (g/simplify 1)))
@@ -63,6 +77,13 @@
   (is (= nil (g/simplify nil)))
   (is (= '(* 2 x) (g/simplify (g/+ 'x 'x))))
   (is (= '(+ x 1) (g/simplify (g/+ 1 'x)))))
+
+(deftest analyzer-test
+  (is (symbol?
+       ((a/expression-analyzer
+         (rational-function-analyzer))
+        '(exp (/ (- v3 v2) (- Vt)))))
+      "non-RF-able expression turns into a sym"))
 
 (deftest divide-numbers-through
   (is (= 'x (simplify-expression '(* 1 x))))
@@ -178,7 +199,7 @@
 
   (testing "symbolic moves"
     (is (v/one? (g/expt 'x 0)))
-    #_(is (= 'x (g/gcd 'x 'x)))
+    (is (= 'x (g/gcd 'x 'x)))
     (is (v/one? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
@@ -219,18 +240,70 @@
 
 (deftest rational-function-tests
   (testing "GH Issue #93"
-    (is (= '(/ 0.5 (* 2 x))
+    (is (= '(/ 0.25 x)
            (g/simplify
             (g/mul 0.5 (g/div 1 (g/mul 2 'x)))))
         "This test failed until we implemented g/invert for polynomials in the
         rational-function namespace.")))
 
 (deftest radicals
-  (testing "sums of square roots of quotients are collected if denominators match")
-  (is (= '(/ (+ (sqrt a) (sqrt c)) (sqrt b))
-         (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
-  (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
-         (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (testing "sums of square roots of quotients are collected if denominators match"
+    (is (= '(/ (+ (sqrt a) (sqrt c)) (sqrt b))
+           (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+    (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
+           (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b)))))))
+
+  (testing "double simplify does good work! One round will NOT get this result."
+    (is (clojure.core/=
+         '(+ (* -1 R (cos phi)
+                (expt (cos theta) 3)
+                (((partial 0) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta)))))
+             (* -1 R (expt (cos theta) 3)
+                (sin phi)
+                (((partial 1) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta)))))
+             (* -1 R (sin theta)
+                (expt (cos theta) 2)
+                (((partial 2) f)
+                 (up (* R (cos phi) (sin theta))
+                     (* R (sin theta) (sin phi))
+                     (* R (cos theta))))))
+         (simplify-expression
+          (simplify-expression
+           '(/ (+ (* -1
+                     (expt R 2)
+                     (((partial 0) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (cos phi)
+                     (expt (cos theta) 3)
+                     (sin theta))
+                  (* -1
+                     (expt R 2)
+                     (((partial 1) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (expt (cos theta) 3)
+                     (sin phi)
+                     (sin theta))
+                  (* (((partial 2) f)
+                      (up (* R (cos phi) (sin theta))
+                          (* R (sin phi) (sin theta))
+                          (* R (cos theta))))
+                     (sqrt
+                      (+ (* (expt R 4) (expt (cos theta) 4))
+                         (* -2 (expt R 4) (expt (cos theta) 2))
+                         (expt R 4)))
+                     (expt (cos theta) 2)))
+               (* R (sin theta))))))))
+
   (testing "issue #156"
     (is (= '(* y_1 (sqrt (+ (expt x_2 2) (expt y_1 2) (* 2 y_1 y_2) (expt y_2 2))))
            (g/simplify

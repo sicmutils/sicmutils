@@ -33,6 +33,7 @@
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
+            [sicmutils.simplify :refer [simplify-numerical-expression]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
@@ -297,7 +298,7 @@
   [manifold-point coordinate-system thunk]
   (let [reps (:coordinate-representations manifold-point)]
     (or (@reps coordinate-system)
-        (let [rep (g/simplify (thunk))]
+        (let [rep (s/mapr simplify-numerical-expression (thunk))]
           (swap! reps assoc coordinate-system rep)
           rep))))
 

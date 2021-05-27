@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * / zero?
-                                         D d simplify partial
+                                         D d freeze simplify partial
                                          up down exp
                                          point chart wedge
                                          R2-rect R2-polar R3-rect]
@@ -67,80 +67,77 @@
         w (e/literal-vector-field 'w-rect R3-rect)
         f (e/literal-manifold-function 'f-rect R3-rect)]
     (is (zero?
-         (simplify ((- ((((Lie-directional R3-rect 2) v) w) f)
-                       ((e/commutator v w) f))
-                    ((point R3-rect) (up 'x0 'y0 'z0)))))))
+         (simplify
+          ((- ((((Lie-directional R3-rect 2) v) w) f)
+              ((e/commutator v w) f))
+           ((point R3-rect) (up 'x0 'y0 'z0)))))))
 
-  (let [a (e/literal-manifold-function 'alpha R3-rect)
-        b (e/literal-manifold-function 'beta R3-rect)
-        c (e/literal-manifold-function 'gamma R3-rect)]
-    (e/let-coordinates
-     [[x y z] R3-rect]
-     (let [theta (+ (* a dx) (* b dy) (* c dz))
-           omega (+ (* a (wedge dy dz))
-                    (* b (wedge dz dx))
-                    (* c (wedge dx dy)))
-           X (e/literal-vector-field 'X-rect R3-rect)
-           Y (e/literal-vector-field 'Y-rect R3-rect)
-           Z (e/literal-vector-field 'Z-rect R3-rect)
-           V (e/literal-vector-field 'V-rect R3-rect)
-           R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
-       (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
-       (is (= :sicmutils.operator/operator (v/kind (e/Lie-derivative V))))
-       (is (= :sicmutils.calculus.form-field/oneform-field (v/kind theta)))
-       (is (= 1 (:rank (o/context theta))))
-       (is (= 2 (:rank (o/context omega))))
+  (e/let-coordinates
+   [[x y z] R3-rect]
+   (let [a (e/literal-manifold-function 'alpha R3-rect)
+         b (e/literal-manifold-function 'beta R3-rect)
+         c (e/literal-manifold-function 'gamma R3-rect)
+         theta (+ (* a dx) (* b dy) (* c dz))
+         omega (+ (* a (wedge dy dz))
+                  (* b (wedge dz dx))
+                  (* c (wedge dx dy)))
+         X (e/literal-vector-field 'X-rect R3-rect)
+         Y (e/literal-vector-field 'Y-rect R3-rect)
+         Z (e/literal-vector-field 'Z-rect R3-rect)
+         V (e/literal-vector-field 'V-rect R3-rect)
+         R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
+     (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
+     (is (= :sicmutils.operator/operator (v/kind (e/Lie-derivative V))))
+     (is (= :sicmutils.calculus.form-field/oneform-field (v/kind theta)))
+     (is (= 1 (:rank (o/context theta))))
+     (is (= 2 (:rank (o/context omega))))
 
-       #_(is (e/= 'a
-                  (simplify (((d ((e/Lie-derivative V) theta))
-                              X Y)
-                             R3-rect-point))))
+     ;; if you look at the LH and RH of the subtraction, you will observe that
+     ;; this is nontrivial :)
+     (is (zero?
+          (simplify
+           (((- ((e/Lie-derivative V) (d theta))
+                (d ((e/Lie-derivative V) theta)))
+             X Y)
+            R3-rect-point))))
 
-       #_(is (e/= 'a
-                  (simplify ((((e/Lie-derivative V) (d theta))
-                              X Y)
-                             R3-rect-point))))
+     (is (zero?
+          (simplify (((- ((e/Lie-derivative V) (d omega))
+                         (d ((e/Lie-derivative V) omega)))
+                      X Y Z)
+                     R3-rect-point))))
+     (is (zero?
+          (simplify
+           ((((- (e/commutator (e/Lie-derivative X) (e/Lie-derivative Y))
+                 (e/Lie-derivative (e/commutator X Y)))
+              theta)
+             Z)
+            R3-rect-point))))
 
-       ;; if you look at the LH and RH of the subtraction, you will observe that
-       ;; this is nontrivial :)
-       (is (zero?
-            (simplify
-             (((- ((e/Lie-derivative V) (d theta))
-                  (d ((e/Lie-derivative V) theta)))
-               X Y)
-              R3-rect-point))))
-       (is (zero?
-            (simplify (((- ((e/Lie-derivative V) (d omega))
-                           (d ((e/Lie-derivative V) omega)))
-                        X Y Z)
-                       R3-rect-point))))
-       (is (zero?
-            (simplify
-             ((((- (e/commutator (e/Lie-derivative X) (e/Lie-derivative Y))
-                   (e/Lie-derivative (e/commutator X Y)))
-                theta)
-               Z)
-              R3-rect-point))))
-
-       (is (zero?
-            (simplify
-             ((((- (e/commutator (e/Lie-derivative X) (e/Lie-derivative Y))
-                   (e/Lie-derivative (e/commutator X Y)))
-                omega)
-               Z V)
-              R3-rect-point))))))))
+     (is (zero?
+          (simplify
+           ((((- (e/commutator (e/Lie-derivative X) (e/Lie-derivative Y))
+                 (e/Lie-derivative (e/commutator X Y)))
+              omega)
+             Z V)
+            R3-rect-point)))))))
 
 (deftest section-7-1b
   (e/let-coordinates
    [[x y z] R3-rect]
    (let [Jz (- (* x d:dy) (* y d:dx))]
-     ;; Seems like there may be a misprint
-     #_(is (= 'a (simplify
-                  (take 5
-                        (seq
-                         ((((exp (* 'a (e/Lie-derivative Jz))) d:dy)
-                           (e/literal-manifold-function 'f-rect R3-rect))
-                          ((point R3-rect) (up 1 0 0)))))))))))
+     (is (= '((((partial 1) f-rect) (up 1 0 0))
+              (* a (((partial 0) f-rect) (up 1 0 0)))
+              (* (/ -1 2) (expt a 2) (((partial 1) f-rect) (up 1 0 0)))
+              (* (/ -1 6) (expt a 3) (((partial 0) f-rect) (up 1 0 0)))
+              (* (/ 1 24) (expt a 4) (((partial 1) f-rect) (up 1 0 0))))
+            (freeze
+             (simplify
+              (take 5
+                    (seq
+                     ((((exp (* 'a (e/Lie-derivative Jz))) d:dy)
+                       (e/literal-manifold-function 'f-rect R3-rect))
+                      ((point R3-rect) (up 1 0 0))))))))))))
 
 (deftest section-7-1c
   (e/let-coordinates
@@ -216,13 +213,6 @@
 
      (let [V (e/literal-vector-field 'V-rect R2-rect)
            W (e/literal-vector-field 'W-rect R2-rect)]
-       ;; this one runs out of time. The culprit may be the
-       ;; in-rule call to simplifies-to-zero in trig-cleanup.
-       ;; (or else it may just be the exponential size of the
-       ;; search for repeated segment...) Ultimately it works,
-       ;; but boy. This expression warrants further study for
-       ;; optimization's sake
-       #_
        (is (zero?
             (simplify
              (((((- (e/covariant-derivative R2-rect-Cartan)

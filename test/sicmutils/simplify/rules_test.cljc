@@ -45,8 +45,8 @@
           f    (rule-simplifier rule)]
       (is (= '(* x)
              (f '(* x))
-             (f '(* x 1))
-             (f '(* 1 x))))))
+             (f '(* 1 1 1 x 1))
+             (f '(* 1 x 1 1 1 1))))))
 
   (testing "constant promotion"
     (let [rule (r/constant-promotion '* 0)
