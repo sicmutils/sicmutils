@@ -31,21 +31,6 @@
 (declare arity eq exact? q:apply q:zero? zero-like)
 
 (deftype Quaternion [r i j k m]
-  v/Value
-  (zero? [this] (q:zero? this))
-  (one? [_] false
-
-    ;; TODO add one or identity from https://github.com/infusion/Quaternion.js/
-
-    )
-  (identity? [_] false)
-  (zero-like [this] (zero-like this))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (identity-like [o] (u/unsupported (str "identity-like: " o)))
-  (exact? [this] (exact? this))
-  (freeze [_] (list 'quaternion r i j k))
-  (kind [_] ::quaternion)
-
   f/IArity
   (arity [this] (arity this))
 
@@ -71,6 +56,21 @@
      (d/extract-tangent j tag)
      (d/extract-tangent k tag)
      m))
+
+  v/Value
+  (zero? [this] (q:zero? this))
+  (one? [_] false
+
+    ;; TODO add one or identity from https://github.com/infusion/Quaternion.js/
+
+    )
+  (identity? [_] false)
+  (zero-like [this] (zero-like this))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
+  (exact? [this] (exact? this))
+  (freeze [_] (list 'quaternion r i j k))
+  (kind [_] ::quaternion)
 
   #?@(:clj
       [Object
