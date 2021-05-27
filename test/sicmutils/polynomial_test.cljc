@@ -382,16 +382,15 @@
  polynomial."))
 
   (checking "reciprocal polynomials" 100
-            [p (sg/polynomial)
-             c (gen/fmap inc gen/nat)]
-            (let [line (p/linear (p/bare-arity p) 0 c)
-                  p-with-constant (g/+ line p)]
-              (is (= p-with-constant
-                     (p/reciprocal
-                      (p/reciprocal
-                       p-with-constant)))
-                  "reciprocal is idempotent for polynomials with a constant
-                  term.")))
+            [p (sg/polynomial)]
+            (let [p+p* (p/add p (p/reciprocal p))
+                  p-p* (p/sub p (p/reciprocal p))]
+              (is (= p+p* (p/reciprocal p+p*))
+                  "p+p* is palindromic")
+
+              (is (= (g/negate p-p*)
+                     (p/reciprocal p-p*))
+                  "p+p* is anti-palindromic")))
 
   (checking "reciprocal of a constant acts as identity" 100
             [x sg/number]
