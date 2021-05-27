@@ -148,7 +148,7 @@
        (invoke [this a b c d e f g h i j k l m n o p q r s t]
                (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
        (invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-               (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
+               (evaluate this (into [a b c d e f g h i j k l m n o p q r s t] rest)))
        (applyTo [this xs] (AFn/applyToHelper this xs))]
 
       :cljs
@@ -211,7 +211,7 @@
        (-invoke [this a b c d e f g h i j k l m n o p q r s t]
                 (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
        (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-                (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
+                (evaluate this (into [a b c d e f g h i j k l m n o p q r s t] rest)))
 
        IPrintWithWriter
        (-pr-writer
@@ -353,7 +353,7 @@
 
         :else 1))
 
-(defn- ->reduced
+(defn ^:no-doc ->reduced
   "Given a numerator `u` and denominator `v`, returns the result of:
 
   - multiplying `u` and `v` by the least common multiple of all denominators
@@ -896,12 +896,14 @@
         (meta r)))
 
 (defmethod g/partial-derivative [::rational-function v/seqtype]
-  [p selectors]
+  [r selectors]
   (cond (empty? selectors)
-        (ss/down* (partial-derivatives p))
+        (if (= 1 (bare-arity r))
+          (partial-derivative r 0)
+          (ss/down* (partial-derivatives r)))
 
         (= 1 (count selectors))
-        (partial-derivative p (first selectors))
+        (partial-derivative r (first selectors))
 
         :else
         (u/illegal

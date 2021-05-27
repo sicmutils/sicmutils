@@ -19,13 +19,18 @@
 
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.abstract.number]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.number :as an]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.matrix]
             [sicmutils.polynomial :as p]
             [sicmutils.rational-function :as rf]
+            [sicmutils.simplify]
             [sicmutils.structure :as s]
             [sicmutils.value :as v]))
 
@@ -129,6 +134,24 @@
   #(a/expression-> rf/analyzer % (fn [a b] (a/->expression rf/analyzer a b))))
 
 (deftest rf-as-simplifier
+  (let [arity 21]
+    (checking "evaluate matches ->expression" 10
+              [n  (sg/polynomial :arity arity)
+               xs (gen/vector sg/symbol arity)]
+              (let [rf (rf/->RationalFunction arity n 12)]
+                (is (every?
+                     v/zero?
+                     (for [idx (range (inc arity))]
+                       (let [sub-xs (subvec xs 0 idx)
+                             padded (into sub-xs (repeat (- arity idx) 0))]
+                         (g/simplify
+                          (g/- (apply rf padded)
+                               (an/literal-number
+                                (rf/->expression rf padded)))))))
+                    "For every subsequence up to and including the full sequence
+                      of args, [[rf/->expression]] matches the final result (but
+                      not necessarily the same result!) as calling `apply`."))))
+
   (testing "expr"
     (let [exp1 (x/expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (x/expression-of (g/expt (g/+ 1 'y) 5))
@@ -199,5 +222,8 @@
   (-> (make (p/make 2 {[1 2] 2 [2 1] 3})
             (p/make 2 {[1 2] 1/2 [2 0] 3}))
       (make 2))
+
+  (sl/field 10 (sg/rational-function 1)
+            "polynomial is a ring")
 
   (eq (->RationalFunction 10 (p/constant 10 2) 3) #sicm/ratio 2/3))

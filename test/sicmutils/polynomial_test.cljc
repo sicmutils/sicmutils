@@ -22,7 +22,9 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.abstract.number]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.number :as an]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.differential :as sd]
             [sicmutils.expression :refer [variables-in expression-of]]
@@ -35,6 +37,7 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as pi]
+            [sicmutils.simplify]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -103,7 +106,12 @@
 
     (testing "->str, freeze"
       (is (= "1: (1*{} + 2*{0 1} + 3*{0 2})"
-             (str (p/make [1 2 3]))))
+             (str (p/make [1 2 3]))
+             (p/->str (p/make [1 2 3]))))
+
+      (is (= "1: (1*{} + 2*{0 1}... and 1 more terms)"
+             (p/->str (p/make [1 2 3]) 2))
+          "term limitation in printing")
 
       (is (= '(polynomial 1 [[{} 1] [{0 1} 2] [{0 2} 3]])
              (v/freeze
@@ -190,6 +198,11 @@
                     "scalar on left requires v/=")))
 
     (testing "identity"
+      (is (= {0 1}
+             (p/leading-exponents
+              (p/identity 1)))
+          "no leading exponents in a constant term.")
+
       (is (= (p/make [0 1])
              (p/identity))
           "bare p/identity returns arity 1, first variable")
@@ -205,34 +218,88 @@
                 (is (= (p/make arity {{i 1} 1})
                        (p/identity arity i))
                     "specifying an explicit variable index sets that variable to
-                    1, all others to 0.")))
+                    1, all others to 0.")
 
-    #_(checking "p/linear constructor"
-                )
+                (is (= 1 (p/lowest-degree
+                          (p/identity arity i))))))
 
-    ;; TODO linear
-    ;; TODO new-variables
-    ;; TODO c*xn
-    )
+    (checking "p/linear" 50
+              [arity (gen/fmap inc gen/nat)
+               i (gen/choose 0 (dec arity))
+               root (gen/fmap inc gen/nat)]
+              (let [line (p/linear arity i root)]
+                (is (= (g/- (p/identity arity i)
+                            root)
+                       line)
+                    "linear matches explicitly built linear poly")
 
-  (testing "accessors"
-    )
+                (is (= 0 (p/lowest-degree line)))))
+
+    (checking "p/c*xn" 50
+              [arity (gen/fmap inc gen/nat)
+               c (gen/fmap inc gen/nat)
+               n (gen/fmap inc gen/nat)]
+              (let [cxn (p/c*xn arity c n)]
+                (is (= (g/* c (g/expt (p/identity arity) n))
+                       cxn)
+                    "c*x^n match when built with constructor or explicitly.")
+
+                (is (= {0 n}
+                       (p/leading-exponents
+                        (p/c*xn arity c n))))
+
+                (is (= n (p/lowest-degree cxn)))))
+
+    (checking "arity" 100 [x sg/number]
+              (is (= 0 (p/arity x))
+                  "coeffs always have zero arity"))
+
+    (testing "p/new-variables"
+      (is (= [(p/make [0 1])]
+             (p/new-variables 1)))
+
+      (is (= [(p/make 3 [[[1 0 0] 1]])
+              (p/make 3 [[[0 1 0] 1]])
+              (p/make 3 [[[0 0 1] 1]])]
+             (p/new-variables 3))))
+
+    (checking "check-same-arity" 50
+              [arity (gen/fmap inc gen/nat)
+               c     gen/nat
+               p     (sg/polynomial :arity arity)]
+              (is (= arity
+                     (p/check-same-arity c p)
+                     (p/check-same-arity p c)
+                     (p/check-same-arity p p))
+                  "arity always matches the poly arity, no matter the side.")
+
+              (is (= p/coeff-arity
+                     (p/check-same-arity c c))
+                  "unless both sides are coeffs!")))
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))
     (is (v/zero? (p/make [0])))
     (is (not (v/zero? (p/make [1])))))
 
+  (checking "dense construction round-trips with univariate->dense" 100
+            [x (gen/vector (gen/fmap inc gen/nat) 2 20)
+             n-zeros gen/nat]
+            (is (= x (p/univariate->dense
+                      (p/make
+                       (concat x (repeat n-zeros 0)))))
+                "trailing zeros aren't round-tripped"))
+
   (checking "p/make returns zero only if first entry is zero" 100
             [arity gen/nat
              x sg/number]
             (if (v/zero? x)
               (is (v/zero? (p/make [x])))
-              (is (not (v/zero? (p/make [x])))))
+              (is (= x (p/make [x]))))
 
             (if (v/zero? x)
               (is (v/zero? (p/constant arity x)))
-              (is (not (v/zero? (p/constant arity x))))))
+              (is (v/= x (p/constant arity x)))))
 
   (checking "terms, lead term" 100
             [arity gen/nat
@@ -243,6 +310,11 @@
               (is (= (p/->terms x)
                      (p/->terms cx))
                   "->terms works on poly, constant itself")
+
+              (is (= xpt/empty
+                     (p/leading-exponents x)
+                     (p/leading-exponents cx))
+                  "no leading exponents in a constant term.")
 
               (is (= (pi/make-term x)
                      (p/leading-term x)
@@ -267,7 +339,83 @@
     (is (= 1 (p/degree (p/make [-1 1]))))
     (is (= 1 (p/degree (p/make [0 1]))))
     (is (= 1 (p/degree (p/make [-1 2 0]))))
-    (is (= 2 (p/degree (p/make [-1 0 2]))))))
+    (is (= 2 (p/degree (p/make [-1 0 2]))))
+
+    (is (= p/zero-degree (p/degree 0)))
+    (is (= p/zero-degree (p/lowest-degree 0)))
+    (is (= 0 (p/degree 10)))
+    (is (= 0 (p/lowest-degree 10))))
+
+  (checking "monic?, normalize" 100
+            [p (sg/polynomial :arity 1)
+             c (gen/fmap inc gen/nat)]
+            (is (= (p/normalize p)
+                   (p/normalize
+                    (p/normalize p)))
+                "normalize is idempotent")
+
+            (is (p/monic?
+                 (p/normalize
+                  (p/scale-l c p)))
+                "normalizing a polynomial turns it monic."))
+
+  (testing "monic? only responds true to scalar one."
+    (is (p/monic? 1))
+    (is (not (p/monic? 2))))
+
+  (checking "scale, scale-l" 100 [p (sg/polynomial)]
+            (is (v/zero? (p/scale-l 0 p)))
+            (is (v/zero? (p/scale-l p 0))))
+
+  (checking "map-exponents works on scalars" 100
+            [c  gen/nat
+             n (gen/fmap inc gen/nat)]
+            (is (= (p/c*xn 1 c n)
+                   (p/map-exponents
+                    (fn [m] (xpt/assoc m 0 n)) c 1))
+                "mapping the power product promotes the constant to a
+ polynomial."))
+
+  (checking "reciprocal polynomials" 100
+            [p (sg/polynomial)
+             c (gen/fmap inc gen/nat)]
+            (let [line (p/linear (p/bare-arity p) 0 c)
+                  p-with-constant (g/+ line p)]
+              (is (= p-with-constant
+                     (p/reciprocal
+                      (p/reciprocal
+                       p-with-constant)))
+                  "reciprocal is idempotent for polynomials with a constant
+                  term.")))
+
+  (checking "reciprocal of a constant acts as identity" 100
+            [x sg/number]
+            (is (= x (p/reciprocal x))))
+
+  (testing "reciprocal"
+    (is (= (p/make 3 {[3 0 0] 5
+                      [2 0 1] 2
+                      [1 0 0] 0
+                      [0 2 1] 3})
+           (p/reciprocal
+            (p/make 3 {[0 0 0] 5
+                       [1 0 1] 2
+                       [2 0 1] 0
+                       [3 2 1] 3})))
+        "note that, including zeros, the exponents for the first variable are
+        flipped."))
+
+  (checking "drop-leading-term" 100
+            [xs (gen/vector (gen/fmap inc gen/nat) 2 20)
+             c  (gen/fmap inc gen/nat)]
+            (is (v/zero? (p/drop-leading-term c))
+                "dropping the leading term from a constant returns 0.")
+
+            (is (= (p/make xs)
+                   (p/drop-leading-term
+                    (p/make (conj xs c))))
+                "adding on a nonzero term then DROPPING it gives back the same
+                poly as if you'd never added.")))
 
 (deftest arithmetic-tests
   (let [coeffs (gen/fmap #(g/modulo % 1000) sg/small-integral)]
@@ -594,6 +742,32 @@
     (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
       (is (= 216 (p/evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
 
+  (let [arity 21]
+    (checking "evaluate matches ->expression" 10
+              [p  (sg/polynomial :arity arity)
+               xs (gen/vector sg/symbol arity)]
+              (is (every?
+                   v/zero?
+                   (for [idx (range (inc arity))]
+                     (let [sub-xs (subvec xs 0 idx)
+                           padded (into sub-xs (repeat (- arity idx) 0))]
+                       (g/simplify
+                        (g/- (apply p padded)
+                             (an/literal-number
+                              (p/->expression p padded)))))))
+                  "For every subsequence up to and including the full sequence
+                      of args, [[p/->expression]] matches the final result (but
+                      not necessarily the same result!) as calling `apply`.")))
+
+  (testing "horner-with-error example"
+    (let [p (p/make [1 4 3 2 5])
+          x  3.2
+          [px p'x p''x err] (p/horner-with-error p x)]
+      (is (ish? px (p x)))
+      (is (ish? p'x ((D p) x)))
+      (is (ish? p''x (((g/square D) p) x)))
+      (is (< err 1e-11))))
+
   (testing "constant polynomial evaluation"
     (let [p1 (p/make [3])
           p2 (p/make 2 [[[0 0] 5]])
@@ -615,9 +789,55 @@
                    (p/evaluate P [1 2 3 4]))
           "Too many arguments supplied."))))
 
+(deftest extend-contract-tests
+  (checking "extend, contract for coeffs" 100
+            [x sg/number]
+            (is (false?
+                 (p/contractible? x 0))
+                "contractible is false for all coeffs")
+
+            (is (= x (p/extend x 10))
+                "extend is identity for coeffs"))
+
+  (testing "contract, extend unit tests"
+    (is (= (p/make 1 {[1] 2 [2] 3})
+           (-> (p/make 2 {[0 1] 2 [0 2] 3})
+               (p/contract 0))))
+
+    (is (= (-> (p/make 1 {[1] 2 [2] 3})
+               (p/extend 0))
+           (p/make 2 {[0 1] 2 [0 2] 3})))
+
+    (is (= (-> (p/make 1 {[1] 2 [2] 3})
+               (p/extend 12))
+           (p/make 13 {[1] 2 [2] 3}))))
+
+  (checking "extend, contract are inverses" 50
+            [p (sg/polynomial)]
+            (is  (= p (-> (p/extend p 0)
+                          (p/contract 0)))
+                 "extending creates an empty index, and contracting removes
+ it.")) )
+
 (deftest poly-partial-derivatives
+  (testing "partial-derivative with constants"
+    (is (= [] (p/partial-derivatives 10)))
+    (is (= 0 (p/partial-derivative 10 0))))
+
   (let [V (p/make [1 2 3 4])
         U (p/make 2 [[[1 1] 3] [[2 2] 4] [[0 0] 5] [[0 3] 7] [[4 0] -2]])]
+    (testing "univariate and multivariate polynomials work with D operator"
+      (is (= '(+ (* 12 (expt x 2)) (* 6 x) 2)
+             (v/freeze
+              (g/simplify
+               ((D V) 'x)))))
+
+      (is (= '(down (+ (* -8 (expt x 3)) (* 8 x (expt y 2)) (* 3 y))
+                    (+ (* 8 (expt x 2) y) (* 21 (expt y 2)) (* 3 x)))
+             (v/freeze
+              (g/simplify
+               ((D U) 'x 'y))))))
+
     (is (= (p/make [2 6 12]) (p/partial-derivative V 0)))
     (is (= [(p/make [2 6 12])] (p/partial-derivatives V)))
     (is (= (p/make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]]) (p/partial-derivative U 0)))
@@ -627,21 +847,6 @@
            (p/partial-derivatives U)))))
 
 (deftest poly-as-simplifier
-  ;; TODO move up and test!
-  (testing "arity"
-    (let [p (p/make [0 1])]
-      (is (= 1 (p/arity p)))))
-
-  ;; TODO move up, test without analyzer too.
-  (testing "make-vars"
-    (is (= [(p/make [0 1])]
-           (p/new-variables 1)))
-
-    (is (= [(p/make 3 [[[1 0 0] 1]])
-            (p/make 3 [[[0 1 0] 1]])
-            (p/make 3 [[[0 0 1] 1]])]
-           (p/new-variables 3))))
-
   (testing "expr"
     (let [exp1 (expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (expression-of (g/expt (g/+ 1 'y) 5))
@@ -729,8 +934,9 @@
           (p/make 3 {[1 0 0] 2 [2 0 0] 2}))))
 
   (testing "lower, raise are inverse"
-
-    (let [->poly (fn [x] (p/expression-> x (fn [p _] p)))
+    (let [->poly (fn [x]
+                   (let [[p _] (p/expression-> x)]
+                     p))
           f2 (->poly
               '(+ (expt x2 2)
                   (* 2 (expt x1 2) x2)
@@ -774,19 +980,21 @@
              (g/* (p/lower-arity d2)
                   (p/lower-arity (g/* d2 f2)))))))
 
-  (checking "lower-and-raise-arity-are-inverse" 30
+  (checking "lower-arity and raise-arity are inverse" 30
             [p (gen/let [arity (gen/choose 2 10)]
                  (sg/polynomial :arity arity
                                 :nonzero? true))]
             (is (= p (-> (p/lower-arity p)
                          (p/raise-arity (p/arity p))))))
 
-  (checking "TODO name this..." 100
+  (checking "raising a constant to an explicit arity always gives a polynomial" 100
             [x sg/any-integral
              arity (gen/choose 2 10)]
-            (is (= (p/constant arity x)
-                   (-> (p/constant x)
-                       (p/raise-arity arity))))))
+            (let [raised (p/raise-arity x arity)]
+              (is (p/polynomial? raised))
+
+              (is (= (p/constant arity x)
+                     raised)))))
 
 (deftest evaluation-homomorphism-tests
   (checking "evaluation-homomorphism" 30
@@ -800,7 +1008,6 @@
                            (p/evaluate q xs)))
                    (u/bigint
                     (p/evaluate (g/mul p q) xs)))))
-
 
   (testing "specific test cases from generative tests"
     (let [p (p/make 4 [[[0 0 0 0] -2] [[1 6 3 3] 3]])
@@ -851,50 +1058,3 @@
                   (+ (* (/ 1 2) m (+ (* ((D phi) t) ((D phi) t) (r t))
                                      (* ((D phi) t) ((D phi) t) (r t))))
                      (* -1 ((D U) (r t))))))))))
-
-(deftest new-tests
-  (testing "contract, expand tests"
-    (is (= (p/make 1 {[1] 2 [2] 3})
-           (-> (p/make 2 {[0 1] 2 [0 2] 3})
-               (p/contract 0))))
-
-    (is (= (-> (p/make 1 {[1] 2 [2] 3})
-               (p/extend 0))
-           (p/make 2 {[0 1] 2 [0 2] 3})))
-
-    (is (= (-> (p/make 1 {[1] 2 [2] 3})
-               (p/extend 12))
-           (p/make 13 {[1] 2 [2] 3})))))
-
-
-;; TODO test that you can normalize by the lead coefficient to get a monic.
-;; Generate a dense then do that.
-
-
-(comment
-  ;; TODO test:
-  ;;
-  ;; TODO make this work JUST on terms and then turn the result into a poly!
-  (let [u (make [10])
-        v (make [10 20])
-        [q r] (divide u v)]
-    (g/+ (g/* q v) r))
-
-  (= (make 3 {[3 0 0] 5 [2 0 1] 2 [0 2 1] 3})
-     (reciprocal
-      (make 3 {[0 0 0] 5 [1 0 1] 2 [3 2 1] 3})))
-
-  (let [p (make 3 {[3 0 0] 5 [2 0 1] 2 [0 2 1] 3})]
-    ;; because there is a constant term...
-    (= p (reciprocal (reciprocal p))))
-
-  (map-exponents (fn [m] (xpt/assoc m 10 2)) 10 12)
-
-
-  (is (= (p/make 2 {[1 2] 3 [3 4] 5})
-         (p/contract
-          (p/make 3 {[0 1 2] 3 [0 3 4] 5}) 0)))
-
-  ;; test string rep
-  (checking "contractible is false for all coeffs" 100 [x sg/number]
-            (is (false? (p/contractible? x 0)))))

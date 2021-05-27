@@ -18,6 +18,7 @@
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.ratio :as r]
+            [sicmutils.rational-function :as rf]
             [sicmutils.series :as ss]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -309,7 +310,7 @@
   `arity` can be a number or a generator."
   [& {:keys [arity coeffs nonzero?]
       :or {nonzero? true
-           arity gen/nat
+           arity (gen/fmap inc gen/nat)
            coeffs small-integral}}]
   (letfn [(poly-gen [arity]
             (let [terms (poly:terms arity coeffs)
@@ -326,6 +327,32 @@
                   (gen/return arity)
                   arity)]
       (gen/bind arity poly-gen))))
+
+(defn rational-function
+  "Returns a generator that produces instances
+  of [[rational-function/RationalFunction]].
+
+  `arity` can be a number or a generator."
+  ([arity]
+   (rational-function arity {} {}))
+  ([arity num-opts denom-opts]
+   (let [num-opts   (assoc num-opts
+                           :arity arity)
+         denom-opts (assoc denom-opts
+                           :nonzero? true
+                           :arity arity)
+         n (apply polynomial (apply concat num-opts))
+         d (apply polynomial (apply concat denom-opts))]
+     (gen/fmap
+      (fn [[u v]]
+        (let [result (rf/->reduced u v)]
+          (if (rf/rational-function? result)
+            result
+            (rf/->RationalFunction
+             arity
+             (r/numerator result)
+             (r/denominator result)))))
+      (gen/tuple n d)))))
 
 ;; ## Custom Almost-Equality
 

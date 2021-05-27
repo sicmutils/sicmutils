@@ -243,7 +243,7 @@
        (invoke [this a b c d e f g h i j k l m n o p q r s t]
                (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
        (invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-               (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
+               (evaluate this (into [a b c d e f g h i j k l m n o p q r s t] rest)))
        (applyTo [this xs] (AFn/applyToHelper this xs))]
 
       :cljs
@@ -306,7 +306,7 @@
        (-invoke [this a b c d e f g h i j k l m n o p q r s t]
                 (evaluate this [a b c d e f g h i j k l m n o p q r s t]))
        (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-                (evaluate this [a b c d e f g h i j k l m n o p q r s t rest]))
+                (evaluate this (into [a b c d e f g h i j k l m n o p q r s t] rest)))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
@@ -417,7 +417,7 @@
   explicit indeterminates with powers > 0:
 
   ```clojure
-  (make 10 [[{} 1] [{} 2]])
+  (make 10 {{} 1 {} 2})
   ;;=> 3
   ```
 
@@ -548,8 +548,8 @@
               ap
               (u/arithmetic-ex
                (str "mismatched polynomial arity: " ap ", " aq))))
-          poly-p? (bare-arity q)
-          poly-q? (bare-arity p)
+          poly-p? (bare-arity p)
+          poly-q? (bare-arity q)
           :else coeff-arity)))
 
 (defn valid-arity?
@@ -811,7 +811,7 @@
                (if (empty? f-expts)
                  p
                  (let [arity (force-arity)]
-                   (->Polynomial arity (i/constant->terms p))))))]
+                   (->Polynomial arity [(i/make-term f-expts p)])))))]
      (cond (polynomial? p)
            (make (or new-arity (bare-arity p))
                  (for [[expts c] (bare-terms p)
@@ -1401,13 +1401,15 @@
                     L))))))))
 
 (defn horner-with-error
-  "Takes a univariate polynomial `a`, an argument `z` and a continuation `cont`
-  and calls the continuation with (SEE BELOW).
+  "Takes a univariate polynomial `a`, an argument `z` and a continuation
+  `cont` (`vector` by default) and calls the continuation with (SEE BELOW).
 
   This Horner's rule evaluator is restricted to numerical coefficients and
-  univariate polynomials. It returns, by calling a continuation procedure, a
-  value, two derivatives, and an estimate of the roundoff error incurred in
-  computing that value.
+  univariate polynomials. It returns by calling `cont` with 4 arguments:
+
+  - the computed value
+  - the values of the first two derivatives
+  - an estimate of the roundoff error incurred in computing the value
 
   The recurrences used are from Kahan's 18 Nov 1986 paper ['Roundoff in
   Polynomial
@@ -1711,7 +1713,9 @@
 
 (defmethod g/partial-derivative [::polynomial v/seqtype] [p selectors]
   (cond (empty? selectors)
-        (ss/down* (partial-derivatives p))
+        (if (= 1 (bare-arity p))
+          (partial-derivative p 0)
+          (ss/down* (partial-derivatives p)))
 
         (= 1 (count selectors))
         (partial-derivative p (first selectors))
