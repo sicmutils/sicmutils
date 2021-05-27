@@ -316,7 +316,11 @@
   (ua/monoid binary-gcd 0 v/one?))
 
 (def ^:no-doc primitive-gcd
-  (->gcd g/gcd))
+  (->gcd (fn [l r]
+           (if (and (v/number? l)
+                    (v/number? r))
+             (g/gcd l r)
+             1))))
 
 ;; The GCD of a sequence of integers is the simplest case; simply reduce across
 ;; the sequence using `g/gcd`. The next-easiest case is the GCD of a coefficient
@@ -484,11 +488,8 @@
   sparse polynomial GCD, that are coming down the pipe."
   [u v]
   (or (trivial-gcd u v)
-      (if (and (every? v/exact? (p/coefficients u))
-               (every? v/exact? (p/coefficients v)))
-        (with-limited-time *poly-gcd-time-limit*
-          (fn [] (classical-gcd u v)))
-        (v/one-like u))))
+      (with-limited-time *poly-gcd-time-limit*
+        (fn [] (classical-gcd u v)))))
 
 (def
   ^{:doc "Returns the greatest common divisor of `u` and `v`, calculated by a
