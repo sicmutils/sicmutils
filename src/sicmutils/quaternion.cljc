@@ -28,7 +28,7 @@
   #?(:clj
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
-(declare arity q:= exact? q:apply q:zero? zero-like)
+(declare arity eq exact? q:apply q:zero? zero-like)
 
 (deftype Quaternion [r i j k m]
   v/Value
@@ -75,7 +75,7 @@
   #?@(:clj
       [Object
        (toString [_] (str "#sicm/quaternion [" r " " i  " " j " " k "]"))
-       (equals [self q] (q:= self q))
+       (equals [self q] (eq self q))
 
        IObj
        (meta [_] m)
@@ -167,7 +167,7 @@
        (-meta [_] m)
 
        IWithMeta
-       (-with-meta [_ m] (Quaternion. r i j k m))
+       (-with-meta [_ meta] (Quaternion. r i j k meta))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
@@ -182,7 +182,7 @@
        ISequential
 
        IEquiv
-       (-equiv [this that] (q:= this that))
+       (-equiv [this that] (eq this that))
 
        ISeqable
        (-seq [_] (list r i j k))
@@ -266,7 +266,8 @@
        (Quaternion. r i j k m))))
 
 #?(:clj
-   (defmethod print-method Quaternion [^Quaternion q ^java.io.Writer w]
+   (defmethod print-method Quaternion
+     [^Quaternion q ^java.io.Writer w]
      (.write w (.toString q))))
 
 (defn quaternion? [q]
@@ -277,7 +278,9 @@
   [^Quaternion q]
   (.-r q))
 
-(defn real-part [^Quaternion q]
+(defn real-part
+  "Get the r component of a quaternion."
+  [^Quaternion q]
   (.-r q))
 
 (defn get-i
@@ -353,21 +356,21 @@
 
 ;; Algebra
 
-(defn q:+ [^Quaternion q1 ^Quaternion q2]
+(defn add [^Quaternion q1 ^Quaternion q2]
   (->Quaternion
    (g/+ (.-r q1) (.-r q2))
    (g/+ (.-i q1) (.-i q2))
    (g/+ (.-j q1) (.-j q2))
    (g/+ (.-k q1) (.-k q2))))
 
-(defn q:- [^Quaternion q1 ^Quaternion q2]
+(defn sub [^Quaternion q1 ^Quaternion q2]
   (->Quaternion
    (g/- (.-r q1) (.-r q2))
    (g/- (.-i q1) (.-i q2))
    (g/- (.-j q1) (.-j q2))
    (g/- (.-k q1) (.-k q2))))
 
-(defn q:*
+(defn mul
   ([q] q)
   ([^Quaternion q1 ^Quaternion q2]
    (let [r1 (.-r q1) i1 (.-i q1) j1 (.-j q1) k1 (.-k q1)
@@ -378,16 +381,16 @@
       (g/+ (g/* r1 j2) (g/* -1 i1 k2) (g/* j1 r2) (g/* k1 i2))
       (g/+ (g/* r1 k2) (g/* i1 j2) (g/* -1 j1 i2) (g/* k1 r2)))))
   ([q1 q2 & more]
-   (reduce q:* (q:* q1 q2) more)))
+   (reduce mul (mul q1 q2) more)))
 
-(defn q:conjugate [^Quaternion q]
+(defn conjugate [^Quaternion q]
   (->Quaternion
    (.-r q)
    (g/negate (.-i q))
    (g/negate (.-j q))
    (g/negate (.-k q))))
 
-(defn q:negate [^Quaternion q]
+(defn negate [^Quaternion q]
   (->Quaternion
    (g/negate (.-r q))
    (g/negate (.-i q))
@@ -416,14 +419,14 @@
    (g// (.-k q) s)))
 
 (defn invert [^Quaternion q]
-  (q-div-scalar (q:conjugate q)
+  (q-div-scalar (conjugate q)
                 (g/+ (g/square (.-r q))
                      (g/square (.-i q))
                      (g/square (.-j q))
                      (g/square (.-k q)))))
 
-(defn q:div [q1 q2]
-  (q:* q1 (invert q2)))
+(defn div [q1 q2]
+  (mul q1 (invert q2)))
 
 (defn magnitude
   "The norm of the quaternion."
@@ -470,7 +473,7 @@
        (v/zero? (.-j q))
        (v/zero? (.-k q))))
 
-(defn q:= [^Quaternion q1 q2]
+(defn eq [^Quaternion q1 q2]
   (or (identical? q1 q2)
       (and (instance? Quaternion q2)
            (let [q2 ^Quaternion q2]
@@ -610,10 +613,10 @@
   (let [vv (->vector q)
         v  (g/simplify (g/dot-product vv vv))]
     (ul/assume! (list '= v 1) 'rotate))
-  (let [q* (q:conjugate q)]
+  (let [q* (conjugate q)]
     (fn the-rotation [three-v]
       (three-vector
-       (q:* q (make 0 three-v) q*)))))
+       (mul q (make 0 three-v) q*)))))
 
 ;; ## Relation to rotation matrices
 ;;
@@ -831,11 +834,11 @@
 
 ;; Generic Method Installation
 
-(defmethod v/= [::quaternion ::quaternion] [a b] (q:= a b))
+(defmethod v/= [::quaternion ::quaternion] [a b] (eq a b))
 
 ;; TODO test... maybe we just need vectors, not sequences?
-(defmethod v/= [v/seqtype ::quaternion] [a b] (q:= a b))
-(defmethod v/= [::quaternion v/seqtype] [a b] (q:= a b))
+(defmethod v/= [v/seqtype ::quaternion] [a b] (eq a b))
+(defmethod v/= [::quaternion v/seqtype] [a b] (eq a b))
 
 (defmethod g/simplify [::quaternion] [^Quaternion q]
   (->Quaternion
@@ -845,21 +848,21 @@
    (g/simplify (.-k q))
    (meta q)))
 
-(defmethod g/add [::quaternion ::quaternion] [a b] (q:+ a b))
+(defmethod g/add [::quaternion ::quaternion] [a b] (add a b))
 
-(defmethod g/negate [::quaternion] [q] (q:negate q))
-(defmethod g/sub [::quaternion ::quaternion] [a b] (q:- a b))
+(defmethod g/negate [::quaternion] [q] (negate q))
+(defmethod g/sub [::quaternion ::quaternion] [a b] (sub a b))
 
-(defmethod g/mul [::quaternion ::quaternion] [a b] (q:* a b))
+(defmethod g/mul [::quaternion ::quaternion] [a b] (mul a b))
 (defmethod g/mul [::v/scalar ::quaternion] [s q] (scalar*q s q))
 (defmethod g/mul [::quaternion ::v/scalar] [q s] (q*scalar q s))
 
 (defmethod g/invert [::quaternion] [q] (invert q))
 (defmethod g/div [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
-(defmethod g/div [::quaternion ::quaternion] [a b] (q:div a b))
+(defmethod g/div [::quaternion ::quaternion] [a b] (div a b))
 
 (defmethod g/magnitude [::quaternion] [q] (magnitude q))
-(defmethod g/conjugate [::quaternion] [q] (q:conjugate q))
+(defmethod g/conjugate [::quaternion] [q] (conjugate q))
 (defmethod g/real-part [::quaternion] [q] (real-part q))
 (defmethod g/exp [::quaternion] [q] (exp q))
 (defmethod g/log [::quaternion] [q] (log q))
@@ -868,10 +871,10 @@
   (partial-derivative q selectors))
 
 (defmethod g/solve-linear-right [::quaternion ::scalar] [q s] (q-div-scalar q s))
-(defmethod g/solve-linear-right [::quaternion ::quaternion] [a b] (q:div a b))
+(defmethod g/solve-linear-right [::quaternion ::quaternion] [a b] (div a b))
 
 (defmethod g/solve-linear [::v/scalar ::quaternion] [s q] (q-div-scalar q s))
-(defmethod g/solve-linear [::quaternion ::quaternion] [a b] (q:div b a))
+(defmethod g/solve-linear [::quaternion ::quaternion] [a b] (div b a))
 
 
 ;; TODO see remaining interfaces here, and PICK the functions below: https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
