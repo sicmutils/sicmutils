@@ -603,6 +603,38 @@
    {:pre [(power-series? s)]}
    (->PowerSeries (i/integral (seq s) constant))))
 
+(defn arg-scale
+  "Given a univariate [[PowerSeries]] and a singleton sequence of `factors`,
+  returns a new [[PowerSeries]] that scales its argument by `(first factor)` on
+  application.
+
+  Given a [[Series]], recursively applies [[arg-scale]] to each element, making
+  this ONLY appropriate in its current form for a [[Series]] of [[PowerSeries]]
+  instances."
+  [s factors]
+  (if (power-series? s)
+    (do (assert (= (count factors) 1) "Only univariate [[PowerSeries]] are allowed.")
+        (compose s (power-series* [0 (first factors)])))
+    (fmap #(arg-scale % factors) s)))
+
+(defn arg-shift
+  "Given a univariate [[PowerSeries]] and a singleton sequence of `shifts`,
+  returns a function that, when applied, returns a value equivalent to calling
+  the original `s` with its argument shifted by `(first shifts)`.
+
+  NOTE: [[arg-shift]] can't return a [[PowerSeries]] instance because the
+  implementation of [[compose]] does not currently allow a constant element in
+  the right-hand series.
+
+  Given a [[Series]], recursively applies [[arg-shift]] to each element, making
+  this ONLY appropriate in its current form for a [[Series]] of [[PowerSeries]]
+  instances. Returns a [[Series]] of functions."
+  [s shifts]
+  (if (power-series? s)
+    (do (assert (= (count shifts) 1) "Only univariate [[PowerSeries]] are allowed.")
+        (apply f/arg-shift s shifts))
+    (fmap #(arg-shift % shifts) s)))
+
 ;; ## Built In Series
 ;;
 ;; The following section defines a number of built in series that come up often

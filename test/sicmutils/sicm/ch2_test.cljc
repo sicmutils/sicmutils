@@ -113,13 +113,15 @@
         state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
         L0 ((r/Euler-state->L-space A B C) state0)
         E0 ((r/T-rigid-body A B C) state0)]
-    ((e/evolve r/rigid-sysder A B C)
-     state0
-     0.1
-     10.0
-     {:compile? true
-      :epsilon 1.0e-12
-      :observe (monitor-errors A B C L0 E0)})
+    (binding [pg/*poly-gcd-time-limit* #?(:clj  [1 :seconds]
+                                          :cljs [4 :seconds])]
+      ((e/evolve r/rigid-sysder A B C)
+       state0
+       0.1
+       10.0
+       {:compile? true
+        :epsilon 1.0e-12
+        :observe (monitor-errors A B C L0 E0)}))
     ;; check that all observed errors over the whole interval are small
     (is (> 1e-10 (->> @points
                       (mapcat #(drop 1 %))

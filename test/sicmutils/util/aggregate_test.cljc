@@ -19,6 +19,9 @@
 
 (ns sicmutils.util.aggregate-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.numbers]
             [sicmutils.util.aggregate :as ua]
@@ -38,3 +41,27 @@
       (is (= (ua/scanning-sum xs)
              ((us/scan ua/kahan-sum :present first) xs))
           "scanning-sum acts just like an actual `scan` call."))))
+
+(deftest monoid-group-tests
+  (let [plus (ua/monoid (fn [a b] (+ a b)) 0)]
+    (checking "monoid" 100 [xs (gen/vector gen/nat)]
+              (is (= (apply + xs)
+                     (apply plus xs))
+                  "monoid version built out of binary `+` matches built-in `+`"))
+
+    (testing "* monoid bails early"
+      (let [mul (ua/monoid (fn [a b] (* a b)) 1 zero?)]
+        (is (= 6 (mul 1 2 3)))
+        (is (= 0 (mul 1 2 0 :keyword))))))
+
+  (let [minus (ua/group (fn [a b] (- a b))
+                        (fn [a b] (+ a b))
+                        (fn [b] (- b))
+                        0)]
+    (checking "group" 100 [xs (gen/vector gen/nat)]
+              (if (seq xs)
+                (is (= (apply - xs)
+                       (apply minus xs))
+                    "group version built out of binary `-` matches built-in `-`")
+                (is (= 0 (apply minus xs))
+                    "group version built out of binary `-` matches built-in `-`")))))

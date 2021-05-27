@@ -42,23 +42,39 @@
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
   #?(:clj (:import (clojure.lang BigInt Ratio))))
 
-(def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
+(def ^:no-doc ratiotype
+  #?(:clj Ratio :cljs Fraction))
+
 (derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
      :cljs (fn [r] (instance? Fraction r))))
 
-(def numerator
-  #?(:clj core-numerator
-     :cljs (fn [^Fraction x]
-             (if (pos? (obj/get x "s"))
-               (obj/get x "n")
-               (- (obj/get x "n"))))))
+(defprotocol IRational
+  (numerator [_])
+  (denominator [_]))
 
-(def denominator
-  #?(:clj core-denominator
-     :cljs #(obj/get % "d")))
+(extend-protocol IRational
+  #?(:clj Object :cljs default)
+  (numerator [x] x)
+  (denominator [_] 1)
+
+  #?@(:clj
+      [Ratio
+       (numerator [r] (core-numerator r))
+       (denominator [r] (core-denominator r))]
+
+      :cljs
+      [Fraction
+       (numerator
+        [x]
+        (if (pos? (obj/get x "s"))
+          (obj/get x "n")
+          (- (obj/get x "n"))))
+       (denominator
+        [x]
+        (obj/get x "d"))]))
 
 (defn- promote [x]
   (if (v/one? (denominator x))
@@ -199,13 +215,30 @@
                         "\"")))))))
 
 #?(:clj
-   (doseq [[op f] [[g/exact-divide /]
-                   [g/quotient quot]
-                   [g/remainder rem]
-                   [g/modulo mod]]]
-     (defmethod op [Ratio Ratio] [a b] (f a b))
-     (defmethod op [Ratio ::v/integral] [a b] (f a b))
-     (defmethod op [::v/integral Ratio] [a b] (f a b)))
+   (do
+     (defmethod g/gcd [Ratio ::v/integral] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (biginteger b))
+              (core-denominator a)))
+
+     (defmethod g/gcd [::v/integral Ratio] [a b]
+       (g/div (.gcd (biginteger a)
+                    (core-numerator b))
+              (core-denominator b)))
+
+     (defmethod g/gcd [Ratio Ratio] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (core-numerator b))
+              (g/lcm (core-denominator a)
+                     (core-denominator b))))
+
+     (doseq [[op f] [[g/exact-divide /]
+                     [g/quotient quot]
+                     [g/remainder rem]
+                     [g/modulo mod]]]
+       (defmethod op [Ratio Ratio] [a b] (f a b))
+       (defmethod op [Ratio ::v/integral] [a b] (f a b))
+       (defmethod op [::v/integral Ratio] [a b] (f a b))))
 
    :cljs
    (do

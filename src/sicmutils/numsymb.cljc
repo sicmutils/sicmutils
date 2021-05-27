@@ -26,7 +26,8 @@
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.value :as v]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>
@@ -91,23 +92,18 @@
 
 ;; these are without constructor simplifications!
 
-(defn- add
-  ([] 0)
-  ([a] a)
-  ([a b]
-   (cond (and (v/number? a) (v/number? b)) (g/add a b)
-         (v/number? a) (cond (v/zero? a) b
-                             (sum? b) `(~'+ ~a ~@(operands b))
-                             :else `(~'+ ~a ~b))
-         (v/number? b) (cond (v/zero? b) a
-                             (sum? a) `(~'+ ~@(operands a) ~b)
-                             :else `(~'+ ~a ~b))
-         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
-                        :else `(~'+ ~@(operands a) ~b))
-         (sum? b) `(~'+ ~a ~@(operands b))
-         :else `(~'+ ~a ~b)))
-  ([a b & more]
-   (reduce add (add a b) more)))
+(defn- add [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/add a b)
+        (v/number? a) (cond (v/zero? a) b
+                            (sum? b) `(~'+ ~a ~@(operands b))
+                            :else `(~'+ ~a ~b))
+        (v/number? b) (cond (v/zero? b) a
+                            (sum? a) `(~'+ ~@(operands a) ~b)
+                            :else `(~'+ ~a ~b))
+        (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
+                       :else `(~'+ ~@(operands a) ~b))
+        (sum? b) `(~'+ ~a ~@(operands b))
+        :else `(~'+ ~a ~b)))
 
 (defn- sub [a b]
   (cond (and (v/number? a) (v/number? b)) (g/sub a b)
@@ -116,37 +112,24 @@
         (= a b) 0
         :else `(~'- ~a ~b)))
 
-(defn- sub-n
-  ([] 0)
-  ([x] (g/negate x))
-  ([x y] (sub x y))
-  ([x y & more]
-   (sub x (apply add (cons y more)))))
+(defn- negate [x] (sub 0 x))
 
-(defn- mul
-  ([] 1)
-  ([a] a)
-  ([a b]
-   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
-         (v/number? a) (cond (v/zero? a) a
-                             (v/one? a) b
-                             (product? b) `(~'* ~a ~@(operands b))
-                             :else `(~'* ~a ~b)
-                             )
-         (v/number? b) (cond (v/zero? b) b
-                             (v/one? b) a
-                             (product? a) `(~'* ~@(operands a) ~b)
-                             :else `(~'* ~a ~b)
-                             )
-         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
-                            :else `(~'* ~@(operands a) ~b))
-         (product? b) `(~'* ~a ~@(operands b))
-         :else `(~'* ~a ~b)))
-  ([a b & more]
-   (reduce mul (mul a b) more)))
+(defn- mul [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+        (v/number? a) (cond (v/zero? a) a
+                            (v/one? a) b
+                            (product? b) `(~'* ~a ~@(operands b))
+                            :else `(~'* ~a ~b))
+        (v/number? b) (cond (v/zero? b) b
+                            (v/one? b) a
+                            (product? a) `(~'* ~@(operands a) ~b)
+                            :else `(~'* ~a ~b))
+        (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
+                           :else `(~'* ~@(operands a) ~b))
+        (product? b) `(~'* ~a ~@(operands b))
+        :else `(~'* ~a ~b)))
 
-(defn- div
-  [a b]
+(defn- div [a b]
   (cond (and (v/number? a) (v/number? b)) (g/div a b)
         (v/number? a) (if (v/zero? a) a `(~'/ ~a ~b))
         (v/number? b) (cond (v/zero? b) (u/arithmetic-ex "division by zero")
@@ -154,12 +137,7 @@
                             :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
-(defn- div-n
-  ([] 1)
-  ([x] (div 1 x))
-  ([x y] (div x y))
-  ([x y & more]
-   (div x (apply mul (cons y more)))))
+(defn- invert [x] (div 1 x))
 
 (defn- modulo [a b]
   (mod-rem a b modulo 'modulo))
@@ -369,6 +347,28 @@
     (g/abs x)
     (list 'abs x)))
 
+(defn- gcd [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/gcd a b)
+        (v/number? a) (cond (v/zero? a) b
+                            (v/one? a) 1
+                            :else (list 'gcd a b))
+        (v/number? b) (cond (v/zero? b) a
+                            (v/one? b) 1
+                            :else (list 'gcd a b))
+        (= a b) a
+        :else (list 'gcd a b)))
+
+(defn- lcm [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/lcm a b)
+        (v/number? a) (cond (v/zero? a) 0
+                            (v/one? a) b
+                            :else (list 'lcm a b))
+        (v/number? b) (cond (v/zero? b) 0
+                            (v/one? b) a
+                            :else (list 'lcm a b))
+        (= a b) a
+        :else (list 'lcm a b)))
+
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
@@ -400,12 +400,9 @@
                                  (integer? (* (second (operands b)) e)))
                             (expt (first (operands b))
                                   (* (second (operands b)) e))
-                            (< e 0) (div-n 1 (expt b (- e)))
+                            (< e 0) (invert (expt b (- e)))
                             :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
-
-(defn- negate [x] (sub 0 x))
-(defn- invert [x] (div 1 x))
 
 ;; ## Complex Operations
 
@@ -556,22 +553,24 @@
   {'zero? sym:zero?
    'one? sym:one?
    'identity? sym:one?
-   '= sym:=
-   'and sym:and
-   'or sym:or
+   '= (ua/monoid sym:= true)
    'not sym:not
-   '+ add
-   '- sub-n
-   '* mul
-   '/ div-n
+   'and (ua/monoid sym:and true false?)
+   'or (ua/monoid sym:or false true?)
+   'negate negate
+   'invert invert
+   '+ (ua/monoid add 0)
+   '- (ua/group sub add negate 0)
+   '* (ua/monoid mul 1 v/zero?)
+   '/ (ua/group div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
+   'gcd (ua/monoid gcd 0)
+   'lcm (ua/monoid lcm 1 v/zero?)
    'floor floor
    'ceiling ceiling
    'integer-part integer-part
    'fractional-part fractional-part
-   'negate negate
-   'invert invert
    'sin sin
    'cos cos
    'tan tan

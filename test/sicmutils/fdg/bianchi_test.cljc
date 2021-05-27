@@ -140,34 +140,32 @@
   ;; yourself below.
   ;;
   ;; Feel free to run these with different coordinate systems! The chart below
-  ;; contains timing information for R2-rect, R3-rect and R4-rect. These are
-  ;; much slower than the scmutils implementation, probably because our
-  ;; polynomial GCD routine is not very fast.
+  ;; contains timing information for R2-rect, R3-rect and R4-rect.
   ;;
   ;;
   ;; With a (torsion-free) symmetric connection:
   ;;
-  ;; +----------+----------+-----------+
-  ;; |          |Bianchi 1 | Bianchi 2 |
-  ;; +----------+----------+-----------+
-  ;; |R2        |52ms, ??  | 1.29s, ?? |
-  ;; +----------+----------+-----------+
-  ;; |R3        |426ms, ?? |1.02m, ??  |
-  ;; +----------+----------+-----------+
-  ;; |R4        |2.17s, ??  |17.44m, ?? |
-  ;; +----------+----------+-----------+
+  ;; +----------+--------------+---------------+
+  ;; |          | Bianchi 1    | Bianchi 2     |
+  ;; +----------+--------------+---------------+
+  ;; |R2        | 52ms, 120ms  | 1.29s, 1.7s   |
+  ;; +----------+--------------+---------------+
+  ;; |R3        | 426ms, 800ms | 1.02m, 88s    |
+  ;; +----------+--------------+---------------+
+  ;; |R4        | 2.17s, 3.5s  | 17.44m, 41.2m |
+  ;; +----------+--------------+---------------+
   ;;
   ;; With a general connection (with torsion):
   ;;
-  ;; +----------+----------+-----------+
-  ;; |          |Bianchi 1 | Bianchi 2 |
-  ;; +----------+----------+-----------+
-  ;; |R2        |199ms, ?? |1.38s, ??  |
-  ;; +----------+----------+-----------+
-  ;; |R3        |1.33s, ?? |26.74s, ?? |
-  ;; +----------+----------+-----------+
-  ;; |R4        |6.96s, ?? |4.82m, ??  |
-  ;; +----------+----------+-----------+
+  ;; +----------+--------------+--------------+
+  ;; |          | Bianchi 1    | Bianchi 2    |
+  ;; +----------+--------------+--------------+
+  ;; |R2        | 199ms, 400ms | 1.38s, 2.5s  |
+  ;; +----------+--------------+--------------+
+  ;; |R3        | 1.33s, 2.2s  | 26.74s, 36s  |
+  ;; +----------+--------------+--------------+
+  ;; |R4        | 6.96s, 10.1s | 4.82m, 6.6m  |
+  ;; +----------+--------------+--------------+
 
   (testing "A system with a symmetric connection is torsion-free."
     (is (= 0 (simplify
@@ -178,17 +176,15 @@
       (is (= 0 (simplify
                 (Bianchi1-symmetric e/R2-rect)))))
 
-    (comment
-      (testing "Second bianchi identity"
-        (is (= 0 (simplify
-                  (Bianchi2-symmetric e/R2-rect)))))))
+    (testing "Second bianchi identity"
+      (is (= 0 (simplify
+                (Bianchi2-symmetric e/R2-rect))))))
 
-  (testing "Bianchi identities with general (not-torsion-free) connection"
+  (testing "Bianchi identities with general connection"
     (testing "First (general) bianchi identity"
       (is (= 0 (simplify
                 (Bianchi1-general e/R2-rect)))))
 
-    (comment
-      (testing "Second (general) bianchi identity"
-        (is (= 0 (simplify
-                  (Bianchi2-general e/R2-rect))))))))
+    (testing "Second (general) bianchi identity"
+      (is (= 0 (simplify
+                (Bianchi2-general e/R2-rect)))))))

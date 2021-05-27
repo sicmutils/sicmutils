@@ -50,12 +50,6 @@
   (fn [place velocity]
     (* (/ 1 2) mass ((metric velocity velocity) place))))
 
-#_(defn Lc
-  [mass metric coordsys]
-  (fn [[t x v]]
-    (let [e (coordinate-system->vector-basis coordsys)]
-      ((L2 mass metric) ((point coordsys) x) (* e v)))))
-
 (deftest chapter-one
   (is (= '(+ (* (/ 1 2) (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
              (* (/ 1 2) (expt R 2) m (expt thetadot 2)))
