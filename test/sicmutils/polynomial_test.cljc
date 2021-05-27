@@ -226,14 +226,16 @@
     (checking "p/linear" 50
               [arity (gen/fmap inc gen/nat)
                i (gen/choose 0 (dec arity))
-               root (gen/fmap inc gen/nat)]
+               root gen/nat]
               (let [line (p/linear arity i root)]
                 (is (= (g/- (p/identity arity i)
                             root)
                        line)
                     "linear matches explicitly built linear poly")
 
-                (is (= 0 (p/lowest-degree line)))))
+                (if (zero? root)
+                  (is (= 1 (p/lowest-degree line)))
+                  (is (= 0 (p/lowest-degree line))))))
 
     (checking "p/c*xn" 50
               [arity (gen/fmap inc gen/nat)
@@ -283,12 +285,13 @@
     (is (not (v/zero? (p/make [1])))))
 
   (checking "dense construction round-trips with univariate->dense" 100
-            [x (gen/vector (gen/fmap inc gen/nat) 2 20)
+            [prefix (gen/vector gen/nat 1 20)
              n-zeros gen/nat]
-            (is (= x (p/univariate->dense
-                      (p/make
-                       (concat x (repeat n-zeros 0)))))
-                "trailing zeros aren't round-tripped"))
+            (let [x (conj prefix 1)]
+              (is (= x (p/univariate->dense
+                        (p/make
+                         (concat x (repeat n-zeros 0)))))
+                  "trailing zeros aren't round-tripped")))
 
   (checking "p/make returns zero only if first entry is zero" 100
             [arity gen/nat
@@ -365,7 +368,9 @@
 
   (checking "scale, scale-l" 100 [p (sg/polynomial)]
             (is (v/zero? (p/scale-l 0 p)))
-            (is (v/zero? (p/scale-l p 0))))
+            (is (v/zero? (p/scale-l p 0)))
+            (is (v/zero? (p/scale 0 p)))
+            (is (v/zero? (p/scale p 0))))
 
   (checking "map-exponents works on scalars" 100
             [c  gen/nat
@@ -742,7 +747,7 @@
     (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
       (is (= 216 (p/evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
 
-  (let [arity 21]
+  (let [arity 20]
     (checking "evaluate matches ->expression" 10
               [p  (sg/polynomial :arity arity)
                xs (gen/vector sg/symbol arity)]
@@ -787,7 +792,25 @@
       (is (= 33 (p/evaluate P [1 2 3])))
       (is (thrown? #?(:clj AssertionError :cljs js/Error)
                    (p/evaluate P [1 2 3 4]))
-          "Too many arguments supplied."))))
+          "Too many arguments supplied.")))
+
+
+  (let [pos (gen/fmap inc gen/nat)]
+    (checking "arg-scale, shift" 100
+              [term-count (gen/choose 2 10)
+               factor pos
+               p (gen/fmap p/make (gen/vector pos term-count))]
+              (is (v/zero?
+                   (g/simplify
+                    (g/- (p (g/* 'x factor))
+                         ((p/arg-scale p [factor]) 'x))))
+                  "arg-scale")
+
+              (is (v/zero?
+                   (g/simplify
+                    (g/- (p (g/+ 'x factor))
+                         ((p/arg-shift p [factor]) 'x))))
+                  "arg-scale"))))
 
 (deftest extend-contract-tests
   (checking "extend, contract for coeffs" 100

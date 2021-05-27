@@ -1008,8 +1008,8 @@
           l-poly?
           (->poly
            (bare-arity l)
-	         (terms-op (bare-terms l)
-			               (i/constant->terms r)))
+           (terms-op (bare-terms l)
+                     (i/constant->terms r)))
 
           r-poly?
           (->poly
@@ -1390,7 +1390,7 @@
             (v/zero? p) 0
             :else
             (let [x (first xs)
-                  x (if (polynomial? x)
+                  x (if (and (polynomial? x) (> a 1))
                       (constant (dec a) x)
                       x)]
               (if (= a 1)
@@ -1431,53 +1431,53 @@
    {:pre [(univariate? a)
           (number? z)]}
    (letfn [(call [d p q r e a]
-	           (let [next-degree (degree a)
-		               n (if (polynomial? a)
+             (let [next-degree (degree a)
+                   n (if (polynomial? a)
                        (- d next-degree)
                        d)
                    finish (fn [np nq nr ne]
                             (if (polynomial? a)
                               (call next-degree np nq nr ne
-		                                (drop-leading-term a))
-		                          (cont np nq (* 2 nr)
-			                              (* v/machine-epsilon
+                                    (drop-leading-term a))
+                              (cont np nq (* 2 nr)
+                                    (* v/machine-epsilon
                                        (+ (- ne (Math/abs np)) ne)))))]
-	             (cond (= n 1)
-		                 (let [np (+ (* z p) (leading-coefficient a))
-			                     nq (+ (* z q) p)
-			                     nr (+ (* z r) q)
-			                     ne (+ (* (Math/abs z) e) (Math/abs np))]
-		                   (finish np nq nr ne))
-		                 (= n 2)
-		                 (let [z-n (* z z)
-			                     az-n (Math/abs z-n)
-			                     np (+ (* z-n p) (leading-coefficient a))
-			                     nq (+ (* z-n q) (* 2 (* z p)))
-			                     nr (+ (* z-n r) (* 2 z q) p)
-			                     ne (+ (* az-n (+ e p)) (Math/abs np))]
-		                   (finish np nq nr ne))
-		                 :else
-		                 (let [z-n-2 (expt z (- n 2))
-			                     z-n-1 (* z-n-2 z)
-			                     z-n (* z-n-1 z)
-			                     az-n (Math/abs z-n)
-			                     np (+ (* z-n p)
-				                         (leading-coefficient a))
-			                     nq (+ (* z-n q)
-				                         (* n (* z-n-1 p)))
-			                     nr (+ (* z-n r)
-				                         (* n z-n-1 q)
-				                         (* (/ 1 2) n (- n 1) z-n-2 p))
-			                     ne (+ (* az-n (+ e (* (- n 1) p)))
-				                         (Math/abs np))]
-		                   (finish np nq nr ne)))))]
+               (cond (= n 1)
+                     (let [np (+ (* z p) (leading-coefficient a))
+                           nq (+ (* z q) p)
+                           nr (+ (* z r) q)
+                           ne (+ (* (Math/abs z) e) (Math/abs np))]
+                       (finish np nq nr ne))
+                     (= n 2)
+                     (let [z-n (* z z)
+                           az-n (Math/abs z-n)
+                           np (+ (* z-n p) (leading-coefficient a))
+                           nq (+ (* z-n q) (* 2 (* z p)))
+                           nr (+ (* z-n r) (* 2 z q) p)
+                           ne (+ (* az-n (+ e p)) (Math/abs np))]
+                       (finish np nq nr ne))
+                     :else
+                     (let [z-n-2 (expt z (- n 2))
+                           z-n-1 (* z-n-2 z)
+                           z-n (* z-n-1 z)
+                           az-n (Math/abs z-n)
+                           np (+ (* z-n p)
+                                 (leading-coefficient a))
+                           nq (+ (* z-n q)
+                                 (* n (* z-n-1 p)))
+                           nr (+ (* z-n r)
+                                 (* n z-n-1 q)
+                                 (* (/ 1 2) n (- n 1) z-n-2 p))
+                           ne (+ (* az-n (+ e (* (- n 1) p)))
+                                 (Math/abs np))]
+                       (finish np nq nr ne)))))]
      (let [lc (leading-coefficient a)]
        (call (degree a)
-		         lc
-		         0
-		         0
-		         (* (/ 1 2) (Math/abs lc))
-		         (drop-leading-term a))))))
+             lc
+             0
+             0
+             (* (/ 1 2) (Math/abs lc))
+             (drop-leading-term a))))))
 
 ;; ## Scale and Shift
 
@@ -1491,8 +1491,8 @@
   [p factors]
   {:pre (= (arity p) (count factors))}
   (evaluate p (map mul
-		               factors
-		               (new-variables (arity p)))))
+                   factors
+                   (new-variables (arity p)))))
 
 (defn arg-shift
   "Given some [[Polynomial]] `p`, returns a new [[Polynomial]] generated by
@@ -1505,7 +1505,7 @@
   {:pre (= (arity p) (count shifts))}
   (evaluate p (map add
                    shifts
-		               (new-variables (arity p)))))
+                   (new-variables (arity p)))))
 
 ;; ## Derivatives
 

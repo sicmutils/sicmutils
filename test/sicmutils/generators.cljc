@@ -341,18 +341,13 @@
          denom-opts (assoc denom-opts
                            :nonzero? true
                            :arity arity)
-         n (apply polynomial (apply concat num-opts))
-         d (apply polynomial (apply concat denom-opts))]
-     (gen/fmap
-      (fn [[u v]]
-        (let [result (rf/->reduced u v)]
-          (if (rf/rational-function? result)
-            result
-            (rf/->RationalFunction
-             arity
-             (r/numerator result)
-             (r/denominator result)))))
-      (gen/tuple n d)))))
+         n  (apply polynomial (apply concat num-opts))
+         d  (apply polynomial (apply concat denom-opts))
+         rf (gen/fmap
+             (fn [[u v]]
+               (rf/->reduced u v))
+             (gen/tuple n d))]
+     (gen/such-that rf/rational-function? rf))))
 
 ;; ## Custom Almost-Equality
 

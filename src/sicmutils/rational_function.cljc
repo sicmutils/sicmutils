@@ -891,9 +891,9 @@
   (expt b x))
 
 (defmethod g/simplify [::rational-function] [r]
-  (make (g/simplify (bare-u r))
-        (g/simplify (bare-v r))
-        (meta r)))
+  (-> (make (g/simplify (bare-u r))
+            (g/simplify (bare-v r)))
+      (with-meta (meta r))))
 
 (defmethod g/partial-derivative [::rational-function v/seqtype]
   [r selectors]
