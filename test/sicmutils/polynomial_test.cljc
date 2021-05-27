@@ -37,6 +37,7 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as pi]
+            [sicmutils.series :as ss]
             [sicmutils.simplify]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -292,6 +293,20 @@
                         (p/make
                          (concat x (repeat n-zeros 0)))))
                   "trailing zeros aren't round-tripped")))
+
+  (checking "->power-series" 100
+            [p (sg/polynomial :arity 1)]
+            (let [series (p/->power-series p)]
+              (is (ss/power-series? series))
+
+              (is (ss/power-series?
+                   (p/->power-series series))
+                  "->power-series is idempotent")
+
+              (let [coeffs (p/univariate->dense p)]
+                (is (= coeffs
+                       (take (count coeffs) series))
+                    "series values are correct"))))
 
   (checking "p/make returns zero only if first entry is zero" 100
             [arity gen/nat

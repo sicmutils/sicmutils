@@ -358,7 +358,7 @@
 ;;
 ;; See the docstring below for a description.
 
-(defn- monomial-gcd
+(defn ^:no-doc monomial-gcd
   "Returns the greatest common divisor of some monomial `m` and a polynomial `p`.
   The GCD of these two inputs is a monomial (or bare coefficient) with:
 
