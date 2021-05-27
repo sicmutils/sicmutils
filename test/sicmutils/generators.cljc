@@ -307,12 +307,12 @@
   "Returns a generator that produces instances of [[polynomial.Polynomial]].
 
   `arity` can be a number or a generator."
-  [& {:keys [arity coefs nonzero?]
+  [& {:keys [arity coeffs nonzero?]
       :or {nonzero? true
            arity gen/nat
-           coefs small-integral}}]
+           coeffs small-integral}}]
   (letfn [(poly-gen [arity]
-            (let [terms (poly:terms arity coefs)
+            (let [terms (poly:terms arity coeffs)
                   pgen (gen/fmap (fn [terms]
                                    (let [p (poly/make arity terms)]
                                      (if (poly/polynomial? p)

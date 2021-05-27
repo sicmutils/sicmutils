@@ -23,6 +23,8 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
+            [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.differential :as sd]
             [sicmutils.expression :refer [variables-in expression-of]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.function :as f]
@@ -36,36 +38,189 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(deftest polynomial-type-tests
-  (checking "polynomials are both explicit polys and polynomial? == true" 100
-            [p (sg/polynomial)]
-            (is (p/polynomial? p))
-            (is (= ::p/polynomial (v/kind p))))
+(deftest impl-tests
+  (testing "tests of polynomial backing impl"
+    (checking "make-term round trip" 100
+              [expts (sg/poly:exponents 10)
+               coeff sg/number]
+              (let [term  (pi/make-term expts coeff)]
+                (is (= expts (pi/exponents term)))
+                (is (= coeff (pi/coefficient term)))))
 
-  (checking "IArity" 100 [p (sg/polynomial)]
-            (is (= (f/arity p)
-                   [:between 0 (p/arity p)])))
+    (testing "term getter defaults"
+      (is (= 0 (pi/coefficient [])))
+      (is (= xpt/empty (pi/exponents []))))))
 
-  (checking "make-term round trip" 100
-            [expts (gen/vector gen/nat)
-             coef sg/number]
-            (let [expts (xpt/dense->exponents expts)
-                  term  (pi/make-term expts coef)]
-              (is (= expts (pi/exponents term)))
-              (is (= coef (pi/coefficient term)))))
+(deftest polynomial-tests
+  (testing "type definition, protocols"
+    (checking "IArity" 100 [p (sg/polynomial)]
+              (is (= (f/arity p)
+                     [:between 0 (p/arity p)])))
 
-  (testing "term getter defaults"
-    (is (= 0 (pi/coefficient [])))
-    (is (= xpt/empty (pi/exponents []))))
+    (testing "IPerturbed"
+      (letfn [(f [x] (p/make [1 2 (g/square x) 3]))]
+        (is (= (p/make [1 2 (g/square 'x) 3])
+               (g/simplify
+                (f 'x)))
+            "verifying the result...")
+
+        (is (= (p/make [0 0 (g/+ 'x 'x)])
+               ((D f) 'x))
+            "polynomial derivatives with respect to some coefficient work!")))
+
+    (checking "perturbed?" 100
+              [p (sg/polynomial :coeffs (sg/differential))]
+              (is (sd/perturbed? p)
+                  "A polynomial with perturbed coefficients is perturbed."))
+
+    (checking "polynomials are polynomial?, v/kind, misc others" 100
+              [p (sg/polynomial)]
+              (is (p/polynomial? p))
+              (is (not (p/coeff? p)))
+              (is (not (v/exact? p)))
+              (is (= ::p/polynomial (v/kind p))
+                  "kind works"))
+
+    (checking "->seq" 100 [p (sg/polynomial)]
+              (is (= (p/bare-terms p)
+                     (seq p))
+                  "calling `seq` returns a sequence of terms"))
+
+    (checking "meta, with-meta"
+              100 [p (sg/polynomial)
+                   m (gen/map gen/keyword gen/any)]
+              (is (nil? (meta m))
+                  "nil by default")
+
+              (is (= m (meta (with-meta p m)))
+                  "metadata works")
+
+              (is (= m (meta
+                        (p/->Polynomial (p/bare-arity p)
+                                        (p/bare-terms p)
+                                        m)))
+                  "three-arity constructor allows metadata"))
+
+    (testing "->str, freeze"
+      (is (= "1: (1*{} + 2*{0 1} + 3*{0 2})"
+             (str (p/make [1 2 3]))))
+
+      (is (= '(polynomial 1 [[{} 1] [{0 1} 2] [{0 2} 3]])
+             (v/freeze
+              (p/make [1 2 3])))
+          "freeze representation isn't THAT great yet..."))
+
+    (checking "zero-like" 100 [p (sg/polynomial)]
+              (is (v/zero?
+                   (v/zero-like p))))
+
+    (testing "one"
+      (is (not (v/one? (p/make []))))
+      (is (v/one? (p/make [1])))
+      (is (v/one? (p/make 2 {[0 0] 1})))
+      (is (v/one? (p/make 3 {[0 0 0] 1})))
+      (is (not (v/one? (p/make 3 {[0 0 0] 1 [0 0 1] 2}))))
+      (is (not (v/one? (p/make [1.1]))))
+      (is (v/one? (p/make [1.0])))
+      (is (v/one? (p/make [(p/make [1])])))
+      (is (not (v/one? (p/make [(p/make [2])])))))
+
+    (checking "one-like" 100 [p (sg/polynomial)]
+              (is (v/one?
+                   (v/one-like p))))
+
+    (testing "one-like unit tests"
+      (is (= (p/constant 1 1)
+             (v/one-like (p/make [1 2 3]))))
+
+      (is (= (p/constant 2 1)
+             (v/one-like
+              (p/make 2 {[1 0] 1
+                         [2 1] 3}))))
+
+      (is (= (p/constant 3 1)
+             (v/one-like
+              (p/make 3 {[1 2 1] 4
+                         [0 1 0] 5}))))
+
+      (is (= (p/make 2 {[0 0] 1})
+             (v/one-like (p/make 2 [])))
+          "If we can't deduce the unit element from the zero polynomial over an
+          unknown ring, assume it's 1"))
+
+    (checking "identity-like (only on monomials)" 100
+              [p (sg/polynomial :arity 1)]
+              (is (v/identity?
+                   (v/identity-like p))))
+
+    (testing "identity unit tests"
+      (is (v/identity? (p/make [0 1])))
+      (is (not (v/identity? (p/make []))))
+      (is (not (v/identity? (p/make [0]))))
+
+      (testing "identity? only returns true for monomials."
+        (is (v/identity? (p/identity 1)))
+        (is (not (v/identity? (p/identity 2 1))))))
+
+    (testing "identity-like unit tests"
+      (is (= (p/make [0 1])
+             (v/identity-like (p/make [0 0 0 1]))))
+
+      (is (= (p/make [0 1])
+             (v/identity-like (p/make [1 2 3]))))
+
+      (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                   (v/identity-like (p/constant 10 1)))
+          "identity-like is only supported on monomials."))))
+
+(deftest constructor-accessor-tests
+  (testing "constructors"
+    (checking "constant" 100 [x sg/number]
+              (let [c (p/constant 1 x)]
+                (is (p/polynomial? c)
+                    "constant is always a polynomial.")
+
+                (is (p/coeff? (p/make [x]))
+                    "p/make drops coefficients back down out of poly.")
+
+                (is (= c x)
+                    "constant polynomial can equal actual constant on right")
+
+                (is (v/= x c)
+                    "scalar on left requires v/=")))
+
+    (testing "identity"
+      (is (= (p/make [0 1])
+             (p/identity))
+          "bare p/identity returns arity 1, first variable")
+
+      (checking "" 100 [arity (gen/fmap inc gen/nat)
+                        i     (gen/choose 0 (dec arity))]
+                (is (= (p/make arity {{0 1} 1})
+                       (p/identity arity)))
+
+                (is (= (p/make arity {{i 1} 1})
+                       (p/identity arity (inc i)))
+                    "specifying an explicit variable index ")))
+
+    ;; TODO identity
+    ;; TODO linear
+    ;; TODO new-variables
+    ;; TODO c*xn
+    ;;
+    )
+
+  (testing "accessors"
+    )
 
   (testing "dense make returns 0 for no entries or a zero first entry"
     (is (v/zero? (p/make [])))
     (is (v/zero? (p/make [0])))
     (is (not (v/zero? (p/make [1])))))
 
-  (checking "zero only if first entry is zero" 100
+  (checking "p/make returns zero only if first entry is zero" 100
             [arity gen/nat
-             x     sg/number]
+             x sg/number]
             (if (v/zero? x)
               (is (v/zero? (p/make [x])))
               (is (not (v/zero? (p/make [x])))))
@@ -74,90 +229,31 @@
               (is (v/zero? (p/constant arity x)))
               (is (not (v/zero? (p/constant arity x))))))
 
-  (checking "zero-like" 100 [p (sg/polynomial)]
-            (is (v/zero?
-                 (v/zero-like p))))
+  (checking "terms, lead term" 100
+            [arity gen/nat
+             x sg/any-integral]
+            (let [cx (p/constant arity x)]
+              (is (p/polynomial? cx))
 
-  (testing "one"
-    (is (not (v/one? (p/make []))))
-    (is (v/one? (p/make [1])))
-    (is (v/one? (p/make 2 [[[0 0] 1]])))
-    (is (v/one? (p/make 3 [[[0 0 0] 1]])))
-    (is (not (v/one? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
-    (is (not (v/one? (p/make [1.1]))))
-    (is (v/one? (p/make [1.0])))
-    (is (v/one? (p/make [(p/make [1])])))
-    (is (not (v/one? (p/make [(p/make [2])])))))
+              (is (= (p/->terms x)
+                     (p/->terms cx))
+                  "->terms works on poly, constant itself")
 
-  (checking "one-like" 100 [p (sg/polynomial)]
-            (is (v/one?
-                 (v/one-like p))))
+              (is (= (pi/make-term x)
+                     (p/leading-term x)
+                     (p/leading-term cx))
+                  "leading-terms works identically on poly, constant itself")
 
-  (testing "one-like unit tests"
-    (is (= (p/constant 1 1)
-           (v/one-like (p/make [1 2 3]))))
+              (is (= x
+                     (p/leading-coefficient x)
+                     (p/trailing-coefficient x)
+                     (p/leading-coefficient cx))
+                  "leading, trailing act as identity for non-polynomials")
 
-    (is (= (p/constant 2 1)
-           (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
-
-    (is (= (p/constant 3 1)
-           (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
-
-    (is (= (p/make 2 [[[0 0] 1]])
-           (v/one-like (p/make 2 [])))
-        "If we can't deduce the unit element from the zero polynomial over an
-        unknown ring, assume it's 1"))
-
-  (testing "identity unit tests"
-    (is (v/identity? (p/make [0 1])))
-    (is (not (v/identity? (p/make []))))
-    (is (not (v/identity? (p/make [0]))))
-
-    (testing "identity? only returns true for monomials."
-      (is (v/identity? (p/identity 1)))
-      (is (not (v/identity? (p/identity 2 1))))))
-
-  (checking "identity-like (only on monomials)" 100
-            [p (sg/polynomial :arity 1)]
-            (is (v/identity?
-                 (v/identity-like p))))
-
-  (testing "identity-like unit tests"
-    (is (= (p/make [0 1])
-           (v/identity-like (p/make [0 0 0 1]))))
-
-    (is (= (p/make [0 1])
-           (v/identity-like (p/make [1 2 3]))))
-
-    (is (thrown? #?(:clj AssertionError :cljs js/Error)
-                 (v/identity-like (p/constant 10 1)))
-        "identity-like is only supported on monomials."))
-
-  (testing "constant"
-    (let [c (p/constant 1 99)]
-      (is (p/polynomial? c))
-      (is (= c 99))
-      (is (v/= 99 c)))
-
-    (let [c (p/constant 2 88)]
-      (is (p/polynomial? c))
-      (is (= c 88))
-      (is (v/= 88 c)))
-
-    (let [c (p/constant 3 77)]
-      (is (p/polynomial? c))
-      (is (= c 77))
-      (is (v/= 77 c))))
-
-  (checking "terms, lead term" 100 [x sg/any-integral]
-            (is (= (p/->terms x)
-                   (p/->terms (p/constant 0 x))))
-
-            (is (= (p/leading-term x)
-                   (p/leading-term (p/constant 0 x))))
-
-            (is (= (p/leading-coefficient x)
-                   (p/leading-coefficient (p/constant x)))))
+              (is (= (p/trailing-coefficient cx)
+                     (p/leading-coefficient cx))
+                  "trailing and leading are the same in a constant
+                  polynomial")))
 
   (testing "degree"
     (is (= -1 (p/degree (p/constant 1 0))))
@@ -169,14 +265,14 @@
     (is (= 2 (p/degree (p/make [-1 0 2]))))))
 
 (deftest arithmetic-tests
-  (let [coefs (gen/fmap #(g/modulo % 1000) sg/small-integral)]
+  (let [coeffs (gen/fmap #(g/modulo % 1000) sg/small-integral)]
     (testing "algebraic laws"
-      (sl/ring 50 (sg/polynomial :arity 3 :coefs coefs)
+      (sl/ring 50 (sg/polynomial :arity 3 :coeffs coeffs)
                "polynomial is a ring"
                :commutative? true
                :with-one? true)
 
-      (sl/ring 50 (sg/polynomial :arity 1 :coefs coefs)
+      (sl/ring 50 (sg/polynomial :arity 1 :coeffs coeffs)
                "polynomial arity 1 is a ring"
                :commutative? true
                :with-one? true)))
@@ -406,8 +502,8 @@
   (testing "other coefficient rings: GF(11)"
     (sl/ring 50 (sg/polynomial
                  :arity 1
-                 :coefs (gen/fmap #(modular/make % 11)
-                                  gen/small-integer))
+                 :coeffs (gen/fmap #(modular/make % 11)
+                                   gen/small-integer))
              "polynomial is a ring"
              :commutative? true
              :with-one? true))
@@ -794,5 +890,6 @@
          (p/contract
           (p/make 3 {[0 1 2] 3 [0 3 4] 5}) 0)))
 
+  ;; test string rep
   (checking "contractible is false for all coeffs" 100 [x sg/number]
             (is (false? (p/contractible? x 0)))))

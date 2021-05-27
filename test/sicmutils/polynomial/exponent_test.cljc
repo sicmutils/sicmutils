@@ -26,6 +26,19 @@
             [sicmutils.polynomial.exponent :as xpt]))
 
 (deftest exponents-tests
+  (checking "(l*r)/r == l" 100
+            [l (sg/poly:exponents 10)
+             r (sg/poly:exponents 10)]
+            (is (= l (-> (xpt/mul l r)
+                         (xpt/div r)))))
+
+  (checking "(l*r)/gcd(l,r) == lcm(l,r)" 100
+            [l (sg/poly:exponents 10)
+             r (sg/poly:exponents 10)]
+            (is (= (xpt/lcm l r)
+                   (-> (xpt/mul l r)
+                       (xpt/div (xpt/gcd l r))))))
+
   (checking "->sort+unsort" 100
             [m (sg/poly:exponents 100)]
             (let [[sort-m unsort-m] (xpt/->sort+unsort m)]

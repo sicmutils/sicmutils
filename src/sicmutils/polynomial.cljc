@@ -194,7 +194,7 @@
 
        IObj
        (meta [_] m)
-       (withMeta [_ meta] (Polynomial. arity terms m))
+       (withMeta [_ meta] (Polynomial. arity terms meta))
 
        Seqable
        (seq [_] (seq terms))
@@ -707,7 +707,7 @@
   [p]
   (if (polynomial? p)
     (i/coefficient
-     (nth (bare-terms p) 0))
+     (nth (bare-terms p) 0 []))
     p))
 
 (defn lowest-degree
