@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(defproject sicmutils "0.18.0"
+(defproject sicmutils "0.19.0"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
   :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
@@ -37,30 +37,28 @@
                  [cljsjs/complex "2.0.11-0"]
                  [cljsjs/odex "2.0.4-0"]
                  [hiccup "1.0.5"]
-                 [nrepl "0.7.0"]
                  [potemkin "0.4.5"]]
   ;; :global-vars {*warn-on-reflection* true}
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
-                 :welcome (sicmutils.env/sicmutils-repl-init)
+                 :welcome (set! nrepl.middleware.print/*print-fn*
+                                sicmutils.expression/expression->stream)
                  :init-ns sicmutils.env}
   :target-path "target/%s"
   :test-selectors {:default (complement :long)
                    :benchmark :benchmark}
-  :profiles {:dev {:plugins [[lein-cloverage "1.2.1"]]
-                   :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
-                   :repl-options {:nrepl-middleware
-                                  [cider.piggieback/wrap-cljs-repl]}
-                   :dependencies [[org.clojure/test.check "1.1.0"]
-                                  [com.taoensso/tufte "2.2.0"]
-                                  [com.gfredericks/test.chuck "0.2.10"]
-                                  [same/ish "0.1.4"]
-                                  [criterium "0.4.5"]
-                                  [cider/piggieback "0.5.0"]
-                                  [lein-doo "0.1.11"]
-                                  [thheller/shadow-cljs "2.11.6"]]}
-             :test {:dependencies [[org.clojure/test.check "1.0.0"]
-                                   [criterium "0.4.5"]]}}
+  :profiles {:dev
+             {:plugins [[lein-cloverage "1.2.1"]]
+              :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
+              :repl-options {:nrepl-middleware
+                             [cider.piggieback/wrap-cljs-repl]}
+              :dependencies [[org.clojure/test.check "1.1.0"]
+                             [cider/piggieback "0.5.0"]
+                             [com.taoensso/tufte "2.2.0"]
+                             [com.gfredericks/test.chuck "0.2.10"]
+                             [nrepl "0.7.0"]
+                             [same/ish "0.1.4"]
+                             [thheller/shadow-cljs "2.11.6"]]}}
   :deploy-repositories [["clojars"
                          {:url "https://repo.clojars.org"
                           :username :env/clojars_username

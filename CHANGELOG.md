@@ -2,7 +2,9 @@
 
 ## [unreleased]
 
-- #blah:
+## 0.19.0
+
+- #369:
 
   - Makes `sicmutils.polynomial.{factor,gcd}` available to SCI via the
     `sicmutils.env.sci` namespace
@@ -18,7 +20,6 @@
     - `sicmutils.numerical.interpolate.rational` ->
       `sicmutils.rational-function.interpolate`
 
-  - moves `sicmutils.`
 - #341 takes on a large rewrite of the rational function and polynomial
   simplfiers. One goal of this project was to improve the performance of the
   Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that

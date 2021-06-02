@@ -9,7 +9,6 @@
         com.taoensso/timbre {:mvn/version "5.1.2"},
         hiccup/hiccup {:mvn/version "1.0.5"},
         org.clojure/core.match {:mvn/version "1.0.0"},
-        nrepl/nrepl {:mvn/version "0.7.0"},
         cljsjs/complex {:mvn/version "2.0.11-0"},
         borkdude/sci {:mvn/version "0.2.5"},
         cljsjs/bigfraction {:mvn/version "4.0.12-0"}}}
