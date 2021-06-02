@@ -44,7 +44,7 @@
                                 sicmutils.expression/expression->stream)
                  :init-ns sicmutils.env}
   :target-path "target/%s"
-  :test-selectors {:default (complement :long)
+  :test-selectors {:short (complement :long)
                    :benchmark :benchmark}
   :profiles {:dev
              {:plugins [[lein-cloverage "1.2.1"]]
