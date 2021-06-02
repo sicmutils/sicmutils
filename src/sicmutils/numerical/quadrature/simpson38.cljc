@@ -21,7 +21,7 @@
   (:require [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util.stream :as us]))
 
 ;; ## Simpson's 3/8 Rule
@@ -81,7 +81,7 @@
   ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}
    (-> (qt/trapezoid-sequence f a b (us/powers 3 n))
-       (ir/richardson-column 1 3 2 2))))
+       (pr/richardson-column 1 3 2 2))))
 
 (qc/defintegrator integral
   "Returns an estimate of the integral of `f` over the closed interval $[a, b]$

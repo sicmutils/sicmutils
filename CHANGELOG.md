@@ -2,6 +2,23 @@
 
 ## [unreleased]
 
+- #blah:
+
+  - Makes `sicmutils.polynomial.{factor,gcd}` available to SCI via the
+    `sicmutils.env.sci` namespace
+
+  - moves a few namespaces:
+
+    - `sicmutils.numerical.interpolate.polynomial` ->
+      `sicmutils.polynomial.interpolate`
+
+    - `sicmutils.numerical.interpolate.richardson` ->
+      `sicmutils.polynomial.richardson`
+
+    - `sicmutils.numerical.interpolate.rational` ->
+      `sicmutils.rational-function.interpolate`
+
+  - moves `sicmutils.`
 - #341 takes on a large rewrite of the rational function and polynomial
   simplfiers. One goal of this project was to improve the performance of the
   Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that
@@ -2029,9 +2046,9 @@ curious about how these algorithms work.
     - [Trapezoid Method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/trapezoid.cljc), same idea but for closed intervals.
 
   - **Sequence Acceleration / Extrapolation Methods**
-    - [Polynomial interpolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/polynomial.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
-    - [Rational Function extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/rational.cljc): used in bulirsch-stoer integration and ODE solving.
-    - "[Richardson extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
+    - [Polynomial interpolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/interpolate.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
+    - [Rational Function extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/rational_function/interpolate.cljc): used in bulirsch-stoer integration and ODE solving.
+    - "[Richardson extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
 
   - **Higher-order Calculus:**
     - [Numerical derivatives](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/derivative.cljc): derivatives using three kinds of central difference formulas... accelerated using Richardson extrapolation, with a nice technique for guarding against underflow.

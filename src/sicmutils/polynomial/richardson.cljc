@@ -17,12 +17,12 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.interpolate.richardson
+(ns sicmutils.polynomial.richardson
   "Richardson interpolation is a special case of polynomial interpolation; knowing
   the ratios of successive `x` coordinates in the point sequence allows a more
   efficient calculation."
-  (:require [sicmutils.numerical.interpolate.polynomial :as ip]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.generic :as g]
+            [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]
@@ -193,7 +193,7 @@
 ;; paper for details).
 ;;
 ;; Polynomial interpolation in `polynomial.cljc` has a similar tableau
-;; structure (not by coincidence!), so we can use `ip/first-terms` in the
+;; structure (not by coincidence!), so we can use `pi/first-terms` in the
 ;; implementation below to fetch this first row.
 ;;
 ;; Now we can put it all together into a sequence transforming function, with
@@ -258,10 +258,10 @@
   - Wikipedia, [\"Richardson Extrapolation\"](https://en.wikipedia.org/wiki/Richardson_extrapolation)
   - GJS, ['Abstraction in Numerical Methods'](https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2)"
   ([xs t]
-   (ip/first-terms
+   (pi/first-terms
     (make-tableau xs t)))
   ([xs t p-sequence]
-   (ip/first-terms
+   (pi/first-terms
     (make-tableau xs t p-sequence)))
   ([xs t p q]
    (let [arithmetic-p-q (iterate #(+ q %) p)]
@@ -392,6 +392,6 @@
       (richardson-sequence archimedean-pi-sequence 4 1 1))
 
      (us/seq-limit
-      (ip/modified-neville xs 0.0))))
+      (pi/modified-neville xs 0.0))))
 
 ;; Success!
