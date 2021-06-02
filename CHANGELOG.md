@@ -6,6 +6,8 @@
 
 - #369:
 
+  - Dependency tidying; removes dependencies on Guava, nrepl.
+
   - Makes `sicmutils.polynomial.{factor,gcd}` available to SCI via the
     `sicmutils.env.sci` namespace
 

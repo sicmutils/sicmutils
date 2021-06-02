@@ -400,11 +400,11 @@
             [p (sg/polynomial)]
             (let [p+p* (p/add p (p/reciprocal p))
                   p-p* (p/sub p (p/reciprocal p))]
-              (is (= p+p* (p/reciprocal p+p*))
+              (is (v/= p+p* (p/reciprocal p+p*))
                   "p+p* is palindromic")
 
-              (is (= (g/negate p-p*)
-                     (p/reciprocal p-p*))
+              (is (v/= (g/negate p-p*)
+                       (p/reciprocal p-p*))
                   "p+p* is anti-palindromic")))
 
   (checking "reciprocal of a constant acts as identity" 100
