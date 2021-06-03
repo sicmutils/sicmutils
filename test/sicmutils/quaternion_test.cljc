@@ -79,3 +79,6 @@
                                   (q/->angle-axis))]
            (s/up (g/- theta' theta)
                  (g/- axis' axis))))))
+
+(deftest arithmetic-tests
+  #_(sl/field 100 quat-gen "quaternions" :skew? true))

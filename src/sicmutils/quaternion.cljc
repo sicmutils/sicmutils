@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.quaternion
-  (:require [sicmutils.differential :as d]
+  (:require [sicmutils.complex :as sc]
+            [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util.logic :as ul]
@@ -27,6 +28,11 @@
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
+
+;; TODO:
+;;
+;; - constructor from complex, use real and imag parts
+;; - i, j, k singletons
 
 (declare arity eq exact? q:apply q:zero? zero-like)
 
@@ -839,6 +845,14 @@
 ;; TODO test... maybe we just need vectors, not sequences?
 (defmethod v/= [v/seqtype ::quaternion] [a b] (eq a b))
 (defmethod v/= [::quaternion v/seqtype] [a b] (eq a b))
+
+;; TODO:
+(defmethod v/= [::sc/complex ::quaternion] [a b])
+(defmethod v/= [::quaternion ::sc/complex] [a b])
+
+;; TODO
+(defmethod v/= [::v/real ::quaternion] [a b])
+(defmethod v/= [::quaternion ::v/real] [a b])
 
 (defmethod g/simplify [::quaternion] [^Quaternion q]
   (->Quaternion
