@@ -30,11 +30,17 @@
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
 ;; TODO:
+;; - dot-product and whatever else fits... https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L302
+;; - sqrt https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L202
+;; - signum function! https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L174
 ;;
-;; - constructor from complex, use real and imag parts
-;; - i, j, k singletons
+;; TODO slerp, fromAxisAngle (confirm), fromEuler (confirm), fromBetweenVectors https://github.com/infusion/Quaternion.js/
+;;
+;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
+;;
+;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
 
-(declare arity eq exact? q:apply q:zero? zero-like)
+(declare arity eq q:apply q:zero? one?)
 
 (deftype Quaternion [r i j k m]
   f/IArity
@@ -65,17 +71,23 @@
 
   v/Value
   (zero? [this] (q:zero? this))
-  (one? [_] false
+  (one? [this] (one? this))
+  (identity? [this] (one? this))
 
-    ;; TODO add one or identity from https://github.com/infusion/Quaternion.js/
+  (zero-like [this]
+    (Quaternion. (v/zero-like r) 0 0 0 m))
+  (one-like [o]
+    (Quaternion. (v/one-like r) 0 0 0 m))
+  (identity-like [o]
+    (Quaternion. (v/one-like r) 0 0 0 m))
 
-    )
-  (identity? [_] false)
-  (zero-like [this] (zero-like this))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (identity-like [o] (u/unsupported (str "identity-like: " o)))
-  (exact? [this] (exact? this))
-  (freeze [_] (list 'quaternion r i j k))
+  (exact? [this]
+    (and (v/exact? r)
+         (v/exact? i)
+         (v/exact? j)
+         (v/exact? k)))
+  (freeze [_]
+    (list 'quaternion r i j k))
   (kind [_] ::quaternion)
 
   #?@(:clj
@@ -304,35 +316,54 @@
   [^Quaternion q]
   (.-k q))
 
-(defn ->vector [^Quaternion q]
-  [(.-r q) (.-i q) (.-j q) (.-k q)])
+(defn ->complex
+  "Returns a complex number created from the real and imaginary
+  components (dropping j, k)."
+  [q]
+  {:pre [(quaternion? q)]}
+  (sc/complex (get-r q)
+              (get-i q)))
 
-(defn three-vector [^Quaternion q]
-  [(.-i q) (.-j q) (.-k q)])
+(defn ->vector [q]
+  {:pre [(quaternion? q)]}
+  [(get-r q) (get-i q) (get-j q) (get-k q)])
 
-;; Constructors
+(defn three-vector [q]
+  {:pre [(quaternion? q)]}
+  [(get-i q) (get-j q) (get-k q)])
+
+;; ## Constructors
 ;;
 ;; TODO check for duplicates!
 
+(def ZERO (->Quaternion 0 0 0 0))
+
+(def ^{:doc "The identity quaternion."}
+  ONE (->Quaternion 1 0 0 0))
+
+(def I (->Quaternion 0 1 0 0))
+(def J (->Quaternion 0 0 1 0))
+(def K (->Quaternion 0 0 0 1))
+
 (defn make
-  "Same as `make`, and `real&3vector->quaternion`... plus one more."
-  ([v]
-   (if (instance? Quaternion v)
-     v
-     (apply ->Quaternion v)))
+  "Same as `make`, and `real&3vector->quaternion`... plus one more.
+
+  Also handles real and complex args."
+  ([x]
+   (cond (quaternion? x) x
+         (sequential? x) (apply ->Quaternion x)
+         (sc/complex? x) (->Quaternion
+                          (sc/real x) (sc/imaginary x) 0 0)
+         :else (->Quaternion x 0 0 0)))
   ([r [i j k]]
    (->Quaternion r i j k))
   ([r i j k]
    (->Quaternion r i j k)))
 
-(def ^{:doc "The identity quaternion."}
-  q:identity
-  (make 1 0 0 0))
-
 (defn from-angle-normal-axis
   "Create a quaternion from an angle in radians and a normalized axis vector."
   [angle [x y z]]
-  (let [half-angle (g// angle 2)
+  (let [half-angle (g/divide angle 2)
         half-sine (g/sin half-angle)]
     (->Quaternion (g/cos half-angle)
                   (g/* half-sine x)
@@ -360,7 +391,90 @@
   [angle]
   (from-angle-normal-axis angle [0 0 1]))
 
-;; Algebra
+;; ## Predicates, Accessors
+
+(defn real?
+  "Returns true if `q` has zero entries for all non-real fields, false otherwise."
+  [q]
+  (and (v/zero? (get-i q))
+       (v/zero? (get-j q))
+       (v/zero? (get-k q))))
+
+(defn pure?
+  "Returns true if `q` has a zero real entry, false otherwise."
+  [q]
+  (v/zero? (get-r q)))
+
+;; TODO vector dot product, just do it directly.
+
+(defn unit? [q]
+  (let [v (->vector q)]
+    (v/one? (g/dot-product v v))))
+
+(defn q:zero?
+  "TODO remove `q` prefix."
+  [q]
+  (and (real? q) (v/zero? (get-r q))))
+
+(defn one? [q]
+  (and (real? q) (v/one? (get-r q))))
+
+(defn eq
+  "Equality that handles quaternion, complex, vector-like entries and bails out to
+  comparing real parts."
+  [q1 q2]
+  (or (identical? q1 q2)
+      (let [r (get-r q1)
+            i (get-i q1)
+            j (get-j q1)
+            k (get-k q1)]
+        (cond
+          (quaternion? q2)
+          (let [q2 ^Quaternion q2]
+            (and (v/= r (.-r q2))
+                 (v/= i (.-i q2))
+                 (v/= j (.-j q2))
+                 (v/= k (.-k q2))))
+
+          (sc/complex? q2)
+          (and (v/= r (sc/real q2))
+               (v/= i (sc/imaginary q2))
+               (v/zero? j)
+               (v/zero? k))
+
+
+          (counted? q2)
+          (and (= (count q2) 4)
+               (= r (q2 0))
+               (= i (q2 1))
+               (= j (q2 2))
+               (= k (q2 3)))
+
+          :else
+          (and (real? q1)
+               (v/= r q2))))))
+
+;; TODO put these somewhere right...
+
+(defn q:apply [^Quaternion q args]
+  (->Quaternion
+   (apply (.-r q) args)
+   (apply (.-i q) args)
+   (apply (.-j q) args)
+   (apply (.-k q) args)))
+
+(defn arity [q]
+  (let [v (->vector q)
+        n 4]
+    (loop [i 1
+           a (f/arity (nth v 0))]
+      (if (= i n)
+        a
+        (if-let [b (f/combine-arities a (f/arity (nth v i)))]
+          (recur (inc i) b)
+          false)))))
+
+;; ## Algebra
 
 (defn add [^Quaternion q1 ^Quaternion q2]
   (->Quaternion
@@ -368,6 +482,13 @@
    (g/+ (.-i q1) (.-i q2))
    (g/+ (.-j q1) (.-j q2))
    (g/+ (.-k q1) (.-k q2))))
+
+(defn negate [^Quaternion q]
+  (->Quaternion
+   (g/negate (.-r q))
+   (g/negate (.-i q))
+   (g/negate (.-j q))
+   (g/negate (.-k q))))
 
 (defn sub [^Quaternion q1 ^Quaternion q2]
   (->Quaternion
@@ -389,40 +510,26 @@
   ([q1 q2 & more]
    (reduce mul (mul q1 q2) more)))
 
-(defn conjugate [^Quaternion q]
-  (->Quaternion
-   (.-r q)
-   (g/negate (.-i q))
-   (g/negate (.-j q))
-   (g/negate (.-k q))))
-
-(defn negate [^Quaternion q]
-  (->Quaternion
-   (g/negate (.-r q))
-   (g/negate (.-i q))
-   (g/negate (.-j q))
-   (g/negate (.-k q))))
-
-(defn scalar*q [s ^Quaternion q]
+(defn scale-l [s ^Quaternion q]
   (->Quaternion
    (g/* s (.-r q))
    (g/* s (.-i q))
    (g/* s (.-j q))
    (g/* s (.-k q))))
 
-(defn q*scalar [^Quaternion q s]
+(defn scale [^Quaternion q s]
   (->Quaternion
    (g/* (.-r q) s)
    (g/* (.-i q) s)
    (g/* (.-j q) s)
    (g/* (.-k q) s)))
 
-(defn q-div-scalar [^Quaternion q s]
+(defn conjugate [^Quaternion q]
   (->Quaternion
-   (g// (.-r q) s)
-   (g// (.-i q) s)
-   (g// (.-j q) s)
-   (g// (.-k q) s)))
+   (.-r q)
+   (g/negate (.-i q))
+   (g/negate (.-j q))
+   (g/negate (.-k q))))
 
 (defn invert [^Quaternion q]
   (q-div-scalar (conjugate q)
@@ -434,6 +541,13 @@
 (defn div [q1 q2]
   (mul q1 (invert q2)))
 
+(defn q-div-scalar [^Quaternion q s]
+  (->Quaternion
+   (g// (.-r q) s)
+   (g// (.-i q) s)
+   (g// (.-j q) s)
+   (g// (.-k q) s)))
+
 (defn magnitude
   "The norm of the quaternion."
   [^Quaternion q]
@@ -443,14 +557,10 @@
         (g/square (.-j q))
         (g/square (.-k q)))))
 
-(defn make-unit [q]
+(defn make-unit
+  "TODO rename to `normalize`."
+  [q]
   (q-div-scalar q (magnitude q)))
-
-;; TODO vector dot product, just do it directly.
-
-(defn unit? [q]
-  (let [v (->vector q)]
-    (v/one? (g/dot-product v v))))
 
 (defn exp [q]
   (let [a (real-part q)
@@ -470,53 +580,7 @@
           (g/* (g/acos (g// a qq))
                (g// v vv)))))
 
-(let [zero (->Quaternion 0 0 0 0)]
-  (defn zero-like [_] zero))
-
-(defn q:zero? [^Quaternion q]
-  (and (v/zero? (.-r q))
-       (v/zero? (.-i q))
-       (v/zero? (.-j q))
-       (v/zero? (.-k q))))
-
-(defn eq [^Quaternion q1 q2]
-  (or (identical? q1 q2)
-      (and (instance? Quaternion q2)
-           (let [q2 ^Quaternion q2]
-             (and (v/= (.-r q1) (.-r q2))
-                  (v/= (.-i q1) (.-i q2))
-                  (v/= (.-j q1) (.-j q2))
-                  (v/= (.-k q1) (.-k q2)))))
-      (and (counted? q2)
-           (= (count q2) 4)
-           (= (.-r q1) (q2 0))
-           (= (.-i q1) (q2 1))
-           (= (.-j q1) (q2 2))
-           (= (.-k q1) (q2 3)))))
-
-(defn exact? [^Quaternion q]
-  (and (v/exact? (.-r q))
-       (v/exact? (.-i q))
-       (v/exact? (.-j q))
-       (v/exact? (.-k q))))
-
-(defn q:apply [^Quaternion q args]
-  (->Quaternion
-   (apply (.-r q) args)
-   (apply (.-i q) args)
-   (apply (.-j q) args)
-   (apply (.-k q) args)))
-
-(defn arity [q]
-  (let [v (->vector q)
-        n 4]
-    (loop [i 1
-           a (f/arity (nth v 0))]
-      (if (= i n)
-        a
-        (if-let [b (f/combine-arities a (f/arity (nth v i)))]
-          (recur (inc i) b)
-          false)))))
+;; ## Calculus
 
 (defn partial-derivative [^Quaternion q selectors]
   (let [v (->vector q)]
@@ -612,6 +676,7 @@
        (+ (* 2 qx qz vx)   (* 2 qy qz vy) (* qz qz vz)     (* -2 qw qy vx)
           (- (* qy qy vz)) (* 2 qw qx vy) (- (* qx qx vz)) (* qw qw vz)))))
   )
+
 (defn rotate [q]
   {:pre [(quaternion? q)]}
   ;;(assert (q:unit? q))
@@ -629,6 +694,8 @@
 ;; Expanded Matt Mason method.
 
 (comment
+  ;; TODO I THINK we have actual thing somewhere else. We want this dynamic
+  ;; variable around.
   (def ^:dynamic *factoring* false)
 
   ;; Hamiltonians look better if we divide them out.
@@ -846,11 +913,11 @@
 (defmethod v/= [v/seqtype ::quaternion] [a b] (eq a b))
 (defmethod v/= [::quaternion v/seqtype] [a b] (eq a b))
 
-;; TODO:
+;; TODO: https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L139
 (defmethod v/= [::sc/complex ::quaternion] [a b])
 (defmethod v/= [::quaternion ::sc/complex] [a b])
 
-;; TODO
+;; TODO... this could be scalar for sure. https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L141
 (defmethod v/= [::v/real ::quaternion] [a b])
 (defmethod v/= [::quaternion ::v/real] [a b])
 
@@ -862,14 +929,16 @@
    (g/simplify (.-k q))
    (meta q)))
 
+;; TODO: add, sub, mul, div with complex and scalar separately? https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L234
+
 (defmethod g/add [::quaternion ::quaternion] [a b] (add a b))
 
 (defmethod g/negate [::quaternion] [q] (negate q))
 (defmethod g/sub [::quaternion ::quaternion] [a b] (sub a b))
 
 (defmethod g/mul [::quaternion ::quaternion] [a b] (mul a b))
-(defmethod g/mul [::v/scalar ::quaternion] [s q] (scalar*q s q))
-(defmethod g/mul [::quaternion ::v/scalar] [q s] (q*scalar q s))
+(defmethod g/mul [::v/scalar ::quaternion] [s q] (scale-l s q))
+(defmethod g/mul [::quaternion ::v/scalar] [q s] (scale q s))
 
 (defmethod g/invert [::quaternion] [q] (invert q))
 (defmethod g/div [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
