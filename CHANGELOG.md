@@ -8,11 +8,30 @@
 > at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
 > page!)
 
-This release focused on...
+This release focused on improving the expressiveness and performance of the three simplification engines in SICMUtils:
 
-Summary:
+  - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
+    fleshed out, with full polynomial and rational function APIs and many
+    generics.
 
-On to the detailed notes:
+  - The polynomial and rational function _simplifiers_ work by round-tripping
+    expressions through these types, depending on each namespace to emit
+    symbolic expressions in "canonical form". This process is now much faster!
+    On one important Bianchi Identity benchmark in `sicmutils.fdg.bianchi-test`,
+    one test that formerly took close to 30 minutes now runs in 30 seconds, and
+    all see a 60-fold improvement.
+
+  - By default, these simplifiers emit expressions with all terms multiplied
+    out; the new `factor` function in `sicmutils.env` lets you factor
+    expressions, overriding this default.
+
+  - The rule-based simplifier is now based on a powerful pattern matching
+    engine, implemented in `pattern.match` and `pattern.rule`.
+    `sicmutils.simplify.rules` now contains every rule and possible
+    customization from the original scmutils codebase.
+
+There is a _lot_ in this release, all motivated by performance. Please read on
+for the detailed notes, and enjoy version 0.19.0!
 
 ### Rule-Based Simplifier Overhaul
 

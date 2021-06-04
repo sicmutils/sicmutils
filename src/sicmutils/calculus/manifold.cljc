@@ -29,11 +29,11 @@
   exploration and fun!"
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
+            [sicmutils.abstract.number :refer [simplify-numerical-expression]]
             [sicmutils.calculus.frame :as cf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
-            [sicmutils.simplify :refer [simplify-numerical-expression]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
