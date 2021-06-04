@@ -22,10 +22,14 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.laws :as sl]
             [sicmutils.generic :as g]
+            [sicmutils.mechanics.rotation :as mr]
+            [sicmutils.simplify]
             [sicmutils.structure :as s]
             [sicmutils.quaternion :as q]
             [sicmutils.util :as u]
@@ -47,8 +51,7 @@
            (q/->angle-axis
             (q/angle-axis->
              'theta
-             ['x 'y (g/sqrt
-                     (g/- 1 (g/square 'x) (g/square 'y)))]))))))
+             ['x 'y (g/sqrt (g/- 1 (g/square 'x) (g/square 'y)))]))))))
 
 
   (is (= (s/up 0 (s/up 0 0 0))
@@ -81,4 +84,38 @@
                  (g/- axis' axis))))))
 
 (deftest arithmetic-tests
-  #_(sl/field 100 quat-gen "quaternions" :skew? true))
+  (testing "Quaternions form a skew field, ie, a division ring."
+    (with-comparator (v/within 5e-4)
+      (sl/field 100
+                (sg/quaternion (sg/reasonable-double))
+                "quaternions" :skew? true))))
+
+(defn rotation-matrix->quaternion-mason [M]
+  (let [r11 (get-in M [0 0]) r12 (get-in M [0 1]) r13 (get-in M [0 2])
+        r21 (get-in M [1 0]) r22 (get-in M [1 1]) r23 (get-in M [1 2])
+        r31 (get-in M [2 0]) r32 (get-in M [2 1]) r33 (get-in M [2 2])
+        quarter (g// 1 4)
+
+        q0-2 (g/* quarter (g/+ 1 r11 r22 r33))
+
+        q0q1 (g/* quarter (g/- r32 r23))
+        q0q2 (g/* quarter (g/- r13 r31))
+        q0q3 (g/* quarter (g/- r21 r12))
+        q1q2 (g/* quarter (g/+ r12 r21))
+        q1q3 (g/* quarter (g/+ r13 r31))
+        q2q3 (g/* quarter (g/+ r23 r32))]
+    ;; If numerical, choose largest of squares.
+    ;; If symbolic, choose nonzero square.
+    (let [q0 (g/sqrt q0-2)
+          q1 (g// q0q1 q0)
+          q2 (g// q0q2 q0)
+          q3 (g// q0q3 q0)]
+      (q/make q0 q1 q2 q3))))
+
+(deftest new-tests
+  (let [M (g/* (mr/rotate-z-matrix 0.1)
+               (mr/rotate-x-matrix 0.2)
+               (mr/rotate-z-matrix 0.3))]
+    (is (v/zero?
+         (g/- (rotation-matrix->quaternion-mason M)
+              (q/rotation-matrix-> M))))))
