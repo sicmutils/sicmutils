@@ -2,6 +2,101 @@
 
 ## [unreleased]
 
+## 0.19.0
+
+> (If you have any questions about how to use any of the following, please ask us
+> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> page!)
+
+This release focused on improving the expressiveness and performance of the three simplification engines in SICMUtils:
+
+  - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
+    fleshed out, with full polynomial and rational function APIs and many
+    generics.
+
+  - The polynomial and rational function _simplifiers_ work by round-tripping
+    expressions through these types, depending on each namespace to emit
+    symbolic expressions in "canonical form". This process is now much faster!
+    On one important Bianchi Identity benchmark in `sicmutils.fdg.bianchi-test`,
+    one test that formerly took close to 30 minutes now runs in 30 seconds, and
+    all see a 60-fold improvement.
+
+  - By default, these simplifiers emit expressions with all terms multiplied
+    out; the new `factor` function in `sicmutils.env` lets you factor
+    expressions, overriding this default.
+
+  - The rule-based simplifier is now based on a powerful pattern matching
+    engine, implemented in `pattern.match` and `pattern.rule`.
+    `sicmutils.simplify.rules` now contains every rule and possible
+    customization from the original scmutils codebase.
+
+There is a _lot_ in this release, all motivated by performance. Please read on
+for the detailed notes, and enjoy version 0.19.0!
+
+### Rule-Based Simplifier Overhaul
+
+- #353 introduces a powerful new simplifier, ported from the `new-simplify`
+  procedure in `simplify/rules.scm` of the scmutils library. There are now a
+  BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!
+
+  The next step with these is to massage them into separate bundles of rules
+  that users can mix and match into custom simplifiers for objects like abstract
+  matrices, abstract bra and ket structures, up and down, booleans (for
+  representing equations and inequalities) and so on.
+
+- #349 introduces a new pattern matching system, built out of matcher
+  combinators. All of the rules in `sicmutils.simplify.rules` now use the new
+  syntax offered by the library. Some notes:
+
+  - `pattern.match` defines a number of "matcher combinators"; these are
+    functions that take a map of bindings, a data input and a success
+    continuation and either succeed by calling their continuation, or fail. Out
+    of the box, the library provides `fail`, `pass`, `with-frame`,
+    `update-frame`, `predicate`, `frame-predicate`, `eq`, `bind`, `match-when`,
+    `match-if`, `or`, `and`, `not`, `segment` and `sequence`.
+
+  - Additionally, any combinator that takes another combinator can ALSO take a
+    pattern form like `'?x`. See `pattern.syntax` for the full, rich range of
+    syntax allowed. These are all functions, so you'll have to quote your
+    symbols at this stage.
+
+  - Passing a matcher combinator to `pattern.match/matcher` to generate a
+    matcher object. This is a function from some `data` input to a map of
+    bindings on success, or an explicit `pattern.match/failure` object on
+    failure. Test for failure with `pattern.match/failed?`.
+
+  - A combination of a matcher and a "consequence function" is called a "rule".
+    A consequence is a function that takes a binding map and either returns a
+    new result or fails by returning `nil` or `false`. (Don't worry, you can
+    succeed with these values too by wrapping them in `sicmutils.rule/succeed`.)
+
+    Rules are the heart of the whole simplification mechanism in sicmutils! To
+    learn about how to build these, see the documentation for `pattern*`,
+    `pattern`, `consequence`, `template`, `rule*`and `rule`.
+
+  - `pattern.rule` gives you some starter rules, and many combinators you can
+    use to build more and more powerful and complex sets of rules. These are
+    `pass`, `fail`, `predicate`, `return`, `branch`, `choice*`, `choice`,
+    `pipe*`, `pipe`, `n-times`, `attempt`, `guard`, `iterated`, `while`,
+    `until`, `fixed-point` and `trace`.
+
+  - Rules are nice for rewriting entire expressions recursively, from the bottom
+    up or top down. This is called "term rewriting". A big motivation for this
+    rewrite was to make it easy to build custom term rewriters for types like
+    abstract matrices or abstract up and down structures. You can use your rules
+    to rewrite structures recursively with `bottom-up`, `top-down`,
+    `iterated-bottom-up` and `iterated-top-down`. `ruleset*`, `ruleset`,
+    `rule-simplifier` and `term-rewriting` capture some common patterns the
+    library uses to go from rules => term rewriters.
+
+  - If you want ideas about how to use the pattern matching library to rewrite
+    expressions, see `sicmutils.simplify.rules` for many examples.
+
+- #354 adds SCI support for all macros and functions in the new pattern matching
+  namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
+
+### Rational Function, Polynomial Simplifiers
+
 - #341 takes on a large rewrite of the rational function and polynomial
   simplfiers. One goal of this project was to improve the performance of the
   Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that
@@ -179,22 +274,9 @@
       - Functions to get in and out of rational functions from symbolic
         expressions: `expression->`, `->expression`.
 
-- #360 introduces a number of performance improvements to the
-  `sicmutils.differential.Differential` implementation, primarily in `terms:+`
-  and `terms:*`. thanks again to @ptaoussanis and the
-  [Tufte](https://github.com/ptaoussanis/tufte) profiling library for helping me
-  track these down.
+### New Functions, Performance Improvements
 
 - #358:
-
-  - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
-    to `shadow-cljs`. This enables more formerly-slow tests for Clojurescript;
-    these are now fast enough to run, thanks to the performance improvements
-    described below.
-
-  - Upgrades our [Timbre](https://github.com/ptaoussanis/timbre) logging
-    dependency to version 5.1.2, and [SCI](https://github.com/borkdude/sci) to
-    0.2.5
 
   - Adds a more efficient `literal-derivative` implementation to
     `sicmutils.abstract.function`, making the Bianchi identity benchmarks run
@@ -218,6 +300,12 @@
     implementation of `g/add` for polynomial instances. #341 will improve this
     situation.
 
+- #360 introduces a number of performance improvements to the
+  `sicmutils.differential.Differential` implementation, primarily in `terms:+`
+  and `terms:*`. thanks again to @ptaoussanis and the
+  [Tufte](https://github.com/ptaoussanis/tufte) profiling library for helping me
+  track these down.
+
 - #357:
 
   - Adds the ability to do incremental simplification, every time an operation
@@ -237,25 +325,9 @@
     polynomial canonicalization. This brings the simplifier into line with the
     scmutils simplifier.
 
-- #353 introduces a powerful new simplifier, ported from the `new-simplify`
-  procedure in `simplify/rules.scm` of the scmutils library. There are now a
-  BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!
+- #353:
 
-  The next step with these is to massage them into separate bundles of rules
-  that users can mix and match into custom simplifiers for objects like abstract
-  matrices, abstract bra and ket structures, up and down, booleans (for
-  representing equations and inequalities) and so on.
-
-  Additional changes:
-
-  - `expression->stream`, `expression->string`, `print-expression`, `pe` move
-    from `sicmutils.simplify` to `sicmutils.expression`, and are now aliased in
-    `sicmutils.env`.
-
-  - `pattern.rule/guard` now if its rule argument fails; previously it wrapped
-    the result in `attempt`, and would return its original input on failure.
-
-  - The new `sicmutils.util.logic` namespace holds an `assume!` function that
+  - Adds a new `sicmutils.util.logic` namespace with an `assume!` function that
     allows rules to log assumptions when some simplification like `(sqrt (square
     x))` might have to choose one of multiple possible simplifications
     (`(non-negative? x)`, in this example).
@@ -264,68 +336,63 @@
     checks. now. Turn off assumption logging with the dynamic variable
     `*log-assumptions?*` in that namespace.
 
+  - new `sicmutils.value/almost-integral?` returns true if its argument is VERY
+    close to an integral value, false otherwise.
+
+- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set`
+  (#346)
+
+### Bug fixes, file moves, misc
+
+- #369:
+
+  - Removes JVM dependencies on Guava and nrepl.
+
+  - Removes `sicmutils.env/sicmutils-repl-init`; this is only used by `lein
+    repl`, and we now accomplish the same task with the `:repl-options` entry in
+    `project.clj`.
+
+  - Makes `sicmutils.polynomial.{factor,gcd}` available to SCI via the
+    `sicmutils.env.sci` namespace
+
+  - moves a few namespaces to more valid locations, now that the rational
+    function and polynomial namespaces are tidied:
+
+    - `sicmutils.numerical.interpolate.polynomial` ->
+      `sicmutils.polynomial.interpolate`
+
+    - `sicmutils.numerical.interpolate.richardson` ->
+      `sicmutils.polynomial.richardson`
+
+    - `sicmutils.numerical.interpolate.rational` ->
+      `sicmutils.rational-function.interpolate`
+
+- #358:
+
+  - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
+    to `shadow-cljs`. This enables more formerly-slow tests for Clojurescript;
+    these are now fast enough to run, thanks to the performance improvements
+    described below.
+
+  - Upgrades our [Timbre](https://github.com/ptaoussanis/timbre) logging
+    dependency to version 5.1.2, and [SCI](https://github.com/borkdude/sci) to
+    0.2.5
+
+- #353:
+
+  - `expression->stream`, `expression->string`, `print-expression`, `pe` move
+    from `sicmutils.simplify` to `sicmutils.expression`, and are now aliased in
+    `sicmutils.env`.
+
+  - `pattern.rule/guard` now fails if its rule argument fails; previously it
+    wrapped the result in `attempt`, and would return its original input on
+    failure.
+
   - fixed a heisenbug in `sicmutils.expression.analyze/make-analyzer` where, in
     Clojurescript, using expressions containing a `js/BigInt` as a hashmap key
     caused certain simplifications to fail. (This is vague, but the bug was
     _really_ subtle.) The fix was to make sure we freeze keys in the symbol
     cache. This is now noted in the function body.
-
-  - new `sicmutils.value/almost-integral?` returns true if its argument is VERY
-    close to an integral value, false otherwise.
-
-- #354 adds SCI support for all macros and functions in the new pattern matching
-  namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
-
-- #349 introduces a new pattern matching system, built out of matcher
-  combinators. All of the rules in `sicmutils.simplify.rules` now use the new
-  syntax offered by the library. Some notes:
-
-  - `pattern.match` defines a number of "matcher combinators"; these are
-    functions that take a map of bindings, a data input and a success
-    continuation and either succeed by calling their continuation, or fail. Out
-    of the box, the library provides `fail`, `pass`, `with-frame`,
-    `update-frame`, `predicate`, `frame-predicate`, `eq`, `bind`, `match-when`,
-    `match-if`, `or`, `and`, `not`, `segment` and `sequence`.
-
-  - Additionally, any combinator that takes another combinator can ALSO take a
-    pattern form like `'?x`. See `pattern.syntax` for the full, rich range of
-    syntax allowed. These are all functions, so you'll have to quote your
-    symbols at this stage.
-
-  - Passing a matcher combinator to `pattern.match/matcher` to generate a
-    matcher object. This is a function from some `data` input to a map of
-    bindings on success, or an explicit `pattern.match/failure` object on
-    failure. Test for failure with `pattern.match/failed?`.
-
-  - A combination of a matcher and a "consequence function" is called a "rule".
-    A consequence is a function that takes a binding map and either returns a
-    new result or fails by returning `nil` or `false`. (Don't worry, you can
-    succeed with these values too by wrapping them in `sicmutils.rule/succeed`.)
-
-    Rules are the heart of the whole simplification mechanism in sicmutils! To
-    learn about how to build these, see the documentation for `pattern*`,
-    `pattern`, `consequence`, `template`, `rule*`and `rule`.
-
-  - `pattern.rule` gives you some starter rules, and many combinators you can
-    use to build more and more powerful and complex sets of rules. These are
-    `pass`, `fail`, `predicate`, `return`, `branch`, `choice*`, `choice`,
-    `pipe*`, `pipe`, `n-times`, `attempt`, `guard`, `iterated`, `while`,
-    `until`, `fixed-point` and `trace`.
-
-  - Rules are nice for rewriting entire expressions recursively, from the bottom
-    up or top down. This is called "term rewriting". A big motivation for this
-    rewrite was to make it easy to build custom term rewriters for types like
-    abstract matrices or abstract up and down structures. You can use your rules
-    to rewrite structures recursively with `bottom-up`, `top-down`,
-    `iterated-bottom-up` and `iterated-top-down`. `ruleset*`, `ruleset`,
-    `rule-simplifier` and `term-rewriting` capture some common patterns the
-    library uses to go from rules => term rewriters.
-
-  - If you want ideas about how to use the pattern matching library to rewrite
-    expressions, see `sicmutils.simplify.rules` for many examples.
-
-- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set`
-  (#346)
 
 ## 0.18.0
 
@@ -2029,9 +2096,9 @@ curious about how these algorithms work.
     - [Trapezoid Method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/trapezoid.cljc), same idea but for closed intervals.
 
   - **Sequence Acceleration / Extrapolation Methods**
-    - [Polynomial interpolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/polynomial.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
-    - [Rational Function extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/rational.cljc): used in bulirsch-stoer integration and ODE solving.
-    - "[Richardson extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/interpolate/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
+    - [Polynomial interpolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/interpolate.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
+    - [Rational Function extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/rational_function/interpolate.cljc): used in bulirsch-stoer integration and ODE solving.
+    - "[Richardson extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
 
   - **Higher-order Calculus:**
     - [Numerical derivatives](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/derivative.cljc): derivatives using three kinds of central difference formulas... accelerated using Richardson extrapolation, with a nice technique for guarding against underflow.

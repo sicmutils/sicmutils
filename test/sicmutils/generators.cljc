@@ -372,7 +372,7 @@
         (v/real? that)    (si/*comparator*
                            (u/double this)
                            (u/double that))
-        :else             (= this that)))
+        :else             (v/= this that)))
 
 (extend-protocol si/Approximate
   #?@(:cljs
@@ -412,4 +412,4 @@
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
                 (g/real-part this) (u/double that)))
-          :else (= this that))))
+          :else (v/= this that))))

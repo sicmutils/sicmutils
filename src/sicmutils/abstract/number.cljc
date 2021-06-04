@@ -28,6 +28,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
+            [sicmutils.simplify :as ss]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -219,3 +220,22 @@
 (defbinary g/lcm 'lcm)
 
 (defmethod g/simplify [Symbol] [a] a)
+(defmethod g/simplify [::x/numeric] [a]
+  (literal-number
+   (ss/simplify-expression
+    (v/freeze a))))
+
+(def ^:private memoized-simplify
+  (memoize g/simplify))
+
+(defn ^:no-doc simplify-numerical-expression
+  "This function will only simplify instances of [[expression/Literal]]; if `x` is
+  of that type, [[simplify-numerical-expression]] acts as a memoized version
+  of [[generic/simplify]]. Else, acts as identity.
+
+  This trick is used in [[sicmutils.calculus.manifold]] to memoize
+  simplification _only_ for non-[[differential/Differential]] types."
+  [x]
+  (if (literal-number? x)
+    (memoized-simplify x)
+    x))

@@ -45,7 +45,6 @@
                             numerator denominator
                             #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
-            #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
@@ -94,11 +93,6 @@
             [sicmutils.calculus.vector-field]
             [sicmutils.sr.boost]
             [sicmutils.sr.frames]))
-
-#?(:clj
-   (defn sicmutils-repl-init
-     []
-     (set! nrepl.middleware.print/*print-fn* x/expression->stream)))
 
 (defmacro bootstrap-repl!
   "Bootstraps a repl or Clojure namespace by requiring all public vars

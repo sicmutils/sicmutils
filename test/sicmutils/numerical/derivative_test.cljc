@@ -23,7 +23,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as cd]
             [sicmutils.numerical.derivative :as d]
-            [sicmutils.numerical.interpolate.richardson :as r]
+            [sicmutils.polynomial.richardson :as r]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]

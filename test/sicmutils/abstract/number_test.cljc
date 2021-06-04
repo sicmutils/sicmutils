@@ -986,4 +986,15 @@
         (is (= 24 (v/freeze
                    (g/+ (g/cos 'x) (g/cos 'x))))
             "rule here maps `(g/cos 'x)` to 12 internally, then `g/+` actually
-            performs the addition.")))))
+            performs the addition."))))
+
+  (testing "simplify-numerical-expression"
+    (is (v/= '(+ x x x)
+             (an/simplify-numerical-expression
+              '(+ x x x)))
+        "acts as identity for non-Literal instances...")
+
+    (is (v/= '(* 3 x)
+             (an/simplify-numerical-expression
+              (an/literal-number '(+ x x x))))
+        "expressions are simplified.")))
