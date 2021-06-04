@@ -30,6 +30,13 @@
   #?(:clj
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
+;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
+;; indeed true? Does the logging just happen as the default failure?
+;;
+;; NOTE AND you might not want to normalize every damned time, if you have some
+;; symbolic thing. Do it twice and it's going to get crazy. So why not just
+;; assume that it's normalized?
+
 ;; TODO:
 ;; - dot-product and whatever else fits... https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L302
 ;; - sqrt https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L202
@@ -798,28 +805,6 @@
 ;; `careful-simplify` stuff.
 
 (def careful-simplify g/simplify)
-
-(defn rotation-matrix->quaternion-mason [M]
-  (let [r11 (get-in M [0 0]) r12 (get-in M [0 1]) r13 (get-in M [0 2])
-        r21 (get-in M [1 0]) r22 (get-in M [1 1]) r23 (get-in M [1 2])
-        r31 (get-in M [2 0]) r32 (get-in M [2 1]) r33 (get-in M [2 2])
-        quarter (g// 1 4)
-
-        q0-2 (g/* quarter (g/+ 1 r11 r22 r33))
-
-        q0q1 (g/* quarter (g/- r32 r23))
-        q0q2 (g/* quarter (g/- r13 r31))
-        q0q3 (g/* quarter (g/- r21 r12))
-        q1q2 (g/* quarter (g/+ r12 r21))
-        q1q3 (g/* quarter (g/+ r13 r31))
-        q2q3 (g/* quarter (g/+ r23 r32))]
-    ;; If numerical, choose largest of squares.
-    ;; If symbolic, choose nonzero square.
-    (let [q0 (g/sqrt q0-2)
-          q1 (g// q0q1 q0)
-          q2 (g// q0q2 q0)
-          q3 (g// q0q3 q0)]
-      (make q0 q1 q2 q3))))
 
 (defn rotation-matrix->
   "TODO change >= etc to using compare... OR just go ahead and add those to v/
