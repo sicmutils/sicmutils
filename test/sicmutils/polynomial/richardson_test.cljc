@@ -17,17 +17,17 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.interpolate.richardson-test
+(ns sicmutils.polynomial.richardson-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.numerical.interpolate.polynomial :as ip]
-            [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numbers]
+            [sicmutils.polynomial.interpolate :as pi]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
 
 (deftest richardson-limit-tests
-  (let [pi-seq @#'ir/archimedean-pi-sequence]
+  (let [pi-seq @#'pr/archimedean-pi-sequence]
 
     (testing "without richardson extrapolation, the sequence takes a long time."
       (is (ish? {:converged? true
@@ -39,14 +39,14 @@
       (is (ish? {:converged? true
                  :terms-checked 7
                  :result 3.1415926535897936}
-                (-> (ir/richardson-sequence pi-seq 2 2 2)
+                (-> (pr/richardson-sequence pi-seq 2 2 2)
                     (us/seq-limit {:tolerance v/machine-epsilon}))))
 
       (is (ish? {:converged? false
                  :terms-checked 3
                  :result 3.1415903931299374}
                 (-> (take 3 pi-seq)
-                    (ir/richardson-sequence 2 2 2)
+                    (pr/richardson-sequence 2 2 2)
                     (us/seq-limit {:tolerance v/machine-epsilon})))
           "richardson-sequence bails if the input sequence runs out of terms.")
 
@@ -55,7 +55,7 @@
                  3.1415903931299374
                  3.141592653286045
                  3.1415926535897865]
-                (take 5 (ir/richardson-sequence pi-seq 4)))))
+                (take 5 (pr/richardson-sequence pi-seq 4)))))
 
     (testing "richardson extrapolation is equivalent to polynomial extrapolation
     to 0"
@@ -65,6 +65,6 @@
                        (Math/pow 2)))
             xs (map-indexed (fn [i fx] [(h**2 i) fx]) pi-seq)]
         (is (ish? (take 7 (us/seq-limit
-                           (ir/richardson-sequence pi-seq 4 1 1)))
+                           (pr/richardson-sequence pi-seq 4 1 1)))
                   (take 7 (us/seq-limit
-                           (ip/modified-neville xs 0.0)))))))))
+                           (pi/modified-neville xs 0.0)))))))))

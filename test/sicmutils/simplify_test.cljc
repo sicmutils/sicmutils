@@ -56,17 +56,7 @@
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))
   (is (= #sicm/ratio 2/3
-         (simplify-expression '(/ 2 3))))
-
-  (is (= '(+ x x x)
-         (sim/simplify-numerical-expression
-          '(+ x x x)))
-      "acts as identity for non-Literal instances...")
-
-  (is (= '(* 3 x)
-         (sim/simplify-numerical-expression
-          (an/literal-number '(+ x x x))))
-      "expressions are simplified."))
+         (simplify-expression '(/ 2 3)))))
 
 (deftest trivial-simplifications
   (is (= 1 (g/simplify 1)))

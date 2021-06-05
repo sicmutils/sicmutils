@@ -18,8 +18,7 @@
 ;;
 
 (ns sicmutils.simplify
-  (:require [sicmutils.abstract.number :as an]
-            [sicmutils.expression.analyze :as a]
+  (:require [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as poly]
@@ -209,21 +208,6 @@
                 simplify-and-flatten)]
       (simple expr))))
 
-(def ^:private memoized-simplify
-  (memoize g/simplify))
-
-(defn ^:no-doc simplify-numerical-expression
-  "This function will only simplify instances of [[expression/Literal]]; if `x` is
-  of that type, [[simplify-numerical-expression]] acts as a memoized version
-  of [[generic/simplify]]. Else, acts as identity.
-
-  This trick is used in [[sicmutils.calculus.manifold]] to memoize
-  simplification _only_ for non-[[differential/Differential]] types."
-  [x]
-  (if (an/literal-number? x)
-    (memoized-simplify x)
-    x))
-
 (comment
   ;; TODO I THINK we have actual thing somewhere else. We want this dynamic
   ;; variable around.
@@ -283,8 +267,3 @@
   ;; Is this enough? move to simplify.
   (define (careful-simplify e)
     (simplify e)))
-
-(defmethod g/simplify [::x/numeric] [a]
-  (an/literal-number
-   (simplify-expression
-    (v/freeze a))))

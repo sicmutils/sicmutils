@@ -219,11 +219,11 @@
 
   (checking "square, cube" test-limit
             [r (sg/rational-function)]
-            (is (= (rf/mul r r)
-                   (rf/square r)))
+            (is (= (rf/square r)
+                   (rf/mul r r)))
 
-            (is (= (rf/mul r (rf/square r))
-                   (rf/cube r)))))
+            (is (= (rf/cube r)
+                   (rf/mul r (rf/square r))))))
 
 (deftest rf-operations
   (let [x+1 (p/make [1 1])

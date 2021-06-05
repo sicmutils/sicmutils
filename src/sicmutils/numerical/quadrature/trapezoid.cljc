@@ -23,8 +23,8 @@
             [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
-            [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
@@ -230,7 +230,7 @@
          next-S (qr/Sn->S2n f a b)
          xs     (qr/incrementalize S next-S 2 n)]
      (if (and accelerate? (number? n))
-       (ir/richardson-sequence xs 2 2 2)
+       (pr/richardson-sequence xs 2 2 2)
        xs))))
 
 ;; The following example shows that for the sequence $1, 2, 4, 8, ..., 2^n$, the
@@ -306,13 +306,13 @@
 ;;
 ;; The terms of the error series for the Trapezoid method increase as $h^2, h^4,
 ;; h^6$... (see https://en.wikipedia.org/wiki/Trapezoidal_rule#Error_analysis).
-;; Because of this, we pass $p = q = 2$ into `ir/richardson-sequence` below.
+;; Because of this, we pass $p = q = 2$ into `pr/richardson-sequence` below.
 ;; Additionally, `integral` hardcodes the factor of `2` and doesn't currently
 ;; allow for a custom sequence of $n$. This is configured by passing $t = 2$
-;; into `ir/richardson-sequence`.
+;; into `pr/richardson-sequence`.
 ;;
 ;; If you want to accelerate some other geometric sequence, call
-;; `ir/richardson-sequence` with some other value of `t.`
+;; `pr/richardson-sequence` with some other value of `t.`
 ;;
 ;; To accelerate an arbitrary sequence of trapezoid evaluations, investigate
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either

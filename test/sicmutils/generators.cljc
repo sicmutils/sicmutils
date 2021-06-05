@@ -387,7 +387,7 @@
         (v/real? that)    (si/*comparator*
                            (u/double this)
                            (u/double that))
-        :else             (= this that)))
+        :else             (v/= this that)))
 
 (extend-protocol si/Approximate
   #?@(:cljs
@@ -427,7 +427,7 @@
           (and (si/*comparator* 0.0 (c/imaginary this))
                (si/*comparator*
                 (c/real this) (u/double that)))
-          :else (= this that)))
+          :else (v/= this that)))
 
   Quaternion
   (ish [this that]
@@ -450,4 +450,4 @@
                (si/*comparator*
                 (quat/get-r this) (u/double that)))
 
-          :else (= this that))))
+          :else (v/= this that))))

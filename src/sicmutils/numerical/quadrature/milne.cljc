@@ -21,7 +21,7 @@
   (:require [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as qm]
-            [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util.stream :as us]))
 
 ;; ## Milne's Rule
@@ -69,7 +69,7 @@
   ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}
    (-> (qm/midpoint-sequence f a b (assoc opts :n (us/powers 2 n)))
-       (ir/richardson-column 1 2 2 2))))
+       (pr/richardson-column 1 2 2 2))))
 
 (qc/defintegrator integral
   "Returns an estimate of the integral of `f` over the open interval $(a, b)$
