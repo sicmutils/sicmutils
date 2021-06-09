@@ -2,6 +2,13 @@
 
 ## [unreleased]
 
+## 0.19.2
+
+Yet another incremental release, this time to bump the `Fraction.js` dependency.
+The new `cljsjs` dependency has code compatible with advanced compilation.
+
+- #372 bumps the `Fraction.js` dependency to `4.1.1`.
+
 ## 0.19.1
 
 This is an incremental bugfix release to get Clojurescript advanced compilation

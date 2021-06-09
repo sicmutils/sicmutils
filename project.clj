@@ -32,7 +32,7 @@
                   :exclusions [org.clojure/clojurescript]]
                  [dm3/stopwatch "0.1.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [cljsjs/bigfraction "4.0.12-0"]
+                 [cljsjs/bigfraction "4.1.1-0"]
                  [cljsjs/complex "2.0.11-0"]
                  [cljsjs/odex "2.0.4-0"]
                  [hiccup "1.0.5"]

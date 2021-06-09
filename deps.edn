@@ -10,4 +10,4 @@
         org.clojure/core.match {:mvn/version "1.0.0"},
         cljsjs/complex {:mvn/version "2.0.11-0"},
         borkdude/sci {:mvn/version "0.2.5"},
-        cljsjs/bigfraction {:mvn/version "4.0.12-0"}}}
+        cljsjs/bigfraction {:mvn/version "4.1.1-0"}}}
