@@ -2,6 +2,23 @@
 
 ## [unreleased]
 
+## 0.19.1
+
+- #371:
+
+  - fixes a subtle bug with extern inference on `fraction.js/bigfraction.js`.
+    Thanks to @sigmaxipi for this report!
+
+  - removes overridden factory constructors like `->Polynomial`. I had
+    originally done this for functions that held a metadata field, so that the
+    user could leave it out and have it default to `nil`... but advanced Closure
+    compilation can't understand the `ns-unmap` call, so it has to go.
+
+  - Many unary functions on `Operator`, `Structure`, `Series`, `PowerSeries`,
+    `Polynomial` and `RationalFunction` now preserve metadata. Binary functions
+    between two instances of any of these still return a new object with
+    metadata == `nil`.
+
 ## 0.19.0
 
 > (If you have any questions about how to use any of the following, please ask us

@@ -556,9 +556,8 @@
   [s t]
   {:pre [(power-series? s)
          (power-series? t)]}
-  (->PowerSeries
-   (i/compose (seq s) (seq t))
-   nil))
+  (->PowerSeries (i/compose (seq s) (seq t))
+                 nil))
 
 (defn revert
   "Returns a new [[PowerSeries]] $U$ that represents the compositional inverse (the
@@ -692,13 +691,16 @@
     (ctor (i/seq:+ (seq s) (seq t)) nil))
 
   (defmethod g/add [::coseries kind] [c s]
-    (ctor (i/c+seq c (seq s)) (meta s)))
+    (ctor (i/c+seq c (seq s))
+          (meta s)))
 
   (defmethod g/add [kind ::coseries] [s c]
-    (ctor (i/seq+c (seq s) c) (meta s)))
+    (ctor (i/seq+c (seq s) c)
+          (meta s)))
 
   (defmethod g/negate [kind] [s]
-    (ctor (i/negate (seq s)) (meta s)))
+    (ctor (i/negate (seq s))
+          (meta s)))
 
   (defmethod g/sub [kind kind] [s t]
     (ctor (i/seq:- (seq s) (seq t)) nil))
@@ -845,6 +847,7 @@
 
 (defmethod g/partial-derivative [::power-series v/seqtype] [^PowerSeries s selectors]
   (if (empty? selectors)
-    (->PowerSeries (i/deriv (.-xs s)) (.-m s))
+    (->PowerSeries (i/deriv (.-xs s))
+                   (.-m s))
     (u/illegal
      (str "Cannot yet take partial derivatives of a power series: " s selectors))))

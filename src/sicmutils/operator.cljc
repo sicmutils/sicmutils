@@ -344,7 +344,7 @@
               (arity o)
               (list '- (name o))
 	            (context o)
-              nil))
+              (meta o)))
 
 (defn- o:-
   "Subtract one operator from another. Produces an operator which computes the
@@ -494,7 +494,7 @@
                   [:exactly 1]
                   `(~sym ~(name g))
                   (context g)
-                  (meta g)))))
+                  nil))))
 
 (defmethod g/add [::operator ::operator] [o p] (o:+ o p))
 (defmethod g/add [::operator ::co-operator] [o f] (o+f o f))

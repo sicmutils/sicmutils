@@ -701,10 +701,9 @@
   inverted."
   [s]
   (if (structure? s)
-    (->Structure
-     (opposite-orientation (orientation s))
-     (mapv transpose (structure->vector s))
-     (meta s))
+    (->Structure (opposite-orientation (orientation s))
+                 (mapv transpose (structure->vector s))
+                 (meta s))
     s))
 
 (defn transpose-outer
