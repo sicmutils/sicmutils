@@ -102,7 +102,7 @@
              (v/kind x+1:x-1))))
 
     (testing "equality between types"
-      (let [rf (rf/->RationalFunction 10 (p/constant 10 2) 3)
+      (let [rf (rf/->RationalFunction 10 (p/constant 10 2) 3 nil)
             r  #sicm/ratio 2/3]
         (is (= rf r)
             "rf on left with a CONSTANT polynomial numerator, non-poly denominator
@@ -120,8 +120,10 @@
                      (rf/negate r)))))
 
   (testing "coef-sgn handling of complex"
-    (is (= (rf/->RationalFunction 1 (g/negate (p/identity))
-                                  (c/complex 1 -10))
+    (is (= (rf/->RationalFunction 1
+                                  (g/negate (p/identity))
+                                  (c/complex 1 -10)
+                                  nil)
            (rf/make (p/identity)
                     (c/complex -1 10)))
         "complex denominator is negated, since its real part is negative.")) )
@@ -148,7 +150,7 @@
           p #(p/make 1 [[[0] %]])
 
           ;; ratio of constant arity 1 polynomials
-          rf #(rf/->RationalFunction 1 (p %1) (p %2))
+          rf #(rf/->RationalFunction 1 (p %1) (p %2) nil)
           x+1 (p/make [1 1])
           x-1 (p/make [-1 1])
           x+1:x-1 (rf/make x+1 x-1)
@@ -206,7 +208,7 @@
     (let [p #(p/constant 1 %) ;; constant arity 1 polynomial
 
           ;; arity 1 rational function out of two constants
-          rf #(rf/->RationalFunction 1 (p %1) (p %2))
+          rf #(rf/->RationalFunction 1 (p %1) (p %2) nil)
           N 3
           H (s/up* (for [i (range 1 (inc N))]
                      (s/up* (for [j (range 1 (inc N))]
@@ -240,7 +242,7 @@
     (checking "evaluate matches ->expression" test-limit
               [n  (sg/polynomial :arity arity)
                xs (gen/vector sg/symbol arity)]
-              (let [rf (rf/->RationalFunction arity n 12)]
+              (let [rf (rf/->RationalFunction arity n 12 nil)]
                 (is (every?
                      v/zero?
                      (for [idx (range (inc arity))]
