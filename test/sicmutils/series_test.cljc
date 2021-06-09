@@ -110,10 +110,10 @@
   (checking "metadata arity of constructors works" 100
             [xs (gen/vector gen/nat)
              m (gen/map gen/keyword gen/nat)]
-            (is (nil? (meta (s/->PowerSeries xs))))
+            (is (nil? (meta (s/->PowerSeries xs nil))))
             (is (= m (meta (s/->PowerSeries xs m))))
 
-            (is (nil? (meta (s/->Series xs))))
+            (is (nil? (meta (s/->Series xs nil))))
             (is (= m (meta (s/->Series xs m)))))
 
   (checking "with-meta / meta for [[Series]], [[PowerSeries]]" 100
@@ -240,7 +240,7 @@
              (take 5 (g// (g/* nats 2) 2)))))
 
     (testing "series invert, solve linear"
-      (let [series (s/->PowerSeries (iterate inc 3))]
+      (let [series (s/->PowerSeries (iterate inc 3) nil)]
         (is (= (take 5 (g/invert series))
                (take 5 (g/div s/one series))
                (take 5 (g/solve-linear-right s/one series))
@@ -265,12 +265,12 @@
              (take 6 (g/* (g/sqrt nats)
                           (g/sqrt nats)))))
 
-      (let [xs (s/->PowerSeries (iterate inc 9))]
+      (let [xs (s/->PowerSeries (iterate inc 9) nil)]
         (is (= [9 10 11 12 13 14]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs))))))
 
-      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)))]
+      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)) nil)]
         (is (= [0 0 9 10 11 12]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs)))))))

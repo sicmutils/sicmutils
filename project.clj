@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(defproject sicmutils "0.19.0"
+(defproject sicmutils "0.19.1"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
   :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
