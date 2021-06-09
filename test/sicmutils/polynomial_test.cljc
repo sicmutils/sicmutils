@@ -810,7 +810,7 @@
 
 
   (let [pos (gen/fmap inc gen/nat)]
-    (checking "arg-scale, shift" 100
+    (checking "arg-scale, shift" 30
               [term-count (gen/choose 2 10)
                factor pos
                p (gen/fmap p/make (gen/vector pos term-count))]
@@ -1034,7 +1034,7 @@
                      raised)))))
 
 (deftest evaluation-homomorphism-tests
-  (checking "evaluation-homomorphism" 30
+  (checking "evaluation-homomorphism" 20
             [[p q xs] (gen/let [arity (gen/choose 1 6)]
                         (gen/tuple
                          (sg/polynomial :arity arity)
