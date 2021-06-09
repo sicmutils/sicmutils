@@ -4,6 +4,9 @@
 
 ## 0.19.1
 
+This is an incremental bugfix release to get Clojurescript advanced compilation
+into shape.
+
 - #371:
 
   - fixes a subtle bug with extern inference on `fraction.js/bigfraction.js`.
