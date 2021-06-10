@@ -62,7 +62,7 @@ Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 ```
 
 See the [demo directory](./demo) for minimal examples of build configurations
-that use the SICMCUtils library.
+that use the SICMUtils library.
 
 Alternatively, visit the [SICMUtils Tutorial on
 Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
