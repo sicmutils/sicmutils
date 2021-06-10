@@ -1,0 +1,5 @@
+{
+  :browser-repl false
+  :language-in  :ecmascript-2016
+  :optimizations :advanced
+}
