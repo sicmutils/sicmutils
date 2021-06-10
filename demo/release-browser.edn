@@ -1,0 +1,6 @@
+{
+  :browser-repl false
+  ;; without ecmascript-2016, there will be errors related to the ** operator.
+  :language-in  :ecmascript-2016
+  :optimizations :advanced
+}
