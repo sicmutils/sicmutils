@@ -2,12 +2,11 @@
   (:require
     ; sicmutils.env has aliases for common functions. If you are using a REPL, run
     ; `sicmutils.env/bootstrap-repl!` to pull in all the aliases into the current namespace.
-    [sicmutils.env :as s :include-macros true]
-    [sicmutils.expression.render :as sr]))
+    [sicmutils.env :as s :include-macros true]))
 
 (defn output [expr]
   ; `simplify` collapses expressions while `->infix` prints them using Unicode operators. 
-  (let [string (sr/->infix (s/simplify expr))]
+  (let [string (s/->infix (s/simplify expr))]
     ; Depending on your build options, the default output might go to the browser console or the
     ; terminal's console.
     (println string)
