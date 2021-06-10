@@ -255,8 +255,8 @@
      ;; arguments around and invoke equiv.
      (defmethod v/= [::v/real Fraction] [l r] (= r l))
 
-     (defmethod g/add [Fraction Fraction] [a b] (promote (.add a b)))
-     (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub a b)))
+     (defmethod g/add [Fraction Fraction] [a b] (promote (.add ^js a b)))
+     (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub ^js a b)))
 
      (defmethod g/mul [Fraction Fraction] [a b]
        (promote (.mul ^js a b)))
@@ -267,13 +267,13 @@
      (defmethod g/exact-divide [Fraction Fraction] [a b]
        (promote (.div ^js a b)))
 
-     (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
-     (defmethod g/negative? [Fraction] [^Fraction a] (neg? (obj/get a "s")))
-     (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
-     (defmethod g/square [Fraction] [^Fraction a] (promote (.mul a a)))
-     (defmethod g/cube [Fraction] [^Fraction a] (promote (.pow a 3)))
-     (defmethod g/abs [Fraction] [^Fraction a] (promote (.abs a)))
-     (defmethod g/magnitude [Fraction] [^Fraction a] (promote (.abs a)))
+     (defmethod g/negate [Fraction] [a] (promote (.neg ^js a)))
+     (defmethod g/negative? [Fraction] [a] (neg? (obj/get a "s")))
+     (defmethod g/invert [Fraction] [a] (promote (.inverse ^js a)))
+     (defmethod g/square [Fraction] [a] (promote (.mul ^js a a)))
+     (defmethod g/cube [Fraction] [a] (promote (.pow ^js a 3)))
+     (defmethod g/abs [Fraction] [a] (promote (.abs ^js a)))
+     (defmethod g/magnitude [Fraction] [a] (promote (.abs ^js a)))
 
      (defmethod g/gcd [Fraction Fraction] [a b]
        (promote (.gcd ^js a b)))
@@ -296,16 +296,16 @@
      ;; exponent, convert the base to a number and call g/expt again.
      (defmethod g/expt [Fraction Fraction] [a b]
        (if (v/one? (denominator b))
-         (promote (.pow a (numerator b)))
+         (promote (.pow ^js a (numerator b)))
          (g/expt (.valueOf a)
                  (.valueOf b))))
 
      (defmethod g/quotient [Fraction Fraction] [a b]
        (promote
-        (let [^Fraction x (.div ^js a b)]
+        (let [x (.div ^js a b)]
           (if (pos? (obj/get x "s"))
-            (.floor x)
-            (.ceil x)))))
+            (.floor ^js x)
+            (.ceil ^js x)))))
 
      (defmethod g/remainder [Fraction Fraction] [a b]
        (promote (.mod ^js a b)))
@@ -315,11 +315,11 @@
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/real] [^Fraction a b]
-         (op (.valueOf a) b))
+       (defmethod op [Fraction ::v/real] [a b]
+         (op (.valueOf ^js a) b))
 
-       (defmethod op [::v/real Fraction] [a ^Fraction b]
-         (op a (.valueOf b))))
+       (defmethod op [::v/real Fraction] [a b]
+         (op a (.valueOf ^js b))))
 
      (defn- upcast-number
        "Integrals can stay exact, so they become ratios before op."

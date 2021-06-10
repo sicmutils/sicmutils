@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- #376 adds more type hints to the `ratio.cljc` namespace. This fully solves the
+  advanced compilation issues we were seeing.
+
+- #374: Demos, thanks to @sigmaxipi!
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.
