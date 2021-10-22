@@ -114,7 +114,7 @@
 ;; $$
 ;;  P_n = {n \over 2} S_n \
 ;;      = {n \over 2} 2 \sin {\pi \over n} \
-;;      = \pi + {A\ over n^2} + B \over n^4 ...
+;;      = \pi + {A \over n^2} + {B \over n^2} ...
 ;; $$
 ;;
 ;; A couple things to note:
@@ -141,11 +141,11 @@
 ;;
 ;; In that case, the general way to cancel error between successive terms is:
 ;;
-;; $${R(h/t) - t^{p_1} R(h)} = {t^{p_1} - 1} A + C_1 h^{p_2} + ...$$
+;; $${t^{p_1} R(h/t) - R(h)} = (t^{p_1} - 1) A + C_1 h^{p_2} + ...$$
 ;;
 ;; or:
 ;;
-;; $${R(h/t) - t^{p_1} R(h)} \over {t^{p_1} - 1} = A + C_2 h^{p_2} + ...$$
+;; $${t^{p_1} R(h/t) - R(h)} \over {t^{p_1} - 1} = A + C_2 h^{p_2} + ...$$
 ;;
 ;; Let's write this in code:
 
