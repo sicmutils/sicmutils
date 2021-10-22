@@ -7,6 +7,9 @@
 
 - #374: Demos, thanks to @sigmaxipi!
 
+- #379 fixes typos in a couple of the equations in `richardson.cljc`, closing
+  #377. Thanks to @leifp for the report.
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.
