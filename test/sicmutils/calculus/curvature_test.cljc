@@ -32,9 +32,11 @@
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.mechanics.lagrange :refer [osculating-path]]
+            [sicmutils.mechanics.rotation :refer [rotate-x]]
+            [sicmutils.numerical.ode :refer [state-advancer]]
             [sicmutils.expression :as x]
             [sicmutils.function :refer [compose]]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ - * / sin cos]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
@@ -64,6 +66,58 @@
                                  (g/cos theta)))
                            zero)))]
     (cov/make-Christoffel symbols basis)))
+
+(defn transform
+  "P.109"
+  [tilt]
+  (fn [[colat long]]
+    (let [x (* (g/sin colat) (g/cos long))
+          y (* (g/sin colat) (g/sin long))
+          z    (g/cos colat)
+          [vp0 vp1 vp2] ((rotate-x tilt) (up x y z))
+          colatp (g/acos vp2)
+          longp (g/atan vp1 vp0)]
+      (up colatp longp))))
+
+(defn tilted-path
+  "P.110. Use `letfn` internally so we don't bind `coords` in the namespace; this
+  keeps it a named private definition."
+  [source target tilt]
+  (let [xform (transform tilt)]
+    (letfn [(coords [t]
+              (xform (up (/ Math/PI 2) t)))]
+      (compose (m/point target)
+               coords
+               (m/chart source)))))
+
+(deftest new-test-move-to-ch-7
+  (let-coordinates [[theta phi] m/S2-spherical
+                    t           m/R1-rect]
+    (let [S2-basis       (b/coordinate-system->basis S2-spherical)
+          S2-Christoffel (S2-Christoffel S2-basis theta)
+          sphere-Cartan  (cov/Christoffel->Cartan S2-Christoffel)
+          g (fn [gamma Cartan]
+              (let [omega ((cov/Cartan->forms
+                            (cov/Cartan->Cartan-over-map Cartan gamma))
+                           ;; NOTE THE DIFFERENCE!!!
+                           d:dt)]
+                (fn []
+                  (fn [[t u]]
+                    (let [t-point ((m/point R1-rect) t)]
+                      (up 1 (* -1 (omega t-point) u)))))))
+          integrator    (state-advancer
+                         (g (tilted-path R1-rect S2-spherical 1)
+                            sphere-Cartan))
+          initial-state (up 0 (* ((D (transform 1)) (up (/ Math/PI 2) 0)) (up 1 0)))]
+      (is (= (up 1.570796326794894
+                 (up 0.9999999999545687 -1.676680708092223E-10))
+             (integrator initial-state (/ Math/PI 2))))
+
+      (is (= (up 1.0 (up 0.7651502649161671 0.9117920274079562))
+             (integrator initial-state 1)))
+
+      (is (= (up 0.7651502649370375 0.9117920272004736)
+             (* ((D (transform 1)) (up (/ Math/PI 2) 1)) (up 1 0)))))))
 
 (deftest curvature-tests
   (testing "tests from curvature.scm"

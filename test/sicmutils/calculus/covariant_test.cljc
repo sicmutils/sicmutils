@@ -317,3 +317,59 @@
                     ((- (((g/Lie-derivative X) omega) Y Z W)
 	                      (((L1 X) omega) Y Z W))
 	                   R3-rect-point)))))))))
+
+
+(deftest new-tests
+  ;; Structured objects, such as tensors, take vector fields and 1form
+  ;; fields as arguments.
+  ;;
+  ;; 1form fields can act as (0,1) tensor fields if arguments are declared:
+
+  (let [omega (literal-oneform-field 'omega R4-rect)]
+    (declare-argument-types! omega (list vector-field?))
+    (let [m (typical-point R4-rect)
+          X (literal-vector-field 'X R4-rect)
+          Tomega (indexed->typed
+                  (typed->indexed omega
+                                  (coordinate-system->basis R4-rect))
+                  (coordinate-system->basis R4-rect))
+          V (literal-vector-field 'V R4-rect)
+          C (literal-Cartan 'G R4-rect)]
+      (is (= 0 (- (((((covariant-derivative C) X) omega) V) m)
+                  (((((covariant-derivative C) X) Tomega) V) m))))))
+
+  ;; So to test the operation on a vector field we must construct a
+  ;; (1,0) tensor field that behaves like a vector field, but acts on
+  ;; 1form fields rather than manifold functions.
+
+  (let [basis (coordinate-system->basis R4-rect)
+        V (literal-vector-field 'V R4-rect)
+        TV (lambda (1form) (1form V))]
+    (declare-argument-types! TV (list oneform-field?))
+    (let [m (typical-point R4-rect)
+          X (literal-vector-field 'X R4-rect)
+          omega (literal-1form-field 'omega R4-rect)
+          C (literal-Cartan 'G R4-rect)]
+      (is (= 0 (- ((omega V) m) ((TV omega) m))))))
+
+  ;; So TV is the tensor field that acts as the vector field V.
+  (let [basis (coordinate-system->basis R4-rect)
+        V (literal-vector-field 'V R4-rect)
+        TV (lambda (1form) (1form V))]
+    (declare-argument-types! TV (list 1form-field?))
+    (let [m (typical-point R4-rect)
+          X (literal-vector-field 'X R4-rect)
+          omega (literal-1form-field 'omega R4-rect)
+          C (literal-Cartan 'G R4-rect)]
+      (is (= 0 (- ((omega (((covariant-derivative C) X) V)) m)
+                  (((((covariant-derivative C) X) TV) omega) m))))))
+
+  (let [g S2-metric
+        G (metric->Christoffel-2 g (coordinate-system->basis S2-spherical))
+        C (Christoffel->Cartan G)
+        V (literal-vector-field 'V S2-spherical)
+        X (literal-vector-field 'X S2-spherical)
+        Y (literal-vector-field 'Y S2-spherical)
+        m ((point S2-spherical) (up 'theta 'phi))]
+    (declare-argument-types! g (list vector-field? vector-field?))
+    (is (= 0 (((((covariant-derivative C) V) g) X Y) m)))))
