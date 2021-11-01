@@ -36,7 +36,7 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(defn ^:private F->directional-derivative
+(defn F->directional-derivative
   [F]
   (fn [v]
     (fn [u]
@@ -46,7 +46,7 @@
                     (- ((u f) m) (((((F v) delta) u) f) m)))]
             ((D g) 0)))))))
 
-(defn ^:private F-Lie
+(defn F-Lie
   [phi]
   (fn [v]
     (fn [delta]
@@ -61,7 +61,7 @@
          (e/series:sum (((exp (* delta v)) (chart coordinate-system)) m)
                        order))))))
 
-(defn ^:private Lie-directional
+(defn Lie-directional
   [coordinate-system order]
   (let [Phi (phi coordinate-system order)]
     (F->directional-derivative (F-Lie Phi))))
@@ -249,16 +249,18 @@
                  coords
                  (e/chart source)))))
 
+(def gamma
+  (e/compose (e/point S2-spherical)
+             (up (e/literal-function 'alpha)
+                 (e/literal-function 'beta))
+             (e/chart R1-rect)))
+
 (deftest section-7-3
   (testing "Parallel transport on a sphere, p106"
     (let-coordinates [[theta phi] S2-spherical
                       t           R1-rect]
       (let [sphere   e/S2
             S2-basis (e/coordinate-system->basis S2-spherical)
-            gamma    (e/compose (e/point e/S2-spherical)
-                                (up (e/literal-function 'alpha)
-                                    (e/literal-function 'beta))
-                                (e/chart R1-rect))
             basis-over-gamma (e/basis->basis-over-map gamma S2-basis)
             u_gamma (* (up (e/compose (e/literal-function 'u↑0)
                                       (e/chart R1-rect))
@@ -314,4 +316,51 @@
                   (integrator initial-state 1)))
 
         (is (ish? (up 0.7651502649370375 0.9117920272004736)
-                  (* ((D (transform 1)) (up (/ e/pi 2) 1)) (up 1 0)))))))  )
+                  (* ((D (transform 1)) (up (/ e/pi 2) 1)) (up 1 0))))))))
+
+(deftest section-7-4
+  (let-coordinates [[theta phi] S2-spherical
+                    t           R1-rect]
+    (let [S2-basis       (e/coordinate-system->basis S2-spherical)
+          S2-Christoffel (S2-Christoffel S2-basis theta)
+          sphere-Cartan  (e/Christoffel->Cartan S2-Christoffel)]
+      (testing "geodesic motion, p111"
+        (is (= '(up (+ (* -1 (cos (alpha t0)) (sin (alpha t0)) (expt ((D beta) t0) 2))
+                       (((expt D 2) alpha) t0))
+                    (/ (+ (* 2 (cos (alpha t0)) ((D beta) t0) ((D alpha) t0))
+                          (* (sin (alpha t0)) (((expt D 2) beta) t0)))
+                       (sin (alpha t0))))
+               (freeze
+                (simplify
+                 (((((e/covariant-derivative sphere-Cartan gamma)
+                     d:dt)
+                    ((e/differential gamma) d:dt))
+                   (e/chart S2-spherical))
+                  ((e/point R1-rect) 't0)))))))))
+
+  (testing "Lagrange equation on unit sphere, p112"
+    (let [Lfree      (fn [[_ _ v]]
+                       (* (/ 1 2) (e/square v)))
+          sphere->R3 (fn [[_ [theta phi]]]
+                       (up (* (e/sin theta) (e/cos phi))
+                           (* (e/sin theta) (e/sin phi))
+                           (e/cos theta)))
+          Lsphere (e/compose Lfree (e/F->C sphere->R3))]
+      (is (= '(down (+ (* -1
+                          (cos (alpha t))
+                          (sin (alpha t))
+                          (expt ((D beta) t) 2))
+                       (((expt D 2) alpha) t))
+                    (+ (* 2
+                          (cos (alpha t))
+                          ((D alpha) t)
+                          (sin (alpha t))
+                          ((D beta) t))
+                       (* (expt (sin (alpha t)) 2)
+                          (((expt D 2) beta) t))))
+             (freeze
+              (simplify
+               (((e/Lagrange-equations Lsphere)
+                 (up (e/literal-function 'alpha)
+                     (e/literal-function 'beta)))
+                't))))))))
