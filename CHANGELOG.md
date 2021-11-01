@@ -10,6 +10,16 @@
 - #379 fixes typos in a couple of the equations in `richardson.cljc`, closing
   #377. Thanks to @leifp for the report.
 
+- new PR:
+
+  - approximate equality of up, down implemented. Note trickiness.
+
+  - bugfix in `Cartan->Cartan-over-map` so that the book works now.
+
+  - new tests ported over!
+
+  - Added remaining code forms for chapter 7 in `ch7_test.cljc`
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.

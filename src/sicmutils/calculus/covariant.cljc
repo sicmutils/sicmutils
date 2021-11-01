@@ -222,11 +222,9 @@
 (defn Cartan->Cartan-over-map [Cartan map]
   (let [basis (cm/basis->basis-over-map
                map (Cartan->basis Cartan))
-        Cartan-forms
-        (s/mapr (cm/form-field->form-field-over-map map)
-                (Cartan->forms Cartan))]
-    (make-Cartan (f/compose Cartan-forms (cm/differential map))
-                 basis)))
+        forms (s/mapr (cm/form-field->form-field-over-map map)
+                      (Cartan->forms Cartan))]
+    (make-Cartan forms basis)))
 
 ;; ### Covariant Vector Definition
 
@@ -393,8 +391,12 @@
   ([Cartan]
    (covariant-derivative-ordinary Cartan))
   ([Cartan map]
-   (covariant-derivative-ordinary
-    (Cartan->Cartan-over-map Cartan map))))
+   (let [mapped (Cartan->Cartan-over-map Cartan map)]
+     (covariant-derivative-ordinary
+      (make-Cartan (f/compose (Cartan->forms mapped)
+                              (cm/differential map))
+                   (Cartan->basis mapped)
+                   )))))
 
 (defn covariant-differential [Cartan]
   (fn [V]

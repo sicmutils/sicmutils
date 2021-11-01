@@ -25,6 +25,7 @@
             [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
+     (:import (sicmutils.structure Structure))
      (:import (org.apache.commons.math3.complex Complex))))
 
 (def bigint
@@ -412,4 +413,17 @@
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
                 (g/real-part this) (u/double that)))
-          :else (v/= this that))))
+          :else (v/= this that)))
+
+  #?(:cljs s/Structure :clj Structure)
+  (ish [this that]
+    (cond (instance? #?(:cljs s/Structure :clj Structure) that)
+          (and (s/same-orientation? this that)
+               (si/ish (s/structure->vector this)
+                       (s/structure->vector that)))
+
+          (s/up? this)
+          (cond (vector? that)   (si/ish (s/structure->vector this) that)
+                (seqable? that) (si/ish (seq this) (seq that))
+                :else false)
+          :else false)))
