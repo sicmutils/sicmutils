@@ -20,6 +20,8 @@
 
   - Added remaining code forms for chapter 7 in `ch7_test.cljc`
 
+  - TODO tests for symbol equality in `ish?`
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.
