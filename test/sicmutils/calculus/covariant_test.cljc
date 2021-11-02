@@ -37,9 +37,11 @@
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.metric :refer [S2-metric]]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.mechanics.lagrange :as ml]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * / sin cos tan]]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
             [sicmutils.value :as v]))
@@ -747,339 +749,272 @@
                   (b/basis->oneform-basis
                    (cm/basis->basis-over-map
                     mu:N->M
-                    (cov/Cartan->basis Cartan)))))))))
-
-      )
-    ))
-
-#_(deftest geodesic-equation-tests
-    ;; We can get the geodesic equations as ordinary Lagrange
-    ;; equations of a free particle constrained to the surface
-    ;; of the sphere:
-
-    (define ((Lfree m) s)
-      (let ((t (time s))
-            (q (coordinate s))
-            (v (velocity s)))
-        (* 1/2 m (square v))))
-
-    ;; F is really the embedding map, from the coordinates on the sphere
-    ;; to the 3-space coordinates in the embedding manifold.
-
-    ;; This hides the assumption that the R3 manifold is the same one as
-    ;; the embedding manifold.
-
-    (define F
-      (f/compose (R3-rect '->coords)
-                 (S2-spherical '->point)
-                 coordinate))
-
-    ;; Actually (9 June 2009--GJS) this no longer works, because R3-rect
-    ;; does not accept an S2-spherical point as in the same manifold.
-
-    ;; Fixed by explicit transfer of a point -- see manifold.scm
-
-    (define F
-      (f/compose (R3-rect '->coords)
-                 (transfer-point S2-spherical R3-rect)
-                 (S2-spherical '->point)
-                 coordinate))
-
-    (define Lsphere
-      (f/compose (Lfree 1) (F->C F)))
-
-    (pec (((Lagrange-equations Lsphere)
-           (up (af/literal-function 'theta)
-               (af/literal-function 'phi)))
-          't))
-    ;; Result:
-    (down
-     (+ (((expt D 2) theta) t)
-        (* -1 (cos (theta t)) (sin (theta t)) (expt ((D phi) t) 2)))
-     (+ (* (expt (sin (theta t)) 2) (((expt D 2) phi) t))
-        (* 2 (cos (theta t)) (sin (theta t)) ((D phi) t) ((D theta) t))))
-
-
-    ;; Note these are DOWN while the geodesic equations are UP.  This is
-    ;; due to the fact that the geodesic equations are raised by the
-    ;; metric, which is diagonal, here R=1, and cancels an instance
-    ;; of(expt (sin theta) 2).
-
-    ;; Also see p.345 MTW for computing Christoffel symbols from Lagrange
-    ;; equations.
-
-    ;; Exercise on computation of Christoffel symbols.
-
-    (install-coordinates R3-rect (up 'x 'y 'z))
-    (define R3-rect-point ((R3-rect '->point) (up 'x0 'y0 'z0)))
-
-    (install-coordinates R3-cyl (up 'r 'theta 'zeta))
-    (define R3-cyl-point ((R3-cyl '->point) (up 'r0 'theta0 'z0)))
-
-    (define mpr (R3-rect '->coords))
-
-    (pec (((* d:dr d:dr) mpr) R3-rect-point))
-    ;; Result:
-    (up 0 0 0)
-
-    ;; So \Gamma↑r_{rr} = 0, \Gamma↑\theta_{rr} = 0
-
-    (pec (((* d:dtheta d:dr) mpr) R3-rect-point))
-    ;; Result:
-    (up (/ (* -1 y0) (sqrt (+ (expt x0 2) (expt y0 2))))
-        (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
-        0)
-
-    ;; by hand = -sint d:dx + cost d:dy = 1/r d:dtheta
-    ;; Indeed.
-
-    (pec (((* d:dtheta d:dr) mpr) R3-cyl-point))
-    ;; Result:
-    (up (* -1 (sin theta0)) (cos theta0) 0)
-
-    ;; So \Gamma↑r_{r\theta} = 0, \Gamma↑\theta_{r\theta} = 1/r
-
-    (pec (((* d:dr d:dtheta) mpr) R3-rect-point))
-    ;; Result:
-    (up (/ (* -1 y0) (sqrt (+ (expt x0 2) (expt y0 2))))
-        (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
-        0)
-
-    ;; by hand = -sint d:dx + cost d:dy = 1/r d:dtheta
-
-    (pec (((* d:dr d:dtheta) mpr) R3-cyl-point))
-    ;; Result:
-    (up (* -1 (sin theta0)) (cos theta0) 0)
-
-    ;; So \Gammar_{\theta r} = 0, \Gamma\theta_{\theta r} = 1/r
-
-    (is  (= '(up (* -1 x0) (* -1 y0) 0)
-            (simplify
-             (((* d:dtheta d:dtheta) mpr) R3-rect-point))))
-
-
-
-    ;; by hand = -r cost d:dx - r sint d:dy = -r d:dr
-
-    (pec (((* d:dtheta d:dtheta) mpr) R3-cyl-point))
-    ;; Result:
-    (up (* -1 r0 (cos theta0)) (* -1 r0 (sin theta0)) 0)
-
-    ;; So \Gammar_{\theta \theta} = -r, \Gamma\theta_{\theta \theta} = 0
-
-    ;; These are correct Christoffel symbols...
-
-
-    ;; Computation of Covariant derivatives by difference quotient.
-    ;; CD below is parallel in definition to the Lie Derivative.
-    ;; Does not seem to depend on a derivative of basis vectors, in fact
-    ;; the derivative of the basis vectors is multiplied by zero in the
-    ;; product rule output.
-    (define X (vf/literal-vector-field 'X R2-rect))
-
-    (define Y (vf/literal-vector-field 'Y R2-rect))
-
-    (define q_0 (up 'q_x 'q_y))
-
-    (define m_0
-      ((R2-rect '->point) q_0))
-
-    (define F (man/literal-manifold-function 'F R2-rect))
-
-
-    (define (((((CD CF chart) v) u) F) m)
-
-      (define (Sigma state) (ref state 0))
-      (define (U state) (ref state 1))
-      (define (sigma-u sigma u) (up sigma u))
-
-      (define chi (chart '->coords))
-      (define chi↑-1 (chart '->point))
-
-      ;; ((gamma m) delta) is the point on gamma advanced by delta.
-
-      (define ((gamma m) delta)
-        (chi↑-1 (+ (chi m) (* delta ((v chi) m)))))
-
-      (let ((basis (Cartan->basis CF)))
-        (let ((vector-basis (b/basis->vector-basis basis))
-              (oneform-basis (b/basis->oneform-basis basis)))
-          (let ((u↑i (oneform-basis u)))
-            (let ((initial-state
-                   (sigma-u (chi m) (u↑i m))))
-
-              (define (bs state)
-                (let ((sigma (Sigma state)))
-                  (let ((m_0 (chi↑-1 sigma)))
-                    (up ((v chi) m_0)
-                        (* -1
-                           (((cov/Cartan->forms CF) v) m_0)
-                           (u↑i m_0))))))
-
-              (define (vs fs)
-                (* (D fs) bs))
-
-              ;; First-order approximation to A
-
-              (define (Au delta)
-                (+ (U initial-state)
-                   (* delta ((vs U) initial-state))))
-
-              (define (g delta)
-                (let ((advanced-m ((gamma m) delta)))
-                  (* (- (u↑i advanced-m) (Au delta))
-                     ((vector-basis F) advanced-m))))
-
-              ((D g) 0))))))
-
-    ;; A bit simpler, but lacking in motivation?
-
-    (define (((((CD CF chart) v) u) F) m)
-
-      (define (Sigma state) (ref state 0))
-      (define (U state) (ref state 1))
-      (define (sigma-u sigma u) (up sigma u))
-
-      (define chi (chart '->coords))
-      (define chi↑-1 (chart '->point))
-
-      ;; ((gamma m) delta) is the point on gamma advanced by delta.
-
-      (define ((gamma m) delta)
-        (chi↑-1 (+ (chi m) (* delta ((v chi) m)))))
-
-      (let ((basis (Cartan->basis CF)))
-        (let ((vector-basis (b/basis->vector-basis basis))
-              (oneform-basis (b/basis->oneform-basis basis)))
-          (let ((u↑i (oneform-basis u)))
-            (let ((initial-state
-                   (sigma-u (chi m) (u↑i m))))
-
-              ;; First-order approximation to A
-
-              (define (Au delta)
-                (- (u↑i m)
-                   (* delta
-                      (((cov/Cartan->forms CF) v) m)
-                      (u↑i m))))
-
-              (define (g delta)
-                (let ((advanced-m ((gamma m) delta)))
-                  (* (- (u↑i advanced-m) (Au delta))
-                     ((vector-basis F) advanced-m))))
-
-              ((D g) 0))))))
-
-    (let ((CF (cov/Christoffel->Cartan
-               (cov/make-Christoffel G
-                                     (b/coordinate-system->basis R2-rect)))))
+                    (cov/Cartan->basis Cartan))))))))))
+    (let [
+          ;; We can get the geodesic equations as ordinary Lagrange
+          ;; equations of a free particle constrained to the surface
+          ;; of the sphere:
+          Lfree (fn [m]
+                  (fn [[t q v]]
+                    (* (/ 1 2) m (g/square v))))
+          ;; F is really the embedding map, from the coordinates on the sphere
+          ;; to the 3-space coordinates in the embedding manifold.
+
+          ;; This hides the assumption that the R3 manifold is the same one as
+          ;; the embedding manifold.
+
+          ;; Comment on an older version from scmutils: Actually (9 June 2009--GJS)
+          ;; this no longer works, because R3-rect does not accept an S2-spherical
+          ;; point as in the same manifold. Fixed by explicit transfer of a point --
+          ;; see manifold.scm
+          F (f/compose
+             (chart R3-rect)
+             (man/transfer-point S2-spherical R3-rect)
+             (point S2-spherical)
+             ml/coordinate)
+          Lsphere (f/compose (Lfree 1) (ml/F->C F))]
+      ;; Note these are DOWN while the geodesic equations are UP.  This is
+      ;; due to the fact that the geodesic equations are raised by the
+      ;; metric, which is diagonal, here R=1, and cancels an instance
+      ;; of(expt (sin theta) 2).
+
+      ;; Also see p.345 MTW for computing Christoffel symbols from Lagrange
+      ;; equations.
+      (is (= '(down
+               (+ (* -1 (cos (theta t)) (sin (theta t)) (expt ((D phi) t) 2))
+                  (((expt D 2) theta) t))
+               (+ (* 2 (cos (theta t)) ((D theta) t) (sin (theta t)) ((D phi) t))
+                  (* (expt (sin (theta t)) 2) (((expt D 2) phi) t))))
+             (v/freeze
+              (simplify
+               (((ml/Lagrange-equations Lsphere)
+                 (up (af/literal-function 'theta)
+                     (af/literal-function 'phi)))
+                't))))))
+
+    (testing "Exercise on computation of Christoffel symbols."
+      (let-coordinates [[x y z]        R3-rect
+                        [r theta zeta] man/R3-cyl]
+        (let [R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))
+              R3-cyl-point ((point R3-cyl) (up 'r0 'theta0 'z0))
+              mpr (chart R3-rect)]
+          (is (= '(up 0 0 0)
+                 (v/freeze
+                  (simplify
+                   (((* d:dr d:dr) mpr) R3-rect-point)))))
+          ;; So \Gamma↑r_{rr} = 0, \Gamma↑\theta_{rr} = 0
+          (is (= '(up (/ (* -1 y0) (sqrt (+ (expt x0 2) (expt y0 2))))
+                      (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
+                      0)
+                 (v/freeze
+                  (simplify
+                   (((* d:dtheta d:dr) mpr) R3-rect-point)))))
+
+          ;; by hand = -sint d:dx + cost d:dy = 1/r d:dtheta
+          ;; Indeed.
+          (is (= '(up (* -1 (sin theta0)) (cos theta0) 0)
+                 (v/freeze
+                  (simplify
+                   (((* d:dtheta d:dr) mpr) R3-cyl-point)))))
+
+          ;; So \Gamma↑r_{r\theta} = 0, \Gamma↑\theta_{r\theta} = 1/r
+
+          (is  (= '(up (/ (* -1 y0) (sqrt (+ (expt x0 2) (expt y0 2))))
+                       (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
+                       0)
+                  (v/freeze
+                   (simplify
+                    (((* d:dr d:dtheta) mpr) R3-rect-point)))))
+
+          ;; by hand = -sint d:dx + cost d:dy = 1/r d:dtheta
+          (is  (= '(up (* -1 (sin theta0)) (cos theta0) 0)
+                  (v/freeze
+                   (simplify
+                    (((* d:dr d:dtheta) mpr) R3-cyl-point)))))
+
+          ;; So \Gammar_{\theta r} = 0, \Gamma\theta_{\theta r} = 1/r
+          (is (= '(up (* -1 x0) (* -1 y0) 0)
+                 (simplify
+                  (((* d:dtheta d:dtheta) mpr) R3-rect-point))))
+
+          ;; by hand = -r cost d:dx - r sint d:dy = -r d:dr
+
+          (is (= '(up (* -1 r0 (cos theta0)) (* -1 r0 (sin theta0)) 0)
+                 (v/freeze
+                  (simplify
+                   (((* d:dtheta d:dtheta) mpr) R3-cyl-point)))))
+          ;; So \Gammar_{\theta \theta} = -r, \Gamma\theta_{\theta \theta} = 0
+          ;;
+          ;; These are correct Christoffel symbols...
+          )))))
+
+(defn CD [CF chart]
+  "Computation of Covariant derivatives by difference quotient. [[CD]] is
+  parallel in definition to the Lie Derivative. Does not seem to depend on a
+  derivative of basis vectors, in fact the derivative of the basis vectors is
+  multiplied by zero in the product rule output."
+  (let [chi (man/chart chart)
+        chi-inv (man/point chart)
+        basis (cov/Cartan->basis CF)
+        vector-basis  (b/basis->vector-basis basis)
+        oneform-basis (b/basis->oneform-basis basis)]
+    (letfn [(Sigma [state] (nth state 0))
+            (U [state] (nth state 1))
+            (sigma-u [sigma u] (up sigma u))]
+      (fn [v]
+        ;; ((gamma m) delta) is the point on gamma advanced by delta.
+        (letfn [(gamma [m]
+                  (fn [delta]
+                    (chi-inv (+ (chi m) (* delta ((v chi) m))))))]
+          (fn [u]
+            (let [u-i (oneform-basis u)]
+              (fn [F]
+                (fn [m]
+                  (let [initial-state (sigma-u (chi m) (u-i m))]
+                    (letfn [(bs [state]
+                              (let [sigma (Sigma state)
+                                    m_0   (chi-inv sigma)]
+                                (up ((v chi) m_0)
+                                    (* -1
+                                       (((cov/Cartan->forms CF) v) m_0)
+                                       (u-i m_0)))))
+                            (vs [fs]
+                              (* (D fs) bs))
+
+                            ;; First-order approximation to A
+                            (Au [delta]
+                              (+ (U initial-state)
+                                 (* delta ((vs U) initial-state))))
+
+                            (g [delta]
+                              (let [advanced-m ((gamma m) delta)]
+                                (* (- (u-i advanced-m) (Au delta))
+                                   ((vector-basis F) advanced-m))))]
+                      ((D g) 0))))))))))))
+
+;; A bit simpler, but lacking in motivation?
+
+#_
+(define (((((CD CF chart) v) u) F) m)
+
+  (define (Sigma state) (ref state 0))
+  (define (U state) (ref state 1))
+  (define (sigma-u sigma u) (up sigma u))
+
+  (define chi (chart '->coords))
+  (define chi↑-1 (chart '->point))
+
+  ;; ((gamma m) delta) is the point on gamma advanced by delta.
+
+  (define ((gamma m) delta)
+    (chi↑-1 (+ (chi m) (* delta ((v chi) m)))))
+
+  (let ((basis (Cartan->basis CF)))
+    (let ((vector-basis (b/basis->vector-basis basis))
+          (oneform-basis (b/basis->oneform-basis basis)))
+      (let ((u↑i (oneform-basis u)))
+        (let ((initial-state
+               (sigma-u (chi m) (u↑i m))))
+
+          ;; First-order approximation to A
+
+          (define (Au delta)
+            (- (u↑i m)
+               (* delta
+                  (((cov/Cartan->forms CF) v) m)
+                  (u↑i m))))
+
+          (define (g delta)
+            (let ((advanced-m ((gamma m) delta)))
+              (* (- (u↑i advanced-m) (Au delta))
+                 ((vector-basis F) advanced-m))))
+
+          ((D g) 0))))))
+
+(deftest geodesic-equation-tests
+  (let [X (vf/literal-vector-field 'X R2-rect)
+        Y (vf/literal-vector-field 'Y R2-rect)
+        F (man/literal-manifold-function 'F R2-rect)
+        q_0 (up 'q_x 'q_y)
+        m_0 ((point R2-rect) q_0)
+        CF-rect (cov/Christoffel->Cartan
+                 (cov/make-Christoffel G (b/coordinate-system->basis R2-rect)))
+        CF-polar (cov/Christoffel->Cartan
+                  (cov/make-Christoffel G (b/coordinate-system->basis R2-polar)))]
+    (is (zero?
+         (simplify
+          (- (((((CD CF-rect R2-rect) X) Y) F) m_0)
+             (((((cov/covariant-derivative CF-rect) X) Y) F) m_0)))))
+
+    (is (zero?
+         (simplify
+          (- (((((CD CF-polar R2-rect) X) Y) F) m_0)
+             (((((cov/covariant-derivative CF-polar) X) Y) F) m_0)))))
+
+    (is (zero?
+         (simplify
+          (- (((((CD CF-rect R2-polar) X) Y) F) m_0)
+             (((((cov/covariant-derivative CF-rect) X) Y) F) m_0)))))
+
+    ;; Too slow... it works if we bump the timeout, but this is not fast.
+    (binding [pg/*poly-gcd-time-limit* [5 :seconds]]
       (is (zero?
            (simplify
-            (- (((((CD CF R2-rect) X) Y) F) m_0)
-               (((((cov/covariant-derivative CF) X) Y) F) m_0))))))
+            (- (((((CD CF-polar R2-polar) X) Y) F) m_0)
+               (((((cov/covariant-derivative CF-polar) X) Y) F) m_0))))))
 
-    (let ((CF (cov/Christoffel->Cartan
-               (cov/make-Christoffel G
-                                     (b/coordinate-system->basis R2-polar)))))
-      (is (zero?
-           (simplify
-            (- (((((CD CF R2-rect) X) Y) F) m_0)
-               (((((cov/covariant-derivative CF) X) Y) F) m_0))))))
-
-    (let ((CF (cov/Christoffel->Cartan
-               (cov/make-Christoffel G
-                                     (b/coordinate-system->basis R2-rect)))))
-      (is (zero?
-           (simplify
-            (- (((((CD CF R2-polar) X) Y) F) m_0)
-               (((((cov/covariant-derivative CF) X) Y) F) m_0))))))
-
-    (let ((CF (cov/Christoffel->Cartan
-               (cov/make-Christoffel G
-                                     (b/coordinate-system->basis R2-polar)))))
-      (is (zero?
-           (simplify
-            (- (((((CD CF R2-polar) X) Y) F) m_0)
-               (((((cov/covariant-derivative CF) X) Y) F) m_0))))))
-
-    ;; Too slow...
-
-
-    ;; Testing on forms.
-    (define X (vf/literal-vector-field 'X R2-rect))
-
-    (define Y (vf/literal-vector-field 'Y R2-rect))
-
-    (define omega (ff/literal-oneform-field 'omega R2-rect))
-
-    (define q_0 (up 'q_x 'q_y))
-
-    (define m_0
-      ((R2-rect '->point) q_0))
-
-    (define F (man/literal-manifold-function 'F R2-rect))
-
-    (let* ((CF (cov/Christoffel->Cartan
-                (cov/make-Christoffel G
-                                      (b/coordinate-system->basis R2-rect))))
-           (D_x ((cov/covariant-derivative CF) X)))
-      (is (zero?
-           (simplify
-            (- (+ (((D_x omega) Y) m_0)
-                  ((omega (D_x Y)) m_0))
-               ((D_x (omega Y)) m_0))))))
-
-
-    (define tau (ff/literal-oneform-field 'tau R2-rect))
-
-    (define Z (vf/literal-vector-field 'Z R2-rect))
-
-    (let* ((CF (cov/Christoffel->Cartan
-                (cov/make-Christoffel G
-                                      (b/coordinate-system->basis R2-rect))))
-           (D_x ((cov/covariant-derivative CF) X)))
-      (is (zero?
-           (simplify
-            (- (((D_x (wedge omega tau)) Y Z) m_0)
-               (+ (((wedge omega (D_x tau)) Y Z) m_0)
-                  (((wedge (D_x omega) tau) Y Z) m_0)))))))
-
-    (let* ((CF (cov/Christoffel->Cartan
-                (cov/make-Christoffel G
-                                      (b/coordinate-system->basis R2-polar))))
-           (D_x ((cov/covariant-derivative CF) X)))
-      (is (zero?
-           (simplify
-            (- (((D_x (wedge omega tau)) Y Z) m_0)
-               (+ (((wedge omega (D_x tau)) Y Z) m_0)
-                  (((wedge (D_x omega) tau) Y Z) m_0)))))))
-
-    ;; Next, tests, for the actual functions:
-    (is (= '(up
-             (+ (* (expt ((D gamma0) t) 2) (G_00↑0 (up (gamma0 t) (gamma1 t))))
-                (* ((D gamma0) t) ((D gamma1) t) (G_10↑0 (up (gamma0 t) (gamma1 t))))
-                (* ((D gamma0) t) ((D gamma1) t) (G_01↑0 (up (gamma0 t) (gamma1 t))))
-                (* (expt ((D gamma1) t) 2) (G_11↑0 (up (gamma0 t) (gamma1 t))))
-                (((expt D 2) gamma0) t))
-             (+ (* (expt ((D gamma0) t) 2) (G_00↑1 (up (gamma0 t) (gamma1 t))))
-                (* ((D gamma0) t) ((D gamma1) t) (G_10↑1 (up (gamma0 t) (gamma1 t))))
-                (* ((D gamma0) t) ((D gamma1) t) (G_01↑1 (up (gamma0 t) (gamma1 t))))
-                (* (expt ((D gamma1) t) 2) (G_11↑1 (up (gamma0 t) (gamma1 t))))
-                (((expt D 2) gamma1) t)))
-           (simplify
-            (((geodesic-equation the-real-line R2-rect (conn/literal-Cartan 'G R2-rect))
-              (literal-manifold-map 'gamma the-real-line R2-rect))
-             ((point the-real-line) 't)))))
-
-    (let [C (conn/literal-Cartan 'G R2-rect)]
-      (is (= (up 0 0)
+    (testing "Testing on forms."
+      (let [omega (ff/literal-oneform-field 'omega R2-rect)
+            tau (ff/literal-oneform-field 'tau R2-rect)
+            Z (vf/literal-vector-field 'Z R2-rect)
+            D_x-rect ((cov/covariant-derivative CF-rect) X)
+            D_x-polar ((cov/covariant-derivative CF-polar) X)]
+        (is (zero?
              (simplify
-              (- (((cov/geodesic-equation the-real-line R2-rect C)
-                   (literal-manifold-map 'gamma the-real-line R2-rect))
-                  ((point the-real-line) 't))
-                 (((cov/geodesic-equation the-real-line R2-rect (symmetrize-Cartan C))
-                   (literal-manifold-map 'gamma the-real-line R2-rect))
-                  ((point the-real-line) 't))))))))
+              (- (+ (((D_x-rect omega) Y) m_0)
+                    ((omega (D_x-rect Y)) m_0))
+                 ((D_x-rect (omega Y)) m_0)))))
+
+        (is (zero?
+             (simplify
+              (- (((D_x-rect (ff/wedge omega tau)) Y Z) m_0)
+                 (+ (((ff/wedge omega (D_x-rect tau)) Y Z) m_0)
+                    (((ff/wedge (D_x-rect omega) tau) Y Z) m_0))))))
+
+        (is (zero?
+             (simplify
+              (- (((D_x-polar (ff/wedge omega tau)) Y Z) m_0)
+                 (+ (((ff/wedge omega (D_x-polar tau)) Y Z) m_0)
+                    (((ff/wedge (D_x-polar omega) tau) Y Z) m_0)))))))))
+
+  ;; Next, tests, for the actual functions:
+  (is (= '(up
+           (+ (* (G_00↑0 (up (gamma↑0 t) (gamma↑1 t))) (expt ((D gamma↑0) t) 2))
+              (* ((D gamma↑0) t) (G_10↑0 (up (gamma↑0 t) (gamma↑1 t))) ((D gamma↑1) t))
+              (* ((D gamma↑0) t) ((D gamma↑1) t) (G_01↑0 (up (gamma↑0 t) (gamma↑1 t))))
+              (* (expt ((D gamma↑1) t) 2) (G_11↑0 (up (gamma↑0 t) (gamma↑1 t))))
+              (((expt D 2) gamma↑0) t))
+           (+ (* (expt ((D gamma↑0) t) 2) (G_00↑1 (up (gamma↑0 t) (gamma↑1 t))))
+              (* ((D gamma↑0) t) ((D gamma↑1) t) (G_10↑1 (up (gamma↑0 t) (gamma↑1 t))))
+              (* ((D gamma↑0) t) ((D gamma↑1) t) (G_01↑1 (up (gamma↑0 t) (gamma↑1 t))))
+              (* (expt ((D gamma↑1) t) 2) (G_11↑1 (up (gamma↑0 t) (gamma↑1 t))))
+              (((expt D 2) gamma↑1) t)))
+         (v/freeze
+          (simplify
+           (((cov/geodesic-equation the-real-line R2-rect (conn/literal-Cartan 'G R2-rect))
+             (cm/literal-manifold-map 'gamma the-real-line R2-rect))
+            ((point the-real-line) 't))))))
+
+  (let [C (conn/literal-Cartan 'G R2-rect)]
+    (is (= '(up 0 0)
+           (v/freeze
+            (simplify
+             (- (((cov/geodesic-equation the-real-line R2-rect C)
+                  (cm/literal-manifold-map 'gamma the-real-line R2-rect))
+                 ((point the-real-line) 't))
+                (((cov/geodesic-equation the-real-line R2-rect (cov/symmetrize-Cartan C))
+                  (cm/literal-manifold-map 'gamma the-real-line R2-rect))
+                 ((point the-real-line) 't)))))))))
 
 (deftest parallel-transport-tests
   (let-coordinates [[theta phi] S2-spherical]

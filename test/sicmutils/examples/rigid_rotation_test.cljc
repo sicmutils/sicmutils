@@ -23,8 +23,8 @@
             [sicmutils.env :as e :refer [up + - * /]]
             [sicmutils.examples.rigid-rotation :as rigid-rotation]
             [sicmutils.mechanics.rigid :as rigid]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.polynomial.gcd :as pg]))
+            [sicmutils.polynomial.gcd :as pg]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

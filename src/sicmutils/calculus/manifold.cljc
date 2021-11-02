@@ -387,15 +387,24 @@
   manifold `embedded` and transfers the point to the supplied `embedding`
   manifold.
 
+  TODO note that you can supply either a manifold or a coordinate system
+  attached to some manifold.
+
   The embedding dimension must be the same for both manifolds."
   [embedded embedding]
-  {:pre [(= (:embedding-dimension embedded)
-	          (:embedding-dimension embedding))]}
-  (fn [point]
-    (assert (= embedded (point->manifold point)))
-    (make-manifold-point
-	   (manifold-point-representation point)
-	   (manifold embedding))))
+  (let [embedded-m (if (coordinate-system? embedded)
+                     (manifold embedded)
+                     embedded)
+        embedding-m (if (coordinate-system? embedding)
+                      (manifold embedding)
+                      embedding)]
+    (assert (= (:embedding-dimension embedded)
+	             (:embedding-dimension embedding)))
+    (fn [point]
+      (assert (= embedded-m (point->manifold point)))
+      (make-manifold-point
+	     (manifold-point-representation point)
+	     embedding-m))))
 
 (defn corresponding-velocities
   "Takes a coordinate representation `coords` of a manifold point with all
