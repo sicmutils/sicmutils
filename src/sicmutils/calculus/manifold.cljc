@@ -455,12 +455,24 @@ codebase compatibility."}
 ;;
 ;; This section defines many instances of [[ICoordinateSystem]].
 
+(defn c:generate
+  "Generates a coordinate structure of the supplied dimension `n`, and
+  `orientation` using the supplied function `f` for entries. See the very
+  similar [[sicmutils.structure/generate]] for more details.
+
+  NOTE from GJS: this is a kludge introduced only to allow a coordinate of
+  dimension 1 to automatically unwrap itself."
+  [n orientation f]
+  (if (= n 1)
+    (f 0)
+    (s/generate n orientation f)))
+
 (defn- default-coordinate-prototype
   "Takes a `manifold` and returns a [[sicmutils.structure/up]] instance of the
   same dimension as `manifold`, with symbolic entries in each position. "
   [manifold]
   (let [k (:dimension manifold)]
-    (s/generate
+    (c:generate
      k ::s/up (fn [i] (symbol (str "x" i))))))
 
 (defn- ->Rectangular

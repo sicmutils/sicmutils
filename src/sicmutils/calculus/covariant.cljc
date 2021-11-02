@@ -395,8 +395,7 @@
      (covariant-derivative-ordinary
       (make-Cartan (f/compose (Cartan->forms mapped)
                               (cm/differential map))
-                   (Cartan->basis mapped)
-                   )))))
+                   (Cartan->basis mapped))))))
 
 (defn covariant-differential [Cartan]
   (fn [V]
@@ -425,7 +424,7 @@
                      (manifold/manifold source-coordsys)))]}
         (let [e (vf/coordinate-system->vector-basis source-coordsys)]
           (((((covariant-derivative Cartan-on-target gamma)
-              e);; d/dt
+              e) ;; d/dt
              vector-over-gamma)
             (manifold/chart target-coordsys))
            source-m))))))

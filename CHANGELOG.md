@@ -22,6 +22,8 @@
 
   - TODO tests for symbol equality in `ish?`
 
+  - properly return a single coordinate for any 1-dimensional coordinate prototype.
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.
