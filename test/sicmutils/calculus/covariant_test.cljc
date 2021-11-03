@@ -343,7 +343,6 @@
 
 (def R2-rect-point ((point R2-rect) (up 'x0 'y0)))
 (def R2-rect-basis (b/coordinate-system->basis R2-rect))
-(def R2-rect-point ((point R2-rect) (up 'x0 'y0)))
 (def R2-polar-basis (b/coordinate-system->basis R2-polar))
 
 (defn present
@@ -645,7 +644,7 @@
                      ((point the-real-line) 't)))
                   (b/basis->oneform-basis basis-over-gamma))))))))))
 
-(deftest geodesic-equation-tests
+(deftest geodesic-equation-tests-a
   (testing "geodesic equations"
     (let-coordinates [[x y] R2-rect
                       t the-real-line]
@@ -892,46 +891,7 @@
                                    ((vector-basis F) advanced-m))))]
                       ((D g) 0))))))))))))
 
-;; A bit simpler, but lacking in motivation?
-
-#_
-(define (((((CD CF chart) v) u) F) m)
-
-  (define (Sigma state) (ref state 0))
-  (define (U state) (ref state 1))
-  (define (sigma-u sigma u) (up sigma u))
-
-  (define chi (chart '->coords))
-  (define chi↑-1 (chart '->point))
-
-  ;; ((gamma m) delta) is the point on gamma advanced by delta.
-
-  (define ((gamma m) delta)
-    (chi↑-1 (+ (chi m) (* delta ((v chi) m)))))
-
-  (let ((basis (Cartan->basis CF)))
-    (let ((vector-basis (b/basis->vector-basis basis))
-          (oneform-basis (b/basis->oneform-basis basis)))
-      (let ((u↑i (oneform-basis u)))
-        (let ((initial-state
-               (sigma-u (chi m) (u↑i m))))
-
-          ;; First-order approximation to A
-
-          (define (Au delta)
-            (- (u↑i m)
-               (* delta
-                  (((cov/Cartan->forms CF) v) m)
-                  (u↑i m))))
-
-          (define (g delta)
-            (let ((advanced-m ((gamma m) delta)))
-              (* (- (u↑i advanced-m) (Au delta))
-                 ((vector-basis F) advanced-m))))
-
-          ((D g) 0))))))
-
-(deftest geodesic-equation-tests
+(deftest geodesic-equation-tests-b
   (let [X (vf/literal-vector-field 'X R2-rect)
         Y (vf/literal-vector-field 'Y R2-rect)
         F (man/literal-manifold-function 'F R2-rect)
@@ -956,7 +916,8 @@
           (- (((((CD CF-rect R2-polar) X) Y) F) m_0)
              (((((cov/covariant-derivative CF-rect) X) Y) F) m_0)))))
 
-    ;; Too slow... it works if we bump the timeout, but this is not fast.
+    ;; TODO: Too slow... it works if we bump the timeout, but this is not fast.
+    #_
     (binding [pg/*poly-gcd-time-limit* [5 :seconds]]
       (is (zero?
            (simplify
@@ -981,11 +942,15 @@
                  (+ (((ff/wedge omega (D_x-rect tau)) Y Z) m_0)
                     (((ff/wedge (D_x-rect omega) tau) Y Z) m_0))))))
 
-        (is (zero?
-             (simplify
-              (- (((D_x-polar (ff/wedge omega tau)) Y Z) m_0)
-                 (+ (((ff/wedge omega (D_x-polar tau)) Y Z) m_0)
-                    (((ff/wedge (D_x-polar omega) tau) Y Z) m_0)))))))))
+        (testing "TODO: investigate if there is some setting that will prevent
+        GCD from running without me having to add this manually. The test passes
+        without the super slow GCD."
+          (binding [pg/*poly-gcd-time-limit* [0 :seconds]]
+            (is (zero?
+                 (simplify
+                  (- (((D_x-polar (ff/wedge omega tau)) Y Z) m_0)
+                     (+ (((ff/wedge omega (D_x-polar tau)) Y Z) m_0)
+                        (((ff/wedge (D_x-polar omega) tau) Y Z) m_0)))))))))))
 
   ;; Next, tests, for the actual functions:
   (is (= '(up

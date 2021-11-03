@@ -72,10 +72,12 @@
   "Returns the result of executing the supplied `thunk` in an environment where
   the [[*rf-simplify*]] and [[*poly-simplify*]] are not memoized."
   [thunk]
-  (binding [*rf-simplify* (a/expression-simplifier
-                           (rational-function-analyzer))
-            *poly-simplify* (a/expression-simplifier
-                             (poly-analyzer))]
+  (binding [*rf-simplify* (unless-timeout
+                           (a/expression-simplifier
+                            (rational-function-analyzer)))
+            *poly-simplify* (unless-timeout
+                             (a/expression-simplifier
+                              (poly-analyzer)))]
     (thunk)))
 
 (defn- simplify-and-flatten [expr]

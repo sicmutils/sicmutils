@@ -20,7 +20,8 @@
 (ns sicmutils.fdg.ch7-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.env :as e :refer [+ - * / zero?
                                          D d freeze simplify partial
                                          up down exp
@@ -308,15 +309,16 @@
                            (g (tilted-path R1-rect S2-spherical 1)
                               sphere-Cartan))
             initial-state (up 0 (* ((D (transform 1)) (up (/ e/pi 2) 0)) (up 1 0)))]
-        (is (ish? (up 1.570796326794894
-                      (up 0.9999999999545687 -1.676680708092223E-10))
-                  (integrator initial-state (/ e/pi 2))))
+        (with-comparator (v/within 1e-6)
+          (is (ish? (up 1.570796326794894
+                        (up 0.9999999999545687 -1.676680708092223E-10))
+                    (integrator initial-state (/ e/pi 2))))
 
-        (is (ish? (up 1.0 (up 0.7651502649161671 0.9117920274079562))
-                  (integrator initial-state 1)))
+          (is (ish? (up 1.0 (up 0.7651502649161671 0.9117920274079562))
+                    (integrator initial-state 1)))
 
-        (is (ish? (up 0.7651502649370375 0.9117920272004736)
-                  (* ((D (transform 1)) (up (/ e/pi 2) 1)) (up 1 0))))))))
+          (is (ish? (up 0.7651502649370375 0.9117920272004736)
+                    (* ((D (transform 1)) (up (/ e/pi 2) 1)) (up 1 0)))))))))
 
 (deftest section-7-4
   (let-coordinates [[theta phi] S2-spherical

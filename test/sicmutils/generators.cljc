@@ -420,14 +420,9 @@
 
   Symbol
   (ish [this that]
-    (cond (symbol? that) (= this that)
-
-          (an/literal-number? that)
-          (let [expr (x/expression-of that)]
-            (and (symbol? expr)
-                 (= this expr)))
-
-          :else false))
+    (if (symbol? that)
+      (= this that)
+      (v/= this that)))
 
   #?(:cljs s/Structure :clj Structure)
   (ish [this that]
@@ -437,7 +432,7 @@
                        (s/structure->vector that)))
 
           (s/up? this)
-          (cond (vector? that)   (si/ish (s/structure->vector this) that)
+          (cond (vector? that)  (si/ish (s/structure->vector this) that)
                 (seqable? that) (si/ish (seq this) (seq that))
                 :else false)
           :else false)))

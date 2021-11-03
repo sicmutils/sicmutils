@@ -53,7 +53,9 @@
 ;;
 ;; - `manifold` and `patch` should be protocols, so that manifolds, patches and
 ;;   coordinate systems can report their manifold, and patches and coordinate
-;;   systems can report their patch. `point` can report its manifold too.
+;;   systems can report their patch. `point` can report its manifold too. Once
+;;   this change is made, `transfer-point` should use the `manifold` protocol to
+;;   simplify its implementation.
 ;;
 ;; - `patch`, `manifold` and `point` should be defrecords, so that they can
 ;;   implement the protocols above in different ways. We can also implement
@@ -387,10 +389,11 @@
   manifold `embedded` and transfers the point to the supplied `embedding`
   manifold.
 
-  TODO note that you can supply either a manifold or a coordinate system
-  attached to some manifold.
+  The embedding dimension must be the same for both manifolds.
 
-  The embedding dimension must be the same for both manifolds."
+  NOTE that `embedded` and `embedding` can be either manifolds, or instances
+  of [[ICoordinateSystem]]. In the latter case `embedded` and `embedding` will
+  bind to the manifold associated with the supplied [[ICoordinateSystem]]."
   [embedded embedding]
   (let [embedded-m (if (coordinate-system? embedded)
                      (manifold embedded)
@@ -398,8 +401,8 @@
         embedding-m (if (coordinate-system? embedding)
                       (manifold embedding)
                       embedding)]
-    (assert (= (:embedding-dimension embedded)
-	             (:embedding-dimension embedding)))
+    (assert (= (:embedding-dimension embedded-m)
+	             (:embedding-dimension embedding-m)))
     (fn [point]
       (assert (= embedded-m (point->manifold point)))
       (make-manifold-point
