@@ -220,5 +220,5 @@
                        m)))
                   "Measuring acceleration with dφ"))))))))
 
-;; NOTE that The Bianchi identities live on their on, in
+;; NOTE that The Bianchi identities live on their own, in
 ;; `sicmutils.fdg.bianchi-test`.
