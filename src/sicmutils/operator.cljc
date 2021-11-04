@@ -227,11 +227,13 @@
     (u/illegal (str "non-operator supplied: " op))))
 
 (defn make-operator
-  "Returns an [[Operator]] wrapping the supplied procedure `f` with the name
-  `name`.
+  "Returns an [[Operator]] wrapping the supplied procedure `f` with the symbolic
+  name `name`. (`name` defaults to `'???`.)
 
   Optionally accepts a `context` map that will be stored inside the
   returned [[Operator]]."
+  ([f]
+   (make-operator f '??? {}))
   ([f name]
    (make-operator f name {}))
   ([f name context]
