@@ -2,6 +2,13 @@
 
 ## [unreleased]
 
+- #382:
+
+  - Makes the `name` argument to `sicmutils.operator/make-operator` optional.
+    `name` now defaults to `'???`.
+
+  - adds tests for all code forms in Chapter 8 of FDG.
+
 - #376 adds more type hints to the `ratio.cljc` namespace. This fully solves the
   advanced compilation issues we were seeing.
 
