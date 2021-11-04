@@ -88,7 +88,37 @@
 
   (testing "string rep"
     (is (= "(up sin cos tan)" (x/expression->string
-                               (s/up g/sin g/cos g/tan))))))
+                               (s/up g/sin g/cos g/tan)))))
+
+  (testing "approximate equality of structures"
+    (is (not (ish? {:a 1 :b (s/up 1.99999999999999 3)}
+                   {:a 1.00000000000001 :b (s/down 2 3.0)}))
+        "nested approx values with OPPOSITE orientation are not ish?")
+
+    (is (ish? {:a 1 :b (s/up 1.99999999999999 3)}
+              {:a 1.00000000000001 :b (s/up 2 3.0)})
+        "nested approx values with the SAME orientation are ish?")
+
+    (is (ish? [1.99999999999999 3]
+              (s/down 2 3.0))
+        "One potential problem is that explicit on the left is approximately
+        equal to either an up or down on the right.")
+
+    (is (and (not (ish? (s/down 1.99999999999999 3)
+                        [2 3.0]))
+             (not (ish? (s/down 1.99999999999999 3)
+                        (s/up 2 3.0))))
+        "Down on the left DOES distinguish, and is not equal to a vector or up
+    on the right.")
+
+    (is (and (ish? (s/up 1.99999999999999 3)
+                   [2 3.0])
+             (ish? (s/up 1.99999999999999 3)
+                   (s/up 2 3.0))
+             (not (ish? (s/up 1.99999999999999 3)
+                        (s/down 2 3.0))))
+        "up on the left also distinguishes by being equal to a vector or up, but
+        not a down.")))
 
 (defn arity-check
   "Takes a constructor function `build` and a `descriptor` string, and executes a

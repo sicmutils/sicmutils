@@ -10,6 +10,43 @@
 - #379 fixes typos in a couple of the equations in `richardson.cljc`, closing
   #377. Thanks to @leifp for the report.
 
+- Features, tests and bugfixes from #381:
+
+  - `sicmutils.calculus.coordinate/generate` moves to
+    `sicmutils.calculus.manifold/c:generate`; this supports a bugfix where
+    1-dimensional manifolds like `R1-rect`, aka `the-real-line`, return a
+    coordinate prototype of a single element like `t` instead of a structure
+    with a single entry, like `(up t)`. Thanks to @phasetr for the bug report
+    that led to this fix, and @gjs for finding and fixing the bug.
+
+  - `same.ish/Approximate` implemented for `sicmutils.structure/Structure`,
+    allowing `ish?` comparison of `up` and `down` structures with approximate
+    entries. Require `sicmutils.generator` for this feature. (NOTE: because
+    protocols are implemented for the LEFT argument, `(ish? <vector> (down
+    ...))` will still return true if the values are approximately equal, even
+    though a `<vector>` is technically an `up` and should NOT equal a `down`. Do
+    an explicit conversion to `up` using `sicmutils.structure/vector->up` if
+    this distinction is important.)
+
+  - `same.ish/Approximate` now defers to `sicmutils.value/=` for equality
+    between `Symbol` and other types. This lets `ish?` handle equality between
+    symbols like `'x` and literal expressions that happen to wrap a single
+    symbol.
+
+  - `Cartan->Cartan-over-map` now does NOT compose `(differential map)` with its
+    internal Cartan forms. This fixed a bug in a code listing in section 7.3 of
+    FDG.
+
+  - Section 7.3 of FDG implemented as tests in `sicmutils.fdg.ch7-test`.
+
+  - Many new tests and explorations ported over from `covariant-derivative.scm`.
+    These live in `sicmutils.calculus.covariant-test`.
+
+  - timeout exceptions resulting from full GCD are now caught in tests using
+    `sicmutils.simplify/hermetic-simplify-fixture`. Previously, setting a low
+    timeout where simplification failed would catch and move on in normal work,
+    but fail in tests where fixtures were applied.
+
 ## 0.19.2
 
 Yet another incremental release, this time to bump the `Fraction.js` dependency.

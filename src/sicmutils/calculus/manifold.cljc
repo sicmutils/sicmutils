@@ -53,7 +53,9 @@
 ;;
 ;; - `manifold` and `patch` should be protocols, so that manifolds, patches and
 ;;   coordinate systems can report their manifold, and patches and coordinate
-;;   systems can report their patch. `point` can report its manifold too.
+;;   systems can report their patch. `point` can report its manifold too. Once
+;;   this change is made, `transfer-point` should use the `manifold` protocol to
+;;   simplify its implementation.
 ;;
 ;; - `patch`, `manifold` and `point` should be defrecords, so that they can
 ;;   implement the protocols above in different ways. We can also implement
@@ -387,15 +389,25 @@
   manifold `embedded` and transfers the point to the supplied `embedding`
   manifold.
 
-  The embedding dimension must be the same for both manifolds."
+  The embedding dimension must be the same for both manifolds.
+
+  NOTE that `embedded` and `embedding` can be either manifolds, or instances
+  of [[ICoordinateSystem]]. In the latter case `embedded` and `embedding` will
+  bind to the manifold associated with the supplied [[ICoordinateSystem]]."
   [embedded embedding]
-  {:pre [(= (:embedding-dimension embedded)
-	          (:embedding-dimension embedding))]}
-  (fn [point]
-    (assert (= embedded (point->manifold point)))
-    (make-manifold-point
-	   (manifold-point-representation point)
-	   (manifold embedding))))
+  (let [embedded-m (if (coordinate-system? embedded)
+                     (manifold embedded)
+                     embedded)
+        embedding-m (if (coordinate-system? embedding)
+                      (manifold embedding)
+                      embedding)]
+    (assert (= (:embedding-dimension embedded-m)
+	             (:embedding-dimension embedding-m)))
+    (fn [point]
+      (assert (= embedded-m (point->manifold point)))
+      (make-manifold-point
+	     (manifold-point-representation point)
+	     embedding-m))))
 
 (defn corresponding-velocities
   "Takes a coordinate representation `coords` of a manifold point with all
@@ -455,12 +467,24 @@ codebase compatibility."}
 ;;
 ;; This section defines many instances of [[ICoordinateSystem]].
 
+(defn c:generate
+  "Generates a coordinate structure of the supplied dimension `n`, and
+  `orientation` using the supplied function `f` for entries. See the very
+  similar [[sicmutils.structure/generate]] for more details.
+
+  NOTE from GJS: this is a kludge introduced only to allow a coordinate of
+  dimension 1 to automatically unwrap itself."
+  [n orientation f]
+  (if (= n 1)
+    (f 0)
+    (s/generate n orientation f)))
+
 (defn- default-coordinate-prototype
   "Takes a `manifold` and returns a [[sicmutils.structure/up]] instance of the
   same dimension as `manifold`, with symbolic entries in each position. "
   [manifold]
   (let [k (:dimension manifold)]
-    (s/generate
+    (c:generate
      k ::s/up (fn [i] (symbol (str "x" i))))))
 
 (defn- ->Rectangular

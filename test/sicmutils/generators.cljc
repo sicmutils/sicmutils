@@ -9,8 +9,10 @@
   (:require [clojure.test.check.generators :as gen]
             [same :refer [zeroish?]]
             [same.ish :as si]
+            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.differential :as d]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.modint :as mi]
@@ -25,7 +27,9 @@
             [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (org.apache.commons.math3.complex Complex))))
+     (:import (clojure.lang Symbol)
+              (sicmutils.structure Structure)
+              (org.apache.commons.math3.complex Complex))))
 
 (def bigint
   "js/BigInt in cljs, clojure.lang.BigInt in clj."
@@ -412,4 +416,23 @@
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
                 (g/real-part this) (u/double that)))
-          :else (v/= this that))))
+          :else (v/= this that)))
+
+  Symbol
+  (ish [this that]
+    (if (symbol? that)
+      (= this that)
+      (v/= this that)))
+
+  #?(:cljs s/Structure :clj Structure)
+  (ish [this that]
+    (cond (instance? #?(:cljs s/Structure :clj Structure) that)
+          (and (s/same-orientation? this that)
+               (si/ish (s/structure->vector this)
+                       (s/structure->vector that)))
+
+          (s/up? this)
+          (cond (vector? that)  (si/ish (s/structure->vector this) that)
+                (seqable? that) (si/ish (seq this) (seq that))
+                :else false)
+          :else false)))
