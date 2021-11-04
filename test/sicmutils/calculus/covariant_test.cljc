@@ -443,14 +443,12 @@
 
         ;; Transformation of Cartan to polar leaves covariant derivative
         ;; invariant.
-        #_
         (is (zero?
              (simplify
               (((((- (cov/covariant-derivative CF)
                      (cov/covariant-derivative
                       (cov/Cartan-transform
-                       ;; TODO we need to get this working!!
-                       CF (R2-polar 'coordinate-basis))))
+                       CF (b/coordinate-system->basis R2-polar))))
                   (vf/literal-vector-field 'A R2-rect))
                  (vf/literal-vector-field 'B R2-polar))
                 (man/literal-scalar-field 'f R2-polar))
