@@ -215,10 +215,23 @@
     'M 'G 'c
     (e/literal-function 'V '(-> (UP Real Real Real) Real)))))
 
-#_(deftest general-relativity-tests
-    ;; TODO this should just use `space-time-rect-basis` from above.
-    (let-coordinates [[x y z t] e/spacetime-rect]
+(deftest general-relativity-tests
+  ;; NOTE that this is a bug... the variable order should be x y z t. In the
+  ;; book it is t x y z.
+
+  ;; TODO this should just use `space-time-rect-basis` from above.
+  #_(let-coordinates [[x y z t] e/spacetime-rect]
       (simplify
        (((e/Ricci nabla spacetime-rect-basis)
          d:dt d:dt)
-        ((point spacetime-rect) (up 't 'x 'y 'z))))))
+        ((point spacetime-rect) (up 'x 'y 'z 't)))))
+
+  (testing "OKAY, here we go, this is a clue! This one takes 158 seconds. Why is
+  this slow? It only takes 135 seconds on my old machine. At least in this case
+  we get the correct answer."
+    (time
+     (let-coordinates [[x y z t] e/spacetime-rect]
+       (simplify
+        (time (((e/Ricci nabla spacetime-rect-basis)
+                d:dt d:dx)
+               ((point spacetime-rect) (up 'x 'y 'z 't)))))))))
