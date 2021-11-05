@@ -21,10 +21,10 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * / square sin expt
                                          zero?
-                                         D d freeze partial
+                                         compose D d freeze partial
                                          up down
                                          point chart
-                                         R3-rect S2-spherical
+                                         R2-rect R3-rect S2-spherical
                                          let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
@@ -38,6 +38,10 @@
   (comp v/freeze e/simplify))
 
 (let-coordinates [[theta phi] S2-spherical]
+  (def S2-basis (e/coordinate-system->basis S2-spherical))
+  (def S2C (S2-Christoffel S2-basis theta))
+  (def sphere-Cartan (e/Christoffel->Cartan S2C))
+
   (defn g-sphere [R]
     (fn [u v]
       (* (e/square R)
@@ -109,3 +113,112 @@
   (testing "Kinetic energy or Arc Length"
     )
   )
+
+
+(def L2
+  (metric->Lagrangian (e/literal-metric 'm R2-rect)
+                      R2-rect))
+(defn L1 [state]
+  (e/sqrt (* 2 (L2 state))))
+
+(deftest arc-length-tests
+  (testing "page 140"
+    (is (= '(+ (* (m_00 (up x y)) (m_11 (up x y)))
+               (* -1 (expt (m_01 (up x y)) 2)))
+           (simplify
+            (e/determinant
+             (((partial 2) ((partial 2) L2))
+              (up 't (up 'x 'y) (up 'vx 'vy))))))
+        "mass matrix of L_2 is nonsingular")
+
+    (is (zero?
+         (simplify
+          (e/determinant
+           (((partial 2) ((partial 2) L1))
+            (up 't (up 'x 'y) (up 'vx 'vy))))))
+        "mass matrix of L_1 has determinant 0")
+
+    (testing "page 141"
+      (letfn [(L1 [state]
+                (e/sqrt (square (e/velocity state))))]
+        (is (= '(down
+                 (/ (+ (* -1 ((D x) t) ((D y) t) (((expt D 2) y) t))
+                       (* (((expt D 2) x) t) (expt ((D y) t) 2)))
+                    (+ (* (expt ((D x) t) 2) (sqrt (+ (expt ((D x) t) 2) (expt ((D y) t) 2))))
+                       (* (expt ((D y) t) 2) (sqrt (+ (expt ((D x) t) 2) (expt ((D y) t) 2))))))
+                 (/ (+ (* (expt ((D x) t) 2) (((expt D 2) y) t))
+                       (* -1 ((D x) t) (((expt D 2) x) t) ((D y) t)))
+                    (+ (* (expt ((D x) t) 2) (sqrt (+ (expt ((D x) t) 2) (expt ((D y) t) 2))))
+                       (* (expt ((D y) t) 2) (sqrt (+ (expt ((D x) t) 2) (expt ((D y) t) 2)))))))
+               (simplify
+                (((e/Lagrange-equations L1)
+                  (up (e/literal-function 'x) (e/literal-function 'y)))
+                 't)))
+            "NOTE that the simplifier here and in the current version of
+             scmutils can't figure out that the denominators are to the 3/2
+             power.")))
+
+    (e/with-literal-functions [x y f]
+      (let [E1 (e/Euler-Lagrange-operator L1)]
+        (is (= '(down 0 0)
+               (simplify
+                ((- (compose E1
+                             (e/Gamma (up (compose x f)
+                                          (compose y f))
+                                      4))
+                    (* (compose E1
+                                (e/Gamma (up x y) 4)
+                                f)
+                       (D f)))
+                 't)))
+            "page 142"))
+
+      (let [q (up x y)]
+        (is (= '(down (+ (* (m_00 (up (x (f t)) (y (f t)))) ((D x) (f t)) (((expt D 2) f) t))
+                         (* (m_01 (up (x (f t)) (y (f t)))) ((D y) (f t)) (((expt D 2) f) t)))
+                      (+ (* ((D x) (f t)) (m_01 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))
+                         (* ((D y) (f t)) (m_11 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))))
+               (simplify
+                ((- (compose (e/Euler-Lagrange-operator L2)
+                             (e/Gamma (compose q f) 4))
+                    (* (compose (e/Euler-Lagrange-operator L2)
+                                (e/Gamma q 4)
+                                f)
+                       (expt (D f) 2)))
+                 't)))
+            "page 143")))))
+
+;; TODO the system did not say to install spacetime coordinates!
+
+(let-coordinates [[x y z t] e/spacetime-rect]
+  ;; TODO this was missing!
+  (def spacetime-rect-basis
+    (e/coordinate-system->basis spacetime-rect))
+
+  (defn Newton-metric [M G c V]
+    (let [a
+          (+ 1 (* (/ 2 (square c))
+                  (compose V (up x y z))))]
+      (fn g [v1 v2]
+        (+ (* -1 (square c) a (dt v1) (dt v2))
+           (* (dx v1) (dx v2))
+           (* (dy v1) (dy v2))
+           (* (dz v1) (dz v2))))))
+
+  (defn Newton-connection [M G c V]
+    (e/Christoffel->Cartan
+     (e/metric->Christoffel-2 (Newton-metric M G c V)
+                              spacetime-rect-basis))))
+(def nabla
+  (e/covariant-derivative
+   (Newton-connection
+    'M 'G 'c
+    (e/literal-function 'V '(-> (UP Real Real Real) Real)))))
+
+#_(deftest general-relativity-tests
+    ;; TODO this should just use `space-time-rect-basis` from above.
+    (let-coordinates [[x y z t] e/spacetime-rect]
+      (simplify
+       (((e/Ricci nabla spacetime-rect-basis)
+         d:dt d:dt)
+        ((point spacetime-rect) (up 't 'x 'y 'z))))))
