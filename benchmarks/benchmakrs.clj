@@ -172,7 +172,7 @@
    (fn [ws-layers]
      (let [inputs (mapv first dataset)
            predictions ((forward-pass ws-layers) inputs)
-           targets (vec (flatten (map peek dataset)))]
+           targets (mapv peek (mapv peek xor-data-with-targets))]
        (* 0.5 (apply + (mapv g/square (g/- predictions targets)))))))
 
 ;; Evaluation count : 6756 in 6 samples of 1126 calls.
