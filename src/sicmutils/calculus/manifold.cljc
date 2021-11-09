@@ -39,7 +39,9 @@
             [sicmutils.value :as v]
             [sicmutils.mechanics.rotation
              :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]
+            ))
 
 ;; # Disclaimer (from @sritchie)
 ;;
@@ -349,7 +351,8 @@
     (fn [event]
       (cf/event->coords coordinate-system event))
     (fn [point]
-      (point->coords coordinate-system point))))
+      (p :chart-application
+         (point->coords coordinate-system point)))))
 
 (defn point
   "Given an [[ICoordinateSystem]], returns a function from coordinates in
@@ -360,7 +363,8 @@
     (fn [coords]
       (cf/coords->event coordinate-system coords))
     (fn [coords]
-      (coords->point coordinate-system coords))))
+      (p :point-application
+         (coords->point coordinate-system coords)))))
 
 (defn typical-coords
   "Given an [[ICoordinateSystem]], returns a structure that matches

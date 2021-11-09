@@ -23,7 +23,7 @@
 
   The namespace also contains an implementation of a small language for
   declaring the input and output types of [[literal-function]] instances."
-  (:refer-clojure :exclude [name])
+  (:refer-clojure :exclude [name memoize])
   (:require [sicmutils.abstract.number :as an]
             [sicmutils.differential :as d]
             [sicmutils.expression :as x]

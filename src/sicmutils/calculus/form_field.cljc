@@ -37,7 +37,8 @@
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.permute :as permute :refer [factorial]]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
 
 ;; ## Form fields
 ;;
@@ -183,10 +184,13 @@
   (fn [vf-components]
     (s/mapr (fn [vf]
               {:pre [(vf/vector-field? vf)]}
-              (f/compose
-               (g/* components
-                    (vf/vector-field->components vf coordinate-system))
-               (m/chart coordinate-system)))
+              (let [f (f/compose
+                       (g/* components
+                            (vf/vector-field->components vf coordinate-system))
+                       (m/chart coordinate-system))]
+                (fn [& args]
+                  (p :oneform-field-procedure-inner
+                     (apply f args)))))
             vf-components)))
 
 (defn components->oneform-field
@@ -261,9 +265,22 @@
   (fn [vf-structure]
     (letfn [(internal [vf]
               {:pre [(vf/vector-field? vf)]}
-              (vf (f/compose (apply s/component indices)
-                             (m/chart coordinate-system))))]
-      (s/mapr internal vf-structure))))
+              (let [f (f/compose (apply s/component indices)
+                                 (m/chart coordinate-system))
+                    f2 (f/memoize
+                        (vf
+                         (fn [& args]
+                           (p :coord-basis-oneform-field-procedure/inner
+                              (apply f args)))))]
+                ;; TODO SO the thing that seems to be slow are the functions returned
+                ;; by d:dt and friends... those are the `outer` bullshit calls
+                ;; below. Go into those, instrument them directly and see what
+                ;; is going on. Cna I then remove this?
+                (fn [& args]
+                  (p :coord-basis-oneform-field-procedure/outer
+                     (apply f2 args)))))]
+      (p :internal-mapr
+         (s/mapr internal vf-structure)))))
 
 (defn coordinate-basis-oneform-field
   "Given some `coordinate-system`, a symbolic `name` and a sequence of indices
@@ -276,6 +293,7 @@
   [coordinate-system name & indices]
   (-> (apply coordinate-basis-oneform-field-procedure
              coordinate-system indices)
+      (f/memoize)
       (procedure->oneform-field name)))
 
 (defn ^:no-doc coordinate-name->ff-name

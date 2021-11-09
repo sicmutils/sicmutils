@@ -25,8 +25,9 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
   for a discussion of generic function arithmetic."
   (:refer-clojure :rename {get core-get
-                           get-in core-get-in}
-                  #?@(:cljs [:exclude [get get-in]]))
+                           get-in core-get-in
+                           memoize core-memoize}
+                  #?@(:cljs [:exclude [get get-in memoize]]))
   (:require [clojure.core.match :refer [match]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -93,6 +94,12 @@
   (let [a (arity (or (last fns)
                      identity))]
     (with-meta (apply comp fns) {:arity a})))
+
+(defn memoize
+  "Arity-preserving version of `clojure.core/memoize`."
+  [f]
+  (with-meta (core-memoize f)
+    {:arity (arity f)}))
 
 (defn get
   "For non-functions, acts like [[clojure.core/get]]. For function

@@ -32,7 +32,8 @@
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.structure :as s]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
 
 ;; ## Vector Fields
 ;;
@@ -85,10 +86,17 @@
   directional derivative of the given function at each point of the manifold."
   [component-fns coordinate-system]
   (fn [f]
-    (f/compose
-     (g/* (D (f/compose f (m/point coordinate-system)))
-          component-fns)
-     (m/chart coordinate-system))))
+    (let [f' (fn [& args]
+               ;; NOTE: Okay, so this tells me that this this function has
+               ;; nothing to do with the ch9 example.
+               (p :vfp/inner-f (apply f args)))
+          f2 (f/memoize
+              (f/compose
+               (g/* (D (f/compose f' (m/point coordinate-system)))
+                    component-fns)
+               (m/chart coordinate-system)))]
+      (fn [& args]
+        (p :vfp (apply f2 args))))))
 
 (defn components->vector-field
   "Takes:
@@ -186,10 +194,16 @@
 (defn- coordinate-basis-vector-field-procedure
   [coordinate-system & indices]
   (fn [f]
-    (f/compose
-     ((apply deriv/partial indices)
-      (f/compose f (m/point coordinate-system)))
-     (m/chart coordinate-system))))
+    (let [f' (fn [& args]
+               (p :coordinate-basis/inner-f (apply f args)))
+          f2 (f/memoize
+              (f/compose
+               ((apply deriv/partial indices)
+                (f/compose f' (m/point coordinate-system)))
+               (m/chart coordinate-system)))]
+      (fn [& args]
+        (p :coordinate-basis
+           (apply f2 args))))))
 
 (defn coordinate-basis-vector-field
   "Given some `coordinate-system`, a symbolic `name` and a sequence of indices
@@ -203,6 +217,7 @@
   [coordinate-system name & indices]
   (-> (apply coordinate-basis-vector-field-procedure
              coordinate-system indices)
+      (f/memoize)
       (procedure->vector-field name)))
 
 (defn ^:no-doc coordinate-name->vf-name

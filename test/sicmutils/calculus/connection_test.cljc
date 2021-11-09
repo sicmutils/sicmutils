@@ -245,6 +245,7 @@
           (let [spherical-Lorentz-basis
                 (b/coordinate-system->basis spherical-Lorentz)
 
+                ;; TODO how is this not used??
                 spherical-Lorentz-metric
                 (fn [c-2]
                   (fn [v1 v2]

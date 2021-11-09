@@ -24,7 +24,8 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.matrix :as matrix]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
 
 (defn coordinate-system->basis
   "Returns the standard basis object for `coordinate-system`."
@@ -86,7 +87,8 @@
 (defn contract [f basis]
   (let [vector-basis  (basis->vector-basis basis)
         oneform-basis (basis->oneform-basis basis)]
-    (s/sumr f vector-basis oneform-basis)))
+    (p :basis/contract
+       (s/sumr f vector-basis oneform-basis))))
 
 (defn vector-basis->dual [vector-basis coordinate-system]
   (let [prototype (m/coordinate-prototype coordinate-system)

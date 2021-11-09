@@ -104,13 +104,18 @@
     (let [a (/ (square (compose R t))
                (- 1 (* k (square r))))
           b (square (* (compose R t) r))
+          dr (memoize dr)
+          dtheta (memoize dtheta)
+          dphi (memoize dphi)
           g (fn [v1 v2]
               (+ (*  -1 (square c) (dt v1) (dt v2))
                  (* a (dr v1) (dr v2))
                  (* b
                     (+ (* (dtheta v1) (dtheta v2))
                        (* (square (sin theta))
-                          (dphi v1) (dphi v2))))))]
+                          (dphi v1) (dphi v2))))))
+          g (memoize g)]
+      ;; TODO move argument types along; memoize inside if need be.
       (ci/with-argument-types
         g
         [::vf/vector-field
