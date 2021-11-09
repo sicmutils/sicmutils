@@ -247,6 +247,8 @@
 ;;
 ;; This section defines constructors and accessors for
 ;; non-coordinate-constrained points on some manifold.
+;;
+;; TODO consider NOT storing a representation that has a differential in it??
 
 (defn- make-manifold-point
   "Returns a point in `manifold` specified by its Euclidean coordinates `spec`.
@@ -267,6 +269,8 @@
   ([spec manifold coordinate-system coordinate-rep]
    (let [point (make-manifold-point spec manifold)
          reps  (:coordinate-representations point)]
+     (prn "MAKE-MANIFOLD-POINT, storing rep:")
+     (clojure.pprint/pprint (v/freeze coordinate-rep))
      (swap! reps assoc coordinate-system coordinate-rep)
      point)))
 
@@ -302,7 +306,16 @@
   [manifold-point coordinate-system thunk]
   (let [reps (:coordinate-representations manifold-point)]
     (or (@reps coordinate-system)
-        (let [rep (s/mapr simplify-numerical-expression (thunk))]
+        (let [th  (thunk)
+              rep (s/mapr simplify-numerical-expression th)]
+          ;; Okay, so what seems to be happening is that the point is in there
+          ;; for TWO of the coordinate systems. And when you come BACK from the
+          ;; bad stuff, you are not really getting much help if you are not a
+          ;; structure!!!!!!!! That has got to be it.
+          (prn "GET-COORDINATES FUCK")
+          (clojure.pprint/pprint @reps)
+          (prn  "thunk: ")
+          (clojure.pprint/pprint (v/freeze th))
           (swap! reps assoc coordinate-system rep)
           rep))))
 
@@ -527,8 +540,14 @@ codebase compatibility."}
      (coordinate-prototype [this]
        coordinate-prototype)
 
+     ;; NOTE: BINGO!!!! with-coordinate-prototype breaks the cache. If I don't
+     ;; have this then I don't suffer the nightmare of the cache BREAKING and
+     ;; having to map BACK into the coordinate system using the thunk. The thunk
+     ;; is what was causing all of my problems. Now... does that mean that the
+     ;; definition is fucked??? This is something that has hit me before.
      (with-coordinate-prototype [this prototype]
-       (->Rectangular manifold prototype))
+       this
+       #_(->Rectangular manifold prototype))
 
      (manifold [this] manifold))))
 

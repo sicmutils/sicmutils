@@ -82,7 +82,9 @@
   argument types `types` registered in its metadata (if a function) or
   context (if an operator).
 
-  Retrieve these types with [[argument-types]]."
+  Retrieve these types with [[argument-types]].
+
+  TODO should this also add to arity??"
   [f types]
   (with-kv f :arguments (into [] types)))
 

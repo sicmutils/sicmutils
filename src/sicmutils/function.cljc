@@ -96,10 +96,10 @@
     (with-meta (apply comp fns) {:arity a})))
 
 (defn memoize
-  "Arity-preserving version of `clojure.core/memoize`."
+  "meta-preserving version of `clojure.core/memoize`."
   [f]
   (with-meta (core-memoize f)
-    {:arity (arity f)}))
+    (meta f)))
 
 (defn get
   "For non-functions, acts like [[clojure.core/get]]. For function
@@ -304,7 +304,6 @@
              :else
              (u/illegal
               (str "Not enough info to determine jvm-arity of " f " :" m))))))
-
    :cljs
    (do
      (defn ^:no-doc variadic?
