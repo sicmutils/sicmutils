@@ -140,93 +140,97 @@
         [::ff/oneform-field
          ::ff/oneform-field])))
 
-  (comment
-    (testing "These are too hard for now!"
-      (deftest einstein-field-equations
-        (with-literal-functions [R rho p]
-          (let [basis  (e/coordinate-system->basis spacetime-sphere)
-                g      (FLRW-metric 'c 'k R)
-                T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
-                [d:dt d:dr] (e/coordinate-system->vector-basis spacetime-sphere)
-                K (/ (* 8 'pi 'G) (expt 'c 4))]
+  (deftest einstein-field-equations
+    (comment
+      (with-literal-functions [R rho p]
+        (let [basis  (e/coordinate-system->basis spacetime-sphere)
+              g      (FLRW-metric 'c 'k R)
+              T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
+              [d:dt d:dr] (e/coordinate-system->vector-basis spacetime-sphere)
+              K (/ (* 8 'pi 'G) (expt 'c 4))]
 
-            (testing "first challenge"
-              (is (= '(+ (* -8 G pi (rho t))
-                         (* -1 (expt c 2) Lambda)
-                         (/ (* 3 k (expt c 2)) (expt (R t) 2))
-                         (/ (* 3 (expt ((D R) t) 2)) (expt (R t) 2)))
-                     (simplify
-                      ((((Einstein-field-equation spacetime-sphere K)
-                         g 'Lambda T_ij)
-                        d:dt d:dt)
-                       ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
+          (testing "first challenge"
+            (is (= '(/ (+ (* -8 G pi (expt (R t) 2) (rho t))
+                          (* -1 Lambda (expt c 2) (expt (R t) 2))
+                          (* 3 (expt c 2) k)
+                          (* 3 (expt ((D R) t) 2)))
+                       (expt (R t) 2))
+                   (simplify
+                    ((((Einstein-field-equation spacetime-sphere K)
+                       g 'Lambda T_ij)
+                      d:dt d:dt)
+                     ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
 
-            (testing "second challenge"
-              (is (= '(/ (+ (* -1 (expt c 4) Lambda (expt (R t) 2))
-                            (* 8 G pi (p t) (expt (R t) 2))
-                            (* (expt c 4) k)
-                            (* 2 (expt c 2) (R t) (((expt D 2) R) t))
-                            (* (expt c 2) (expt ((D R) t) 2)))
-                         (+ (* (expt c 4) k (expt r 2)) (* -1 (expt c 4))))
-                     (simplify
-                      ((((Einstein-field-equation spacetime-sphere
-                                                  (/ (* 8 'pi 'G) (expt 'c 4)))
-                         g 'Lambda T_ij)
-                        d:dr d:dr)
-                       ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))))
+          (testing "second challenge"
+            (is (= '(/ (+ (* -1 Lambda (expt c 4) (expt (R t) 2))
+                          (* 8 G pi (expt (R t) 2) (p t))
+                          (* (expt c 4) k)
+                          (* (expt c 2) (expt ((D R) t) 2))
+                          (* 2 (expt c 2) (R t) (((expt D 2) R) t)))
+                       (+ (* (expt c 4) k (expt r 2)) (* -1 (expt c 4))))
+                   (simplify
+                    ((((Einstein-field-equation spacetime-sphere
+                                                (/ (* 8 'pi 'G) (expt 'c 4)))
+                       g 'Lambda T_ij)
+                      d:dr d:dr)
+                     ((point spacetime-sphere) (up 't 'r 'theta 'phi))))))))))
 
-        (testing "Conservation of energy-momentum"
-          (with-literal-functions [R p rho]
-            (let [metric (FLRW-metric 'c 'k R)
-                  basis (e/coordinate-system->basis spacetime-sphere)
-                  nabla (e/covariant-derivative
-                         (e/Christoffel->Cartan
-                          (e/metric->Christoffel-2 metric basis)))
-                  es (e/basis->vector-basis basis)]
-              (is (= '[(/ (+ (* -3 (expt c 2) ((D R) t) (rho t))
-                             (* -1 (expt c 2) (R t) ((D rho) t))
-                             (* -3 ((D R) t) (p t)))
-                          (R t))
-                       0 0 0]
-                     (map (fn [i]
-                            (simplify
-                             ((e/contract
-                               (fn [ej wj]
-                                 (* (metric ej (nth es i))
-                                    (e/contract
-                                     (fn [ei wi]
-                                       (((nabla ei)
-                                         (Tperfect-fluid rho p 'c metric))
-                                        wj
-                                        wi))
-                                     basis)))
-                               basis)
-                              ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
-                          (range 4)))))))
-
+    ;; TRUE!
+    (comment
+      (testing "Conservation of energy-momentum"
         (with-literal-functions [R p rho]
           (let [metric (FLRW-metric 'c 'k R)
                 basis (e/coordinate-system->basis spacetime-sphere)
                 nabla (e/covariant-derivative
                        (e/Christoffel->Cartan
                         (e/metric->Christoffel-2 metric basis)))
-                ws    (e/basis->oneform-basis basis)]
-            (is (= ['(/ (+ (* 3 (expt c 2) ((D R) t) (rho t))
-                           (* (expt c 2) (R t) ((D rho) t))
-                           (* 3 ((D R) t) (p t)))
-                        (* (expt c 2) (R t)))
-                    0 0 0]
+                es (e/basis->vector-basis basis)]
+            (is (= '[(/ (+ (* -3 (expt c 2) ((D R) t) (rho t))
+                           (* -1 (expt c 2) (R t) ((D rho) t))
+                           (* -3 ((D R) t) (p t)))
+                        (R t))
+                     0 0 0]
                    (map (fn [i]
                           (simplify
                            ((e/contract
-                             (fn [ei wi]
-                               (((nabla ei)
-                                 (Tperfect-fluid rho p 'c metric))
-                                (nth ws i)
-                                wi))
+                             (fn [ej wj]
+                               (* (metric ej (nth es i))
+                                  (e/contract
+                                   (fn [ei wi]
+                                     (((nabla ei)
+                                       (Tperfect-fluid rho p 'c metric))
+                                      wj
+                                      wi))
+                                   basis)))
                              basis)
                             ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
-                        (range 4))))))))))
+                        (range 4))))))))
+
+    ;; TRUE!
+    (comment
+      (with-literal-functions [R p rho]
+        (let [metric (FLRW-metric 'c 'k R)
+              basis (e/coordinate-system->basis spacetime-sphere)
+              nabla (e/covariant-derivative
+                     (e/Christoffel->Cartan
+                      (e/metric->Christoffel-2 metric basis)))
+              ws    (e/basis->oneform-basis basis)]
+          (is (= ['(/ (+ (* 3 (expt c 2) ((D R) t) (rho t))
+                         (* (expt c 2) (R t) ((D rho) t))
+                         (* 3 ((D R) t) (p t)))
+                      (* (expt c 2) (R t)))
+                  0 0 0]
+                 (map (fn [i]
+                        (simplify
+                         ((e/contract
+                           (fn [ei wi]
+                             (((nabla ei)
+                               (Tperfect-fluid rho p 'c metric))
+                              (nth ws i)
+                              wi))
+                           basis)
+                          ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
+                      (range 4)))))))))
 
 
 (comment
@@ -355,7 +359,6 @@
                                    (- 1 (* k (square r))))
                               b (square (* (compose R t) r))
                               g (fn [v1 v2]
-                                  #_(* a (dr v1) (dr v2))
                                   (+
                                    (*  -1 (square c) (dt v1) (dt v2))
                                    (* a (dr v1) (dr v2))
@@ -375,4 +378,65 @@
             ;; okay... so the metric itself seems okay, wtf???
             (clojure.pprint/pprint
              (v/freeze
-              ((metric d:dr2 d:dr2) pt)))))))))
+              ((metric d:dr d:dr) pt))))))))
+
+
+  ;; that all works. Now, the hardre
+  )
+
+(comment
+  ;; BUT AGAIN for some fucking reason!!! the following works, but what I was
+  ;; doing BEFORE did not!
+  (let-coordinates [[t r theta phi] spacetime-sphere]
+    (with-literal-functions [R]
+      (let [FLRW-metric (fn [c k R]
+                          (let [a (/ (square (compose R t))
+                                     (- 1 (* k (square r))))
+                                b (square (* (compose R t) r))
+                                g (fn [v1 v2]
+                                    (+ (*  -1 (square c) (dt v1) (dt v2))
+                                       (* a (dr v1) (dr v2))
+                                       (* b
+                                          (+ (* (dtheta v1) (dtheta v2))
+                                             (* (square (sin theta))
+                                                (dphi v1) (dphi v2))))))]
+                            (ci/with-argument-types
+                              g
+                              [::vf/vector-field
+                               ::vf/vector-field])))
+            metric (FLRW-metric 'c 'k R)
+            basis (e/coordinate-system->basis e/spacetime-sphere)
+            nabla (e/covariant-derivative
+                   (e/Christoffel->Cartan
+                    (e/metric->Christoffel-2 metric basis)))
+            [d:dx0 d:dx1 d:dx2 d:dx3] (e/basis->vector-basis basis)
+            [dx0 dx1 dx2 dx3] (e/basis->oneform-basis basis)
+            ei d:dx1
+            wi dx1]
+        ;; okay... so the metric itself seems okay, wtf???
+        (try
+          (clojure.pprint/pprint
+           (simplify
+            ((((nabla ei)
+               (fn [w1 w2] (fn [_] 1)))
+              dx0
+              wi)
+             ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
+          (catch Exception e (def donkey e))))))
+
+  )
+
+;; Okay, I figured it out. The whole bullshit is related to the
+;; `let-coordinates` thing... When it rebound the coordinate system it forced a
+;; new entry in the cache for the point. And I guess when I try to go backward
+;; that is no good!!
+;;
+;; SO for GJS the goal is to figure out why everything
+
+
+#_(= (+ (* -8 G pi (rho t))
+        (* -1 (expt c 2) Lambda)
+        (/ (* 3 k (expt c 2)) (expt (R t) 2))
+        (/ (* 3 (expt ((D R) t) 2)) (expt (R t) 2)))
+
+     )

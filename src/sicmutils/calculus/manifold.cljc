@@ -269,8 +269,8 @@
   ([spec manifold coordinate-system coordinate-rep]
    (let [point (make-manifold-point spec manifold)
          reps  (:coordinate-representations point)]
-     (prn "MAKE-MANIFOLD-POINT, storing rep:")
-     (clojure.pprint/pprint (v/freeze coordinate-rep))
+     ;; (prn "MAKE-MANIFOLD-POINT, storing rep:")
+     ;; (clojure.pprint/pprint (v/freeze coordinate-rep))
      (swap! reps assoc coordinate-system coordinate-rep)
      point)))
 
@@ -312,10 +312,10 @@
           ;; for TWO of the coordinate systems. And when you come BACK from the
           ;; bad stuff, you are not really getting much help if you are not a
           ;; structure!!!!!!!! That has got to be it.
-          (prn "GET-COORDINATES FUCK")
-          (clojure.pprint/pprint @reps)
-          (prn  "thunk: ")
-          (clojure.pprint/pprint (v/freeze th))
+          ;; (prn "GET-COORDINATES")
+          ;; (clojure.pprint/pprint @reps)
+          ;; (prn  "thunk: ")
+          ;; (clojure.pprint/pprint (v/freeze th))
           (swap! reps assoc coordinate-system rep)
           rep))))
 
@@ -544,10 +544,9 @@ codebase compatibility."}
      ;; have this then I don't suffer the nightmare of the cache BREAKING and
      ;; having to map BACK into the coordinate system using the thunk. The thunk
      ;; is what was causing all of my problems. Now... does that mean that the
-     ;; definition is fucked??? This is something that has hit me before.
+     ;; definition is hosed??? This is something that has hit me before.
      (with-coordinate-prototype [this prototype]
-       this
-       #_(->Rectangular manifold prototype))
+       (->Rectangular manifold prototype))
 
      (manifold [this] manifold))))
 
@@ -672,6 +671,7 @@ codebase compatibility."}
 
      (with-coordinate-prototype [this prototype]
        (->SphericalCylindrical manifold prototype))
+
      (manifold [this] manifold))))
 
 (defn- ->SpacetimeSpherical
@@ -730,7 +730,8 @@ codebase compatibility."}
        coordinate-prototype)
 
      (with-coordinate-prototype [this prototype]
-       (->SpacetimeSpherical manifold prototype))
+       this
+       #_(->SpacetimeSpherical manifold prototype))
 
      (manifold [this] manifold))))
 
