@@ -133,7 +133,7 @@
               R2-rect-point))))
 
      (is (= '(down (/ (+ (* r (cos theta) (((partial 0) f-polar) (up r theta)))
-                         (* -1N (sin theta) (((partial 1) f-polar) (up r theta))))
+                         (* -1 (sin theta) (((partial 1) f-polar) (up r theta))))
                       r)
                    (/ (+ (* r (sin theta) (((partial 0) f-polar) (up r theta)))
                          (* (cos theta) (((partial 1) f-polar) (up r theta))))

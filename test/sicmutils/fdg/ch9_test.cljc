@@ -224,17 +224,17 @@
          d:dt d:dt)
         ((point spacetime-rect) (up 'x 'y 'z 't)))))
 
-  (testing "OKAY, here we go, this is a clue! This one takes 158 seconds. Why is
+  #_(testing "OKAY, here we go, this is a clue! This one takes 158 seconds. Why is
   this slow? It only takes 135 seconds on my old machine. At least in this case
   we get the correct answer."
-    (profile {}
-             (let-coordinates [[t x y z] e/spacetime-rect]
-               (p :overall
-                  (simplify
-                   (p :inner-call
-                      (((e/Ricci nabla spacetime-rect-basis)
-                        d:dt d:dt)
-                       ((point spacetime-rect) (up 't 'x 'y 'z))))))))))
+      (profile {}
+               (let-coordinates [[t x y z] e/spacetime-rect]
+                 (p :overall
+                    (simplify
+                     (p :inner-call
+                        (((e/Ricci nabla spacetime-rect-basis)
+                          d:dt d:dt)
+                         ((point spacetime-rect) (up 't 'x 'y 'z))))))))))
 
 
 ;; HUH! That is a very interesting clue!!
