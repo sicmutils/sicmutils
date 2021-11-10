@@ -2,6 +2,29 @@
 
 ## [unreleased]
 
+- #384:
+
+  - tests for ch 9
+
+  - field equations turn on
+
+  - new metadata-preserving `sicmutils.function/memoize`.
+
+  - in `sicmutils.calculus.indexed`, `with-argument-types` and
+    `with-index-types` now both correctly set the arity of the returned
+    function. `sicmutils.function/arity` will now work correctly.
+
+  - new `manifold?` and `manifold-family?` functions in `sicmutils.env` and
+    `sicmutils.calculus.manifold`
+
+  - `with-coordinate-prototype` now uses metadata for storage, so no more screwy
+    hash function stuff.
+
+  - `sicmutils.calculus.manifold/manifold` acts as identity on manifolds now.
+
+  - `::manifold` and `::manifold-family` types are now a thing. Manifold
+    families and manifolds will now respond to `v/kind`.
+
 - #382:
 
   - Makes the `name` argument to `sicmutils.operator/make-operator` optional.

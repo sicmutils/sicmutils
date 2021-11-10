@@ -227,6 +227,16 @@
                    (f/joint-arity [[:between 2 3] [:exactly 1]])
                    (f/joint-arity [[:exactly 1] [:between 2 3]])])))))
 
+(deftest memoize-tests
+  (checking "memoize preserves metadata" 100
+            [m (gen/map gen/keyword gen/any-equatable)]
+            (let [f (with-meta identity m)]
+              (is (= (assoc m :arity (f/arity f))
+                     (meta (f/memoize f)))
+                  "f/memoize also adds the arity onto the new metadata, making
+                  it slightly different. That's because the arity isn't
+                  recoverable across the memoization boundary."))))
+
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
             (is (= x (f/I x)))

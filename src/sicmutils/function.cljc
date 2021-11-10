@@ -96,7 +96,11 @@
     (with-meta (apply comp fns) {:arity a})))
 
 (defn memoize
-  "meta-preserving version of `clojure.core/memoize`."
+  "meta-preserving version of `clojure.core/memoize`.
+
+  The returned function will have a new `:arity` entry in its metadata with the
+  `arity` of the original `f`; this is because the process used to figure out a
+  function's arity will not work across the memoization boundary."
   [f]
   (let [m (meta f)
         m (if (:arity m)
