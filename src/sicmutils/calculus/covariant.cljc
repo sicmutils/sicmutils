@@ -31,8 +31,7 @@
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.value :as v]
-            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
+            [sicmutils.value :as v]))
 
 ;; This comes from `Lie.scm`.
 
@@ -275,71 +274,70 @@
     (fn [V]
       (let [CV (Cartan-forms V)]
         (fn [T]
-          (p :cov/argument-types
-             (let [arg-types (ci/argument-types T)]
-               (assert
-                (every? (fn [t]
-                          (or (isa? t ::vf/vector-field)
-                              (isa? t ::ff/oneform-field)))
-                        arg-types))
-               (letfn [(lp [types args targs factors]
-                         (if (empty? types)
-                           (g/* (V (apply T targs))
-                                (apply g/* factors))
-                           (b/contract
-                            (fn [e w]
-                              (cond (isa? (first types) ::vf/vector-field)
-                                    (do (assert (vf/vector-field? (first args)))
-                                        (lp (rest types)
-                                            (rest args)
-                                            (conj targs e)
-                                            (conj factors (w (first args)))))
+          (let [arg-types (ci/argument-types T)]
+            (assert
+             (every? (fn [t]
+                       (or (isa? t ::vf/vector-field)
+                           (isa? t ::ff/oneform-field)))
+                     arg-types))
+            (letfn [(lp [types args targs factors]
+                      (if (empty? types)
+                        (g/* (V (apply T targs))
+                             (apply g/* factors))
+                        (b/contract
+                         (fn [e w]
+                           (cond (isa? (first types) ::vf/vector-field)
+                                 (do (assert (vf/vector-field? (first args)))
+                                     (lp (rest types)
+                                         (rest args)
+                                         (conj targs e)
+                                         (conj factors (w (first args)))))
 
-                                    (isa? (first types) ::ff/oneform-field)
-                                    (do (assert (ff/oneform-field? (first args)))
-                                        (lp (rest types)
-                                            (rest args)
-                                            (conj targs w)
-                                            (conj factors ((first args) e))))))
-                            basis)))
-                       (the-derivative [& args]
-                         (assert (= (count args)
-                                    (count arg-types)))
-                         (let [argv (into [] args)
-                               VT (lp arg-types argv [] [])
-                               corrections (ua/generic-sum
-                                            (map-indexed
-                                             (fn [i type]
-                                               (cond
-                                                 ;; positive
-                                                 (isa? type ::ff/oneform-field)
-                                                 (g/*
-                                                  (g/* (s/mapr (fn [e]
-                                                                 ((nth argv i) e))
-                                                               vector-basis)
-                                                       CV)
-                                                  (s/mapr
-                                                   (fn [w]
-                                                     (apply T (assoc argv i w)))
-                                                   oneform-basis))
+                                 (isa? (first types) ::ff/oneform-field)
+                                 (do (assert (ff/oneform-field? (first args)))
+                                     (lp (rest types)
+                                         (rest args)
+                                         (conj targs w)
+                                         (conj factors ((first args) e))))))
+                         basis)))
+                    (the-derivative [& args]
+                      (assert (= (count args)
+                                 (count arg-types)))
+                      (let [argv (into [] args)
+                            VT (lp arg-types argv [] [])
+                            corrections (ua/generic-sum
+                                         (map-indexed
+                                          (fn [i type]
+                                            (cond
+                                              ;; positive
+                                              (isa? type ::ff/oneform-field)
+                                              (g/*
+                                               (g/* (s/mapr (fn [e]
+                                                              ((nth argv i) e))
+                                                            vector-basis)
+                                                    CV)
+                                               (s/mapr
+                                                (fn [w]
+                                                  (apply T (assoc argv i w)))
+                                                oneform-basis))
 
-                                                 ;; negative
-                                                 (isa? type ::vf/vector-field)
-                                                 (g/negate
-                                                  (g/*
-                                                   (s/mapr
-                                                    (fn [e]
-                                                      (apply T (assoc argv i e)))
-                                                    vector-basis)
-                                                   (g/* CV (s/mapr
-                                                            (fn [w]
-                                                              (w (nth argv i)))
-                                                            oneform-basis))))))
-                                             arg-types))]
-                           (g/+ VT corrections)))]
-                 (ci/with-argument-types
-                   the-derivative
-                   arg-types)))))))))
+                                              ;; negative
+                                              (isa? type ::vf/vector-field)
+                                              (g/negate
+                                               (g/*
+                                                (s/mapr
+                                                 (fn [e]
+                                                   (apply T (assoc argv i e)))
+                                                 vector-basis)
+                                                (g/* CV (s/mapr
+                                                         (fn [w]
+                                                           (w (nth argv i)))
+                                                         oneform-basis))))))
+                                          arg-types))]
+                        (g/+ VT corrections)))]
+              (ci/with-argument-types
+                the-derivative
+                arg-types))))))))
 
 (defn- covariant-derivative-function [Cartan]
   (fn [X]

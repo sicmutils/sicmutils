@@ -24,7 +24,6 @@
                   #?@(:cljs [:exclude [partial]]))
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
-            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
@@ -468,9 +467,7 @@
   that computes the partial derivative of `f` at the (zero-based) slot index
   provided via `selectors`."
   [& selectors]
-  (o/make-operator (fn [& args]
-                     (p :partial-derivative
-                        (apply #(g/partial-derivative % selectors) args)))
+  (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
 
 ;; ## Derivative Utilities

@@ -28,8 +28,7 @@
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
+            [sicmutils.value :as v]))
 
 ;; Riemann curvature "tensor" is pretty easy
 
@@ -56,8 +55,7 @@
   (letfn [(Ricci-tensor [u v]
             (b/contract
              (fn [ei wi]
-               (p :Ricci/inner
-                  ((Riemann nabla) wi u ei v)))
+               ((Riemann nabla) wi u ei v))
              basis))]
     (ci/with-argument-types
       Ricci-tensor

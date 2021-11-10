@@ -25,6 +25,7 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.metric :as metric]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
@@ -63,7 +64,8 @@
 
 (defn metric->Christoffel-2 [metric basis]
   {:pre [(b/coordinate-basis? basis)]}
-  (let [metric (memoize (comp memoize metric))
+  (let [metric (f/memoize
+                (comp f/memoize metric))
         gi (metric/invert metric basis)
         vector-basis (b/basis->vector-basis basis)
         oneform-basis (b/basis->oneform-basis basis)

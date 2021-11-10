@@ -236,7 +236,7 @@
                               spherical-point))))))))))))))
 
 ;; TODO: This one takes quite a while, so we only install this test trapped in a
-;; comment.
+;; comment. Turn it into a BENCHMARK when we sort those out.
 (deftest spherical-flat-lorentz
   (comment
     (testing "MTW p205 spherical flat lorentz"
@@ -306,7 +306,8 @@
                                    (* r (g/sin theta)))
                                 zero)))
                      (orthonormal-spherical-Lorentz-basis c-2))))]
-            (testing "look at curvature:"
+
+            (testing "look at curvature: (154s as of 11.9.2021)"
               (doall
                (for [alpha [dt dr dtheta dphi]
                      beta [d:dt d:dr d:dtheta d:dphi]

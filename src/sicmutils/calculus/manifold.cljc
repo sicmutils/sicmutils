@@ -39,9 +39,7 @@
             [sicmutils.value :as v]
             [sicmutils.mechanics.rotation
              :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
-            [taoensso.timbre :as log]
-            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]
-            ))
+            [taoensso.timbre :as log]))
 
 ;; # Disclaimer (from @sritchie)
 ;;
@@ -247,8 +245,6 @@
 ;;
 ;; This section defines constructors and accessors for
 ;; non-coordinate-constrained points on some manifold.
-;;
-;; TODO consider NOT storing a representation that has a differential in it??
 
 (defn- make-manifold-point
   "Returns a point in `manifold` specified by its Euclidean coordinates `spec`.
@@ -269,8 +265,6 @@
   ([spec manifold coordinate-system coordinate-rep]
    (let [point (make-manifold-point spec manifold)
          reps  (:coordinate-representations point)]
-     ;; (prn "MAKE-MANIFOLD-POINT, storing rep:")
-     ;; (clojure.pprint/pprint (v/freeze coordinate-rep))
      (swap! reps assoc coordinate-system coordinate-rep)
      point)))
 
@@ -306,16 +300,7 @@
   [manifold-point coordinate-system thunk]
   (let [reps (:coordinate-representations manifold-point)]
     (or (@reps coordinate-system)
-        (let [th  (thunk)
-              rep (s/mapr simplify-numerical-expression th)]
-          ;; Okay, so what seems to be happening is that the point is in there
-          ;; for TWO of the coordinate systems. And when you come BACK from the
-          ;; bad stuff, you are not really getting much help if you are not a
-          ;; structure!!!!!!!! That has got to be it.
-          ;; (prn "GET-COORDINATES")
-          ;; (clojure.pprint/pprint @reps)
-          ;; (prn  "thunk: ")
-          ;; (clojure.pprint/pprint (v/freeze th))
+        (let [rep (s/mapr simplify-numerical-expression (thunk))]
           (swap! reps assoc coordinate-system rep)
           rep))))
 
@@ -364,8 +349,7 @@
     (fn [event]
       (cf/event->coords coordinate-system event))
     (fn [point]
-      (p :chart-application
-         (point->coords coordinate-system point)))))
+      (point->coords coordinate-system point))))
 
 (defn point
   "Given an [[ICoordinateSystem]], returns a function from coordinates in
@@ -376,8 +360,7 @@
     (fn [coords]
       (cf/coords->event coordinate-system coords))
     (fn [coords]
-      (p :point-application
-         (coords->point coordinate-system coords)))))
+      (coords->point coordinate-system coords))))
 
 (defn typical-coords
   "Given an [[ICoordinateSystem]], returns a structure that matches
@@ -540,11 +523,6 @@ codebase compatibility."}
      (coordinate-prototype [this]
        coordinate-prototype)
 
-     ;; NOTE: BINGO!!!! with-coordinate-prototype breaks the cache. If I don't
-     ;; have this then I don't suffer the nightmare of the cache BREAKING and
-     ;; having to map BACK into the coordinate system using the thunk. The thunk
-     ;; is what was causing all of my problems. Now... does that mean that the
-     ;; definition is hosed??? This is something that has hit me before.
      (with-coordinate-prototype [this prototype]
        (->Rectangular manifold prototype))
 
@@ -671,7 +649,6 @@ codebase compatibility."}
 
      (with-coordinate-prototype [this prototype]
        (->SphericalCylindrical manifold prototype))
-
      (manifold [this] manifold))))
 
 (defn- ->SpacetimeSpherical
@@ -730,6 +707,7 @@ codebase compatibility."}
        coordinate-prototype)
 
      (with-coordinate-prototype [this prototype]
+       ;; TODO This is the source of my woes...
        this
        #_(->SpacetimeSpherical manifold prototype))
 

@@ -32,8 +32,7 @@
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.structure :as s]
-            [sicmutils.value :as v]
-            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
+            [sicmutils.value :as v]))
 
 ;; ## Vector Fields
 ;;
@@ -86,17 +85,10 @@
   directional derivative of the given function at each point of the manifold."
   [component-fns coordinate-system]
   (fn [f]
-    (let [f' (fn [& args]
-               ;; NOTE: Okay, so this tells me that this this function has
-               ;; nothing to do with the ch9 example.
-               (p :vfp/inner-f (apply f args)))
-          f2 (f/memoize
-              (f/compose
-               (g/* (D (f/compose f' (m/point coordinate-system)))
-                    component-fns)
-               (m/chart coordinate-system)))]
-      (fn [& args]
-        (p :vfp (apply f2 args))))))
+    (f/compose
+     (g/* (D (f/compose f (m/point coordinate-system)))
+          component-fns)
+     (m/chart coordinate-system))))
 
 (defn components->vector-field
   "Takes:
@@ -116,8 +108,10 @@
      (components->vector-field
       components coordinate-system name)))
   ([components coordinate-system name]
-   (-> (vector-field-procedure components coordinate-system)
-       (procedure->vector-field name))))
+   (let [vfp (vector-field-procedure components coordinate-system)]
+     (-> (f/memoize
+          (comp f/memoize vfp))
+         (procedure->vector-field name)))))
 
 ;; We can extract the components function for a vector field, given a coordinate
 ;; system.
@@ -194,16 +188,10 @@
 (defn- coordinate-basis-vector-field-procedure
   [coordinate-system & indices]
   (fn [f]
-    (let [f' (fn [& args]
-               (p :coordinate-basis/inner-f (apply f args)))
-          f2 (f/memoize
-              (f/compose
-               ((apply deriv/partial indices)
-                (f/compose f' (m/point coordinate-system)))
-               (m/chart coordinate-system)))]
-      (fn [& args]
-        (p :coordinate-basis
-           (apply f2 args))))))
+    (f/compose
+     ((apply deriv/partial indices)
+      (f/compose f (m/point coordinate-system)))
+     (m/chart coordinate-system))))
 
 (defn coordinate-basis-vector-field
   "Given some `coordinate-system`, a symbolic `name` and a sequence of indices
@@ -215,10 +203,11 @@
 
   To compute the full Jacobian, pass no indices."
   [coordinate-system name & indices]
-  (-> (apply coordinate-basis-vector-field-procedure
-             coordinate-system indices)
-      (f/memoize)
-      (procedure->vector-field name)))
+  (let [vfp (apply coordinate-basis-vector-field-procedure
+                   coordinate-system indices)]
+    (-> (f/memoize
+         (comp f/memoize vfp))
+        (procedure->vector-field name))))
 
 (defn ^:no-doc coordinate-name->vf-name
   "From the name `n` of a coordinate, produce the name of the coordinate basis
