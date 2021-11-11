@@ -25,8 +25,9 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
   for a discussion of generic function arithmetic."
   (:refer-clojure :rename {get core-get
-                           get-in core-get-in}
-                  #?@(:cljs [:exclude [get get-in]]))
+                           get-in core-get-in
+                           memoize core-memoize}
+                  #?@(:cljs [:exclude [get get-in memoize]]))
   (:require [clojure.core.match :refer [match]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -93,6 +94,20 @@
   (let [a (arity (or (last fns)
                      identity))]
     (with-meta (apply comp fns) {:arity a})))
+
+(defn memoize
+  "meta-preserving version of `clojure.core/memoize`.
+
+  The returned function will have a new `:arity` entry in its metadata with the
+  `arity` of the original `f`; this is because the process used to figure out a
+  function's arity will not work across the memoization boundary."
+  [f]
+  (let [m (meta f)
+        m (if (:arity m)
+            m
+            (assoc m :arity (arity f)))]
+    (with-meta (core-memoize f)
+      m)))
 
 (defn get
   "For non-functions, acts like [[clojure.core/get]]. For function
@@ -353,7 +368,7 @@
   functions is a bit complicated. It involves reflection, so the results are
   definitely worth memoizing."}
   reflect-on-arity
-  (memoize
+  (core-memoize
    #?(:cljs js-arity :clj jvm-arity)))
 
 (def ^{:dynamic true

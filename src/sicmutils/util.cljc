@@ -31,6 +31,7 @@
             [taoensso.timbre :as log])
   #?(:clj
      (:import (clojure.lang BigInt)
+              (java.util UUID)
               (java.util.concurrent TimeUnit TimeoutException))))
 
 (defn counted
@@ -108,6 +109,13 @@
   (throw
    #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
+
+(defn uuid
+  "Returns a string containing a randomly generated unique identifier."
+  []
+  (str
+   #?(:clj (UUID/randomUUID)
+      :cljs (random-uuid))))
 
 (defn illegal [s]
   (throw

@@ -374,6 +374,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   make-manifold coordinate-system-at
   manifold-type
   patch-names coordinate-system-names
+  manifold?
+  manifold-family?
   manifold-point?
   chart point
   typical-coords typical-point transfer-point

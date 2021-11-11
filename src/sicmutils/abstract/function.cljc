@@ -294,7 +294,7 @@
                            (= (s/orientation provided) (s/orientation expected))
                            (= (count provided) (count expected)))
               (u/illegal (str "expected structure matching " expected
-                              " but got " provided )))
+                              " but got " provided)))
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
         (keyword? expected) ;; a keyword has to match the argument's kind
