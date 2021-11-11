@@ -19,17 +19,15 @@
 (ns sicmutils.fdg.ch9-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * / square sin expt
-                                         zero?
-                                         compose D d freeze partial
-                                         up down
+            [sicmutils.env :as e :refer [+ - * /
+                                         square sin expt zero?
+                                         compose D partial
+                                         up
                                          point chart
                                          R2-rect R3-rect S2-spherical
                                          let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
-            [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.operator :as o]
             [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
@@ -64,31 +62,24 @@
        ((partial 2) P))))
 
 (deftest ch9-tests
-  ;; `lower` and `raise` live in metric.cljc. TODO note that raise in the book
-  ;; does not return a legit procedure->vector-field. Probably will break the
-  ;; scheme.
-
-
-  ;; TODO all setup here is missing, or assumed to come from the previous
-  ;; section again.
   (testing "computing Christoffel, page 136"
     (is (= '(down
              (down (down 0 0)
-                   (down 0 (* (expt R 2) (cos theta0) (sin theta0))))
-             (down
-              (down 0 (* (expt R 2) (cos theta0) (sin theta0)))
-              (down (* -1 (expt R 2) (cos theta0) (sin theta0))
-                    0)))
+                   (down 0 (* (expt R 2) (sin theta0) (cos theta0))))
+             (down (down 0 (* (expt R 2) (sin theta0) (cos theta0)))
+                   (down (* -1 (expt R 2) (sin theta0) (cos theta0))
+                         0)))
            (simplify
             ((e/Christoffel->symbols
               (e/metric->Christoffel-1 (g-sphere 'R) S2-basis))
              ((point S2-spherical) (up 'theta0 'phi0)))))
         "Computing Christoffel coefficients, page 136"))
 
-  (is (= '(down (down (up 0 0)
-                      (up 0 (/ (cos theta0) (sin theta0))))
-                (down (up 0 (/ (cos theta0) (sin theta0)))
-                      (up (* -1 (cos theta0) (sin theta0)) 0)))
+  (is (= '(down
+           (down (up 0 0)
+                 (up 0 (/ (cos theta0) (sin theta0))))
+           (down (up 0 (/ (cos theta0) (sin theta0)))
+                 (up (* -1 (sin theta0) (cos theta0)) 0)))
          (simplify
           ((e/Christoffel->symbols
             (e/metric->Christoffel-2 (g-sphere 'R) S2-basis))
@@ -170,10 +161,11 @@
             "page 142"))
 
       (let [q (up x y)]
-        (is (= '(down (+ (* (m_00 (up (x (f t)) (y (f t)))) ((D x) (f t)) (((expt D 2) f) t))
-                         (* (m_01 (up (x (f t)) (y (f t)))) ((D y) (f t)) (((expt D 2) f) t)))
-                      (+ (* ((D x) (f t)) (m_01 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))
-                         (* ((D y) (f t)) (m_11 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))))
+        (is (= '(down
+                 (+ (* (m_00 (up (x (f t)) (y (f t)))) ((D x) (f t)) (((expt D 2) f) t))
+                    (* (m_01 (up (x (f t)) (y (f t)))) ((D y) (f t)) (((expt D 2) f) t)))
+                 (+ (* ((D x) (f t)) (m_01 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))
+                    (* ((D y) (f t)) (m_11 (up (x (f t)) (y (f t)))) (((expt D 2) f) t))))
                (simplify
                 ((- (compose (e/Euler-Lagrange-operator L2)
                              (e/Gamma (compose q f) 4))
@@ -184,10 +176,7 @@
                  't)))
             "page 143")))))
 
-;; TODO the system did not say to install spacetime coordinates!
-
 (let-coordinates [[t x y z] e/spacetime-rect]
-  ;; TODO note that this was missing!
   (def spacetime-rect-basis
     (e/coordinate-system->basis spacetime-rect))
 
@@ -226,4 +215,20 @@
            (simplify
             (((e/Ricci nabla spacetime-rect-basis)
               d:dt d:dt)
-             ((point spacetime-rect) (up 'x 'y 'z 't))))))))
+             ((point spacetime-rect) (up 'x 'y 'z 't)))))
+        "page 146")
+
+    (testing "stress-energy tensor, page 147"
+      (let [Tdust (fn [rho]
+                    (fn T [w1 w2]
+                      (* rho (w1 d:dt) (w2 d:dt))))
+            V (e/literal-function 'V '(-> (UP Real Real Real) Real))
+            g (Newton-metric 'M 'G 'c V)
+            T_ij ((e/drop2 g spacetime-rect-basis) (Tdust 'rho))
+            T ((e/trace2down g spacetime-rect-basis) T_ij)]
+        (is (= '(+ (* (/ 1 2) (expt c 4) rho)
+                   (* 2 (expt c 2) rho (V (up x y z)))
+                   (* 2 rho (expt (V (up x y z)) 2)))
+               (simplify
+                ((- (T_ij d:dt d:dt) (* (/ 1 2) T (g d:dt d:dt)))
+                 ((point spacetime-rect) (up 't 'x 'y 'z))))))))))

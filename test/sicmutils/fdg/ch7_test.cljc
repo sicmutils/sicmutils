@@ -270,8 +270,8 @@
             S2C           (S2-Christoffel S2-basis theta)
             sphere-Cartan (e/Christoffel->Cartan S2C)]
         (is (= '(up (+ (* -1
-                          (cos (alpha tau))
                           (sin (alpha tau))
+                          (cos (alpha tau))
                           ((D beta) tau)
                           (u↑1 tau))
                        ((D u↑0) tau))
@@ -326,7 +326,7 @@
           S2-Christoffel (S2-Christoffel S2-basis theta)
           sphere-Cartan  (e/Christoffel->Cartan S2-Christoffel)]
       (testing "geodesic motion, p111"
-        (is (= '(up (+ (* -1 (cos (alpha t0)) (sin (alpha t0)) (expt ((D beta) t0) 2))
+        (is (= '(up (+ (* -1 (sin (alpha t0)) (cos (alpha t0)) (expt ((D beta) t0) 2))
                        (((expt D 2) alpha) t0))
                     (/ (+ (* 2 (cos (alpha t0)) ((D beta) t0) ((D alpha) t0))
                           (* (sin (alpha t0)) (((expt D 2) beta) t0)))

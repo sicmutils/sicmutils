@@ -69,6 +69,11 @@
 ;; - the original codebase assigns a UUID to each manifold specialized off a
 ;;   family. Is this a good idea?
 ;;
+;; - coordinate systems now use a UUID in the protocol; this feels like a code
+;;   smell. This exists so that coordinate prototypes can live in metadata, and
+;;   can be changed without affecting equality of coordinate systems. BUT
+;;   reconsider this design!
+;;
 ;; - coordinate systems have many more functions like `access-chains`,
 ;;  `dual-chains`, `coordinate-basis` and friends. These are missing, and SHOULD
 ;;  go into `coordinate.cljc.` Basically caching functions that can do these
@@ -270,6 +275,8 @@
 ;; This section defines constructors and accessors for
 ;; non-coordinate-constrained points on some manifold.
 
+(declare uuid)
+
 (defn- make-manifold-point
   "Returns a point in `manifold` specified by its Euclidean coordinates `spec`.
 
@@ -289,7 +296,7 @@
   ([spec manifold coordinate-system coordinate-rep]
    (let [point (make-manifold-point spec manifold)
          reps  (:coordinate-representations point)]
-     (swap! reps assoc coordinate-system coordinate-rep)
+     (swap! reps assoc (uuid coordinate-system) coordinate-rep)
      point)))
 
 (defn manifold-point-representation
@@ -322,10 +329,11 @@
   If an entry for the given `coordinate-system` is not found, `thunk` is called
   to produce the representation. The representation is cached in the point."
   [manifold-point coordinate-system thunk]
-  (let [reps (:coordinate-representations manifold-point)]
-    (or (@reps coordinate-system)
+  (let [reps (:coordinate-representations manifold-point)
+        coordsys-id (uuid coordinate-system)]
+    (or (@reps coordsys-id)
         (let [rep (s/mapr simplify-numerical-expression (thunk))]
-          (swap! reps assoc coordinate-system rep)
+          (swap! reps assoc coordsys-id rep)
           rep))))
 
 ;; ## Coordinate System Protocol
@@ -345,7 +353,14 @@
 
   (point->coords [this point]
     "Returns a coordinate representation of the supplied manifold point `point`,
-    as specified by this [[ICoordinateSystem]]."))
+    as specified by this [[ICoordinateSystem]].")
+
+  (uuid [this]
+    "Returns a unique identifier for this instance of [[ICoordinateSystem]].
+
+    (This is an internal implementation detail to allow us to attach coordinate
+    prototypes and other items as metadata to an [[ICoordinateSystem]] without
+    affecting equality.)"))
 
 (defn coordinate-system?
   "Returns true if `x` implements [[ICoordinateSystem]], false otherwise."
@@ -364,7 +379,10 @@
 (defn with-coordinate-prototype
   "Returns an identical `coordsys` with the new `coordinate-prototype` installed."
   [coordsys prototype]
-  (vary-meta coordsys assoc ::coord-prototype prototype))
+  (let [current-proto (coordinate-prototype coordsys)]
+    (if (= current-proto prototype)
+      coordsys
+      (vary-meta coordsys assoc ::coord-prototype prototype))))
 
 (defn chart
   "Given an [[ICoordinateSystem]], returns a function from a point on the
@@ -519,29 +537,32 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->Rectangular manifold proto)))
   ([manifold coordinate-prototype]
-   (-> (reify ICoordinateSystem
-         (check-coordinates [this coords]
-           (= (s/dimension coords)
-              (:dimension manifold)))
+   (let [id (u/uuid)]
+     (-> (reify ICoordinateSystem
+           (check-coordinates [this coords]
+             (= (s/dimension coords)
+                (:dimension manifold)))
 
-         (check-point [this point]
-           (my-manifold-point? point manifold))
+           (check-point [this point]
+             (my-manifold-point? point manifold))
 
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (make-manifold-point coords manifold this coords))
+           (coords->point [this coords]
+             (assert (check-coordinates this coords))
+             (make-manifold-point coords manifold this coords))
 
-         (point->coords [this point]
-           (assert (check-point this point))
-           (get-coordinates
-            point this
-            (fn []
-              (let [rep (manifold-point-representation point)]
-                (assert (= (s/dimension rep)
-                           (:embedding-dimension manifold)))
-                rep)))))
-       (with-meta {::coord-prototype coordinate-prototype
-                   ::manifold manifold}))))
+           (point->coords [this point]
+             (assert (check-point this point))
+             (get-coordinates
+              point this
+              (fn []
+                (let [rep (manifold-point-representation point)]
+                  (assert (= (s/dimension rep)
+                             (:embedding-dimension manifold)))
+                  rep))))
+
+           (uuid [_] id))
+         (with-meta {::coord-prototype coordinate-prototype
+                     ::manifold manifold})))))
 
 (defn- ->PolarCylindrical
   "Returns an [[ICoordinateSystem]] instance that converts between `manifold`
@@ -554,47 +575,50 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->PolarCylindrical manifold proto)))
   ([manifold coordinate-prototype]
-   (-> (reify ICoordinateSystem
-         (check-coordinates [this coords]
-           (and (s/up? coords)
-                (= (s/dimension coords)
-                   (:dimension manifold))
-                (> (s/dimension coords) 1)
-                (let [c0 (nth coords 0)]
-                  (or (not (v/number? c0))
-                      (>= c0 0)))))
+   (let [id (u/uuid)]
+     (-> (reify ICoordinateSystem
+           (check-coordinates [this coords]
+             (and (s/up? coords)
+                  (= (s/dimension coords)
+                     (:dimension manifold))
+                  (> (s/dimension coords) 1)
+                  (let [c0 (nth coords 0)]
+                    (or (not (v/number? c0))
+                        (>= c0 0)))))
 
-         (check-point [this point]
-           (my-manifold-point? point manifold))
+           (check-point [this point]
+             (my-manifold-point? point manifold))
 
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (let [[r theta] coords]
-             (-> coords
-                 (assoc 0 (g/* r (g/cos theta)))
-                 (assoc 1 (g/* r (g/sin theta)))
-                 (make-manifold-point manifold this coords))))
+           (coords->point [this coords]
+             (assert (check-coordinates this coords))
+             (let [[r theta] coords]
+               (-> coords
+                   (assoc 0 (g/* r (g/cos theta)))
+                   (assoc 1 (g/* r (g/sin theta)))
+                   (make-manifold-point manifold this coords))))
 
-         (point->coords [this point]
-           (assert (check-point this point))
-           (get-coordinates
-            point this
-            (fn []
-              (let [rep (manifold-point-representation point)]
-                (when-not (and (s/up? rep)
-                               (= (s/dimension rep)
-                                  (:embedding-dimension manifold)))
-                  (u/illegal "PolarCylindrical bad point"))
-                (let [[x y] rep
-                      rsq (g/+ (g/square x)
-                               (g/square y))]
-                  (when (v/zero? rsq)
-                    (u/illegal-state "PolarCylindrical singular"))
-                  (-> rep
-                      (assoc 0 (g/sqrt rsq))
-                      (assoc 1 (g/atan y x)))))))))
-       (with-meta {::coord-prototype coordinate-prototype
-                   ::manifold manifold}))))
+           (point->coords [this point]
+             (assert (check-point this point))
+             (get-coordinates
+              point this
+              (fn []
+                (let [rep (manifold-point-representation point)]
+                  (when-not (and (s/up? rep)
+                                 (= (s/dimension rep)
+                                    (:embedding-dimension manifold)))
+                    (u/illegal "PolarCylindrical bad point"))
+                  (let [[x y] rep
+                        rsq (g/+ (g/square x)
+                                 (g/square y))]
+                    (when (v/zero? rsq)
+                      (u/illegal-state "PolarCylindrical singular"))
+                    (-> rep
+                        (assoc 0 (g/sqrt rsq))
+                        (assoc 1 (g/atan y x))))))))
+
+           (uuid [_] id))
+         (with-meta {::coord-prototype coordinate-prototype
+                     ::manifold manifold})))))
 
 (defn- ->SphericalCylindrical
   "Returns an [[ICoordinateSystem]] instance that converts between `manifold`
@@ -610,49 +634,52 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->SphericalCylindrical manifold proto)))
   ([manifold coordinate-prototype]
-   (-> (reify ICoordinateSystem
-         (check-coordinates [this coords]
-           (and (s/up? coords)
-                (= (g/dimension coords)
-                   (:dimension manifold))
-                (or (not (v/number? coords))
-                    (>= (nth coords 0) 0))))
+   (let [id (u/uuid)]
+     (-> (reify ICoordinateSystem
+           (check-coordinates [this coords]
+             (and (s/up? coords)
+                  (= (g/dimension coords)
+                     (:dimension manifold))
+                  (or (not (v/number? coords))
+                      (>= (nth coords 0) 0))))
 
-         (check-point [this point]
-           (my-manifold-point? point manifold))
+           (check-point [this point]
+             (my-manifold-point? point manifold))
 
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (let [[r theta phi] coords]
-             (-> coords
-                 (assoc 0 (g/* r (g/sin theta) (g/cos phi)))
-                 (assoc 1 (g/* r (g/sin theta) (g/sin phi)))
-                 (assoc 2 (g/* r (g/cos theta)))
-                 (make-manifold-point manifold this coords))))
+           (coords->point [this coords]
+             (assert (check-coordinates this coords))
+             (let [[r theta phi] coords]
+               (-> coords
+                   (assoc 0 (g/* r (g/sin theta) (g/cos phi)))
+                   (assoc 1 (g/* r (g/sin theta) (g/sin phi)))
+                   (assoc 2 (g/* r (g/cos theta)))
+                   (make-manifold-point manifold this coords))))
 
-         (point->coords [this point]
-           (assert (check-point this point))
-           (get-coordinates
-            point this
-            (fn []
-              (let [rep (manifold-point-representation point)]
-                (when-not (and (s/up? rep)
-                               (= (g/dimension rep)
-                                  (:embedding-dimension manifold)))
-                  (u/illegal "SphericalCylindrical bad point"))
-                (let [[x y z] rep
-                      r (g/sqrt
-                         (g/+ (g/square x)
-                              (g/square y)
-                              (g/square z)))]
-                  (when (v/zero? r)
-                    (u/illegal-state "SphericalCylindrical singular"))
-                  (-> rep
-                      (assoc 0 r)
-                      (assoc 1 (g/acos (g/divide z r)))
-                      (assoc 2 (g/atan y x)))))))))
-       (with-meta {::coord-prototype coordinate-prototype
-                   ::manifold manifold}))))
+           (point->coords [this point]
+             (assert (check-point this point))
+             (get-coordinates
+              point this
+              (fn []
+                (let [rep (manifold-point-representation point)]
+                  (when-not (and (s/up? rep)
+                                 (= (g/dimension rep)
+                                    (:embedding-dimension manifold)))
+                    (u/illegal "SphericalCylindrical bad point"))
+                  (let [[x y z] rep
+                        r (g/sqrt
+                           (g/+ (g/square x)
+                                (g/square y)
+                                (g/square z)))]
+                    (when (v/zero? r)
+                      (u/illegal-state "SphericalCylindrical singular"))
+                    (-> rep
+                        (assoc 0 r)
+                        (assoc 1 (g/acos (g/divide z r)))
+                        (assoc 2 (g/atan y x))))))))
+
+           (uuid [_] id))
+         (with-meta {::coord-prototype coordinate-prototype
+                     ::manifold manifold})))))
 
 (defn- ->SpacetimeSpherical
   "Returns an [[ICoordinateSystem]] instance that converts between `manifold`
@@ -666,47 +693,50 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->SpacetimeSpherical manifold proto)))
   ([manifold coordinate-prototype]
-   (-> (reify ICoordinateSystem
-         (check-coordinates [this coords]
-           (and (s/up? coords)
-                (= (g/dimension coords) 4)))
+   (let [id (u/uuid)]
+     (-> (reify ICoordinateSystem
+           (check-coordinates [this coords]
+             (and (s/up? coords)
+                  (= (g/dimension coords) 4)))
 
-         (check-point [this point]
-           (my-manifold-point? point manifold))
+           (check-point [this point]
+             (my-manifold-point? point manifold))
 
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (let [[t r theta phi] coords]
-             (make-manifold-point
-              (s/up t
-                    (g/* r (g/sin theta) (g/cos phi))
-                    (g/* r (g/sin theta) (g/sin phi))
-                    (g/* r (g/cos theta)))
-              manifold this coords)))
+           (coords->point [this coords]
+             (assert (check-coordinates this coords))
+             (let [[t r theta phi] coords]
+               (make-manifold-point
+                (s/up t
+                      (g/* r (g/sin theta) (g/cos phi))
+                      (g/* r (g/sin theta) (g/sin phi))
+                      (g/* r (g/cos theta)))
+                manifold this coords)))
 
-         (point->coords [this point]
-           (assert (check-point this point))
-           (get-coordinates
-            point this
-            (fn []
-              (let [rep (manifold-point-representation point)]
-                (let [[t x y z] rep]
-                  (let [r (g/sqrt
-                           (g/+ (g/square x)
-                                (g/square y)
-                                (g/square z)))]
-                    (if (and (v/number? r)
-                             (v/zero? r))
-                      (throw
-                       (ex-info "->SpacetimeSpherical singular: "
-                                {:point point
-                                 :coordinate-system this})))
-                    (s/up t
-                          r
-                          (g/acos (g// z r))
-                          (g/atan y x)))))))))
-       (with-meta {::coord-prototype coordinate-prototype
-                   ::manifold manifold}))))
+           (point->coords [this point]
+             (assert (check-point this point))
+             (get-coordinates
+              point this
+              (fn []
+                (let [rep (manifold-point-representation point)]
+                  (let [[t x y z] rep]
+                    (let [r (g/sqrt
+                             (g/+ (g/square x)
+                                  (g/square y)
+                                  (g/square z)))]
+                      (if (and (v/number? r)
+                               (v/zero? r))
+                        (throw
+                         (ex-info "->SpacetimeSpherical singular: "
+                                  {:point point
+                                   :coordinate-system this})))
+                      (s/up t
+                            r
+                            (g/acos (g// z r))
+                            (g/atan y x))))))))
+
+           (uuid [_] id))
+         (with-meta {::coord-prototype coordinate-prototype
+                     ::manifold manifold})))))
 
 (defn- ->S2-coordinates
   "Returns an [[ICoordinateSystem]] instance that converts between `manifold`
@@ -727,41 +757,44 @@ codebase compatibility."}
         (let [proto (default-coordinate-prototype manifold)]
           (ctor manifold proto)))
        ([manifold coordinate-prototype]
-        (-> (reify ICoordinateSystem
-              (check-coordinates [this coords]
-                (and (s/up? coords)
-                     (= (g/dimension coords) 2)
-                     (or (not (v/number? coords))
-                         (>= (nth coords 0) 0))))
+        (let [id (u/uuid)]
+          (-> (reify ICoordinateSystem
+                (check-coordinates [this coords]
+                  (and (s/up? coords)
+                       (= (g/dimension coords) 2)
+                       (or (not (v/number? coords))
+                           (>= (nth coords 0) 0))))
 
-              (check-point [this point]
-                (my-manifold-point? point manifold))
+                (check-point [this point]
+                  (my-manifold-point? point manifold))
 
-              (coords->point [this coords]
-                (assert (check-coordinates this coords))
-                (let [[colatitude longitude] coords]
-                  (make-manifold-point
-                   (g/* orientation
-                        (s/up (g/* (g/sin colatitude) (g/cos longitude))
-                              (g/* (g/sin colatitude) (g/sin longitude))
-                              (g/cos colatitude)))
-                   manifold this coords)))
+                (coords->point [this coords]
+                  (assert (check-coordinates this coords))
+                  (let [[colatitude longitude] coords]
+                    (make-manifold-point
+                     (g/* orientation
+                          (s/up (g/* (g/sin colatitude) (g/cos longitude))
+                                (g/* (g/sin colatitude) (g/sin longitude))
+                                (g/cos colatitude)))
+                     manifold this coords)))
 
-              (point->coords [this point]
-                (assert (check-point this point))
-                (get-coordinates
-                 point this
-                 (fn []
-                   (let [rep (g/* inverse-orientation
-                                  (manifold-point-representation point))]
-                     (if (and (s/up? rep)
-                              (= (g/dimension rep)
-                                 (:embedding-dimension manifold)))
-                       (let [[x y z] rep]
-                         (s/up (g/acos z) (g/atan y x)))
-                       (u/illegal "S2-coordinates bad point")))))))
-            (with-meta {::coord-prototype coordinate-prototype
-                        ::manifold manifold})))))))
+                (point->coords [this point]
+                  (assert (check-point this point))
+                  (get-coordinates
+                   point this
+                   (fn []
+                     (let [rep (g/* inverse-orientation
+                                    (manifold-point-representation point))]
+                       (if (and (s/up? rep)
+                                (= (g/dimension rep)
+                                   (:embedding-dimension manifold)))
+                         (let [[x y z] rep]
+                           (s/up (g/acos z) (g/atan y x)))
+                         (u/illegal "S2-coordinates bad point"))))))
+
+                (uuid [_] id))
+              (with-meta {::coord-prototype coordinate-prototype
+                          ::manifold manifold}))))))))
 
 (defn- ->Sn-coordinates
   "Returns an [[ICoordinateSystem]] instance that converts between `manifold`
@@ -787,7 +820,8 @@ codebase compatibility."}
       ([manifold coordinate-prototype]
        (let [n (:dimension manifold)
              orientation-matrix (orientation-function (+ n 1))
-             orientation-inverse-matrix (g/invert orientation-matrix)]
+             orientation-inverse-matrix (g/invert orientation-matrix)
+             id (u/uuid)]
          (-> (reify ICoordinateSystem
                (check-coordinates [this coords]
                  (let [dim (g/dimension coords)]
@@ -860,7 +894,9 @@ codebase compatibility."}
                                 (recur r'
                                        (rest more)
                                        (cons (safe-atan r' (second more))
-                                             ans))))))))))))
+                                             ans)))))))))))
+
+               (uuid [_] id))
              (with-meta {::coord-prototype coordinate-prototype
                          ::manifold manifold})))))))
 
@@ -897,7 +933,8 @@ codebase compatibility."}
     ([manifold coordinate-prototype]
      (let [n (:dimension manifold)
            orientation-matrix (orientation-function (+ n 1))
-           orientation-inverse-matrix (g/invert orientation-matrix)]
+           orientation-inverse-matrix (g/invert orientation-matrix)
+           id (u/uuid)]
        (-> (reify ICoordinateSystem
              (check-coordinates [this coords]
                (or (and (= n 1) (= (g/dimension coords) 1))
@@ -937,7 +974,9 @@ codebase compatibility."}
                                              (g/- 1 (nth pt n))))]
                       (if (= n 1)
                         (first coords)
-                        coords)))))))
+                        coords))))))
+
+             (uuid [_] id))
            (with-meta {::coord-prototype coordinate-prototype
                        ::manifold manifold}))))))
 
@@ -972,7 +1011,8 @@ codebase compatibility."}
     ([manifold coordinate-prototype]
      (let [n (:dimension manifold)
            orientation-matrix (orientation-function (+ n 1))
-           orientation-inverse-matrix (g/invert orientation-matrix)]
+           orientation-inverse-matrix (g/invert orientation-matrix)
+           id (u/uuid)]
        (-> (reify ICoordinateSystem
              (check-coordinates [this coords]
                (or (and (= n 1)
@@ -1022,7 +1062,9 @@ codebase compatibility."}
                                     (g// (nth pt i) final-coord)))]
                       (if (= n 1)
                         (nth coords 0)
-                        coords)))))))
+                        coords))))))
+
+             (uuid [_] id))
            (with-meta {::coord-prototype coordinate-prototype
                        ::manifold manifold}))))))
 
@@ -1035,7 +1077,8 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->Euler-chart manifold proto)))
   ([manifold coordinate-prototype]
-   (let [n (:dimension manifold)]
+   (let [n (:dimension manifold)
+         id (u/uuid)]
      (-> (reify ICoordinateSystem
            (check-coordinates [this coords]
              (and (s/up? coords)
@@ -1069,7 +1112,9 @@ codebase compatibility."}
                                   (g/negate (get-in M [1 2])))
                       psi (g/atan (get-in M [2 0])
                                   (get-in M [2 1]))]
-                  (s/up theta phi psi))))))
+                  (s/up theta phi psi)))))
+
+           (uuid [_] id))
          (with-meta {::coord-prototype coordinate-prototype
                      ::manifold manifold})))))
 
@@ -1082,7 +1127,8 @@ codebase compatibility."}
    (let [proto (default-coordinate-prototype manifold)]
      (->Alternate-chart manifold proto)))
   ([manifold coordinate-prototype]
-   (let [n (:dimension manifold)]
+   (let [n (:dimension manifold)
+         id (u/uuid)]
      (-> (reify ICoordinateSystem
            (check-coordinates [this coords]
              (and (s/up? coords)
@@ -1117,7 +1163,9 @@ codebase compatibility."}
                                   (get-in M [1 1]))
                       psi (g/atan (g/negate (get-in M [2 0]))
                                   (get-in M [2 2]))]
-                  (s/up theta phi psi))))))
+                  (s/up theta phi psi)))))
+
+           (uuid [_] id))
          (with-meta {::coord-prototype coordinate-prototype
                      ::manifold manifold})))))
 

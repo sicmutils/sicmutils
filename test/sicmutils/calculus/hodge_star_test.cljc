@@ -68,7 +68,7 @@
                         R2-point)))
                     (b/vector-basis->dual L2-vector-basis R2-rect)))))))
 
-  (testing "4-dimensional Lorentz metric. NOTE currently too slow!"
+  (testing "4-dimensional Lorentz metric."
     (let [SR m/R4-rect]
       (let-coordinates [[t x y z] SR]
         (let [g-Lorentz (fn [c]

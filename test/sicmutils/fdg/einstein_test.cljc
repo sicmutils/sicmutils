@@ -148,7 +148,7 @@
                 [d:dt d:dr] (e/coordinate-system->vector-basis spacetime-sphere)
                 K (/ (* 8 'pi 'G) (expt 'c 4))]
 
-            (testing "first challenge (97s)"
+            (testing "first challenge (89s)"
               (is (= '(/ (+ (* -8 G pi (expt (R t) 2) (rho t))
                             (* -1 Lambda (expt c 2) (expt (R t) 2))
                             (* 3 (expt c 2) k)
@@ -160,7 +160,7 @@
                         d:dt d:dt)
                        ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
 
-            (testing "second challenge (96s)"
+            (testing "second challenge (89s)"
               (is (= '(/ (+ (* -1 Lambda (expt c 4) (expt (R t) 2))
                             (* 8 G pi (expt (R t) 2) (p t))
                             (* (expt c 4) k)
