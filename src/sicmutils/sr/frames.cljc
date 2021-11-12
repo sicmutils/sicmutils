@@ -91,19 +91,24 @@
 
 ;; ### The background frame
 
-(defn- base-frame-point [ancestor-frame this-frame _]
+(defn base-frame-point [ancestor-frame this-frame _]
   (fn [coords]
     {:pre [(SR-coordinates? coords)
            (= this-frame (cf/frame-owner coords))]}
     (cf/make-event coords)))
 
-(defn- base-frame-chart [ancestor-frame this-frame _]
+(defn base-frame-chart [ancestor-frame this-frame _]
   (fn [event]
     {:pre [(cf/event? event)]}
     (make-SR-coordinates this-frame event)))
 
+(def base-frame-maker
+  (cf/frame-maker base-frame-point base-frame-chart))
+
 (def the-ether
-  ((cf/frame-maker base-frame-point base-frame-chart)
+  ;; TODO instead of what we had before, bind `base-frame-maker`. Then we can
+  ;; expose that and make a note in the text. See above...
+  (base-frame-maker
    'the-ether 'the-ether))
 
 (defn boost-direction [frame]
