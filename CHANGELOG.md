@@ -2,9 +2,15 @@
 
 ## [unreleased]
 
-- new
+- #386:
 
-  - added `phase-space-derivative` to env
+  - Aliases `sicmutils.mechanics.hamilton/phase-space-derivative` into
+    `sicmutils.env`, and adds `sicmutils.sr.frames/base-frame-maker`. The latter
+    function makes it easier to write reference frames like `the-ether`, as with
+    the `home` variable in chapter 11 of FDG.
+
+  - Adds all code listings from chapters 10 and 11 of FDG as
+    `sicmutils.fdg.{ch9,ch10}-test`.
 
 - #384:
 

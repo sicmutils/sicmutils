@@ -106,10 +106,7 @@
   (cf/frame-maker base-frame-point base-frame-chart))
 
 (def the-ether
-  ;; TODO instead of what we had before, bind `base-frame-maker`. Then we can
-  ;; expose that and make a note in the text. See above...
-  (base-frame-maker
-   'the-ether 'the-ether))
+  (base-frame-maker 'the-ether 'the-ether))
 
 (defn boost-direction [frame]
   (:boost-direction (cf/params frame)))

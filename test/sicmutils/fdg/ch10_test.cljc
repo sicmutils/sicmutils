@@ -17,19 +17,17 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns sicmutils.fdg.ch10-test
-  "TODO slim this down!"
-  (:refer-clojure :exclude [+ - * / zero? ref partial])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
-                                         sqrt square sin expt zero?
-                                         compose D partial
+                                         zero?
+                                         square sin expt
                                          wedge
                                          down up
-                                         point chart
-                                         R2-rect R3-rect S2-spherical
+                                         point
+                                         R3-rect S2-spherical
                                          let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
