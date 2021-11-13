@@ -489,6 +489,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Hamilton-equations
   Hamiltonian
   Hamiltonian->state-derivative
+  phase-space-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
   Lie-transform

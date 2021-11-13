@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- new
+
+  - added `phase-space-derivative` to env
+
 - #384:
 
   - Adds `sicmutils.fdg.ch9-test`, with tests for all forms from FDG's 9th
