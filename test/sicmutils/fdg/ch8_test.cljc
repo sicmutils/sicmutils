@@ -42,8 +42,6 @@
   (def sphere-Cartan (e/Christoffel->Cartan S2C)))
 
 (deftest section-8-1
-  ;; TODO tell GJS to say, install S2-spherical. Actually note that we depend on
-  ;; quite a bit of setup from the previous section.
   (let-coordinates [[theta phi] S2-spherical]
     (is (= 1 (simplify
               (((e/Riemann (e/covariant-derivative sphere-Cartan))
@@ -147,9 +145,6 @@
                 (e/literal-manifold-function 'f S2-spherical))
                ((point S2-spherical) (up 'theta0 'phi0))))))))
 
-    ;; TODO "where omega is an arbitrary oneform field..." but the `omega`
-    ;; definition is missing from the setup. See below for the correct
-    ;; definition.
     (testing "Longitude lines on a sphere, p127"
       (let [T d:dtheta
             U d:dphi
@@ -163,7 +158,6 @@
               ((omega (((e/covariant-derivative Cartan) T) T)) m)))
             "every longitude line is a geodesic.")
 
-        ;; TODO `f` definition was missing from the book. See above in `let`.
         (is (zero?
              (simplify
               (((e/commutator U T) f) m)))

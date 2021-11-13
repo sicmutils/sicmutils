@@ -446,6 +446,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
  [sicmutils.sr.frames
   make-SR-coordinates SR-coordinates? SR-name make-SR-frame
+  base-frame-maker
   the-ether boost-direction v:c coordinate-origin
   add-v:cs add-velocities]
 
@@ -488,6 +489,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Hamilton-equations
   Hamiltonian
   Hamiltonian->state-derivative
+  phase-space-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
   Lie-transform
