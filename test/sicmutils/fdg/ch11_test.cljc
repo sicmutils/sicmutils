@@ -51,8 +51,9 @@
         "We can check that the interval is invariant, p176"))
 
   (comment
-    ;; TODO this does not work here!! Test in Scheme on my laptop, see how long
-    ;; this takes. Is this another case of screwy non-caching in the conversion?
+    ;; NOTE this does not complete!! Test in Scheme on my laptop, see how long
+    ;; this takes. Is this another case of screwy non-caching in the coordinate
+    ;; conversion?
     (testing "rotations, p177"
       (let [beta (up 'bx 'by 'bz)
             xi (e/make-four-tuple 'ct (up 'x 'y 'z))
@@ -190,8 +191,7 @@
               ;; homebody:
               end-event
               ((point home)
-               (e/make-SR-coordinates home (up (* 'c 50) 0 0 0)))
-              ]
+               (e/make-SR-coordinates home (up (* 'c 50) 0 0 0)))]
           ;; Indeed, the traveller comes home after 7 more years in the incoming
           ;; frame:
           (is (= '(up 0 0 0 0)

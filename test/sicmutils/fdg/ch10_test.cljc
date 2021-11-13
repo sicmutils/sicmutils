@@ -135,23 +135,16 @@
                           (* (e/literal-manifold-function 'v↑y SR) d:dy)
                           (* (e/literal-manifold-function 'v↑z SR) d:dz))
 
-              ;; TODO wtf I think in the book he forgot c^2 after 10.11 on page
-              ;; 159. Make a note that in 10.11, they are assuming c==1.
+              ;; NOTE that this suite of tests differs from the book in that we
+              ;; include the c^2 term in the code, and track it all the way
+              ;; through. The book assumes c==1.
               g-Minkowski (fn [u v]
                             (+ (* -1 (square 'c) (dct u) (dct v))
                                (* (dx u) (dx v))
                                (* (dy u) (dy v))
                                (* (dz u) (dz v))))
-              SR-vector-basis
-              (down (* (/ 1 'c) d:dct) d:dx d:dy d:dz)
-
-              ;; TODO he uses SR-basis as defined below, but he forgets these
-              ;; next two steps.
-              SR-oneform-basis
-              (up (* 'c dct) dx dy dz)
-
-              ;; TODO should be this
-              ;; SR-basis (e/coordinate-system->basis SR)
+              SR-vector-basis (down (* (/ 1 'c) d:dct) d:dx d:dy d:dz)
+              SR-oneform-basis (up (* 'c dct) dx dy dz)
               SR-basis
               (e/make-basis SR-vector-basis
                             SR-oneform-basis)]
@@ -182,10 +175,7 @@
                 "So, the Laplacian of a scalar field is the wave equation! (p160)"))
 
           (testing "Electrodynamics (p160)"
-            (let [
-                  ;; TODO note that these factors of `c` are not in the book, and
-                  ;; they need a note about c = 1.
-                  Faraday (fn [Ex Ey Ez Bx By Bz]
+            (let [Faraday (fn [Ex Ey Ez Bx By Bz]
                             (+ (* Ex 'c (wedge dx dct))
                                (* Ey 'c (wedge dy dct))
                                (* Ez 'c (wedge dz dct))
@@ -213,11 +203,7 @@
 
               (testing "Defining the 4-current density J."
                 ;; Charge density is a manifold function.  Current density is a
-                ;; vector field having only spatial components.
-                ;;
-                ;; TODO in the book there is NOT a `c` in the denominator. Maybe
-                ;; that is because we are assuming that it is not a thing in the
-                ;; `charge-density`?
+                ;; vector field having only spatial components
                 (let [J (fn [charge-density Ix Iy Iz]
                           (- (* (/ 1 'c) (+ (* Ix dx) (* Iy dy) (* Iz dz)))
                              (* charge-density 'c dct)))
