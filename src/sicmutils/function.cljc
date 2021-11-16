@@ -34,7 +34,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang RestFn Fn MultiFn Keyword Symbol Var)
+     (:import (clojure.lang AFunction RestFn Fn MultiFn Keyword Symbol Var)
               (java.lang.reflect Method))))
 
 ;; ## Function Algebra
@@ -200,6 +200,25 @@
           (apply f (map g/* xs factors)))
         (with-meta {:arity (arity f)}))))
 
+#?(:clj
+   ;; TODO how to get this enabled?
+   ;;
+   ;; Ah, cider is setting one.
+   (defmethod print-method AFunction [^AFunction f ^java.io.Writer w]
+     (.write w (.toString (v/freeze f))))
+
+   ;; TODO do something similar for multifns if we can get the
+   ;; cider.nrepl.print-method ones disabled, if we in fact want to keep these.
+   ;; But maybe the right thing to do is to just force `freeze` for this... for
+   ;; functions.
+   )
+
+#?(:cljs
+   (extend-protocol IPrintWithWriter
+     MetaFn
+     (-pr-writer [x writer _]
+       (write-all writer (.toString (v/freeze x))))))
+
 (extend-protocol v/Value
   MultiFn
   (zero? [_] false)
@@ -215,7 +234,7 @@
       (core-get @v/object-name-map f f)))
   (kind [o] ::v/function)
 
-  #?(:clj Fn :cljs function)
+  #?(:clj AFunction :cljs function)
   (zero? [_] false)
   (one? [_] false)
   (identity? [_] false)

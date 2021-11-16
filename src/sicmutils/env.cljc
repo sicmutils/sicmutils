@@ -125,6 +125,9 @@
 (defmacro using-coordinates [& args]
   `(cc/using-coordinates ~@args))
 
+(defmacro define-coordinates [& args]
+  `(cc/define-coordinates ~@args))
+
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
   elsewhere."

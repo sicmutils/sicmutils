@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- new
+
+  - add `define-coordinates`, works in SCI too.
+
 - #386:
 
   - Aliases `sicmutils.mechanics.hamilton/phase-space-derivative` into
