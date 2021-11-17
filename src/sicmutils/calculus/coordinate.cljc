@@ -22,7 +22,8 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [taoensso.timbre :as log]))
 
 (defn coordinate-functions
   "Returns a structure similar to the [[manifold/coordinate-prototype]] of
@@ -175,19 +176,31 @@
         coord-names        (symbols-from-prototype coordinate-prototype)
         vector-field-names (map vf/coordinate-name->vf-name coord-names)
         form-field-names   (map ff/coordinate-name->ff-name coord-names)
-        value-sym          (gensym)]
-    `(do
-       (def ~sys-name
-         (m/with-coordinate-prototype
-           ~coordinate-system
-           ~(quotify-coordinate-prototype coordinate-prototype)))
+        value-sym          (gensym)
+        mapping-sym        (gensym)
+        ns-sym             (ns-name *ns*)]
+    ;; TODO - cljs does not have `intern` or `ns-map`, so we have to figure out
+    ;; a different way to do it. We have to either emit `def` or not.
+    `(let [~mapping-sym (ns-map *ns*)
+           sys# (m/with-coordinate-prototype
+                  ~coordinate-system
+                  ~(quotify-coordinate-prototype coordinate-prototype))]
+       (when (~mapping-sym '~sys-name)
+         (log/warn "Replacing" '~sys-name "in namespace" *ns*)
+         (ns-unmap '~ns-sym '~sys-name))
+
+       (intern '~ns-sym '~sys-name sys#)
 
        (let [~value-sym
              (into [] (flatten
-                       [(coordinate-functions ~sys-name)
-                        (vf/coordinate-system->vector-basis ~sys-name)
-                        (ff/coordinate-system->oneform-basis ~sys-name)]))]
+                       [(coordinate-functions sys#)
+                        (vf/coordinate-system->vector-basis sys#)
+                        (ff/coordinate-system->oneform-basis sys#)]))]
          ~@(map-indexed
             (fn [i sym]
-              `(def ~sym (nth ~value-sym ~i)))
+              `(do
+                 (when (~mapping-sym '~sym)
+                   (log/warn "Replacing" '~sym "in namespace" *ns*))
+                 (ns-unmap '~ns-sym '~sym)
+                 (intern '~ns-sym '~sym (nth ~value-sym ~i))))
             (concat coord-names vector-field-names form-field-names))))))
