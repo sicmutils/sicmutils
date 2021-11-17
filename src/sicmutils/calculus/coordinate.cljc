@@ -157,6 +157,32 @@
   `(let-coordinates [~coordinate-prototype ~coordinate-system]
      ~@body))
 
+(defn ^:no-doc careful-def [ns]
+  #?(:cljs
+     (fn [sym form]
+       `(def ~sym ~form))
+
+     :clj
+     (let [ns-sym  (ns-name ns)
+           nsm     (ns-map ns)
+           remote? (fn [sym]
+                     (when-let [v (nsm sym)]
+                       (not= *ns* (:ns (meta v)))))
+           warn (fn [sym]
+                  `(log/warn '~sym
+                             "already refers to:"
+                             ~ (nsm sym)
+                             (str "in namespace:" '~ns-sym ",")
+                             "being replaced by:"
+                             ~(str "#'" ns-sym "/" sym)))]
+       (fn [sym form]
+         (if (remote? sym)
+           `(do
+              ~(warn sym)
+              (ns-unmap '~ns-sym '~sym)
+              (intern '~ns-sym '~sym ~form))
+           `(def ~sym ~form))))))
+
 (defmacro define-coordinates
   "Give some `coordinate-system` like `R2-rect` and a `coordinate-prototype` like
   `[x y]` or `(up x y), `binds the following definitions into the namespace
@@ -176,31 +202,19 @@
         coord-names        (symbols-from-prototype coordinate-prototype)
         vector-field-names (map vf/coordinate-name->vf-name coord-names)
         form-field-names   (map ff/coordinate-name->ff-name coord-names)
+        sys-sym            (gensym)
         value-sym          (gensym)
-        mapping-sym        (gensym)
-        ns-sym             (ns-name *ns*)]
-    ;; TODO - cljs does not have `intern` or `ns-map`, so we have to figure out
-    ;; a different way to do it. We have to either emit `def` or not.
-    `(let [~mapping-sym (ns-map *ns*)
-           sys# (m/with-coordinate-prototype
-                  ~coordinate-system
-                  ~(quotify-coordinate-prototype coordinate-prototype))]
-       (when (~mapping-sym '~sys-name)
-         (log/warn "Replacing" '~sys-name "in namespace" *ns*)
-         (ns-unmap '~ns-sym '~sys-name))
-
-       (intern '~ns-sym '~sys-name sys#)
-
+        bind               (careful-def *ns*)]
+    `(let [~sys-sym (m/with-coordinate-prototype
+                      ~coordinate-system
+                      ~(quotify-coordinate-prototype coordinate-prototype))]
+       ~(bind sys-name sys-sym)
        (let [~value-sym
              (into [] (flatten
-                       [(coordinate-functions sys#)
-                        (vf/coordinate-system->vector-basis sys#)
-                        (ff/coordinate-system->oneform-basis sys#)]))]
+                       [(coordinate-functions ~sys-sym)
+                        (vf/coordinate-system->vector-basis ~sys-sym)
+                        (ff/coordinate-system->oneform-basis ~sys-sym)]))]
          ~@(map-indexed
             (fn [i sym]
-              `(do
-                 (when (~mapping-sym '~sym)
-                   (log/warn "Replacing" '~sym "in namespace" *ns*))
-                 (ns-unmap '~ns-sym '~sym)
-                 (intern '~ns-sym '~sym (nth ~value-sym ~i))))
+              (bind sym `(nth ~value-sym ~i)))
             (concat coord-names vector-field-names form-field-names))))))
