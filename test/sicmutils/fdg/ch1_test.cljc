@@ -24,9 +24,9 @@
                                          D compose
                                          up down
                                          sin cos square
-                                         R1-rect R2-rect
+                                         R2-rect
                                          chart point
-                                         let-coordinates]
+                                         define-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
@@ -62,6 +62,8 @@
     (let [e (e/coordinate-system->vector-basis coordsys)]
       ((L2 mass metric) ((point coordsys) x) (* e v)))))
 
+(define-coordinates t e/R1-rect)
+
 (deftest chapter-one-tests
   (is (= '(+ (* (/ 1 2) (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
              (* (/ 1 2) (expt R 2) m (expt thetadot 2)))
@@ -92,22 +94,21 @@
 
       ;; Now we can compute the residuals of the Euler-Lagrange equations, but
       ;; we get a large messy expression that we will not show.
-      (let-coordinates [t R1-rect]
-        (let [Lagrange-residuals (((e/Lagrange-equations L) coordinate-path) 't)
-              R2-basis (e/coordinate-system->basis R2-rect)
-              Cartan
-              (e/Christoffel->Cartan
-               (e/metric->Christoffel-2 the-metric R2-basis))
-              geodesic-equation-residuals (((((e/covariant-derivative Cartan gamma) d:dt)
-                                             ((e/differential gamma) d:dt))
-                                            (chart R2-rect))
-                                           ((point R1-rect) 't))
-              metric-components (e/metric->components the-metric R2-basis)]
-          (is (= '(down 0 0)
-                 (simplify
-                  (- Lagrange-residuals
-                     (* (* 'm (metric-components (gamma ((point R1-rect) 't))))
-                        geodesic-equation-residuals))))
-              "p10: This establishes that for a 2-dimensional space the
+      (let [Lagrange-residuals (((e/Lagrange-equations L) coordinate-path) 't)
+            R2-basis (e/coordinate-system->basis R2-rect)
+            Cartan
+            (e/Christoffel->Cartan
+             (e/metric->Christoffel-2 the-metric R2-basis))
+            geodesic-equation-residuals (((((e/covariant-derivative Cartan gamma) d:dt)
+                                           ((e/differential gamma) d:dt))
+                                          (chart R2-rect))
+                                         ((point R1-rect) 't))
+            metric-components (e/metric->components the-metric R2-basis)]
+        (is (= '(down 0 0)
+               (simplify
+                (- Lagrange-residuals
+                   (* (* 'm (metric-components (gamma ((point R1-rect) 't))))
+                      geodesic-equation-residuals))))
+            "p10: This establishes that for a 2-dimensional space the
                Euler-Lagrange equations are equivalent to the geodesic
-               equations."))))))
+               equations.")))))

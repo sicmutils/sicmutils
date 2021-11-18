@@ -96,7 +96,25 @@
                    (let [p ((point R2-rect) (up 1 2))]
                      [(= 1 (x p))
                       (= 2 (y p))]))))
-        "using-coordinates works")
+        "using-coordinates works!")
+
+    (is (= [true true]
+           (eval '(do (define-coordinates [x y] R2-rect)
+
+                      (let [p ((point R2-rect) (up 1 2))]
+                        [(= 1 (x p))
+                         (= 2 (y p))]))))
+        "define-coordinates version of that test")
+
+    (is (eval '(do (define-coordinates (up x y) R2-rect)
+
+                   (let [circular (- (* x d:dy) (* y d:dx))]
+                     (= '(+ (* 3 x0) (* -2 y0))
+                        (freeze
+                         (simplify
+                          ((circular (+ (* 2 x) (* 3 y)))
+                           ((point R2-rect) (up 'x0 'y0)))))))))
+        "define-coordinates works with a test from form_field_test.cljc")
 
     (testing "internal defn, funky symbols, internal with-literal-functions macro"
       (is (= "down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"

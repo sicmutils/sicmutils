@@ -24,7 +24,7 @@
                            int core-int
                            long core-long
                            double core-double}
-                  #?@(:cljs [:exclude [bigint double long int]]))
+                  #?@(:cljs [:exclude [bigint double long int uuid]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long)

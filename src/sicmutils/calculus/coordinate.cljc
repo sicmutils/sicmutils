@@ -22,7 +22,8 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [sicmutils.util.def :as ud]))
 
 (defn coordinate-functions
   "Returns a structure similar to the [[manifold/coordinate-prototype]] of
@@ -53,21 +54,25 @@
   (up 'x 'y)
   ```
 
-  Such an object is useful for [[structure/mapr]]. The function `xf` is applied
-  before quoting."
-  [xf p]
+  Such an object is useful for [[structure/mapr]]."
+  [p]
   (letfn [(q [p]
-            (cond (and (sequential? p)
-                       ('#{up down} (first p))) `(~(first p) ~@(map q (rest p)))
+            (cond (and (sequential? p) ('#{up down} (first p)))
+                  (let [s (first p)
+                        prefix (if (= s 'up)
+                                 `s/up
+                                 `s/down)]
+                    `(~prefix ~@(map q (rest p))))
+
                   (vector? p) (mapv q p)
-                  (symbol? p) `'~(xf p)
+                  (symbol? p) (list 'quote p)
                   :else (u/illegal "Invalid coordinate prototype")))]
     (q p)))
 
 (defn ^:no-doc symbols-from-prototype
-  "Generates a list of symbols from the supplied argument prototype. The protype
-  is allowed to be a vector, a list like `(up x y)` or a bare symbol. Anything
-  else causes an exception.
+  "Generates a list of symbols from the supplied argument prototype. The
+  prototype is allowed to be a vector, a list like `(up x y)` or a bare symbol.
+  Anything else causes an exception.
 
   Nested structures are fine! The return value is a flat sequence."
   [p]
@@ -119,7 +124,7 @@
     `(let [[~@system-names :as c-systems#]
            (mapv m/with-coordinate-prototype
                  ~(into [] c-systems)
-                 ~(mapv #(quotify-coordinate-prototype identity %) prototypes))
+                 ~(mapv quotify-coordinate-prototype prototypes))
 
            ~(into [] coordinate-names)
            (flatten
@@ -140,8 +145,6 @@
   See [[let-coordinates]] for details about what symbols are bound inside the
   body.
 
-  NOTE: Prefer [[let-coordinates]] when possible.
-
   Example:
 
   ```clojure
@@ -151,3 +154,39 @@
   [coordinate-prototype coordinate-system & body]
   `(let-coordinates [~coordinate-prototype ~coordinate-system]
      ~@body))
+
+(defmacro define-coordinates
+  "Give some `coordinate-system` like `R2-rect` and a `coordinate-prototype` like
+  `[x y]` or `(up x y), `binds the following definitions into the namespace
+  where [[define-coordinates]] is invoked:
+
+  - `R2-rect` binds to a new version of the coordinate system with its
+    `coordinate-prototype` replaced by the supplied prototype
+
+  - `x` and `y` bind to coordinate functions, ie, functions from manifold point
+  to that particular coordinate
+
+  - `d:dx` and `d:dy` bind to the corresponding vector field procedures
+
+  - `dx` and `dy` bind to 1-forms for each coordinate."
+  [coordinate-prototype coordinate-system]
+  (let [sys-name           (symbol (name coordinate-system))
+        coord-names        (symbols-from-prototype coordinate-prototype)
+        vector-field-names (map vf/coordinate-name->vf-name coord-names)
+        form-field-names   (map ff/coordinate-name->ff-name coord-names)
+        sys-sym            (gensym)
+        value-sym          (gensym)
+        bind               (ud/careful-def *ns*)]
+    `(let [~sys-sym (m/with-coordinate-prototype
+                      ~coordinate-system
+                      ~(quotify-coordinate-prototype coordinate-prototype))]
+       ~(bind sys-name sys-sym)
+       (let [~value-sym
+             (into [] (flatten
+                       [(coordinate-functions ~sys-sym)
+                        (vf/coordinate-system->vector-basis ~sys-sym)
+                        (ff/coordinate-system->oneform-basis ~sys-sym)]))]
+         ~@(map-indexed
+            (fn [i sym]
+              (bind sym `(nth ~value-sym ~i)))
+            (concat coord-names vector-field-names form-field-names))))))

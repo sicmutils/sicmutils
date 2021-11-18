@@ -160,26 +160,25 @@
                      ((point R3-rect) (up 1 0 0))))))))))
 
 (deftest section-7-1c
-  (e/let-coordinates
-   [[x y z] R3-rect]
-   (let [X (e/literal-vector-field 'X-rect R3-rect)
-         Y (e/literal-vector-field 'Y-rect R3-rect)
-         Z (e/literal-vector-field 'Z-rect R3-rect)
-         a (e/literal-manifold-function 'alpha R3-rect)
-         b (e/literal-manifold-function 'beta R3-rect)
-         c (e/literal-manifold-function 'gamma R3-rect)
-         omega (+ (* a (wedge dx dy))
-                  (* b (wedge dy dz))
-                  (* c (wedge dz dx)))
-         L1 (fn [X]
-              (fn [omega]
-                (+ ((e/interior-product X) (d omega))
-                   (d ((e/interior-product X) omega)))))]
-     (is (zero?
-          (simplify
-           ((- (((e/Lie-derivative X) omega) Y Z)
-               (((L1 X) omega) Y Z))
-            ((point R3-rect) (up 'x0 'y0 'z0)))))))))
+  (let-coordinates [[x y z] R3-rect]
+    (let [X (e/literal-vector-field 'X-rect R3-rect)
+          Y (e/literal-vector-field 'Y-rect R3-rect)
+          Z (e/literal-vector-field 'Z-rect R3-rect)
+          a (e/literal-manifold-function 'alpha R3-rect)
+          b (e/literal-manifold-function 'beta R3-rect)
+          c (e/literal-manifold-function 'gamma R3-rect)
+          omega (+ (* a (wedge dx dy))
+                   (* b (wedge dy dz))
+                   (* c (wedge dz dx)))
+          L1 (fn [X]
+               (fn [omega]
+                 (+ ((e/interior-product X) (d omega))
+                    (d ((e/interior-product X) omega)))))]
+      (is (zero?
+           (simplify
+            ((- (((e/Lie-derivative X) omega) Y Z)
+                (((L1 X) omega) Y Z))
+             ((point R3-rect) (up 'x0 'y0 'z0)))))))))
 
 (defn F-parallel [omega phi coordinate-system]
   (let [basis  (e/coordinate-system->basis coordinate-system)
