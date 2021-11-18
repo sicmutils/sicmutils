@@ -2,9 +2,21 @@
 
 ## [unreleased]
 
-- new
+- #393:
+
+  - Forms like `(let-coordinates [(up x y) R2-rect] ...)` will now work even if
+    `up` is not present in the environment. Previously this syntax was valid,
+    but only if `up` had been imported.
 
   - add `define-coordinates`, works in SCI too.
+
+  - TODO try to enable function `print-method`, note about how cider/nrepl
+    overwrites this
+
+  - fix `sicmutils.util` warning in cljs around `uuid`
+
+  - TODO convert all fdg book tests to use `define-coordinates`, matching what
+    is in the book.
 
 - #386:
 

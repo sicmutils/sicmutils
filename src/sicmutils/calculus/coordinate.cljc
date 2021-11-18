@@ -22,7 +22,9 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
-            [sicmutils.util :as u])
+            [sicmutils.util :as u]
+            [sicmutils.util.def :as ud
+             #?@(:cljs [:include-macros true])])
   #?(:clj
      (:import (clojure.lang RT))))
 
@@ -146,8 +148,6 @@
   See [[let-coordinates]] for details about what symbols are bound inside the
   body.
 
-  NOTE: Prefer [[let-coordinates]] when possible.
-
   Example:
 
   ```clojure
@@ -158,35 +158,52 @@
   `(let-coordinates [~coordinate-prototype ~coordinate-system]
      ~@body))
 
-(defn ^:no-doc careful-def [ns]
-  #?(:cljs
-     (fn [sym form]
-       `(def ~sym ~form))
+(defn ^:no-doc careful-def
+  "Given some namespace `ns`, returns a function of some binding symbol and a form
+  to bind. The function returns either
 
-     :clj
-     (let [ns-sym (ns-name ns)
-           nsm (ns-map ns)
-           remote? (fn [sym]
-                     (when-let [v (nsm sym)]
-                       (not= *ns* (:ns (meta v)))))
-           warn (fn [sym]
-                  `(.println
-                    (RT/errPrintWriter)
-                    (str "WARNING: "
-                         '~sym
-                         " already refers to: "
-                         ~(nsm sym)
-                         " in namespace: "
-                         '~ns-sym
-                         ", being replaced by: "
-                         ~(str "#'" ns-sym "/" sym))))]
-       (fn [sym form]
-         (if (remote? sym)
-           `(do
-              ~(warn sym)
-              (ns-unmap '~ns-sym '~sym)
-              (intern '~ns-sym '~sym ~form))
-           `(def ~sym ~form))))))
+  - A form like `(def ~sym ~form)`, if `sym` is not currently bound into `ns`
+
+  - If `sym` is bound already, returns a form that emits a warning and then
+    uses `ns-unmap` and `intern` to reassign the binding.
+
+  In Clojure, this behavior matches redefinitions of symbols bound in
+  `clojure.core`. Symbols bound with `def` that are already imported from other
+  namespaces cause an exception, hence this more careful workaround.
+
+  (In Clojurescript, only forms like `(def ~sym ~form)` are emitted, since the
+  compiler does not currently error in case 2 and already handles emitting the
+  warning for us.)"
+  [ns]
+  (ud/fork
+   :cljs
+   (fn [sym form]
+     `(def ~sym ~form))
+
+   :clj
+   (let [ns-sym (ns-name ns)
+         nsm (ns-map ns)
+         remote? (fn [sym]
+                   (when-let [v (nsm sym)]
+                     (not= *ns* (:ns (meta v)))))
+         warn (fn [sym]
+                `(.println
+                  (RT/errPrintWriter)
+                  (str "WARNING: "
+                       '~sym
+                       " already refers to: "
+                       ~(nsm sym)
+                       " in namespace: "
+                       '~ns-sym
+                       ", being replaced by: "
+                       ~(str "#'" ns-sym "/" sym))))]
+     (fn [sym form]
+       (if (remote? sym)
+         `(do
+            ~(warn sym)
+            (ns-unmap '~ns-sym '~sym)
+            (intern '~ns-sym '~sym ~form))
+         `(def ~sym ~form))))))
 
 (defmacro define-coordinates
   "Give some `coordinate-system` like `R2-rect` and a `coordinate-prototype` like
