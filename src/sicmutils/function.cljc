@@ -200,24 +200,32 @@
           (apply f (map g/* xs factors)))
         (with-meta {:arity (arity f)}))))
 
-#?(:clj
-   ;; TODO how to get this enabled?
-   ;;
-   ;; Ah, cider is setting one.
-   (defmethod print-method AFunction [^AFunction f ^java.io.Writer w]
-     (.write w (.toString (v/freeze f))))
+(defn install-fn-printers!
+  "NOTE: If you are using Emacs + cider-nrepl, these two `print-method`
+  implementations will not be installed. I'm currently working on a fix to get
+  this enabled in the Emacs environment... But if you want to test this feature
+  out, simply execute these forms.
+  https://github.com/clojure-emacs/cider-nrepl/blob/master/src/cider/nrepl/print_method.clj#L42-L71
 
-   ;; TODO do something similar for multifns if we can get the
-   ;; cider.nrepl.print-method ones disabled, if we in fact want to keep these.
-   ;; But maybe the right thing to do is to just force `freeze` for this... for
-   ;; functions.
-   )
+  TODO write a with-methods instead to do this..."
+  []
+  #?(:clj
+     (do
+       (defmethod print-method AFunction [f ^java.io.Writer w]
+         (.write w (.toString ^Object (v/freeze f))))
 
-#?(:cljs
-   (extend-protocol IPrintWithWriter
-     MetaFn
-     (-pr-writer [x writer _]
-       (write-all writer (.toString (v/freeze x))))))
+       (defmethod print-method MultiFn [f ^java.io.Writer w]
+         (.write w (.toString ^Object (v/freeze f)))))
+
+     :cljs
+     (extend-protocol IPrintWithWriter
+       MetaFn
+       (-pr-writer [x writer _]
+         (write-all writer (.toString (v/freeze x))))
+
+       MultiFn
+       (-pr-writer [x writer _]
+         (write-all writer (.toString (v/freeze x)))))))
 
 (extend-protocol v/Value
   MultiFn

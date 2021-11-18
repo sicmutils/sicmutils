@@ -24,8 +24,8 @@
                                          compose D partial
                                          up
                                          point chart
-                                         R2-rect R3-rect S2-spherical
-                                         let-coordinates]
+                                         R2-rect R3-rect
+                                         define-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.value :as v]
@@ -36,18 +36,20 @@
 (def simplify
   (comp v/freeze e/simplify))
 
-(let-coordinates [[theta phi] S2-spherical]
-  (def S2-basis (e/coordinate-system->basis S2-spherical))
-  (def S2C (S2-Christoffel S2-basis theta))
-  (def sphere-Cartan (e/Christoffel->Cartan S2C))
+(define-coordinates [theta phi] e/S2-spherical)
+(define-coordinates [t x y z] e/spacetime-rect)
 
-  (defn g-sphere [R]
-    (fn [u v]
-      (* (e/square R)
-         (+ (* (dtheta u) (dtheta v))
-            (* (e/compose (square sin) theta)
-               (dphi u)
-               (dphi v)))))))
+(def S2-basis (e/coordinate-system->basis S2-spherical))
+(def S2C (S2-Christoffel S2-basis theta))
+(def sphere-Cartan (e/Christoffel->Cartan S2C))
+
+(defn g-sphere [R]
+  (fn [u v]
+    (* (e/square R)
+       (+ (* (dtheta u) (dtheta v))
+          (* (e/compose (square sin) theta)
+             (dphi u)
+             (dphi v))))))
 
 (defn metric->Lagrangian [metric coordsys]
   (fn L [[_ q qd]]
@@ -176,18 +178,17 @@
                  't)))
             "page 143")))))
 
-(let-coordinates [[t x y z] e/spacetime-rect]
-  (def spacetime-rect-basis
-    (e/coordinate-system->basis spacetime-rect))
+(def spacetime-rect-basis
+  (e/coordinate-system->basis spacetime-rect))
 
-  (defn Newton-metric [M G c V]
-    (let [a (+ 1 (* (/ 2 (square c))
-                    (compose V (up x y z))))]
-      (fn g [v1 v2]
-        (+ (* -1 (square c) a (dt v1) (dt v2))
-           (* (dx v1) (dx v2))
-           (* (dy v1) (dy v2))
-           (* (dz v1) (dz v2)))))))
+(defn Newton-metric [M G c V]
+  (let [a (+ 1 (* (/ 2 (square c))
+                  (compose V (up x y z))))]
+    (fn g [v1 v2]
+      (+ (* -1 (square c) a (dt v1) (dt v2))
+         (* (dx v1) (dx v2))
+         (* (dy v1) (dy v2))
+         (* (dz v1) (dz v2))))))
 
 (defn Newton-connection [M G c V]
   (e/Christoffel->Cartan
@@ -201,34 +202,33 @@
     (e/literal-function 'V '(-> (UP Real Real Real) Real)))))
 
 (deftest general-relativity-tests
-  (let-coordinates [[t x y z] e/spacetime-rect]
-    (is (= '(/ (+ (* (expt c 2) (((expt (partial 0) 2) V) (up y z t)))
-                  (* (expt c 2) (((expt (partial 1) 2) V) (up y z t)))
-                  (* (expt c 2) (((expt (partial 2) 2) V) (up y z t)))
-                  (* -1 (expt (((partial 0) V) (up y z t)) 2))
-                  (* 2 (V (up y z t)) (((expt (partial 0) 2) V) (up y z t)))
-                  (* 2 (V (up y z t)) (((expt (partial 1) 2) V) (up y z t)))
-                  (* 2 (V (up y z t)) (((expt (partial 2) 2) V) (up y z t)))
-                  (* -1 (expt (((partial 1) V) (up y z t)) 2))
-                  (* -1 (expt (((partial 2) V) (up y z t)) 2)))
-               (+ (expt c 2) (* 2N (V (up y z t)))))
-           (simplify
-            (((e/Ricci nabla spacetime-rect-basis)
-              d:dt d:dt)
-             ((point spacetime-rect) (up 'x 'y 'z 't)))))
-        "page 146")
+  (is (= '(/ (+ (* (expt c 2) (((expt (partial 0) 2) V) (up y z t)))
+                (* (expt c 2) (((expt (partial 1) 2) V) (up y z t)))
+                (* (expt c 2) (((expt (partial 2) 2) V) (up y z t)))
+                (* -1 (expt (((partial 0) V) (up y z t)) 2))
+                (* 2 (V (up y z t)) (((expt (partial 0) 2) V) (up y z t)))
+                (* 2 (V (up y z t)) (((expt (partial 1) 2) V) (up y z t)))
+                (* 2 (V (up y z t)) (((expt (partial 2) 2) V) (up y z t)))
+                (* -1 (expt (((partial 1) V) (up y z t)) 2))
+                (* -1 (expt (((partial 2) V) (up y z t)) 2)))
+             (+ (expt c 2) (* 2N (V (up y z t)))))
+         (simplify
+          (((e/Ricci nabla spacetime-rect-basis)
+            d:dt d:dt)
+           ((point spacetime-rect) (up 'x 'y 'z 't)))))
+      "page 146")
 
-    (testing "stress-energy tensor, page 147"
-      (let [Tdust (fn [rho]
-                    (fn T [w1 w2]
-                      (* rho (w1 d:dt) (w2 d:dt))))
-            V (e/literal-function 'V '(-> (UP Real Real Real) Real))
-            g (Newton-metric 'M 'G 'c V)
-            T_ij ((e/drop2 g spacetime-rect-basis) (Tdust 'rho))
-            T ((e/trace2down g spacetime-rect-basis) T_ij)]
-        (is (= '(+ (* (/ 1 2) (expt c 4) rho)
-                   (* 2 (expt c 2) rho (V (up x y z)))
-                   (* 2 rho (expt (V (up x y z)) 2)))
-               (simplify
-                ((- (T_ij d:dt d:dt) (* (/ 1 2) T (g d:dt d:dt)))
-                 ((point spacetime-rect) (up 't 'x 'y 'z))))))))))
+  (testing "stress-energy tensor, page 147"
+    (let [Tdust (fn [rho]
+                  (fn T [w1 w2]
+                    (* rho (w1 d:dt) (w2 d:dt))))
+          V (e/literal-function 'V '(-> (UP Real Real Real) Real))
+          g (Newton-metric 'M 'G 'c V)
+          T_ij ((e/drop2 g spacetime-rect-basis) (Tdust 'rho))
+          T ((e/trace2down g spacetime-rect-basis) T_ij)]
+      (is (= '(+ (* (/ 1 2) (expt c 4) rho)
+                 (* 2 (expt c 2) rho (V (up x y z)))
+                 (* 2 rho (expt (V (up x y z)) 2)))
+             (simplify
+              ((- (T_ij d:dt d:dt) (* (/ 1 2) T (g d:dt d:dt)))
+               ((point spacetime-rect) (up 't 'x 'y 'z)))))))))

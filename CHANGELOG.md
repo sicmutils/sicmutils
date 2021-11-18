@@ -8,9 +8,23 @@
     `up` is not present in the environment. Previously this syntax was valid,
     but only if `up` had been imported.
 
-  - add `define-coordinates`, works in SCI too.
+  - Adds the `sicmutils.calculus.coordinate/define-coordinates` macro, also
+    aliased into `sicmutils.env`. This macro allows you to write forms like
 
-  - TODO try to enable function `print-method`, note about how cider/nrepl
+```clj
+(define-coordinates (up t x y z) spacetime-rect)
+(define-coordinates [r theta] R2-polar)
+```
+
+  and install set of bindings for a manifold's coordinate functions, basis
+  vector fields and basis form fields into a namespace. This is used liberally
+  in Functional Differential Geometry. (You might still prefer `let-coordinates`
+  for temporary binding installation.)
+
+  - Adds new `print-method` implementations for Clojure's `AFunction` and
+    Clojurescript's `MetaFn` data structures.
+
+  try to enable function `print-method`, note about how cider/nrepl
     overwrites this
 
   - fix `sicmutils.util` warning in cljs around `uuid`

@@ -23,9 +23,7 @@
                                          zero?
                                          up
                                          rotate-x rotate-y rotate-z
-                                         point chart
-                                         let-coordinates]
-             #?@(:cljs [:include-macros true])]
+                                         point chart]]
             [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

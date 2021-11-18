@@ -23,8 +23,8 @@
                                          D d freeze partial
                                          up down
                                          point chart
-                                         R2-rect R2-polar S2-spherical
-                                         let-coordinates]
+                                         R2-rect R2-polar
+                                         define-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.operator :as o]
@@ -36,18 +36,18 @@
 (def simplify
   (comp v/freeze e/simplify))
 
-(let-coordinates [[theta phi] S2-spherical]
-  (def S2-basis (e/coordinate-system->basis S2-spherical))
-  (def S2C (S2-Christoffel S2-basis theta))
-  (def sphere-Cartan (e/Christoffel->Cartan S2C)))
+(define-coordinates [theta phi] e/S2-spherical)
+
+(def S2-basis (e/coordinate-system->basis S2-spherical))
+(def S2C (S2-Christoffel S2-basis theta))
+(def sphere-Cartan (e/Christoffel->Cartan S2C))
 
 (deftest section-8-1
-  (let-coordinates [[theta phi] S2-spherical]
-    (is (= 1 (simplify
-              (((e/Riemann (e/covariant-derivative sphere-Cartan))
-                dphi d:dtheta d:dphi d:dtheta)
-               ((point S2-spherical) (up 'theta0 'phi0)))))
-        "result from page 116.")))
+  (is (= 1 (simplify
+            (((e/Riemann (e/covariant-derivative sphere-Cartan))
+              dphi d:dtheta d:dphi d:dtheta)
+             ((point S2-spherical) (up 'theta0 'phi0)))))
+      "result from page 116."))
 
 ;; ## Verification in two dimensions
 
@@ -134,85 +134,84 @@
       (is (zero?
            (run-test R2-polar general-Cartan-2)))))
 
-  (let-coordinates [[theta phi] S2-spherical]
-    (testing "page 124"
-      (doseq [x [d:dtheta d:dphi]
-              y [d:dtheta d:dphi]]
+  (testing "page 124"
+    (doseq [x [d:dtheta d:dphi]
+            y [d:dtheta d:dphi]]
+      (is (zero?
+           (simplify
+            ((((e/torsion-vector (e/covariant-derivative sphere-Cartan))
+               x y)
+              (e/literal-manifold-function 'f S2-spherical))
+             ((point S2-spherical) (up 'theta0 'phi0))))))))
+
+  (testing "Longitude lines on a sphere, p127"
+    (let [T d:dtheta
+          U d:dphi
+          omega (e/literal-oneform-field 'omega S2-spherical)
+          f (e/literal-manifold-function 'f S2-spherical)
+          m ((point S2-spherical) (up 'theta0 'phi0))
+          Cartan (e/Christoffel->Cartan S2C)
+          nabla (e/covariant-derivative Cartan)]
+      (is (zero?
+           (simplify
+            ((omega (((e/covariant-derivative Cartan) T) T)) m)))
+          "every longitude line is a geodesic.")
+
+      (is (zero?
+           (simplify
+            (((e/commutator U T) f) m)))
+          "Now let U be d:dphi, then U commutes with T")
+
+      (let [X (e/literal-vector-field 'X-sphere S2-spherical)
+            Y (e/literal-vector-field 'Y-sphere S2-spherical)]
         (is (zero?
              (simplify
-              ((((e/torsion-vector (e/covariant-derivative sphere-Cartan))
-                 x y)
-                (e/literal-manifold-function 'f S2-spherical))
-               ((point S2-spherical) (up 'theta0 'phi0))))))))
+              ((((e/torsion-vector nabla) X Y) f) m)))
+            "The torsion for the usual connection for the sphere is zero"))
 
-    (testing "Longitude lines on a sphere, p127"
-      (let [T d:dtheta
-            U d:dphi
-            omega (e/literal-oneform-field 'omega S2-spherical)
-            f (e/literal-manifold-function 'f S2-spherical)
-            m ((point S2-spherical) (up 'theta0 'phi0))
-            Cartan (e/Christoffel->Cartan S2C)
-            nabla (e/covariant-derivative Cartan)]
-        (is (zero?
-             (simplify
-              ((omega (((e/covariant-derivative Cartan) T) T)) m)))
-            "every longitude line is a geodesic.")
+      (is (zero?
+           (simplify
+            ((+ (omega ((nabla T) ((nabla T) U)))
+                ((e/Riemann nabla) omega T U T))
+             m)))
+          "compute the geodesic deviation using `Riemann`")
 
-        (is (zero?
-             (simplify
-              (((e/commutator U T) f) m)))
-            "Now let U be d:dphi, then U commutes with T")
-
-        (let [X (e/literal-vector-field 'X-sphere S2-spherical)
-              Y (e/literal-vector-field 'Y-sphere S2-spherical)]
-          (is (zero?
+      (testing "p128"
+        (is (= '(/ (cos theta0) (sin theta0))
                (simplify
-                ((((e/torsion-vector nabla) X Y) f) m)))
-              "The torsion for the usual connection for the sphere is zero"))
+                ((dphi ((nabla T) U)) m))))
 
-        (is (zero?
-             (simplify
-              ((+ (omega ((nabla T) ((nabla T) U)))
-                  ((e/Riemann nabla) omega T U T))
-               m)))
-            "compute the geodesic deviation using `Riemann`")
+        (is (= -1 (simplify
+                   ((dphi ((nabla T) ((nabla T) U))) m))))
 
-        (testing "p128"
-          (is (= '(/ (cos theta0) (sin theta0))
-                 (simplify
-                  ((dphi ((nabla T) U)) m))))
+        (letfn [(delta [R]
+                  (fn [phi theta Delta-phi]
+                    (* R (sin theta) Delta-phi)))]
+          (is (= '(* Delta-phi R (cos theta0))
+                 (v/freeze
+                  (((partial 1) (delta 'R)) 'phi0 'theta0 'Delta-phi))))
 
-          (is (= -1 (simplify
-                     ((dphi ((nabla T) ((nabla T) U))) m))))
+          (let [phi-hat (* (/ 1 (sin theta)) d:dphi)]
+            (is (= '(/ (* Delta-phi R (cos theta0)) (sin theta0))
+                   (simplify
+                    ((dphi (* (((partial 1) (delta 'R))
+                               'phi0 'theta0 'Delta-phi)
+                              phi-hat))
+                     m))))
 
-          (letfn [(delta [R]
-                    (fn [phi theta Delta-phi]
-                      (* R (sin theta) Delta-phi)))]
-            (is (= '(* Delta-phi R (cos theta0))
-                   (v/freeze
-                    (((partial 1) (delta 'R)) 'phi0 'theta0 'Delta-phi))))
+            (is (= '(* -1 Delta-phi R (sin theta0))
+                   (simplify
+                    (((partial 1) ((partial 1) (delta 'R)))
+                     'phi0 'theta0 'Delta-phi)))
+                "magnitude of the acceleration")
 
-            (let [phi-hat (* (/ 1 (sin theta)) d:dphi)]
-              (is (= '(/ (* Delta-phi R (cos theta0)) (sin theta0))
-                     (simplify
-                      ((dphi (* (((partial 1) (delta 'R))
-                                 'phi0 'theta0 'Delta-phi)
-                                phi-hat))
-                       m))))
-
-              (is (= '(* -1 Delta-phi R (sin theta0))
-                     (simplify
-                      (((partial 1) ((partial 1) (delta 'R)))
-                       'phi0 'theta0 'Delta-phi)))
-                  "magnitude of the acceleration")
-
-              (is (= '(* -1 Delta-phi R)
-                     (simplify
-                      ((dphi (* (((partial 1) ((partial 1) (delta 'R)))
-                                 'phi0 'theta0 'Delta-phi)
-                                phi-hat))
-                       m)))
-                  "Measuring acceleration with dφ"))))))))
+            (is (= '(* -1 Delta-phi R)
+                   (simplify
+                    ((dphi (* (((partial 1) ((partial 1) (delta 'R)))
+                               'phi0 'theta0 'Delta-phi)
+                              phi-hat))
+                     m)))
+                "Measuring acceleration with dφ")))))))
 
 ;; NOTE that The Bianchi identities live on their own, in
 ;; `sicmutils.fdg.bianchi-test`.
