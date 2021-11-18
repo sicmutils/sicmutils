@@ -22,8 +22,9 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
-            [sicmutils.util :as u]
-            [taoensso.timbre :as log]))
+            [sicmutils.util :as u])
+  #?(:clj
+     (:import (clojure.lang RT))))
 
 (defn coordinate-functions
   "Returns a structure similar to the [[manifold/coordinate-prototype]] of
@@ -163,18 +164,22 @@
        `(def ~sym ~form))
 
      :clj
-     (let [ns-sym  (ns-name ns)
-           nsm     (ns-map ns)
+     (let [ns-sym (ns-name ns)
+           nsm (ns-map ns)
            remote? (fn [sym]
                      (when-let [v (nsm sym)]
                        (not= *ns* (:ns (meta v)))))
            warn (fn [sym]
-                  `(log/warn '~sym
-                             "already refers to:"
-                             ~ (nsm sym)
-                             (str "in namespace:" '~ns-sym ",")
-                             "being replaced by:"
-                             ~(str "#'" ns-sym "/" sym)))]
+                  `(.println
+                    (RT/errPrintWriter)
+                    (str "WARNING: "
+                         '~sym
+                         " already refers to: "
+                         ~(nsm sym)
+                         " in namespace: "
+                         '~ns-sym
+                         ", being replaced by: "
+                         ~(str "#'" ns-sym "/" sym))))]
        (fn [sym form]
          (if (remote? sym)
            `(do
