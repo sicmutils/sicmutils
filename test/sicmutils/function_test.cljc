@@ -73,10 +73,6 @@
               (is ((v/exact? identity) n))
               (is (not ((v/exact? identity) n)))))
 
-  (checking "print-method uses a function's name" 100 [s gen/string]
-            (is (= s (pr-str
-                      (with-meta identity {:name s})))))
-
   (testing "v/freeze"
     (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder
             'negative? '< '<= '> '>= '=
@@ -84,14 +80,6 @@
            (map v/freeze [+ - * / mod quot rem
                           neg? < <= > >= =
                           g/partial-derivative]))
-        "Certain functions freeze to symbols")
-
-    (is (= ["+" "-" "*" "/" "modulo" "quotient" "remainder"
-            "negative?" "<" "<=" ">" ">=" "="
-            "partial-derivative"]
-           (map pr-str [+ - * / mod quot rem
-                        neg? < <= > >= =
-                        g/partial-derivative]))
         "Certain functions freeze to symbols")
 
     (is (= (map v/freeze [g/+ g/- g/* g//

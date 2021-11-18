@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+## 0.20.0
+
 - #393:
 
   - Forms like `(let-coordinates [(up x y) R2-rect] ...)` will now work even if
@@ -21,16 +23,11 @@
   in Functional Differential Geometry. (You might still prefer `let-coordinates`
   for temporary binding installation.)
 
-  - Adds new `print-method` implementations for Clojure's `AFunction` and
-    Clojurescript's `MetaFn` data structures.
+  - Converts many of the `sicmutils.fdg` test namespaces to use the new
+    `define-coordinates` macro, making for a presentation closer to the book's.
 
-  try to enable function `print-method`, note about how cider/nrepl
-    overwrites this
-
-  - fix `sicmutils.util` warning in cljs around `uuid`
-
-  - TODO convert all fdg book tests to use `define-coordinates`, matching what
-    is in the book.
+  - Fixes a Clojurescript warning in `sicmutils.util` warning due to
+    redefinition of `clojure.core/uuid`
 
 - #386:
 
