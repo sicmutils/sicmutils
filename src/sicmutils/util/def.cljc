@@ -17,7 +17,9 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.util.def)
+(ns sicmutils.util.def
+  #?(:clj
+     (:import (clojure.lang RT))))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:

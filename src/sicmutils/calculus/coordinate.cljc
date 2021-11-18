@@ -23,9 +23,7 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.util.def :as ud])
-  #?(:clj
-     (:import (clojure.lang RT))))
+            [sicmutils.util.def :as ud]))
 
 (defn coordinate-functions
   "Returns a structure similar to the [[manifold/coordinate-prototype]] of

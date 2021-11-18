@@ -34,7 +34,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFunction RestFn Fn MultiFn Keyword Symbol Var)
+     (:import (clojure.lang AFunction RestFn MultiFn Keyword Symbol Var)
               (java.lang.reflect Method))))
 
 ;; ## Function Algebra
@@ -380,7 +380,7 @@
 
 #?(:clj
    (extend-protocol IArity
-     Fn
+     AFunction
      (arity [f] (:arity (meta f) (reflect-on-arity f))))
 
    :cljs
