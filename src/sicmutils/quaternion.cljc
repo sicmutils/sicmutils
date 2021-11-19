@@ -30,8 +30,15 @@
   #?(:clj
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
+;; ## Implementation Notes
+;;
 ;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
 ;; indeed true? Does the logging just happen as the default failure?
+;;
+;; NOTE I think I know what this does now, and it lives in
+;; `sicmutils.util.logic`. We can augment what that does - but it tries to
+;; execute whatever statement it can,and fails if that thing can provably go
+;; false.
 ;;
 ;; NOTE AND you might not want to normalize every damned time, if you have some
 ;; symbolic thing. Do it twice and it's going to get crazy. So why not just
@@ -39,7 +46,9 @@
 
 ;; TODO:
 ;; - dot-product and whatever else fits... https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L302
+;;
 ;; - sqrt https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L202
+;;
 ;; - signum function! https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L174
 ;;
 ;; TODO slerp, fromAxisAngle (confirm), fromEuler (confirm), fromBetweenVectors https://github.com/infusion/Quaternion.js/
@@ -48,9 +57,12 @@
 ;;
 ;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
 
-;; TODO see remaining interfaces here, and PICK the functions below: https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
+;; TODO see remaining interfaces here, and PICK the functions below:
+;; https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
 
 (declare arity eq evaluate q:zero? one?)
+
+;; ## Quaternion Type Definition
 
 (deftype Quaternion [r i j k m]
   f/IArity
@@ -124,7 +136,8 @@
        (entryAt [this k]
                 (get this k nil))
 
-       ;; TODO: count does NOT get called, it seems!!
+       ;; TODO: count does NOT get called, it seems!! Figure out what is
+       ;; supposed to be going on in tests.
        (count [_] 4)
        (seq [_] (list r i j k))
        (valAt [this k]
@@ -298,37 +311,43 @@
      [^Quaternion q ^java.io.Writer w]
      (.write w (.toString q))))
 
-(defn quaternion? [q]
+(defn quaternion?
+  "Returns `true` if `q` is an instance of [[Quaternion]], false otherwise."
+  [q]
   (instance? Quaternion q))
 
 (defn get-r
-  "Get the r component of a quaternion."
+  "Returns the `r` component of the supplied quaternion `q`.
+
+  Identical to [[real-part]]."
   [^Quaternion q]
   (.-r q))
 
 (defn real-part
-  "Get the r component of a quaternion."
+  "Returns the `r` component of the supplied quaternion `q`.
+
+  Identical to [[get-r]]."
   [^Quaternion q]
   (.-r q))
 
 (defn get-i
-  "Get the i component of a quaternion."
+  "Returns the `i` component of the supplied quaternion `q`."
   [^Quaternion q]
   (.-i q))
 
 (defn get-j
-  "Get the j component of a quaternion."
+  "Returns the `j` component of the supplied quaternion `q`."
   [^Quaternion q]
   (.-j q))
 
 (defn get-k
-  "Get the k component of a quaternion."
+  "Returns the `k` component of the supplied quaternion `q`."
   [^Quaternion q]
   (.-k q))
 
 (defn ->complex
   "Returns a complex number created from the real and imaginary
-  components (dropping j, k)."
+  components (dropping `j`, `k`)."
   [q]
   {:pre [(quaternion? q)]}
   (sc/complex (get-r q)
@@ -359,6 +378,9 @@
 (def I (->Quaternion 0 1 0 0))
 (def J (->Quaternion 0 0 1 0))
 (def K (->Quaternion 0 0 0 1))
+
+;; TODO note that right now this will only work (if you call it as a data
+;; reader) for a single symbol or number, OR a vector that definitely has 4.
 
 (defn make
   "Same as `make`, and `real&3vector->quaternion`... plus one more.
@@ -406,6 +428,8 @@
   [theta axis]
   (let [v (g/simplify
            (ss/vector-dot-product axis axis))]
+    ;; TODO SO the way this works is if it can trivially evaluate to false, THEN
+    ;; we throw an error.
     (ul/assume! (list '= v 1) 'angle-axis->))
   (make (g/cos (g// theta 2))
         (g/* (g/sin (g// theta 2))
@@ -470,6 +494,7 @@
                        (* r (- m02 m20))
                        (* r (- m10 m01))
                        (* 0.5 s)))
+
         (and (> m00 m11) (> m00 m22))
         (let [s (Math/sqrt (- (inc m00) m11 m22))
               r (/ 0.5 s)]
@@ -477,6 +502,7 @@
                        (* r (+ m10 m01))
                        (* r (+ m02 m20))
                        (* r (- m21 m12))))
+
         (> m11 m22)
         (let [s (Math/sqrt (- (inc m11) m00 m22))
               r (/ 0.5 s)]
@@ -484,6 +510,7 @@
                        (* 0.5 s)
                        (* r (+ m21 m12))
                        (* r (- m02 m20))))
+
         :else
         (let [s (Math/sqrt (- (inc m22) m00 m11))
               r (/ 0.5 s)]
