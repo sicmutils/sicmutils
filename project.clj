@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(defproject sicmutils "0.19.0"
+(defproject sicmutils "0.19.2"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
   :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
@@ -32,7 +32,7 @@
                   :exclusions [org.clojure/clojurescript]]
                  [dm3/stopwatch "0.1.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [cljsjs/bigfraction "4.0.12-0"]
+                 [cljsjs/bigfraction "4.1.1-0"]
                  [cljsjs/complex "2.0.11-0"]
                  [cljsjs/odex "2.0.4-0"]
                  [hiccup "1.0.5"]

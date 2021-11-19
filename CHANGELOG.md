@@ -4,6 +4,163 @@
 
 - #361 - quaternions!
 
+## 0.20.0
+
+- #393:
+
+  - Forms like `(let-coordinates [(up x y) R2-rect] ...)` will now work even if
+    `up` is not present in the environment. Previously this syntax was valid,
+    but only if `up` had been imported.
+
+  - Adds the `sicmutils.calculus.coordinate/define-coordinates` macro, also
+    aliased into `sicmutils.env`. This macro allows you to write forms like
+
+```clj
+(define-coordinates (up t x y z) spacetime-rect)
+(define-coordinates [r theta] R2-polar)
+```
+
+  and install set of bindings for a manifold's coordinate functions, basis
+  vector fields and basis form fields into a namespace. This is used liberally
+  in Functional Differential Geometry. (You might still prefer `let-coordinates`
+  for temporary binding installation.)
+
+  - Converts many of the `sicmutils.fdg` test namespaces to use the new
+    `define-coordinates` macro, making for a presentation closer to the book's.
+
+  - Fixes a Clojurescript warning in `sicmutils.util` warning due to
+    redefinition of `clojure.core/uuid`
+
+- #386:
+
+  - Aliases `sicmutils.mechanics.hamilton/phase-space-derivative` into
+    `sicmutils.env`, and adds `sicmutils.sr.frames/base-frame-maker`. The latter
+    function makes it easier to write reference frames like `the-ether`, as with
+    the `home` variable in chapter 11 of FDG.
+
+  - Adds all code listings from chapters 10 and 11 of FDG as
+    `sicmutils.fdg.{ch9,ch10}-test`.
+
+- #384:
+
+  - Adds `sicmutils.fdg.ch9-test`, with tests for all forms from FDG's 9th
+    chapter.
+
+  - Tests from `sicmutils.fdg.einstein-test` now all work, and quite fast. The
+    functions in this namespace comprise some of the exercises from FDG chapter
+    9. (Einstein's Field Equations hung until this PR... getting these working
+    is a huge achievement for me, and, in some sense, the final milestone of the
+    Big Port from scmutils.)
+
+  - Adds `sicmutils.function/memoize`, a metadata-and-function-arity preserving
+    version of `clojure.core/memoize`.
+
+  - in `sicmutils.calculus.indexed`, `with-argument-types` and
+    `with-index-types` now both correctly set the arity of the returned
+    function, in addition to the argument types or indices.
+    `sicmutils.function/arity` will now work correctly with indexed or typed
+    functions.
+
+  - Adds new `manifold?` and `manifold-family?` functions in `sicmutils.env` and
+    `sicmutils.calculus.manifold`. These are enabled by new `:type
+    :sicmutils.calculus.manifold/{manifold,manifold-family}` keys in the
+    appropriate structures in the manifold namespace. Manifolds and manifold
+    families will now respond with these keywords to `sicmutils.value/kind`.
+
+  - The `sicmutils.calculus.manifold/ICoordinateSystem` now has a `uuid`
+    function, for internal comparison of coordinate systems. This is here so
+    that points can cache coordinate system representations by UUID. Before this
+    change, changing the coordinate prototype, or attaching metadata to a
+    coordinate system would break its cache entry in manifold points. (This was
+    the killer for the Einstein Field Equations!)
+
+  - `sicmutils.calculus.manifold/{coordinate-prototype,with-coordinate-prototype}`
+     now store and retrieve the coordinate prototype from metadata. This plus
+     the previous change allows manifold points to correctly cache their
+     coordinate representations.
+
+  - `sicmutils.calculus.manifold/manifold` acts as identity on manifolds now.
+    Previously it only worked on coordinate systems.
+
+- #382:
+
+  - Makes the `name` argument to `sicmutils.operator/make-operator` optional.
+    `name` now defaults to `'???`.
+
+  - adds tests for all code forms in Chapter 8 of FDG.
+
+- #376 adds more type hints to the `ratio.cljc` namespace. This fully solves the
+  advanced compilation issues we were seeing.
+
+- #374: Demos, thanks to @sigmaxipi!
+
+- #379 fixes typos in a couple of the equations in `richardson.cljc`, closing
+  #377. Thanks to @leifp for the report.
+
+- Features, tests and bugfixes from #381:
+
+  - `sicmutils.calculus.coordinate/generate` moves to
+    `sicmutils.calculus.manifold/c:generate`; this supports a bugfix where
+    1-dimensional manifolds like `R1-rect`, aka `the-real-line`, return a
+    coordinate prototype of a single element like `t` instead of a structure
+    with a single entry, like `(up t)`. Thanks to @phasetr for the bug report
+    that led to this fix, and @gjs for finding and fixing the bug.
+
+  - `same.ish/Approximate` implemented for `sicmutils.structure/Structure`,
+    allowing `ish?` comparison of `up` and `down` structures with approximate
+    entries. Require `sicmutils.generator` for this feature. (NOTE: because
+    protocols are implemented for the LEFT argument, `(ish? <vector> (down
+    ...))` will still return true if the values are approximately equal, even
+    though a `<vector>` is technically an `up` and should NOT equal a `down`. Do
+    an explicit conversion to `up` using `sicmutils.structure/vector->up` if
+    this distinction is important.)
+
+  - `same.ish/Approximate` now defers to `sicmutils.value/=` for equality
+    between `Symbol` and other types. This lets `ish?` handle equality between
+    symbols like `'x` and literal expressions that happen to wrap a single
+    symbol.
+
+  - `Cartan->Cartan-over-map` now does NOT compose `(differential map)` with its
+    internal Cartan forms. This fixed a bug in a code listing in section 7.3 of
+    FDG.
+
+  - Section 7.3 of FDG implemented as tests in `sicmutils.fdg.ch7-test`.
+
+  - Many new tests and explorations ported over from `covariant-derivative.scm`.
+    These live in `sicmutils.calculus.covariant-test`.
+
+  - timeout exceptions resulting from full GCD are now caught in tests using
+    `sicmutils.simplify/hermetic-simplify-fixture`. Previously, setting a low
+    timeout where simplification failed would catch and move on in normal work,
+    but fail in tests where fixtures were applied.
+
+## 0.19.2
+
+Yet another incremental release, this time to bump the `Fraction.js` dependency.
+The new `cljsjs` dependency has code compatible with advanced compilation.
+
+- #372 bumps the `Fraction.js` dependency to `4.1.1`.
+
+## 0.19.1
+
+This is an incremental bugfix release to get Clojurescript advanced compilation
+into shape.
+
+- #371:
+
+  - fixes a subtle bug with extern inference on `fraction.js/bigfraction.js`.
+    Thanks to @sigmaxipi for this report!
+
+  - removes overridden factory constructors like `->Polynomial`. I had
+    originally done this for functions that held a metadata field, so that the
+    user could leave it out and have it default to `nil`... but advanced Closure
+    compilation can't understand the `ns-unmap` call, so it has to go.
+
+  - Many unary functions on `Operator`, `Structure`, `Series`, `PowerSeries`,
+    `Polynomial` and `RationalFunction` now preserve metadata. Binary functions
+    between two instances of any of these still return a new object with
+    metadata == `nil`.
+
 ## 0.19.0
 
 > (If you have any questions about how to use any of the following, please ask us

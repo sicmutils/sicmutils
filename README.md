@@ -61,6 +61,9 @@ Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 (env/bootstrap-repl!)
 ```
 
+See the [demo directory](./demo) for minimal examples of build configurations
+that use the SICMUtils library.
+
 Alternatively, visit the [SICMUtils Tutorial on
 Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
 examples below in your browser with no setup required:
@@ -204,7 +207,7 @@ To cite this repository:
   author = {Colin Smith and Sam Ritchie},
   title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.19.0},
+  version = {0.19.2},
   year = {2016},
 }
 ```

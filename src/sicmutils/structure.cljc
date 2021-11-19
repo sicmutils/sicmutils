@@ -284,16 +284,6 @@
    (defmethod print-method Structure [^Structure s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(do (ns-unmap 'sicmutils.structure '->Structure)
-    (defn ->Structure
-      "Positional factory function for [[Structure]].
-
-  The final argument `m` defaults to nil if not supplied."
-      ([orientation v]
-       (Structure. orientation v nil))
-      ([orientation v m]
-       (Structure. orientation v m))))
-
 ;; ## Component Accessors
 
 (defn structure->vector
@@ -421,7 +411,7 @@
   "Generate a structure with the supplied orientation, given some sequence `xs`"
   [orientation xs]
   (let [xs (if (vector? xs) xs (into [] xs))]
-    (->Structure orientation xs)))
+    (->Structure orientation xs nil)))
 
 (defn up*
   "Construct an up (contravariant) tuple from the supplied sequence. For a
@@ -437,7 +427,7 @@
   sequence. (If you pass a vector to [[up*]]) it will be just as efficient."
   [v]
   {:pre [(vector? v)]}
-  (->Structure ::up v))
+  (->Structure ::up v nil))
 
 (defn up
   "Construct an up (contravariant) tuple from the arguments.
@@ -460,7 +450,7 @@
   sequence. (If you pass a vector to [[down*]]) it will be just as efficient."
   [v]
   {:pre [(vector? v)]}
-  (->Structure ::down v))
+  (->Structure ::down v nil))
 
 (defn down
   "Construct a down (covariant) tuple from the arguments. Variadic version
@@ -502,7 +492,7 @@
   where i ranges from `[0..dimension)`."
   [dimension orientation f]
   {:pre [(valid-orientation? orientation)]}
-  (->Structure orientation (mapv f (range dimension))))
+  (->Structure orientation (mapv f (range dimension)) nil))
 
 (defn literal
   "Generates a structure of the specified `orientation` and dimension `size`
@@ -711,9 +701,9 @@
   inverted."
   [s]
   (if (structure? s)
-    (->Structure
-     (opposite-orientation (orientation s))
-     (mapv transpose (structure->vector s)))
+    (->Structure (opposite-orientation (orientation s))
+                 (mapv transpose (structure->vector s))
+                 (meta s))
     s))
 
 (defn transpose-outer
@@ -906,7 +896,7 @@
   structures."
   [op s t]
   (if (= (count s) (count t))
-    (->Structure (orientation s) (mapv op s t))
+    (->Structure (orientation s) (mapv op s t) nil)
     (u/arithmetic-ex (str op " provided arguments of differing length"))))
 
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))

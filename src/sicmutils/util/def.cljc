@@ -17,7 +17,9 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.util.def)
+(ns sicmutils.util.def
+  #?(:clj
+     (:import (clojure.lang RT))))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -127,3 +129,50 @@
                                                  (str d))]]
                            `(def ~d ~sym))]
     `(do ~@expanded-imports)))
+
+(defn careful-def
+  "Given some namespace `ns`, returns a function of some binding symbol and a form
+  to bind. The function returns either
+
+  - A form like `(def ~sym ~form)`, if `sym` is not currently bound into `ns`
+
+  - If `sym` is bound already, returns a form that emits a warning and then
+    uses `ns-unmap` and `intern` to reassign the binding.
+
+  In Clojure, this behavior matches redefinitions of symbols bound in
+  `clojure.core`. Symbols bound with `def` that are already imported from other
+  namespaces cause an exception, hence this more careful workaround.
+
+  (In Clojurescript, only forms like `(def ~sym ~form)` are emitted, since the
+  compiler does not currently error in case 2 and already handles emitting the
+  warning for us.)"
+  [ns]
+  (fork
+   :cljs
+   (fn [sym form]
+     `(def ~sym ~form))
+
+   :clj
+   (let [ns-sym (ns-name ns)
+         nsm (ns-map ns)
+         remote? (fn [sym]
+                   (when-let [v (nsm sym)]
+                     (not= *ns* (:ns (meta v)))))
+         warn (fn [sym]
+                `(.println
+                  (RT/errPrintWriter)
+                  (str "WARNING: "
+                       '~sym
+                       " already refers to: "
+                       ~(nsm sym)
+                       " in namespace: "
+                       '~ns-sym
+                       ", being replaced by: "
+                       ~(str "#'" ns-sym "/" sym))))]
+     (fn [sym form]
+       (if (remote? sym)
+         `(do
+            ~(warn sym)
+            (ns-unmap '~ns-sym '~sym)
+            (intern '~ns-sym '~sym ~form))
+         `(def ~sym ~form))))))
