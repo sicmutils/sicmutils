@@ -158,8 +158,9 @@
                                         x)))]
                             ((D g) 0))))))]
             (is (zero?
-                 (- ((((Lie-test X) Y) f) R2-rect-point)
-                    ((((g/Lie-derivative X) Y) f) R2-rect-point))))))))
+                 (simplify
+                  (- ((((Lie-test X) Y) f) R2-rect-point)
+                     ((((g/Lie-derivative X) Y) f) R2-rect-point)))))))))
 
     (testing "Lie derivative satisfies extended Leibnitz rule"
       (let [V (vf/literal-vector-field 'V R2-rect)
