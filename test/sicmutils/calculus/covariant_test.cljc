@@ -1019,10 +1019,3 @@
                   gamma)
                  u)
                 ((point the-real-line) 't)))))))))
-
-
-
-;; AHHHHH, so this is hitting the default of extract-tangent!! Tell GJS. You
-;; cannot do that, you probably want a default that errors. In this case, you
-;; are hitting it because you have a derivative of a function that returns a
-;; manifold point.
