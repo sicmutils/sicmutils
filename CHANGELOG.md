@@ -4,6 +4,13 @@
 
 ## 0.20.0
 
+- #394 fixes a bug with derivatives of functions that returned a map... but
+  where the map was actually meant to represent some other type, by holding a
+  `:type` key. We do this for manifold families and manifold points, as two
+  examples. Now, instead of recursing into the values, the system will correctly
+  throw an error. (You can fix this by using a `defrecord` instead of a map and
+  implementing `sicmutils.differential/IPerturbed`.)
+
 - #393:
 
   - Forms like `(let-coordinates [(up x y) R2-rect] ...)` will now work even if
