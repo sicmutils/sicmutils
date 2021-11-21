@@ -86,7 +86,7 @@ wander off into oblivion:
 ----
 
 See
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
 documentation for `nelder-mead`] for the full menu of options and an accounting
 of the available defaults.
 
