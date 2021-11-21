@@ -4,6 +4,25 @@
 
 ## 0.20.0
 
+- #348:
+
+  - Adds a new single arity version of
+    `sicmutils.util.permute/permutation-parity`, which returns the parity of a
+    permutation relative to its sorted version.
+
+  - `sicmutils.complex/complex` can now take a single string argument in both
+    Clojure and Clojurescript.
+
+  - Expands the complex number literal parser to take these forms, in addition
+    to the previously-supported string argument:
+
+```clj
+#sicm/complex [1.2 3.6]    ;; 1.2+3.6i
+#sicm/complex [1.2]        ;; 1.2
+#sicm/complex 1.4          ;; 1.4
+#sicm/complex "1.2 + 3.6i" ;; 1.2+3.6i
+```
+
 - #394 fixes a bug with derivatives of functions that returned a map... but
   where the map was actually meant to represent some other type, by holding a
   `:type` key. We do this for manifold families and manifold points, as two
