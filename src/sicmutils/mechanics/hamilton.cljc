@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * /  partial])
@@ -28,9 +28,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn momentum-tuple
-  [& ps]
-  (apply down ps))
+(def momentum-tuple down)
 
 (defn momentum
   "See coordinate: this returns the momentum element of a
@@ -206,15 +204,18 @@
         J (symplectic-unit (quot twoN 2))]
     (- J (* M J (matrix/transpose M)))))
 
+(defn qp-submatrix [m]
+  (matrix/without m 0 0))
+
 (defn symplectic-transform?
   "p. 334"
   [C]
   (fn [s]
     (symplectic-matrix?
-     (matrix/without
+     (qp-submatrix
       (matrix/s->m (s/compatible-shape s)
                    ((D C) s)
-                   s) 0 0))))
+                   s)))))
 
 (defn ^:private Hamiltonian-Lie-derivative
   "p. 428"

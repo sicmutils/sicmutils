@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -43,9 +43,28 @@
   Clojure. The fork in the test here captures the different behavior that will
   appear in evaluated Clojure, vs self-hosted Clojurescript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
-              :cljs '(sicmutils.complex/complex "1 + 2i"))
+              :cljs '(sicmutils.complex/complex 1 2))
+
+           ;; string input:
            (read-string {:readers {'sicm/complex c/parse-complex}}
-                        (pr-str #sicm/complex "1 + 2i"))))))
+                        (pr-str #sicm/complex "1 + 2i"))
+
+           ;; vector input:
+           (read-string {:readers {'sicm/complex c/parse-complex}}
+                        (pr-str #sicm/complex [1 2]))))
+
+    (checking "complex constructor can handle strings OR direct inputs" 100
+              [re (sg/reasonable-double)
+               im (sg/reasonable-double)]
+              (is (= (c/complex re im)
+                     (c/complex (str re " + " im "i")))))
+
+    (testing "complex inputs"
+      (is (= (c/complex 1 2) #sicm/complex [1 2]))
+      (is (= (c/complex 1) #sicm/complex [1]))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex "1.2+3.4i") #sicm/complex "1.2+3.4i")))))
 
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some
@@ -122,6 +141,97 @@
     (testing "div in either order"
       (is (= (c/complex 0 -1) (g/div 1 c/I)))
       (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2))))
+
+
+    (testing "modulo examples"
+      ;; https://stackoverflow.com/questions/54553489/how-to-calculate-a-modulo-of-complex-numbers
+      (is (= (c/complex 1 1)
+             (g/modulo (c/complex 8 2) (c/complex 2 1))))
+      (is (= (c/complex -1 -1)
+             (g/modulo (g/- (c/complex 8 2)) (g/- (c/complex 2 1)))))
+
+      ;; https://www.quora.com/How-do-I-find-Modulo-of-complex-numbers
+      (is (near (c/complex (g/- 24 (* 8 pi)))
+                (g/modulo 24 (c/complex 0 (* 2 pi)))))
+
+      ;; https://pressbooks.howardcc.edu/jrip3/chapter/equivalence-classes-of-complex-numbers-modulo-a-natural-number/
+      (is (= (c/complex 1 2) (g/modulo (c/complex 4 5) 3)))
+      (is (= (c/complex 1 1) (g/modulo (c/complex 4 -5) 3)))
+      (is (= (c/complex 2 2) (g/modulo (c/complex -4 5) 3)))
+      (is (= (c/complex 2 1) (g/modulo (c/complex -4 -5) 3)))
+
+      (is (= (c/complex -2 2)
+             (g/modulo (c/complex 6 4) (c/complex 3 5)))))
+
+    (checking "make-rectangular with 0 complex == identity" 100
+              [x sg/real]
+              (is (= x (g/make-rectangular x 0.0))
+                  "inexact zero on JVM")
+
+              (is (= x (g/make-rectangular x 0))
+                  "exact zero"))
+
+    (checking "make-polar with 0 radius or angle == radius" 100
+              [x sg/real]
+              (is (= x (g/make-polar x 0.0)))
+              (is (= 0.0 (g/make-polar 0.0 x)))
+              (is (= 0 (g/make-polar 0 x))))
+
+    (checking "make-rectangular with 0 complex == identity" 100
+              [x sg/real]
+              (is (= x (g/make-rectangular x 0.0))))
+
+    (testing "integer-part"
+      (is (= (c/complex 1 2) (g/integer-part (c/complex 1 2))))
+      (is (= (c/complex 1 2) (g/integer-part (c/complex 1.5 2.9))))
+      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9))))
+      (is (= -1 (g/integer-part (c/complex -1.5 0.9)))
+          "imaginary part drops off if == zero"))
+
+    (checking "integer-part pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/integer-part x)
+                     (g/make-rectangular
+                      (g/integer-part (g/real-part x))
+                      (g/integer-part (g/imag-part x))))))
+
+    (testing "fractional-part unit tests"
+      (is (near (c/complex 0.5 0.9) (g/fractional-part (c/complex 1.5 2.9))))
+      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9))))
+      (is (= 0.0 (g/fractional-part (c/complex 1 2))))
+      (is (= 0.5 (g/fractional-part (c/complex -1.5 2)))
+          "imaginary part drops off if == zero"))
+
+    (checking "fractional-part pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/fractional-part x)
+                     (g/make-rectangular
+                      (g/fractional-part (g/real-part x))
+                      (g/fractional-part (g/imag-part x))))))
+
+    (testing "floor"
+      (is (= (c/complex 1 2) (g/floor (c/complex 1 2))))
+      (is (= (c/complex 1 2) (g/floor (c/complex 1.5 2.9))))
+      (is (= (c/complex -2 -3) (g/floor (c/complex -1.5 -2.9)))))
+
+    (checking "floor pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/floor x)
+                     (g/make-rectangular
+                      (g/floor (g/real-part x))
+                      (g/floor (g/imag-part x))))))
+
+    (testing "ceiling"
+      (is (= (c/complex 1 2) (g/ceiling (c/complex 1 2))))
+      (is (= (c/complex 2 3) (g/ceiling (c/complex 1.5 2.9))))
+      (is (= (c/complex -1 -2) (g/ceiling (c/complex -1.5 -2.9)))))
+
+    (checking "ceiling pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/ceiling x)
+                     (g/make-rectangular
+                      (g/ceiling (g/real-part x))
+                      (g/ceiling (g/imag-part x))))))
 
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))

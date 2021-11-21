@@ -21,7 +21,6 @@
   "Backing implementation for the types defined in [[sicmutils.series]], written
   against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
-            [sicmutils.abstract.number]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -133,7 +132,7 @@
 ;; Subtraction comes for free from the two definitions above:
 
 (defn seq:- [f g]
-  (seq:+ f (negate g)))
+  (map g/- f g))
 
 #_
 (= [0 0 0 0 0]
@@ -637,8 +636,8 @@
 
 ;; These two are less elegant, perhaps:
 
-(def acosx (c-seq (g/div 'pi 2) asinx))
-(def acotx (c-seq (g/div 'pi 2) atanx))
+(def acosx (c-seq '(/ pi 2) asinx))
+(def acotx (c-seq '(/ pi 2) atanx))
 
 ;; The hyperbolic trig functions are defined in a similar way:
 

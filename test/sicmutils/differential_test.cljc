@@ -44,6 +44,13 @@
       (-> (f (d/bundle-element x 1 tag))
           (d/extract-tangent tag)))))
 
+(defn nonzero [gen]
+  (gen/fmap (fn [x]
+              (if (= x 0)
+                (v/one-like x)
+                x))
+            gen))
+
 (def real-diff-gen
   (sg/differential))
 
@@ -236,8 +243,8 @@
                     (g/simplify not-simple)))
                 "simplify simplifies each tangent term")
 
-            (is (= "D[[] → (expt x 4) [0] → (* 4 (expt x 3))]"
-                   (str (g/simplify not-simple)))
+            (is (v/= "D[[] → (expt x 4) [0] → (* 4 (expt x 3))]"
+                     (str (g/simplify not-simple)))
                 "str representation properly simplifies.")))))))
 
 (deftest differential-fn-tests
@@ -318,7 +325,7 @@
             (is (d/eq (d/d:* a b) (d/d:* b a))
                 "commutative law"))
 
-  (checking "adding primal and tangent sepraately matches adding full term" 100
+  (checking "adding primal and tangent separately matches adding full term" 100
             [[l r] (gen/vector real-diff-gen 2)]
             (let [[pl tl] (d/primal-tangent-pair l)
                   [pr tr] (d/primal-tangent-pair r)]
@@ -373,38 +380,57 @@
         (is (v/zero? (d/d:* dz (d/d:* dy dz)))
             "dy*dz^2==0"))))
 
+  (checking "(a/b)*b == a, (a*b)/b == a" 100
+            [x integral-diff-gen
+             y (nonzero integral-diff-gen)]
+            (is (d/eq x (g/* (g// x y) y)))
+            (is (d/eq x (g// (g/* x y) y))))
+
+  (checking "solve-linear, div relationships" 100
+            [x  real-diff-gen
+             y (nonzero sg/real)]
+            (let [y (d/bundle-element y 1 0)]
+              (is (d/eq (g/solve-linear-left y x)
+                        (g// x y)))
+
+              (is (d/eq (g/solve-linear-left y x)
+                        (g/solve-linear-right x y)))
+
+              (is (d/eq (g/solve-linear-left y x)
+                        (g/solve-linear y x)))))
+
   (testing "various unit tests with more terms"
     (let [tangent  (fn [dx] (d/extract-tangent dx 0))
           simplify (comp g/simplify tangent)]
-      (is (= '(* 3 (expt x 2))
-             (simplify
-              (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 3))))
+      (is (v/= '(* 3 (expt x 2))
+               (simplify
+                (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 3))))
 
-      (is (= '(* 4 (expt x 3))
-             (simplify
-              (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 4))))
+      (is (v/= '(* 4 (expt x 3))
+               (simplify
+                (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 4))))
 
       (let [dx   (d/bundle-element 0 1 0)
             x+dx (g/+ 'x dx)
             f    (fn [x] (g/* x x x x))]
-        (is (= '(* 4 (expt x 3))
-               (simplify (g/* x+dx x+dx x+dx x+dx))))
-        (is (= '(* 12 (expt x 2))
-               (simplify
-                (g/+ (g/* (g/+ (g/* (g/+ x+dx x+dx) x+dx)
-                               (g/* x+dx x+dx))
-                          x+dx)
-                     (g/* x+dx x+dx x+dx)))))
+        (is (v/= '(* 4 (expt x 3))
+                 (simplify (g/* x+dx x+dx x+dx x+dx))))
+        (is (v/= '(* 12 (expt x 2))
+                 (simplify
+                  (g/+ (g/* (g/+ (g/* (g/+ x+dx x+dx) x+dx)
+                                 (g/* x+dx x+dx))
+                            x+dx)
+                       (g/* x+dx x+dx x+dx)))))
 
-        (is (= '(* 24 x)
-               (simplify
-                (g/+
-                 (g/* (g/+ (g/* 2 x+dx)
-                           x+dx x+dx x+dx x+dx) x+dx)
-                 (g/* (g/+ x+dx x+dx) x+dx)
-                 (g/* x+dx x+dx)
-                 (g/* (g/+ x+dx x+dx) x+dx)
-                 (g/* x+dx x+dx)))))
+        (is (v/= '(* 24 x)
+                 (simplify
+                  (g/+
+                   (g/* (g/+ (g/* 2 x+dx)
+                             x+dx x+dx x+dx x+dx) x+dx)
+                   (g/* (g/+ x+dx x+dx) x+dx)
+                   (g/* x+dx x+dx)
+                   (g/* (g/+ x+dx x+dx) x+dx)
+                   (g/* x+dx x+dx)))))
 
         (is (= 24 (tangent
                    (g/+ (g/* 6 x+dx)
@@ -415,8 +441,8 @@
                         (g/* 2 x+dx)
                         x+dx x+dx x+dx x+dx))))
 
-        (is (= '(* 4 (expt x 3))
-               (simplify (f x+dx))))))))
+        (is (v/= '(* 4 (expt x 3))
+                 (simplify (f x+dx))))))))
 
 (deftest differential-api-tests
   (testing "bundle-element can flatten bundle-element primal, tangent"
@@ -505,14 +531,29 @@
                          finite-term")))))))
 
 (deftest lifted-fn-tests
+  (letfn [(breaks? [f x]
+            (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                         ((derivative f) x))))]
+    (checking "integer-discontinuous derivatives work" 100 [x sg/real]
+              (if (v/integral? x)
+                (do (breaks? g/floor x)
+                    (breaks? g/ceiling x)
+                    (breaks? g/integer-part x)
+                    (breaks? g/fractional-part x))
+
+                (do (is (zero? ((derivative g/floor) x)))
+                    (is (zero? ((derivative g/ceiling) x)))
+                    (is (zero? ((derivative g/integer-part) x)))
+                    (is (v/one? ((derivative g/fractional-part) x)))))))
+
   (testing "lift-n"
     (let [*   (d/lift-n g/* (fn [_] 1) (fn [_ y] y) (fn [x _] x))
           Df7 (derivative
                (fn x**7 [x] (* x x x x x x x)))
           Df1 (derivative (fn [x] (* x)))
           Df0 (derivative (fn [_] (*)))]
-      (is (= '(* 7 (expt x 6))
-             (g/simplify (Df7 'x)))
+      (is (v/= '(* 7 (expt x 6))
+               (g/simplify (Df7 'x)))
           "functions created with lift-n can take many args (they reduce via the
           binary case!)")
 

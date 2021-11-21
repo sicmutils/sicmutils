@@ -23,7 +23,7 @@
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
-            [pattern.rule :as R #?@(:cljs [:include-macros true])]
+            [pattern.rule :as R :refer [=>] #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.expression.compile :as compile]
             [sicmutils.ratio :as r]
@@ -46,9 +46,9 @@
        :doc "Historical preference is to write `sin^2(x)` rather
        than `(sin(x))^2`."}
   rewrite-trig-powers
-  (let [ok? #(and ('#{sin cos tan} (% :T))
-                  (= 2 (% :N)))]
-    (R/rule (expt (:T :X) :N) ok? ((expt :T :N) :X))))
+  (R/choice
+   (R/rule (expt ((? f #{'sin 'cos 'tan}) ?x) 2) => ((expt (? f) 2) ?x))
+   (R/return nil)))
 
 (def ^{:private true
        :doc "The simplifier returns sums of products; for negative summands the
@@ -56,8 +56,8 @@
   use a unary minus."}
   rewrite-negation
   (R/ruleset
-   (* -1 :X) => (u- :X)
-   (* -1 :X*) => (u- (* :X*))))
+   (* -1 ?x) => (u- ?x)
+   (* -1 ??x) => (u- (* ??x))))
 
 (defn- render-infix-ratio
   "renders a pair of the form `[numerator denominator]` as a infix ratio of the
@@ -123,15 +123,22 @@
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
+
           (maybe-rename-function [f]
             (or (rename-functions f) f))
+
           (maybe-rewrite-negation [loc]
-            (or (rewrite-negation (z/node loc) #(z/replace loc %) (constantly nil))
-                loc))
+            (let [result (rewrite-negation (z/node loc))]
+              (if (identical? loc result)
+                loc
+                (z/replace loc result))))
+
           (maybe-rewrite-trig-squares [loc]
-            (or (and rewrite-trig-squares
-                     (rewrite-trig-powers (z/node loc) #(z/replace loc %)))
-                loc))
+            (if-let [result (and rewrite-trig-squares
+                                 (rewrite-trig-powers
+                                  (z/node loc)))]
+              (z/replace loc result)
+              loc))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op
@@ -224,6 +231,91 @@
 (def ^:private decimal-subscripts
   [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
+(def ^:private subscript-pattern
+  #"(.+)_([0-9a-zA-ZϖγηΦνΩδυσιΔρϵωϱςψΠπϑΞκφχζΨτΓΛΘΥμθαℓβΣξλφε]+)$")
+
+(def ^:private superscript-pattern
+  #"(.+)↑([0-9a-zA-ZϖγηΦνΩδυσιΔρϵωϱςψΠπϑΞκφχζΨτΓΛΘΥμθαℓβΣξλφε]+)$")
+
+(def ^{:private true
+       :doc "Greek letter names we want to recognize that aren't supported by
+  TeX, mapped to their unicode characters."}
+  non-TeX-greek
+  {"Alpha" "Α"
+   "Beta" "Β"
+   "Epsilon" "Ε"
+   "Zeta" "Ζ"
+   "Eta" "Η"
+   "Iota" "Ι"
+   "Kappa" "Κ"
+   "Mu" "Μ"
+   "Nu" "Ν"
+   "omicron" "ο" "Omicron" "O"
+   "Rho" "Ρ"
+   "Tau" "Τ"
+   "Chi" "Χ"})
+
+(def  ^{:private true
+        :doc "Mapping of TeX-supported characters (Greek letter names and a few
+  others) to their corresponding unicode characters."}
+  sym->unicode
+  {"alpha" "α"
+   "beta" "β"
+   "gamma" "γ" "Gamma" "Γ"
+   "delta" "δ" "Delta" "Δ"
+   "epsilon" "ε" "varepsilon" "ϵ"
+   "zeta" "ζ"
+   "eta" "η"
+   "theta" "θ" "Theta" "Θ" "vartheta" "ϑ"
+   "iota" "ι"
+   "kappa" "κ"
+   "lambda" "λ" "Lambda" "Λ"
+   "mu" "μ"
+   "nu" "ν"
+   "xi" "ξ" "Xi" "Ξ"
+   "pi" "π" "Pi" "Π" "varpi" "ϖ"
+   "rho" "ρ" "varrho" "ϱ"
+   "sigma" "σ"  "Sigma" "Σ" "varsigma" "ς"
+   "tau" "τ"
+   "upsilon" "υ" "Upsilon" "Υ"
+   "phi" "φ" "Phi" "Φ" "varphi" "φ"
+   "chi" "χ"
+   "psi" "ψ" "Psi" "Ψ"
+   "omega" "ω" "Omega" "Ω"
+   "ell" "ℓ"
+   "ldots" "..."})
+
+(def ^{:private true
+       :doc "Map of of TeX-compatible greek letter names to their \\-prefixed
+  LaTeX code versions. alpha -> \\alpha, for example."}
+  TeX-letters
+  (into {} (map (fn [[k]]
+                  [k (str "\\" k)]))
+        sym->unicode))
+
+(def ^{:private true
+       :doc "Full mapping of special-cased TeX symbols to their TeX codes. This
+  includes all greek letters in both english ('alpha') and unicode ('α')
+  versions, plus a few more special-cased symbols."}
+  TeX-map
+  (let [sym->tex (->> (set/map-invert sym->unicode)
+                      (u/map-vals #(str "\\" %)))]
+    (merge TeX-letters
+           sym->tex
+           {"sin" "\\sin"
+            "cos" "\\cos"
+            "tan" "\\tan"
+            "asin" "\\arcsin"
+            "acos" "\\arccos"
+            "atan" "\\arctan"
+            "sinh" "\\sinh"
+            "cosh" "\\sinh"
+            "tanh" "\\sinh"
+            "cot" "\\cot"
+            "sec" "\\sec"
+            "csc" "\\csc"
+            "_" "\\_"})))
+
 (defn ^:private digit->int
   [^Character d]
   #?(:clj (Character/digit d 10)
@@ -240,54 +332,60 @@
 (def ^:private n->subscript #(n->script % decimal-subscripts))
 (def ^:private n->superscript #(n->script % decimal-superscripts))
 
+(def infix-sym->unicode
+  (merge non-TeX-greek
+         sym->unicode))
+
 (def ^{:doc "Converts an S-expression to printable infix form. Numeric exponents
   are written as superscripts. Partial derivatives get subscripts."}
   ->infix
   (make-infix-renderer
-   :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
-   :infix? '#{* + - / expt u- = > < >= <=}
+   :precedence-map '{D 9, partial 9,
+                     expt 8,
+                     :apply 7,
+                     u- 6,
+                     * 5, modulo 5, remainder 5, / 5,
+                     + 4, - 4, not 4,
+                     = 3, > 3, < 3, >= 3, <= 3,
+                     and 2, or 1}
+   :infix? '#{* + - / modulo remainder expt u- = > < >= <= and or}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
+   :rename-functions
+   {'fractional-part "frac"
+    'integer-part "int"
+    'not "¬"}
    :special-handlers
-   {'expt (fn [[x e]]
+   {'floor (fn [[x]] (str "⌊" x "⌋"))
+    'ceiling (fn [[x]] (str "⌈" x "⌉"))
+    'modulo (fn [[x y]] (str x " mod " y))
+    'remainder (fn [[x y]] (str x " % " y))
+    'and (fn [[x y]] (str x " ∧ " y))
+    'or  (fn [[x y]] (str x " ∨ " y))
+    'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
     'partial (fn [ds]
                (when (and (= (count ds) 1) (integer? (first ds)))
                  (str "∂" (n->subscript (first ds)))))
     '/ render-infix-ratio}
-   :render-primitive (fn r [v]
-                       (let [s (str v)
-                             [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
-                         (when stem
-                           (str stem (n->subscript subscript)))))))
+   :render-primitive
+   (fn r [v]
+     (let [s (str v)]
+       (or (infix-sym->unicode s)
+           (condp re-find s
+             superscript-pattern
+             :>> (fn [[_ stem superscript]]
+                   (if-let [n (re-matches #"[0-9]+" superscript)]
+                     (str (r stem) (n->superscript n))
+                     (str (r stem) "↑" (r superscript))))
 
-(def ^{:private true
-       :doc "The set of names of TeX letters (e.g., the Greek letters). Symbols
-  whose names match this set are prefixed with \\, as in alpha -> \\alpha."}
-  TeX-letters
-  #{"alpha" "beta" "gamma" "delta" "epsilon" "varepsilon" "zeta" "eta"
-    "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
-    "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
-    "chi" "psi" "omega" "Gamma" "Delta" "Theta" "Lambda" "Xi" "Pi" "Sigma"
-    "Upsilon" "Phi" "Psi" "Omega" "ell"})
-
-(def ^{:private true
-       :doc "Direct mapping of symbols to TeX."}
-  TeX-map
-  {"α" "\\alpha",
-   "ω" "\\omega",
-   "θ" "\\theta",
-   "φ" "\\varphi",
-   "sin" "\\sin",
-   "cos" "\\cos",
-   "tan" "\\tan",
-   "asin" "\\arcsin",
-   "acos" "\\arccos",
-   "atan" "\\arctan",
-   "_" "\\_"
-   "..." "\\ldots"
-   })
+             subscript-pattern
+             :>> (fn [[_ stem subscript]]
+                   (if-let [n (re-matches #"[0-9]+" subscript)]
+                     (str (r stem) (n->subscript n))
+                     (str (r stem) "_" (r subscript))))
+             v))))))
 
 (defn ^:private brace
   "Wrap the argument, as a string, in braces"
@@ -304,7 +402,8 @@
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
   with square braces. Defaults to false."}
-  *TeX-vertical-down-tuples* false)
+  *TeX-vertical-down-tuples*
+  false)
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render symbols with more than 1 character
@@ -314,27 +413,81 @@
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
 
-(def ^{:doc "Convert the given expression to TeX format, as a string."}
-  ->TeX
+(def ^:no-doc ->TeX*
   (let [TeX-accent (fn [accent]
                      (fn [[_ stem]]
-                       (str "\\" accent " " (maybe-brace (->TeX stem)))))
-        dot (TeX-accent "dot")
-        ddot (TeX-accent "ddot")
-        hat (TeX-accent "hat")
-        bar (TeX-accent "bar")
-        vec (TeX-accent "vec")
-        tilde (TeX-accent "tilde")]
+                       (str "\\" accent " " (maybe-brace
+                                             (->TeX* stem)))))
+        dot   (TeX-accent "dot")
+        ddot  (TeX-accent "ddot")
+        hat   (TeX-accent "hat")
+        bar   (TeX-accent "bar")
+        vec   (TeX-accent "vec")
+        tilde (TeX-accent "tilde")
+        prime (fn [[_ stem]]
+                (let [x (maybe-brace (->TeX* stem))]
+                  (str x "^\\prime")))
+        primeprime
+        (fn [[_ stem]]
+          (let [x (maybe-brace (->TeX* stem))]
+            (str x "^{\\prime\\prime}")))
+        parenthesize
+        #(str "\\left(" % "\\right)")]
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{D 9, expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1, = 0, > 0, < 0, >= 0, <= 0}
-     :parenthesize #(str "\\left(" % "\\right)")
-     :infix? '#{* + - / expt u- = > < >= <=}
+     :precedence-map '{D 9, partial 9,
+                       expt 8,
+                       :apply 7,
+                       u- 6,
+                       * 5, modulo 5, remainder 5,
+                       + 4, - 4,
+                       = 3, > 3, < 3, >= 3, <= 3,
+                       and 2, or 1, not 1, / 0}
+     :parenthesize parenthesize
+     :infix? '#{* + - / modulo remainder and or expt u- = > < >= <=}
      :juxtapose-multiply "\\,"
      :rewrite-trig-squares true
      :special-handlers
-     {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
+     {'floor
+      (fn [[x]]
+        (str "\\left\\lfloor " x " \\right\\rfloor"))
+
+      'ceiling
+      (fn [[x]]
+        (str "\\left\\lceil " x " \\right\\rceil"))
+
+      'integer-part
+      (fn [[x]]
+        (str "\\mathsf{int} " (parenthesize x)))
+
+      'fractional-part
+      (fn [[x]]
+        (str "\\mathsf{frac} " (parenthesize x)))
+
+      'modulo
+      (fn [[x y]]
+        (str (maybe-brace x) " \\bmod " (maybe-brace y)))
+
+      'remainder
+      (fn [[x y]]
+        (str (maybe-brace x) " \\mathbin{\\%} " (maybe-brace y)))
+
+      'and
+      (fn [[x y]]
+        (str x " \\land " y))
+
+      'or
+      (fn [[x y]]
+        (str x " \\lor " y))
+
+      'not
+      (fn [[x]]
+        (str "\\lnot" (parenthesize x)))
+
+      'expt (fn [[x e]]
+              (str (maybe-brace x) "^" (maybe-brace e)))
+
       'partial (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
            (let [n (count xs)]
@@ -367,29 +520,68 @@
 
              :else
              (let [s (str v)]
-               (cond (TeX-letters s) (str "\\" s)
-                     (TeX-map s) (TeX-map s)
-                     :else (condp re-find s
-                             ;; TODO: add support for superscripts
-                             #"(.+)_([0-9a-zA-Zαωθφ]+)$"
-                             :>> (fn [[_ stem subscript]]
-                                   (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
-                             ;; KaTeX doesn't do \dddot.
-                             #"(.+)dotdot$" :>> ddot
-                             #"(.+)dot$" :>> dot
-                             #"(.+)hat$" :>> hat
-                             #"(.+)bar$" :>> bar
-                             #"(.+)vec$" :>> vec
-                             #"(.+)tilde$" :>> tilde
-                             ;; wrap it if it's a multiletter variable... unless it looks
-                             ;; like a differential. (Too hacky?)
-                             (if (and (symbol? v)
-                                      (> (count s) 1)
-                                      (not (re-matches #"^d[a-zαωθφ]" s)))
-                               (if *TeX-sans-serif-symbols*
-                                 (str "\\mathsf" (brace s))
-                                 (brace s))
-                               v)))))))))
+               (or (TeX-map s)
+                   (condp re-find s
+                     superscript-pattern
+                     :>> (fn [[_ stem superscript]]
+                           (str (maybe-brace (r stem))
+                                "^" (maybe-brace (r superscript))))
+
+                     subscript-pattern
+                     :>> (fn [[_ stem subscript]]
+                           (str (maybe-brace (r stem))
+                                "_" (maybe-brace (r subscript))))
+
+                     ;; KaTeX doesn't do \dddot.
+                     #"(.+)dotdot$" :>> ddot
+                     #"(.+)dot$" :>> dot
+                     #"(.+)hat$" :>> hat
+                     #"(.+)primeprime$" :>> primeprime
+                     #"(.+)prime$" :>> prime
+                     #"(.+)bar$" :>> bar
+                     #"(.+)vec$" :>> vec
+                     #"(.+)tilde$" :>> tilde
+                     ;; wrap it if it's a multiletter variable... unless it looks
+                     ;; like a differential. (Too hacky?)
+                     (if (and (symbol? v)
+                              (> (count s) 1)
+                              (not (re-matches #"^d[a-zαωθφ]" s)))
+                       (if *TeX-sans-serif-symbols*
+                         (str "\\mathsf" (brace s))
+                         (brace s))
+                       v)))))))))
+
+(defn ->TeX
+  "Convert the given expression to TeX format, as a string.
+
+  If you set the `:equation` keyword argument to a truthy value, the result will
+  be wrapped in an equation environment. `:equation <string>` will insert a
+  `\\label{<string>}` entry inside the equation environment.
+
+  For example:
+
+  ```clojure
+  (let [expr (+ 'x 'xy)]
+    (println
+      (->TeX expr :equation \"label!\")))
+
+  \\begin{equation}
+  \\label{label!}
+  x + y
+  \\end{equation}
+  ```
+  "
+  [expr & {:keys [equation]}]
+  (let [tex-string (->TeX* expr)]
+    (if equation
+      (let [label (if (and (string? equation)
+                           (not (empty? equation)))
+                    (str "\\label{" equation "}\n")
+                    "")]
+        (str "\\begin{equation}\n"
+             label tex-string
+             "\n\\end{equation}"))
+      tex-string)))
 
 (def ^{:doc "Convert the given expression to a string representation of a
   JavaScript function.
@@ -425,8 +617,10 @@
                            up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
-           :precedence-map '{D 8, :apply 8, * 5, / 5, - 3, + 3}
-           :infix? '#{* + - / u-}
+           :precedence-map '{not 9, D 8, :apply 8, * 5, / 5, - 3, + 3,
+                             = 2, > 2, < 2, >= 2, <= 2,
+                             and 1, or 1}
+           :infix? '#{* + - / u- =}
            :rename-functions {'sin "Math.sin"
                               'cos "Math.cos"
                               'tan "Math.tan"
@@ -443,14 +637,32 @@
                               'abs "Math.abs"
                               'expt "Math.pow"
                               'log "Math.log"
-                              'exp "Math.exp"}
-           :special-handlers {'up make-js-vector
-                              'down make-js-vector
-                              '/ render-infix-ratio})]
+                              'exp "Math.exp"
+                              'floor "Math.floor"
+                              'ceiling "Math.ceil"
+                              'integer-part "Math.trunc"
+                              'not "!"}
+           :special-handlers (let [parens (fn [x]
+                                            (str "(" x ")"))]
+                               {'up make-js-vector
+                                'down make-js-vector
+                                'modulo (fn [[a b]]
+                                          (-> (str a " % " b)
+                                              (parens)
+                                              (str " + " b)
+                                              (parens)
+                                              (str " % " b)
+                                              (parens)))
+                                'remainder (fn [[a b]]
+                                             (str a " % "))
+                                'and (fn [[a b]] (str a " && " b))
+                                'or (fn [[a b]] (str a " || " b))
+                                '/ render-infix-ratio}))]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
-      (let [params (set/difference (x/variables-in x) operators-known)
+      (let [x      (v/freeze x)
+            params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
                              parameter-order)

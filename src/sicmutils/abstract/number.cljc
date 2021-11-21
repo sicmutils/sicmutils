@@ -28,7 +28,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.simplify :as s]
+            [sicmutils.simplify :as ss]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -68,10 +68,10 @@
   If you pass an actual number, sicmutils will attempt to preserve exact values
   through various operations:
 
-  ```clojure`
+  ```clojure
   (g/+ 1 (g/cos (g/* 2 (literal-number 4))))
   ;;=> (+ 1 (cos 8))
-  ````
+  ```
 
   Notice that the `(g/* 2 ...)` is evaluated, but `cos` evaluation is deferred,
   since the result is inexact. On the other hand, if the number is inexact to
@@ -114,35 +114,31 @@
 (derive Symbol ::x/numeric)
 (derive ::x/numeric ::v/scalar)
 
-(defn- literal=num
-  "Equality helper; if the left side's a specifically numerical literal, unwrap
-  and compare (otherwise false)."
-  [l n]
-  (and (abstract-number? l)
-       (= (x/expression-of l) n)))
-
 ;; This installs equality into `v/=` between symbolic expressions (and symbols,
-;; see inheritance above) and anything in the standard numeric tower.
+;; see inheritance above), sequences where appropriate, and anything in the
+;; standard numeric tower.
 
-(defmethod v/= [::x/numeric ::v/number] [l r] (literal=num l r))
-(defmethod v/= [::v/number ::x/numeric] [l r] (literal=num r l))
+(defmethod v/= [Symbol v/seqtype] [_ _] false)
+(defmethod v/= [v/seqtype Symbol] [_ _] false)
+(defmethod v/= [Symbol ::v/number] [_ _] false)
+(defmethod v/= [::v/number Symbol] [_ _] false)
+(defmethod v/= [::x/numeric v/seqtype] [l r] (v/= (x/expression-of l) r))
+(defmethod v/= [v/seqtype ::x/numeric] [l r] (v/= l (x/expression-of r)))
+(defmethod v/= [::x/numeric ::v/number] [l r] (v/= (x/expression-of l) r))
+(defmethod v/= [::v/number ::x/numeric] [l r] (v/= l (x/expression-of r)))
 (defmethod v/= [::x/numeric ::x/numeric] [l r]
   (= (x/expression-of l)
      (x/expression-of r)))
 
-(defn- numerical-expression
-  "For literal numbers, returns the unwrapped form. Else acts as identity. (If
-  you've made it here, you've chosen to be absorbed into a `literal-number`
-  wrapper!)"
-  [expr]
-  (if (literal-number? expr)
-    (x/expression-of expr)
-    expr))
-
 (defn- defunary [generic-op op-sym]
   (if-let [op (sym/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
-      (literal-number (op (numerical-expression a))))
+      (let [newexp (op (x/expression-of a))]
+        (literal-number
+         (if-let [simplify sym/*incremental-simplifier*]
+           (simplify newexp)
+           newexp))))
+
     (defmethod generic-op [::x/numeric] [a]
       (x/literal-apply ::x/numeric op-sym [a]))))
 
@@ -153,9 +149,12 @@
     (if-let [op (sym/symbolic-operator op-sym)]
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
-          (literal-number
-           (op (numerical-expression a)
-               (numerical-expression b)))))
+          (let [newexp (op (x/expression-of a)
+                           (x/expression-of b))]
+            (literal-number
+             (if-let [simplify sym/*incremental-simplifier*]
+               (simplify newexp)
+               newexp)))))
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
@@ -165,9 +164,15 @@
 (defbinary g/sub '-)
 (defbinary g/mul '*)
 (defbinary g/div '/)
+(defbinary g/modulo 'modulo)
+(defbinary g/remainder 'remainder)
 (defbinary g/expt 'expt)
 (defunary g/negate 'negate)
 (defunary g/invert 'invert)
+(defunary g/integer-part 'integer-part)
+(defunary g/fractional-part 'fractional-part)
+(defunary g/floor 'floor)
+(defunary g/ceiling 'ceiling)
 
 (defunary g/sin 'sin)
 (defunary g/cos 'cos)
@@ -185,7 +190,22 @@
 
 (defunary g/abs 'abs)
 (defunary g/sqrt 'sqrt)
+
 (defunary g/log 'log)
+
+(let [log (sym/symbolic-operator 'log)
+      div (sym/symbolic-operator '/)]
+  (defmethod g/log2 [::x/numeric] [a]
+    (let [a (x/expression-of a)]
+      (literal-number
+       (div (log a)
+            (log 2)))))
+
+  (defmethod g/log10 [::x/numeric] [a]
+    (let [a (x/expression-of a)]
+      (literal-number
+       (div (log a) (log 10))))))
+
 (defunary g/exp 'exp)
 
 (defbinary g/make-rectangular 'make-rectangular)
@@ -197,5 +217,25 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+(defbinary g/lcm 'lcm)
+
+(defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
-  (s/simplify-expression (v/freeze a)))
+  (literal-number
+   (ss/simplify-expression
+    (v/freeze a))))
+
+(def ^:private memoized-simplify
+  (memoize g/simplify))
+
+(defn ^:no-doc simplify-numerical-expression
+  "This function will only simplify instances of [[expression/Literal]]; if `x` is
+  of that type, [[simplify-numerical-expression]] acts as a memoized version
+  of [[generic/simplify]]. Else, acts as identity.
+
+  This trick is used in [[sicmutils.calculus.manifold]] to memoize
+  simplification _only_ for non-[[differential/Differential]] types."
+  [x]
+  (if (literal-number? x)
+    (memoized-simplify x)
+    x))

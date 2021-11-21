@@ -23,6 +23,7 @@
             [sicmutils.complex :as c]
             [sicmutils.env :as e :refer [+ - * / zero? partial ref
                                          complex
+                                         freeze
                                          simplify
                                          literal-function
                                          orientation up down
@@ -30,7 +31,9 @@
                                          cross-product
                                          cot csc sec]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.operator :as o]))
+            [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
+            [sicmutils.value :as v]))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -67,6 +70,23 @@
          (is (= [99] (dosync (alter r conj 99))))
          (is (= {:b 88} (dosync (alter s assoc :b 88))))))))
 
+(deftest tex-tests
+  (testing "inline and block tex environments"
+    (is (= "$x + y$" (e/tex$ (+ 'x 'y))))
+    (is (= "$$x + y$$" (e/tex$$ (+ 'x 'y)))))
+
+  (testing "tex equation environment"
+    (is (= (str "\\begin{equation}\n"
+                "x + y\n"
+                "\\end{equation}")
+           (e/->tex-equation (+ 'x 'y))))
+
+    (is (= (str "\\begin{equation}\n"
+                "\\label{face}\n"
+                "x + y\n"
+                "\\end{equation}")
+           (e/->tex-equation (+ 'x 'y) :label "face")))))
+
 (deftest literal-function-shim
   (testing "works for signatures"
     (let [f1 (literal-function 'f)
@@ -74,18 +94,36 @@
           f3 (literal-function 'f (-> Real (UP Real Real)))
           f4 (literal-function 'f [0] (up 1 2))
           f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
-      (is (= '(f x) (simplify (f1 'x))))
-      (is (= '(f x) (simplify (f2 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
+      (is (v/= '(f x) (simplify (f1 'x))))
+      (is (v/= '(f x) (simplify (f2 'x))))
+
+      (is (= '(up (f↑0 x) (f↑1 x))
+             (freeze
+              (simplify (f3 'x)))))
+
+      (is (= '(up (f↑0 x) (f↑1 x))
+             (freeze
+              (simplify (f4 'x)))))
+
       (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
-             (simplify (f5 (down 'p_x 'p_y))))))))
+             (freeze
+              (simplify (f5 (down 'p_x 'p_y)))))))))
 
 (deftest shortcuts
+  (testing "env aliases alias the actual object from the original namespace"
+    (is (= matrix/by-rows
+           e/matrix-by-rows)))
+
+  #?(:clj
+     (testing "aliases keep metadata from original var. Only works in Clojure."
+       (let [ks [:doc :file :ns :line :column :arglists]]
+         (is (= (select-keys (meta #'matrix/by-rows) ks)
+                (select-keys (meta #'e/matrix-by-rows) ks))))))
+
   (testing "cot"
-    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-    (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
-    (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
+    (is (v/= '(/ (cos x) (sin x)) (simplify (cot 'x))))
+    (is (v/= '(/ 1 (sin x)) (simplify (csc 'x))))
+    (is (v/= '(/ 1 (cos x)) (simplify (sec 'x))))
     (is (= (c/complex 1 2) (complex 1 2)))
     (is (= :sicmutils.structure/up (orientation (up 1 2))))
     (is (= "up(b z - c y, - a z + c x, a y - b x)"
@@ -102,9 +140,10 @@
       (is (= 3 (e/dimension A))))))
 
 (deftest pe
-  (is (re-matches #"\(\* 2 x\)\r?\n"
-                  (with-out-str
-                    (e/print-expression (+ 'x 'x))))))
+  (is (re-matches
+       #"\(\* 2 x\)\r?\n"
+       (with-out-str
+         (e/print-expression (+ 'x 'x))))))
 
 (deftest pv
   (let [π Math/PI

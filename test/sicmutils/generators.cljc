@@ -9,24 +9,32 @@
   (:require [clojure.test.check.generators :as gen]
             [same :refer [zeroish?]]
             [same.ish :as si]
+            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.differential :as d]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
+            [sicmutils.polynomial :as poly]
+            [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.ratio :as r]
+            [sicmutils.rational-function :as rf]
+            [sicmutils.series :as ss]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
-     (:import [org.apache.commons.math3.complex Complex])))
+     (:import (clojure.lang Symbol)
+              (sicmutils.structure Structure)
+              (org.apache.commons.math3.complex Complex))))
 
 (def bigint
   "js/BigInt in cljs, clojure.lang.BigInt in clj."
   #?(:cljs
-     (gen/fmap u/bigint gen/large-integer)
+     (gen/fmap u/bigint gen/small-integer)
      :clj
      gen/size-bounded-bigint))
 
@@ -72,11 +80,13 @@
                       (+ x 0.5)
                       x))))))
 
+(def small-integral
+  (gen/one-of [native-integral long integer]))
+
 (def any-integral
-  (gen/one-of [native-integral
+  (gen/one-of [small-integral
                bigint
-               long
-               integer]))
+               #?@(:clj [biginteger])]))
 
 (def ratio
   "Generates a small ratio (or integer) using gen/small-integer. Shrinks
@@ -233,6 +243,24 @@
   ([n entry-gen]
    (matrix n n entry-gen)))
 
+;; ## Series
+
+(defn series
+  "Generates a [[series/Series]] instance of elements drawn from `entry-gen`.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (series gen/nat))
+  ([entry-gen]
+   (gen/fmap ss/series* (gen/vector entry-gen))))
+
+(defn power-series
+  "Generates a [[series/PowerSeries]] instance of elements drawn from `entry-gen`.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (power-series gen/nat))
+  ([entry-gen]
+   (gen/fmap ss/power-series* (gen/vector entry-gen))))
+
 ;; ## Vector Set
 ;;
 ;; These are used in the implementation of [[sicmutils.differential]].
@@ -266,6 +294,67 @@
                :else (d/from-terms [(#'d/make-term [] primal)
                                     (#'d/make-term [0] 1)])))))))
 
+;; ## Polynomials
+
+(defn poly:exponents [arity]
+  (->> (gen/vector gen/nat arity)
+       (gen/fmap xpt/dense->exponents)))
+
+(defn poly:terms
+  ([arity]
+   (poly:terms arity small-integral))
+  ([arity coef-gen & opts]
+   (let [expt-gen (poly:exponents arity)
+         term-gen (gen/tuple expt-gen coef-gen)]
+     (apply gen/vector term-gen opts))))
+
+(defn polynomial
+  "Returns a generator that produces instances of [[polynomial.Polynomial]].
+
+  `arity` can be a number or a generator."
+  [& {:keys [arity coeffs nonzero?]
+      :or {nonzero? true
+           arity (gen/fmap inc gen/nat)
+           coeffs small-integral}}]
+  (letfn [(poly-gen [arity]
+            (let [terms (poly:terms arity coeffs)
+                  pgen (gen/fmap (fn [terms]
+                                   (let [p (poly/make arity terms)]
+                                     (if (poly/polynomial? p)
+                                       p
+                                       (poly/constant arity p))))
+                                 terms)]
+              (if nonzero?
+                (gen/such-that (complement v/zero?) pgen)
+                pgen)))]
+    (let [arity (if (integer? arity)
+                  (gen/return arity)
+                  arity)]
+      (gen/bind arity poly-gen))))
+
+(defn rational-function
+  "Returns a generator that produces instances
+  of [[rational-function/RationalFunction]].
+
+  `arity` can be a number or a generator."
+  ([]
+   (rational-function 1 {} {}))
+  ([arity]
+   (rational-function arity {} {}))
+  ([arity num-opts denom-opts]
+   (let [num-opts   (assoc num-opts
+                           :arity arity)
+         denom-opts (assoc denom-opts
+                           :nonzero? true
+                           :arity arity)
+         n  (apply polynomial (apply concat num-opts))
+         d  (apply polynomial (apply concat denom-opts))
+         rf (gen/fmap
+             (fn [[u v]]
+               (rf/->reduced u v))
+             (gen/tuple n d))]
+     (gen/such-that rf/rational-function? rf))))
+
 ;; ## Custom Almost-Equality
 
 (defn- eq-delegate
@@ -287,7 +376,7 @@
         (v/real? that)    (si/*comparator*
                            (u/double this)
                            (u/double that))
-        :else             (= this that)))
+        :else             (v/= this that)))
 
 (extend-protocol si/Approximate
   #?@(:cljs
@@ -327,4 +416,23 @@
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
                 (g/real-part this) (u/double that)))
-          :else (= this that))))
+          :else (v/= this that)))
+
+  Symbol
+  (ish [this that]
+    (if (symbol? that)
+      (= this that)
+      (v/= this that)))
+
+  #?(:cljs s/Structure :clj Structure)
+  (ish [this that]
+    (cond (instance? #?(:cljs s/Structure :clj Structure) that)
+          (and (s/same-orientation? this that)
+               (si/ish (s/structure->vector this)
+                       (s/structure->vector that)))
+
+          (s/up? this)
+          (cond (vector? that)  (si/ish (s/structure->vector this) that)
+                (seqable? that) (si/ish (seq this) (seq that))
+                :else false)
+          :else false)))

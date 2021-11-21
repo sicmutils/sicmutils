@@ -22,35 +22,51 @@
   (:require [sicmutils.numerical.quadrature :as q]
             [sicmutils.numerical.minimize :as m]
             [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.structure :refer [up down]]
             [sicmutils.function :as f :refer [compose]]))
 
 (defn state->t
-  "Extract the time slot from a state tuple"
+  "Extract the time slot from a state tuple.
+
+  See [[coordinate]] for more detail."
   [s]
   (nth s 0))
 
 (defn coordinate
   "A convenience function on local tuples. A local tuple describes
-  the state of a system at a particular time: [t, q, D q, D^2 q]
-  representing time, position, velocity (and optionally acceleration
-  etc.) Returns the q element, which is expected to be a mapping
-  from time to a structure of coordinates"
+  the state of a system at a particular time:
+
+  ```
+  [t, q, D q, D^2 q]
+  ```
+
+  representing time, position, velocity (and optionally acceleration etc.)
+  [[coordinate]] returns the `q` element, which is expected to be a mapping from
+  time to a structure of coordinates."
   [local]
   (nth local 1))
 
-(defn coordinate-tuple
-  [& xs]
-  (apply up xs))
-
 (defn velocity
-  "See coordinate: this returns the velocity element of a local
-  tuple (by convention, the 2nd element)."
+  "Returns the velocity element of a local tuple (by convention, the third
+  element).
+
+  See [[coordinate]] for more detail."
   [local]
   (nth local 2))
 
+(defn acceleration
+  "Returns the acceleration element of a local tuple (by convention, the fourth
+  element).
+
+  See [[coordinate]] for more detail."
+  [local]
+  (nth local 3))
+
+(def coordinate-tuple up)
 (def velocity-tuple up)
+(def acceleration-tuple up)
 
 ;; The following are the functions that are defined in the SICM
 ;; book, but NOT in MIT Scmutils.  Marked here for possible future
@@ -103,13 +119,6 @@
 
 (def ->local ->L-state)
 
-(defn F->C [F]
-  (fn [[t _ v :as local]]
-    (->L-state t
-               (F local)
-               (+ (((partial 0) F) local)
-                  (* (((partial 1) F) local) v)))))
-
 (defn p->r
   "SICM p. 47. Polar to rectangular coordinates of state."
   [[_ [r φ]]]
@@ -120,10 +129,9 @@
   function (from time to local tuple)."
   ([q]
    (let [Dq (D q)]
-     (with-meta
-       (fn [t]
-         (up t (q t) (Dq t)))
-       {:arity [:exactly 1]})))
+     (-> (fn [t]
+           (up t (q t) (Dq t)))
+         (f/with-arity [:exactly 1]))))
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
@@ -155,22 +163,21 @@
   [ys xs]
   (let [n (count ys)]
     (assert (= (count xs) n))
-    (with-meta
-      (fn [x]
-        (reduce + 0
-                (for [i (range n)]
-                  (/ (reduce * 1
-                             (for [j (range n)]
-                               (if (= j i)
-                                 (nth ys i)
-                                 (- x (nth xs j)))))
-                     (let [xi (nth xs i)]
-                       (reduce * 1
+    (-> (fn [x]
+          (reduce + 0
+                  (for [i (range n)]
+                    (/ (reduce * 1
                                (for [j (range n)]
-                                 (cond (< j i) (- (nth xs j) xi)
-                                       (= j i) (if (odd? i) -1 1)
-                                       :else (- xi (nth xs j))))))))))
-      {:arity [:exactly 1]})))
+                                 (if (= j i)
+                                   (nth ys i)
+                                   (- x (nth xs j)))))
+                       (let [xi (nth xs i)]
+                         (reduce * 1
+                                 (for [j (range n)]
+                                   (cond (< j i) (- (nth xs j) xi)
+                                         (= j i) (if (odd? i) -1 1)
+                                         :else (- xi (nth xs j))))))))))
+        (f/with-arity [:exactly 1]))))
 
 (defn Lagrangian->acceleration
   [L]
@@ -230,8 +237,21 @@
 
 (def Γ-bar Gamma-bar)
 
-(defn Dt
+(defn F->C
+  "Accepts a coordinate transformation `F` from a local tuple to a new coordinate
+  structure, and returns a function from `local -> local` that applies the
+  transformation directly.
+
+  [[F->C]] handles local tuples of arbitrary length."
   [F]
+  (fn [local]
+    (let [n (count local)
+          f-bar (fn [q-prime]
+                  (let [q (compose F (Gamma q-prime))]
+                    (Gamma q n)))]
+      ((Gamma-bar f-bar) local))))
+
+(defn Dt [F]
   (let [G-bar (fn [q]
                 (D (compose F (Γ q))))]
     (Γ-bar G-bar)))

@@ -1,4 +1,4 @@
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 
@@ -31,6 +31,7 @@
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
+            [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
 ;; # Function Compilation
@@ -55,7 +56,7 @@
 (let [f (fn [x] (g/sqrt
                 (g/+ (g/square (g/sin x))
                      (g/square (g/cos x)))))]
-  (= 1 (g/simplify (f 'x))))
+  (v/= 1 (g/simplify (f 'x))))
 
 ;; 3. Apply "common subexpression elimination". Any subexpression inside the
 ;;    new, simplified body that appears more than once gets extracted out into a
@@ -90,7 +91,7 @@
    '/ /
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
-   'abs (fn [^double x] (Math/abs x))
+   'abs #(Math/abs ^double %)
    'log #(Math/log %)
    'exp #(Math/exp %)
    'cos #(Math/cos %)
@@ -102,6 +103,15 @@
    'cosh #(Math/cosh %)
    'sinh #(Math/sinh %)
    'tanh #(Math/tanh %)
+   'floor #(Math/floor %)
+   'ceiling #(Math/ceil %)
+   'modulo mod
+   'remainder rem
+   'quotient quot
+   'integer-part #?(:clj long
+                    :cljs #(Math/trunc %))
+   'fractional-part (fn [^double x]
+                      (- x (Math/floor x)))
    #?@(:cljs
        ;; JS-only entries.
        ['acosh #(Math/acosh %)
@@ -347,12 +357,24 @@
 ;; - interpreted compilation via [SCI](https://github.com/borkdude/sci), the
 ;;   Small Clojure Interpreter.
 ;;
-;; We enable SCI mode by default since this allows function compilation to work
-;; in Clojure and Clojurescript.
+;; We default to SCI mode in CLJS, but :native in Clojure for performance.
 
 (def ^{:dynamic true
        :no-doc true}
-  *mode* :sci)
+  *mode*
+  #?(:clj :native
+     :cljs :sci))
+
+(def ^{:doc "Set of all supported compilation modes."}
+  valid-modes
+  #{:sci :native})
+
+(defn set-compiler-mode!
+  "Set the default compilation mode by supplying an entry from [[valid-modes]]."
+  [mode]
+  (when-not (valid-modes mode)
+    (u/illegal (str "Invalid compilation mode supplied: " mode
+                    ". Please supply one of " valid-modes))))
 
 (defn- native?
   "Returns true if native compilation mode is enabled, false otherwise."
@@ -364,10 +386,6 @@
 ;;
 ;; `(binding [*mode* :native] ,,,)`
 ;;
-;; NOTE that we may remove native compilation support if it doesn't prove to be
-;; a performance problem; sci with its sandboxing is a safer thing to offer in a
-;; library that might get hosted for others to interact with via remote REPLs.
-
 ;; ## State Functions
 ;;
 ;; `compile.cljc` currently supports compilation of:
@@ -475,7 +493,8 @@
         generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g              (apply f generic-params)
         body           (cse-form
-                        (g/simplify (g generic-state)))
+                        (v/freeze
+                         (g/simplify (g generic-state))))
         compiler       (if (native?)
                          compile-state-native
                          compile-state-sci)
@@ -565,7 +584,8 @@
    (let [sw       (us/stopwatch)
          args     (repeatedly n #(gensym 'x))
          body     (cse-form
-                   (g/simplify (apply f args)))
+                   (v/freeze
+                    (g/simplify (apply f args))))
          compiled (if (native?)
                     (compile-native args body)
                     (compile-sci args body))]

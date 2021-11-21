@@ -107,12 +107,20 @@
       (is (= [:at-least 0] (f/arity (m/by-rows [g/+]))))
       (is (= [:exactly 1] (f/arity (m/by-rows [g/+ g/sin])))))
 
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                 (f/arity
-                  (m/by-rows [g/add g/sin])))
-        "If the matrix contains functions whose arities are totally
+    (binding [f/*strict-arity-checks* true]
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (f/arity
+                    (m/by-rows [g/add g/sin])))
+          "If the matrix contains functions whose arities are totally
         incompatible, then `f/arity` will throw. `g/add` has arity [:exactly 2],
-        `g/sin` has arity [:exactly 1].")))
+        `g/sin` has arity [:exactly 1]."))
+
+    (binding [f/*strict-arity-checks* false]
+      (is (= [:at-least 0]
+             (f/arity
+              (m/by-rows [g/add g/sin])))
+          "If arity checks are disabled incompatible arities widen to the widest
+          possible arity."))))
 
 (deftest matrix-interfaces
   (testing "count"
@@ -239,14 +247,14 @@
   (testing "submatrix"
     (let [M (m/by-rows [1 2 3]
                        [4 5 6]
-                       [7 8 9])]
+                       [7 8 9])
+          SM (s/down (s/up 1 4 7)
+                     (s/up 2 5 8)
+                     (s/up 3 6 9))]
       (is (= (m/by-rows [1 2]
                         [4 5])
-             (m/submatrix M 0 1 0 1)))
-
-      (is (= (m/by-rows [1 2]
-                        [4 5])
-             (m/submatrix M 0 1 0 1)))))
+             (m/submatrix M 0 1 0 1)
+             (m/submatrix SM 0 1 0 1)))))
 
   (checking "make-zero" 100 [m (gen/choose 0 10)
                              n (gen/choose 0 10)]
@@ -258,9 +266,11 @@
   (checking "make-diagonal" 100
             [vs (gen/vector sg/real 1 20)]
             (let [M (m/make-diagonal vs)]
-              (is (m/square? M))
+              (is (m/diagonal? M))
+
               (is (= (g/dimension M)
                      (g/dimension vs)))
+
               (is (= vs (m/diagonal M)))
               (is (= vs (m/diagonal M)))))
 
@@ -283,7 +293,10 @@
                      [31 32 33])
         v (m/column 7 8 9)]
     (is (= ::m/matrix (v/kind M)))
-    (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
+    (is (= '(matrix-by-rows
+             (up 1 2 3)
+             (up 4 5 6))
+           (v/freeze M)))
     (is (= (m/by-rows [1 4] [2 5] [3 6]) (g/transpose M)))
     (is (= (m/by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
     (is (= (m/by-rows [1 0 0] [0 1 0] [0 0 1]) (v/one-like A)))
@@ -333,6 +346,14 @@
                       [1 2 3]
                       [2 3 4])
            (m/generate 3 3 +)))
+
+    (is (= (m/generate 3 +)
+           (m/generate 3 3 +))
+        "Only filling in one dimension for generate returns a square matrix.")
+
+    (is (not (m/diagonal?
+              (m/generate 3 3 +))))
+
     (is (v/zero? (m/by-rows [0 0]
                             [0 0])))))
 
@@ -604,13 +625,55 @@
                               [(g/conjugate c)
                                (g/conjugate d)])
                    (g/conjugate
-                    (m/by-rows [a b] [c d]))))))
+                    (m/by-rows [a b] [c d])))))
+
+  (checking "g/make-rectangular, g/make-polar" 100
+            [a sg/real b sg/real
+             c sg/real d sg/real]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap #(g/make-rectangular % %) M)
+                     (g/make-rectangular M M)))
+
+              (is (= (m/fmap #(g/make-polar % %) M)
+                     (g/make-polar M M)))))
+
+  (testing "incompatible shapes throw for g/make-*"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-rectangular (m/by-rows [1 2 3])
+                                     (m/by-rows [1 2]))))
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-polar (m/by-rows [1 2 3])
+                               (m/by-rows [1 2])))))
+
+  (checking "g/real-part, g/imag-part pass through to values" 100
+            [a sg/complex b sg/complex
+             c sg/complex d sg/complex]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap g/real-part M)
+                     (g/real-part M)))
+
+              (is (= (m/fmap g/imag-part M)
+                     (g/imag-part M)))
+
+              (is (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M)))
+                  "g/make-rectangular rebuilds the original matrix from its
+                  parts."))))
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
     (prop/for-all [p (sg/square-matrix n)
                    q (sg/square-matrix n)]
                   (= (g/+ p q) (g/+ q p)))))
+
+(defspec make-rectangular-imag-real-round-trip
+  (gen/let [n (gen/choose 1 10)]
+    (prop/for-all [M (sg/square-matrix n sg/complex)]
+                  (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M))))))
 
 
 (defspec pq*r=p*qr
@@ -668,18 +731,106 @@
                      (g/outer-product col row))))))
 
 (deftest matrices-from-structure
-  (let [A (s/up (s/up 1 2) (s/up 3 4))
-        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+  (let [A (s/up (s/up 1 2)
+                (s/up 3 4))
+        C (s/down (s/up 1 2 3)
+                  (s/up 0 4 5)
+                  (s/up 1 0 6))
         D (s/up (s/down 3))
-        F (s/down (s/up 1 2) (s/up 3 4))
-        G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))]
+        F (s/down (s/up 1 2)
+                  (s/up 3 4))
+        G (s/down (s/up 4 0 0 0)
+                  (s/up 0 0 2 0)
+                  (s/up 0 1 2 0)
+                  (s/up 1 0 0 1))]
+
+    (checking "structure division returns a structure compatible for contraction
+    with the denominator." 100
+              [s (sg/up1 sg/any-integral 5)
+               x (gen/fmap (fn [x]
+                             (if (v/zero? x) 1 x))
+                           sg/any-integral)]
+              (is (= s (g/* x (g// s x)))))
+
+    (testing "structural division unit test"
+      (is (= (s/down
+              (s/up #sicm/ratio 1/2
+                    1
+                    #sicm/ratio 3/2))
+             (g/div (s/up 1 2 3)
+                    (s/up 2)))
+          "one compatible for contraction layer added")
+
+      (is (= (s/up 1 2 3)
+             (g/* (s/up 2)
+                  (g/div (s/up 1 2 3)
+                         (s/up 2))))
+          "s = x*(s/x)")
+
+      (testing "structure multiplication, division are associative"
+        (let [a (s/up (s/down 'a 'b)
+                      (s/down 'c 'd))
+              b (s/down 'e 'f)]
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (g// (g/* a b) a))))
+              "(ab)/a == b with up-down, down")
+
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (g/* a (g// b a)))))
+              "a(b/a) == b with up-down, down")
+
+          (is (= b (g/simplify
+                    (g/solve-linear a (g/* a b))))
+              "solve-linear works properly")
+
+          (is (= (s/opposite b)
+                 (-> (g/solve-linear-right (s/opposite b) a)
+                     (g/* a)
+                     (g/simplify)))
+              "solve-linear-right contract"))
+
+        (let [a (s/down (s/up 'a 'b)
+                        (s/up 'c 'd))
+              b (s/up 'e 'f)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g// (g/* a b) a))))
+              "(ab)/a == b with down-up, up")
+
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g/* a (g// b a)))))
+              "a(b/a) == b with down-up, up")
+
+          (is (= b (g/simplify
+                    (g/solve-linear a (g/* a b))))
+              "solve-linear works properly")
+
+          (is (= (s/opposite b)
+                 (-> (g/solve-linear-right (s/opposite b) a)
+                     (g/* a)
+                     (g/simplify)))
+              "solve-linear-right contract"))))
 
     (testing "inverse"
-      (is (= (s/up (s/down 1)) (g/* D (g/divide D))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* F (g/divide F))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/divide F F)))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* (g/divide F) F)))
-      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (g/divide G G))))
+      (is (= (s/up (s/down 1))
+             (g/* D (g/divide D))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* F (g/divide F))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* (g/divide F) F)))
+
+      (is (= (s/down (s/up 1 0 0 0)
+                     (s/up 0 1 0 0)
+                     (s/up 0 0 1 0)
+                     (s/up 0 0 0 1))
+             (g/* (g/divide G) G))))
 
     (testing "ratio literals"
       (is (= (s/down (s/down -2 1)
@@ -716,9 +867,9 @@
 
     (testing "invert-hilbert-matrix"
       (let [N 3
-            H (apply s/up (for [i (range 1 (inc N))]
-                            (apply s/up (for [j (range 1 (inc N))]
-                                          (g/divide 1 (g/+ i j -1))))))]
+            H (s/up* (for [i (range 1 (inc N))]
+                       (s/up* (for [j (range 1 (inc N))]
+                                (g/divide 1 (g/+ i j -1))))))]
         (is (= (s/down (s/down 9 -36 30)
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))

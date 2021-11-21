@@ -24,13 +24,15 @@
                            int core-int
                            long core-long
                            double core-double}
-                  #?@(:cljs [:exclude [bigint double long int]]))
+                  #?@(:cljs [:exclude [bigint double long int uuid]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long))
+            #?(:cljs goog.math.Long)
+            [taoensso.timbre :as log])
   #?(:clj
-     (:import [clojure.lang BigInt]
-              [java.util.concurrent TimeUnit TimeoutException])))
+     (:import (clojure.lang BigInt)
+              (java.util UUID)
+              (java.util.concurrent TimeUnit TimeoutException))))
 
 (defn counted
   "Takes a function and returns a pair of:
@@ -44,39 +46,6 @@
               (swap! count inc)
               (f x))])))
 
-(defmacro import-def
-  "import a single fn or var:
-
-  ```clojure
-  (import-def a b) => (def b a/b)
-  ```"
-  [from-ns def-name]
-  (let [from-sym# (symbol (str from-ns) (str def-name))]
-    `(def ~def-name ~from-sym#)))
-
-(defmacro import-vars
-  "import multiple defs from multiple namespaces. works for vars and fns. not
-  macros.
-
-  [[import-vars]] has the same syntax as `potemkin.namespaces/import-vars`:
-
-   ```clojure
-  (import-vars
-     [m.n.ns1 a b]
-     [x.y.ns2 d e f]) =>
-   (def a m.n.ns1/a)
-   (def b m.n.ns1/b)
-    ...
-   (def d m.n.ns2/d)
-    ... etc
-  ```
-  "
-  [& imports]
-  (let [expanded-imports (for [[from-ns & defs] imports
-                               d defs]
-                           `(import-def ~from-ns ~d))]
-    `(do ~@expanded-imports)))
-
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
 (def compute-abs #?(:clj nt/abs :cljs Math/abs))
@@ -87,6 +56,21 @@
 (defn keyset [m]
   (into #{} (keys m)))
 
+(defn map-vals
+  "Returns a map of identical type and key set to `m`, with each value `v`
+  transformed by the supplied function`f` into `(f v)`."
+  [f m]
+  (reduce-kv (fn [acc k v]
+               (assoc acc k (f v)))
+             (empty m)
+             m))
+
+(defn re-matches?
+  "Returns true if s matches the regex pattern re, false otherwise."
+  [re s]
+  #?(:clj  (.matches (re-matcher re s))
+     :cljs (.test re s)))
+
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
@@ -94,10 +78,8 @@
 (defn ^boolean bigint?
   "Returns true if the supplied `x` is a `BigInt`, false otherwise."
   [x]
-  #?(:clj (instance? BigInt x)
-     :cljs (if-not (nil? x)
-             (identical? (.-constructor x) js/BigInt)
-             false)))
+  #?(:clj  (instance? BigInt x)
+     :cljs (= "bigint" (goog/typeOf x))))
 
 (defn parse-bigint [x]
   `(bigint ~x))
@@ -120,22 +102,29 @@
 
 (defn unsupported [s]
   (throw
-   #?(:clj (UnsupportedOperationException. s)
+   #?(:clj (UnsupportedOperationException. ^String s)
       :cljs (js/Error s))))
 
 (defn exception [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
+
+(defn uuid
+  "Returns a string containing a randomly generated unique identifier."
+  []
+  (str
+   #?(:clj (UUID/randomUUID)
+      :cljs (random-uuid))))
 
 (defn illegal [s]
   (throw
-   #?(:clj (IllegalArgumentException. s)
+   #?(:clj (IllegalArgumentException. ^String s)
       :cljs (js/Error s))))
 
 (defn illegal-state [s]
   (throw
-   #?(:clj (IllegalStateException. s)
+   #?(:clj (IllegalStateException. ^String s)
       :cljs (js/Error s))))
 
 (defn arithmetic-ex [s]
@@ -150,5 +139,5 @@
 
 (defn failure-to-converge [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))

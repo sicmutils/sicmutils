@@ -2,11 +2,12 @@ name: Release to Clojars
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: Clojars Release
     steps:
       - uses: actions/checkout@v2
 
@@ -27,3 +28,6 @@ jobs:
 
       - name: Release
         run: lein deploy clojars
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}

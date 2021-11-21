@@ -23,6 +23,8 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
+            [pattern.rule :as rule :refer [=>]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
@@ -30,6 +32,7 @@
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
+            [sicmutils.simplify :as simpl]
             [sicmutils.value :as v]))
 
 (def gen-literal-element
@@ -187,8 +190,6 @@
            (pr-str
             (an/literal-number (lazy-seq ['* 'x 2])))))))
 
-;; Generators
-
 (deftest literal-number-arithmetic-tests
   (letfn [(check [op l r]
             (let [expected (op l r)
@@ -241,14 +242,34 @@
                    (g/log (an/literal-number x))))
 
             (is (= (an/literal-number (g/log2 x))
-                   (g/log2 (an/literal-number x))))
+                   (-> (g/log2 (an/literal-number x))
+                       (x/evaluate {} {'/ g// 'log g/log})))
+                "(log 2) in the denom stays exact, so force evaluation.")
 
             (is (= (an/literal-number
                     (if (neg? x)
                       (g/log10 (c/complex x))
-                      (/ (g/log x)
-                         (g/log 10))))
-                   (g/log10 (an/literal-number x)))))
+                      (/ (g/log x) (g/log 10))))
+                   (-> (g/log10 (an/literal-number x))
+                       (x/evaluate {} {'/ g// 'log g/log})))
+                "(log 10) in the denom stays exact, so force evaluation."))
+
+  (testing "log2, log10 stay exact"
+    (is (v/= '(/ (log x) (log 2))
+             (g/simplify (g/log2 'x))))
+
+    (is (v/= '(log x)
+             (g/simplify
+              (g/* (g/log (an/literal-number 2))
+                   (g/log2 'x)))))
+
+    (is (v/= '(/ (log x) (log 10))
+             (g/simplify (g/log10 'x))))
+
+    (is (v/= '(log x)
+             (g/simplify
+              (g/* (g/log (an/literal-number 10))
+                   (g/log10 'x))))))
 
   (checking "exp" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (Math/exp x))
@@ -435,9 +456,20 @@
                       (g/csc (an/literal-number x))))))))
 
 (deftest symbolic-arithmetic-tests
-  (testing "+ constructor optimizations"
-    (is (v/= 'x (g/add 0 'x)))
-    (is (v/= 'x (g/add 'x 0))))
+  (testing "0-arity cases for symbolic operators"
+    (is (false? ((sym/symbolic-operator 'or))))
+    (is (true? ((sym/symbolic-operator 'and))))
+    (is (= 0 ((sym/symbolic-operator '+))))
+    (is (= 0 ((sym/symbolic-operator '-))))
+    (is (= 1 ((sym/symbolic-operator '*))))
+    (is (= 1 ((sym/symbolic-operator '/))))
+    (is (= 0 ((sym/symbolic-operator 'gcd))))
+    (is (= 1 ((sym/symbolic-operator 'lcm)))))
+
+  (checking "+ constructor optimizations" 100
+            [x gen/symbol]
+            (is (v/= x (g/add 0 x)))
+            (is (v/= x (g/add x 0))))
 
   (testing "sums fuse together in the constructor"
     (is (= '(+ x y z) (v/freeze (g/add 'x (g/add 'y 'z)))))
@@ -447,10 +479,11 @@
            (v/freeze (g/add (g/add 'y 'z)
                             (g/add 'a 'b))))))
 
-  (testing "sub constructor optimizations"
-    (is (= (g/negate 'x) (g/- 0 'x)))
-    (is (v/= 'x (g/- 'x 0)))
-    (is (v/= 0 (g/- 'x 'x))))
+  (checking "- constructor optimizations" 100
+            [x gen/symbol]
+            (is (= (g/negate 'x) (g/sub 0 'x)))
+            (is (v/= 'x (g/sub 'x 0)))
+            (is (v/= 0 (g/sub 'x 'x))))
 
   (testing "+/- with symbols"
     (is (= (g/+ 15 'x) (g/+ 10 3 2 'x)))
@@ -462,12 +495,6 @@
     (is (= (g/- 10 (g/+ 'x 3 2 1)) (g/- 10 'x 3 2 1)))
     (is (= (g/- 10 (g/+ 20 'x 3 2 1)) (g/- 10 20 'x 3 2 1))))
 
-  (testing "mul constructor optimizations"
-    (is (v/= 0 (g/* 0 'x)))
-    (is (v/= 0 (g/* 'x 0)))
-    (is (v/= 'x (g/* 1 'x)))
-    (is (v/= 'x (g/* 'x 1))))
-
   (testing "products fuse together in the constructor"
     (is (= '(* x y z) (v/freeze (g/mul 'x (g/mul 'y 'z)))))
     (is (= '(* 10 y z) (v/freeze (g/mul 10 (g/mul 'y 'z)))))
@@ -476,6 +503,13 @@
            (v/freeze (g/mul (g/mul 'y 'z)
                             (g/mul 'a 'b))))))
 
+  (checking "* constructor optimizations" 100
+            [x gen/symbol]
+            (is (v/= 0 (g/mul 0 'x)))
+            (is (v/= 0 (g/mul 'x 0)))
+            (is (v/= 'x (g/mul 1 'x)))
+            (is (v/= 'x (g/mul 'x 1))))
+
   (testing "* with symbols"
     (is (= (g/* 60 'x) (g/* 10 3 2 'x)))
     (is (= (g/* 10 'x 3 2) (g/* 10 'x 3 2)))
@@ -483,11 +517,91 @@
     (is (= (g/* 'x 10 'x 3 2 1) (g/* 'x 10 'x 3 2 1)))
     (is (= (g/* 200 'x 3 2) (g/* 10 20 'x 3 2 1))))
 
-  (testing "div constructor optimizations"
-    (is (v/= 0 (g/divide 0 'x)))
-    (is (v/= 'x (g/divide 'x 1)))
-    (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
-                 (g/divide 'x 0))))
+  (checking "zero annihilates any symbolic products" 100
+            [pre (gen/vector gen/symbol)
+             post (gen/vector gen/symbol)]
+            (is (zero?
+                 (apply (sym/symbolic-operator '*)
+                        (concat pre [0] post)))))
+
+  (checking "div constructor optimizations" 100 [x gen/symbol]
+            (is (v/= 0 (g/div 0 x)))
+            (is (v/= x (g/div x 1)))
+            (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
+                         (g/div x 0))))
+
+  (checking "modulo constructor optimizations" 100
+            [x gen/symbol
+             y gen/symbol]
+            (is (v/= 0 (g/modulo 0 x)))
+            (is (v/= 0 (g/modulo x x)))
+            (if (= x y)
+              (is (= 0 (v/freeze (g/modulo x y))))
+              (is (= (list 'modulo x y)
+                     (v/freeze (g/modulo x y)))))
+            (is (v/= x (g/modulo x 1))))
+
+  (testing "unary ops with symbols"
+    (is (= '(floor x) (v/freeze (g/floor 'x))))
+    (is (= '(ceiling x) (v/freeze (g/ceiling 'x))))
+    (is (= '(integer-part x) (v/freeze (g/integer-part 'x))))
+    (is (= '(fractional-part x) (v/freeze (g/fractional-part 'x)))))
+
+  (checking "gcd, lcm annihilation" 100
+            [pre (gen/vector gen/symbol)
+             post (gen/vector gen/symbol)]
+            (is (v/one?
+                 (apply (sym/symbolic-operator 'gcd)
+                        (concat pre [1] post))))
+
+            (is (v/zero?
+                 (apply (sym/symbolic-operator 'lcm)
+                        (concat pre [0] post)))))
+
+  (let [non-one-zero (gen/fmap (fn [n]
+                                 (if (or (v/zero? n) (v/one? n))
+                                   2
+                                   n))
+                               sg/any-integral)]
+    (checking "symbolic gcd" 100 [sym gen/symbol
+                                  n non-one-zero]
+              (is (v/= (list 'gcd sym n) (g/gcd sym n)))
+              (is (v/= (list 'gcd n sym) (g/gcd n sym)))
+
+              (is (v/= sym (g/gcd sym sym))
+                  "gcd(x,x)==x")
+
+              (is (v/= sym (g/gcd (v/zero-like n) sym))
+                  "gcd(x,0)==x")
+
+              (is (v/= sym (g/gcd sym (v/zero-like n)))
+                  "gcd(0,x)==x")
+
+              (is (v/one? (g/gcd (v/one-like n) sym))
+                  "gcd(1,x)==1")
+
+              (is (v/one? (g/gcd sym (v/one-like n)))
+                  "gcd(x,1)==1"))
+
+    (checking "symbolic lcm" 100 [sym gen/symbol
+                                  n non-one-zero]
+              (is (v/= (list 'lcm sym n) (g/lcm sym n)))
+              (is (v/= (list 'lcm n sym) (g/lcm n sym)))
+
+              (is (v/= sym (g/lcm sym sym))
+                  "lcm(x,x)==x")
+
+              (is (v/zero? (g/lcm (v/zero-like n) sym))
+                  "lcm(x,0)==0")
+
+              (is (v/zero? (g/lcm sym (v/zero-like n)))
+                  "lcm(0,x)==0")
+
+              (is (v/= sym (g/lcm (v/one-like n) sym))
+                  "lcm(1,x)==x")
+
+              (is (v/= sym (g/lcm sym (v/one-like n)))
+                  "lcm(x,1)==x")))
 
   (testing "/ with symbols"
     (is (= (g// 'x (g/* 10 'x 3 2))
@@ -497,7 +611,7 @@
            (g// (g/* 10 20 'x) (g/* 'x 3 2 1)))))
 
   (testing "negate"
-    (is (= (g/+ 'x (g/- 'x) (g/+ 'x (g/negate 'x)))))
+    (is (= (g/+ 'x (g/- 'x)) (g/+ 'x (g/negate 'x))))
     (is (= '(+ x (- x)) (v/freeze
                          (g/+ 'x (g/negate 'x))))))
 
@@ -528,16 +642,17 @@
                    (v/freeze (g/sqrt x)))))
 
   (checking "log" 100 [x gen/symbol]
-            (is (= (list 'log x)
-                   (v/freeze (g/log x))))
+            (is (v/= (list 'log x)
+                     (g/log x)))
+
             (is (v/= (g// (g/log x)
-                          (Math/log 2))
+                          (g/log (an/literal-number 2)))
                      (g/log2 x))
-                "log2 divides by the inexact (log 2).")
+                "log2 divides by the exact (log 2).")
             (is (v/= (g// (g/log x)
-                          (Math/log 10))
+                          (g/log (an/literal-number 10)))
                      (g/log10 x))
-                "log10 divides by the inexact (log 10)."))
+                "log10 divides by the exact (log 10)."))
 
   (checking "exp" 100 [x gen/symbol]
             (is (= (list 'exp x)
@@ -616,6 +731,17 @@
                        (g/make-polar sym n))
                   "for other cases, the complex number is evaluated.")))
 
+  (testing "helpful unit tests from generative testing"
+    (let [r 'A, theta 'pi]
+      (is (= (g/* r (g/+ (g/cos theta)
+                         (g/* c/I (g/sin theta))))
+             (g/make-polar r theta))))
+
+    (let [n -1, sym 'pi]
+      (is (= (g/* n (g/+ (g/cos sym)
+                         (g/* c/I (g/sin sym))))
+             (g/make-polar n sym)))))
+
   (checking "real-part" 100 [z gen/symbol]
             (is (= (g/* (g// 1 2)
                         (g/+ z (g/conjugate z)))
@@ -623,7 +749,7 @@
 
   (checking "imag-part" 100 [z gen/symbol]
             (is (= (g/* (g// 1 2)
-                        (g/* #sicm/complex "0-1i"
+                        (g/* (c/complex 0 -1)
                              (g/- z (g/conjugate z))))
                    (g/imag-part z))))
 
@@ -753,3 +879,122 @@
                   (log (- 1 x)))
                2)
            (v/freeze (g/atanh 'x))))))
+
+(deftest boolean-tests
+  ;; These don't QUITE belong in the namespace for abstract number; TODO move
+  ;; these to sicmutils.abstract.boolean when we make that namespace.
+  (let [sym:or (sym/symbolic-operator 'or)
+        sym:and (sym/symbolic-operator 'and)
+        sym:not (sym/symbolic-operator 'not)
+        sym:=   (sym/symbolic-operator '=)]
+    (is (= '(= (and (or a b) (not (or c d)))
+               (or x z))
+           (sym:= (sym:and (sym:or 'a 'b)
+                           (sym:not (sym:or 'c 'd)))
+                  (sym:or 'x 'z)))
+        "all forms work as expected with symbols.")
+
+    (checking "symbolic function annihilators" 100
+              [pre (gen/vector gen/symbol)
+               post (gen/vector gen/symbol)]
+              (is (true? (apply sym:or (concat pre [true] post)))
+                  "`or` returns a bare `true` if any `true` appears.")
+
+              (is (false? (apply sym:and (concat pre [false] post)))
+                  "`and` returns a bare `true` if any `true` appears."))
+
+    (checking "symbolic matches actual" 100 [l gen/boolean
+                                             r gen/boolean]
+              (is (= (and l r) (sym:and l r)))
+              (is (= (or l r) (sym:or l r)))
+              (is (= (not l) (sym:not l))))
+
+    (checking "sym:= matches v/= for numbers"
+              100 [l sg/number
+                   r sg/number]
+              (is (= (v/= l r)
+                     (sym:= l r)))
+
+              (is (false? (sym:= l 'x))
+                  "numbers are never equal to symbols, so false comes back")
+
+              (is (false? (sym:= 'x r))
+                  "numbers are never equal to symbols, so false comes back"))
+
+    (checking "symbolic `or` behavior with boolean"
+              100 [n gen/any-equatable]
+              (is (true? (sym:or n true))
+                  "true on right is always true")
+
+              (is (true? (sym:or true n))
+                  "true on left is always true")
+
+              (is (= n (sym:or false n))
+                  "false on left returns right side")
+
+              (is (= n (sym:or n false))
+                  "false on right returns left side"))
+
+    (checking "symbolic `and` behavior with boolean"
+              100 [n gen/any-equatable]
+              (is (false? (sym:and n false))
+                  "false on right is always false")
+
+              (is (false? (sym:and false n))
+                  "false on left is always false")
+
+              (is (= n (sym:and true n))
+                  "true on left returns right side")
+
+              (is (= n (sym:and n true))
+                  "true on right returns left side"))))
+
+(deftest symbolic-derivative-tests
+  (let [derivative (sym/symbolic-operator 'derivative)]
+    (testing "structural utilities"
+      (is (sym/derivative? '(D f)))
+      (is (not (sym/derivative? '(e f))))
+
+      (is (not (sym/iterated-derivative?
+                '(expt D 2))))
+
+      (is (sym/iterated-derivative?
+           '((expt D 2) f)))
+
+      (is (= '((expt D 2) f)
+             (derivative '(D f))))
+
+      (is (= '((expt D 3) f)
+             (derivative '((expt D 2) f)))))))
+
+(deftest incremental-simplifier-tests
+  (testing "incremental simplifier works for unary, binary"
+    (binding [sym/*incremental-simplifier* simpl/simplify-expression]
+      (is (= 1 (v/freeze
+                (g/+ (g/square (g/cos 'x))
+                     (g/square (g/sin 'x)))))))
+
+    (let [flip (rule/ruleset*
+                (rule/rule (+ ?a ?a) => (* 2 ?a))
+                (rule/rule (cos x) => 12))]
+      (binding [sym/*incremental-simplifier* flip]
+        (is (= '(* 2 (cos theta))
+               (v/freeze
+                (g/+ (g/cos 'theta) (g/cos 'theta))))
+            "The rule applies a single simplification.")
+
+        (is (= 24 (v/freeze
+                   (g/+ (g/cos 'x) (g/cos 'x))))
+            "rule here maps `(g/cos 'x)` to 12 internally, then `g/+` actually
+            performs the addition."))))
+
+  (testing "simplify-numerical-expression"
+    (is (v/= '(+ x x x)
+             (an/simplify-numerical-expression
+              '(+ x x x)))
+        "acts as identity for non-Literal instances...")
+
+    (is (v/= '(* 3 x)
+             (an/simplify-numerical-expression
+              (an/literal-number '(+ x x x))))
+        "expressions are simplified.")))

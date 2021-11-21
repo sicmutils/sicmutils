@@ -34,10 +34,9 @@
             [sicmutils.polynomial]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            [sicmutils.calculus.derivative :refer [derivative-symbol]])
+            [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang IFn])))
+     (:import (clojure.lang IFn))))
 
 ;; ## Abstract Function
 ;;
@@ -68,7 +67,7 @@
         DOWN* (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
         X*    (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
 
-(defn sicm-signature->domain-range
+(defn ^:no-doc sicm-signature->domain-range
   "Convert a SICM-style literal function signature (e.g.,
   '(-> Real (X Real Real)) ) to our 'exemplar' format."
   [[arrow domain range]]
@@ -223,7 +222,7 @@
          :else
          (u/illegal (str "WTF range" range)))))
 
-(defn binding-pairs [litfns]
+(defn ^:no-doc binding-pairs [litfns]
   (letfn [(extract-sym [entry]
             (if (symbol? entry) entry (first entry)))
           (entry->fn [entry]
@@ -246,64 +245,40 @@
 
 ;; ## Differentiation of literal functions
 
-(defn symbolic-derivative? [expr]
-  (and (sequential? expr)
-       ;; XXX GJS uses 'derivative here; should we? doesn't he just
-       ;; have to change it back to D when printing?
-       (= (first expr) derivative-symbol)))
+(defn- literal-partial [f path]
+  (let [fexp (if (= (f/arity f) [:exactly 1]) ;; univariate
+               (if (= (first path) 0)
+                 (if (= (count path) 1)
+                   ;; Special-case the single argument case, or a unary function
+                   ;; that's provided with a structure of a single entry.
+                   (sym/derivative (name f))
+                   `((~'partial ~@(next path)) ~(name f)))
+                 (u/illegal "wrong indices"))
+               ;; If the function takes multiple arguments we DO need to index
+               ;; into that first layer. (else the first layer is added.)
+               `((~'partial ~@path) ~(name f)))]
+    (->Function
+     fexp (f/arity f) (domain-types f) (range-type f))))
 
-(defn iterated-symbolic-derivative? [expr]
-  (and (sequential? expr)
-       (sequential? (first expr))
-       (sym/expt? (first expr))
-       (= (second (first expr)) derivative-symbol)))
-
-(defn symbolic-increase-derivative [expr]
-  (let [expt (sym/symbolic-operator 'expt)]
-    (cond (symbolic-derivative? expr)
-          (list (expt derivative-symbol 2) (fnext expr))
-          (iterated-symbolic-derivative? expr)
-          (list (expt derivative-symbol
-                      (+ (first (nnext (first expr)))
-                         1))
-                (fnext expr))
-          :else
-          (list derivative-symbol expr))))
-
-(defn- make-partials [f v]
-  ;; GJS calls this function (the loop below) "fd"; we have no idea
-  ;; what that stands for or what
-  ;; is being attempted here
-  (letfn [(fd [indices vv]
-            (cond (s/structure? vv)
-                  (s/same vv (map-indexed (fn [i element]
-                                            (fd (conj indices i) element))
-                                          vv))
-                  (or (v/numerical? vv)
-                      (x/abstract? vv))
-                  (let [fexp (if (= (f/arity f) [:exactly 1])  ; univariate
-                               (if (= (first indices) 0)
-                                 (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (name f))
-                                   `((~'partial ~@(next indices)) ~(name f)))
-                                 (u/illegal "wrong indices"))
-                               `((~'partial ~@indices) ~(name f)))]
-                    (->Function
-                     fexp (f/arity f) (domain-types f) (range-type f)))
-                  :else
-                  (u/illegal (str "make-partials WTF " vv))))]
-    (fd [] v)))
-
-(defn- literal-derivative [f xs]
-  (let [v (m/seq-> xs)
-        maxtag (apply d/max-order-tag (flatten v))
-        ve (s/mapr #(d/primal-part % maxtag) v)
-        dv (s/mapr #(d/tangent-part % maxtag) v)]
-    (d/d:+ (apply f ve)
-           (reduce d/d:+ (map (fn [partialx dx]
-                                (d/d:* (apply partialx ve) dx))
-                              (flatten (make-partials f v))
-                              (flatten dv))))))
+(defn- literal-derivative
+  "Takes a literal function `f` and a sequence of arguments `xs`, and generates an
+  expanded `((D f) xs)` by applying the chain rule and summing the partial
+  derivatives for each differential argument in the input structure."
+  [f xs]
+  (let [v        (m/seq-> xs)
+        flat-v   (flatten v)
+        tag      (apply d/max-order-tag flat-v)
+        ve       (s/mapr #(d/primal-part % tag) v)
+        partials (s/map-chain
+                  (fn [x path _]
+                    (let [dx (d/tangent-part x tag)]
+                      (if (v/zero? dx)
+                        0
+                        (d/d:* (literal-apply
+                                (literal-partial f path) ve)
+                               dx))))
+                  v)]
+    (apply d/d:+ (apply f ve) (flatten partials))))
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as
@@ -319,7 +294,7 @@
                            (= (s/orientation provided) (s/orientation expected))
                            (= (count provided) (count expected)))
               (u/illegal (str "expected structure matching " expected
-                              " but got " provided )))
+                              " but got " provided)))
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
         (keyword? expected) ;; a keyword has to match the argument's kind
@@ -337,8 +312,11 @@
 
 ;; ## Specific Generics
 ;;
-;; We can install one more method - [[sicmutils.generic/simplify]] simplifies
-;; the attached name, but does not return its own function.
+;; We can install one more method - [[sicmutils.generic/simplify]] returns its
+;; argument with the internally captured name simplified.
 
-(defmethod g/simplify [Function] [a]
-  (g/simplify (name a)))
+(defmethod g/simplify [::function] [f]
+  (->Function (g/simplify (name f))
+              (f/arity f)
+              (domain-types f)
+              (range-type f)))

@@ -166,29 +166,31 @@
   #?(:cljs
      (let [total-time (us/stopwatch :started? false)
            latest     (atom 0)]
-       (fn [initial-state step-size t {:keys [observe] :as opts}]
-         (us/start total-time)
-         (let [{:keys [integrator equations dimension stopwatch counter]}
-               (integration-opts state-derivative derivative-args initial-state opts)
-               initial-state-array (into-array
-                                    (flatten initial-state))
-               array->state #(struct/unflatten % initial-state)
-               output-buffer (double-array dimension)
-               observe-fn    (when observe
-                               (set! (.-denseOutput integrator) true)
-                               (.grid integrator step-size
-                                      (fn [t y]
-                                        (reset! latest t)
-                                        (observe t (array->state y)))))]
-           (let [output (.solve integrator equations 0 initial-state-array t observe-fn)
-                 ret    (array->state (.-y output))]
-             (when (and observe (not (near? t @latest)))
-               (observe t ret))
-             (us/stop total-time)
-             (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
-             (us/reset total-time)
-             (reset! latest 0)
-             ret))))
+       (fn call
+         ([initial-state step-size t]
+          (call initial-state step-size t {}))
+         ([initial-state step-size t {:keys [observe] :as opts}]
+          (us/start total-time)
+          (let [{:keys [integrator equations dimension stopwatch counter]}
+                (integration-opts state-derivative derivative-args initial-state opts)
+                initial-state-array (into-array
+                                     (flatten initial-state))
+                array->state #(struct/unflatten % initial-state)
+                observe-fn    (when observe
+                                (set! (.-denseOutput integrator) true)
+                                (.grid integrator step-size
+                                       (fn [t y]
+                                         (reset! latest t)
+                                         (observe t (array->state y)))))]
+            (let [output (.solve integrator equations 0 initial-state-array t observe-fn)
+                  ret    (array->state (.-y output))]
+              (when (and observe (not (near? t @latest)))
+                (observe t ret))
+              (us/stop total-time)
+              (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+              (us/reset total-time)
+              (reset! latest 0)
+              ret)))))
 
      :clj
      (let [total-time (us/stopwatch :started? false)]

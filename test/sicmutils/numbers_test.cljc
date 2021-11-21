@@ -35,6 +35,18 @@
 
 (def near (v/within 1e-12))
 
+(defn gen-integer
+  "Integral generator that takes a `max` magnitude size parameter."
+  ([] sg/any-integral)
+  ([max] (gen/fmap #(g/modulo % (int max))
+                   sg/any-integral)))
+
+(defn gen-real
+  "Integral generator that takes a `max` magnitude size parameter."
+  ([] sg/real)
+  ([max] (gen/fmap #(g/modulo % (int max))
+                   sg/real)))
+
 (deftest numeric-laws
   ;; All native types available on clj and cljs form fields.
   (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
@@ -48,6 +60,11 @@
   #?(:cljs
      ;; this is covered by sg/long in clj.
      (l/field 100 sg/native-integral "integral js/Number")))
+
+#?(:clj
+   ;; Same note here about no bigint/biginteger distinction in cljs.
+   (deftest biginteger-generics
+     (gt/integral-tests u/biginteger)))
 
 (deftest floating-point-laws
   ;; Doubles form a field too.
@@ -137,10 +154,6 @@
       (is (ish? 316.2277660168379 (g/expt (u/bigint 10) 2.5)))
       (is (ish? 9536.7431640625 (g/expt 2.5 (u/bigint 10)))))))
 
-#?(:clj
-   (deftest biginteger-generics
-     (gt/integral-tests u/biginteger)))
-
 (deftest double-generics
   (gt/integral-tests double
                      :eq near
@@ -219,6 +232,188 @@
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
 
+(deftest fractional-integer-tests
+  (checking "fractional-part" 100
+            [x sg/real]
+            (testing "0 <= frac(x) < 1"
+              (is (<= 0 (g/fractional-part x)))
+              (is (< (g/fractional-part x) 1)))
+
+            (is (= (g/fractional-part x)
+                   (g/- x (g/floor x)))
+                "for neg or pos x, x - floor(x) == frac(x)"))
+
+  (checking "frac(x) + int(x) == x for non-negative real x" 100
+            [x (gen/fmap g/abs sg/real)]
+            (is (== x (g/+ (g/integer-part x)
+                           (g/fractional-part x)))))
+
+  (checking "fractional, integer-part are idempotent" 100
+            [x sg/real]
+            (is (= (g/fractional-part x)
+                   (g/fractional-part
+                    (g/fractional-part x))))
+
+            (is (= (g/integer-part x)
+                   (g/integer-part
+                    (g/integer-part x))))))
+
+(deftest floor-ceil-tests
+  (checking "floor and ceiling relations" 100
+            [n sg/any-integral]
+            (is (= n (g/floor n) (g/ceiling n))
+                "floor(n) == ceiling(n) == n for ints")
+
+            (is (not
+                 (pos?
+                  (v/compare (g/floor n) (g/ceiling n))))
+                "floor(n) <= ceiling(n)"))
+
+  (checking "negating arg switches floor and ceiling, changes sign" 100
+            [n sg/any-integral]
+            (is (v/zero?
+                 (g/+ (g/floor n)
+                      (g/ceiling (g/- n))))
+                "floor(x) + ceil(-x) == 0")
+
+            (is (= (g/- (g/floor n))
+                   (g/ceiling (g/- n)))
+                "-floor(x) == ceil(-x)")
+
+            (is (= (g/- (g/ceiling n))
+                   (g/floor (g/- n)))
+                "-ceil(x) == floor(-x)"))
+
+  (checking "floor, ceiling are idempotent" 100
+            [x sg/real]
+            (is (= (g/floor x)
+                   (g/floor (g/floor x))))
+
+            (is (= (g/ceiling x)
+                   (g/ceiling (g/ceiling x)))))
+
+  (checking "⌊x + n⌋ == ⌊x⌋ + n for all integers n" 100
+            [x (gen-real 1e4)
+             n (gen-integer 1e4)]
+            (is (ish? (g/floor (g/+ x n))
+                      (g/+ (g/floor x) n))))
+
+  (checking "⌈x + n⌉ == ⌈x⌉ + n for all integers n" 100
+            [x (gen-real 1e4)
+             n (gen-integer 1e4)]
+            (is (ish? (g/ceiling (g/+ x n))
+                      (g/+ (g/ceiling x) n))))
+
+  ;; These nice identities come from [John Cook's
+  ;; blog](https://www.johndcook.com/blog/2020/08/14/multiply-divide-and-floor/).
+  (checking "for nat n, real x, ⌊⌊n x⌋ / n⌋ == ⌊x⌋" 100
+            [n (gen/fmap inc gen/nat)
+             x sg/real]
+            (is (= (g/floor x)
+                   (g/floor
+                    (g/div (g/floor (g/* n x)) n)))))
+
+  (checking "for nat n, real x, ⌈⌈n x⌉ / n⌉ == ⌈x⌉" 100
+            [n (gen/fmap inc gen/nat)
+             x sg/real]
+            (is (= (g/ceiling x)
+                   (g/ceiling
+                    (g// (g/ceiling (g/* n x)) n))))))
+
+(deftest modulo-remainder-tests
+  ;; NOTE: Some of these use integer on one side simply to control numerical
+  ;; instability, not because the operations are invalid for real.
+  ;;
+  ;; TODO unit test with real side for anything that bakes in integer.
+  (letfn [(nonzero [g]
+            (gen/fmap (fn [x]
+                        (if (v/zero? x)
+                          (v/one-like x)
+                          x))
+                      g))]
+    (checking "mod, rem identity" 100
+              [x (gen-real 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (is (ish? (g/modulo x y)
+                        (g/modulo
+                         (g/modulo x y) y)))
+
+              (is (ish? (g/remainder x y)
+                        (g/remainder
+                         (g/remainder x y) y))))
+
+    (checking "x mod y == x - y ⌊x/y⌋ for real x, y" 100
+              [x (gen-real 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (is (ish? (g/modulo x y)
+                        (g/- x (g/* y (g/floor
+                                       (g/div x y)))))
+                  "y == int to keep things numerically stable."))
+
+    (checking "mod(x y) == rem(x y) for positive x, y" 100
+              [x (gen/fmap g/abs (gen-real 1e4))
+               y (nonzero
+                  (gen/fmap g/abs (gen-integer 1e4)))]
+              (is (ish? (g/modulo x y)
+                        (g/remainder x y))))
+
+    (checking "x == y*quot(x,y) + rem(x,y)" 100
+              [x (gen-integer 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (let [rem (g/remainder x y)]
+                (is (= x (g/+ (g/* y (g/quotient x y))
+                              rem)))
+
+                (when-not (v/zero? rem)
+                  (is (= (v/compare 0 x)
+                         (v/compare 0 rem))
+                      "`g/remainder` returns a result of either 0 or the same
+              sign as the numerator."))))
+
+    (checking "x == y*floor(x/y) + mod(x,y)" 100
+              [x (gen-integer 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (let [mod (g/modulo x y)]
+                (is (= x (g/+ (g/* y (g/floor (g// x y)))
+                              mod)))
+
+                (when-not (v/zero? mod)
+                  (is (= (v/compare 0 y)
+                         (v/compare 0 mod))
+                      "`g/modulo` returns a result of either 0 or the same sign
+              as the denominator."))))
+
+    (checking "gcd identities" 100 [x sg/any-integral]
+              (let [ax (g/abs x)]
+                (is (= ax (g/gcd 0 x)))
+                (is (= ax (g/gcd x 0)))
+                (is (= 1 (g/gcd 1 x)))
+                (is (= 1 (g/gcd x 1)))))
+
+    (letfn [(nonzero [g]
+              (gen/fmap (fn [x]
+                          (-> (if (v/zero? x) 1 x)
+                              (g/remainder 10000)))
+                        g))]
+      (checking "gcd" 100 [x (nonzero sg/small-integral)
+                           y (nonzero sg/small-integral)
+                           z (nonzero sg/small-integral)]
+                (let [gxy (g/gcd x y)
+                      x (g/div x gxy)
+                      y (g/div y gxy)
+                      z (g/abs z)
+
+                      ;; `x` and `y` are now relatively prime, `z` positive.
+                      xz (g/* x z)
+                      yz (g/* y z)
+                      g (g/gcd xz yz)]
+                  (is (not (g/negative? gxy)))
+                  (is (= x (g/exact-divide xz g)))
+                  (is (= y (g/exact-divide yz g)))
+                  (is (= (g/abs z) g)))))
+
+    (testing "lcm"
+      (is (zero? (g/lcm 0 0))))))
 
 (deftest numeric-trig-tests
   (testing "trig"
@@ -318,28 +513,19 @@
                 (is (ish? n (g/tanh (g/atanh n))))))))
 
 (deftest complex-constructor-tests
-  (checking "make-rectangular with zero acts as id" 100 [n sg/real]
-            (let [z (g/make-rectangular n 0)]
+  (checking "make-rectangular with zero (exact and inexact) acts as id" 100
+            [n sg/real]
+            (doseq [z [(g/make-rectangular n 0.0)
+                       (g/make-rectangular n 0)]]
               (is (= n z))
-              (is (not (c/complex? z))))
+              (is (not (c/complex? z)))))
 
-            #?(:clj
-               (is (c/complex? (g/make-rectangular n 0.0))
-                   "On the JVM we can make a non-exact zero and show that this
-                   forces a conversion to complex.")))
-
-  (checking "make-polar with zero angle or radius acts as id" 100 [n sg/real]
-            (let [z (g/make-polar n 0)]
+  (checking "make-polar with zero angle or radius acts as id" 100
+            [n sg/real]
+            (doseq [z [(g/make-polar n 0)
+                       (g/make-polar n 0.0)]]
               (is (= n z))
-              (is (not (c/complex? z))))
-
-            #?(:clj
-               (if (v/exact-zero? n)
-                 (is (not (c/complex? (g/make-polar n 0.0)))
-                     "exactly-zero radius stays itself.")
-                 (is (c/complex? (g/make-polar n 0.0))
-                     "On the JVM we can make a non-exact zero and show that this
-                   forces a conversion to complex."))))
+              (is (not (c/complex? z)))))
 
   (checking "make-rectangular" 100
             [real-part      (sg/reasonable-real 1e4)

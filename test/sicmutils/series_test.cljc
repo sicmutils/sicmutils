@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.series-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
@@ -26,12 +26,13 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.function :as f]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.series :as s]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn check-series [series]
   (testing "v/kind"
@@ -62,13 +63,13 @@
           "the identity-series is an identity on APPLICATION, not for
         multiplication with other series.")))
 
+  (testing "meta / with-meta work")
   (testing "one? zero? identity? always return false (for now!)"
     (is (not (v/zero? (v/zero-like series))))
     (is (not (v/one? (v/one-like series))))
     (is (not (v/identity? (v/identity-like series)))))
 
-  (checking "f/arity" 100
-            [v (gen/fmap s/power-series* (gen/vector sg/real))]
+  (checking "f/arity" 100 [v (sg/power-series sg/real)]
             (is (= [:exactly 1]
                    (f/arity v))
                 "all power-series instances have arity == 1."))
@@ -81,7 +82,16 @@
       (is (= [6 0 9 6 0 9 6 0 9]
              (take 9 (s 3 3)))
           "applying a series containing functions returns a new series with the
-          results."))))
+          results.")))
+
+  (checking "simplify returns a series" 100
+            [s (sg/series)]
+            (is (s/series? (g/simplify s))))
+
+  (checking "simplify returns a power series" 100
+            [s (sg/power-series)]
+            (is (s/series? (g/simplify s)))
+            (is (s/power-series? (g/simplify s)))))
 
 (deftest value-protocol-tests
   (testing "power series"
@@ -97,6 +107,25 @@
                 "evaluating the identity series at `n` will return a series that sums to `n`.")))
 
 (deftest generic-series-tests
+  (checking "metadata arity of constructors works" 100
+            [xs (gen/vector gen/nat)
+             m (gen/map gen/keyword gen/nat)]
+            (is (nil? (meta (s/->PowerSeries xs nil))))
+            (is (= m (meta (s/->PowerSeries xs m))))
+
+            (is (nil? (meta (s/->Series xs nil))))
+            (is (= m (meta (s/->Series xs m)))))
+
+  (checking "with-meta / meta for [[Series]], [[PowerSeries]]" 100
+            [m (gen/map gen/keyword gen/any)
+             s (gen/one-of [(sg/series)
+                            (sg/power-series)])]
+            (is (nil? (meta s))
+                "meta is empty by default")
+
+            (is (= m (meta (with-meta s m)))
+                "with-meta works"))
+
   (let [Q (s/power-series 4)
         R (s/power-series 4 3)
         S (s/power-series 4 3 2)
@@ -173,26 +202,28 @@
                 1]
                (take 4 (g/+ (g/* #sicm/ratio 1/4 nats) S)))))
 
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
-             (g/simplify
-              (take 4 (g/* nats 'ε)))))
+      (is (v/= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* nats 'ε)))))
 
-      (is (= '(0 r (* 2 r) (* 3 r))
-             (g/simplify
-              (take 4 (g/* 'r nats0)))))
+      (is (v/= '(0 r (* 2 r) (* 3 r))
+               (g/simplify
+                (take 4 (g/* 'r nats0)))))
 
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
-             (g/simplify
-              (take 4 (g/* 'ε nats)))))
+      (is (v/= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* 'ε nats)))))
 
-      (is (= '(0 m (* 2 m) (* 3 m))
-             (g/simplify
-              (take 4 (g/* 'm nats0))))))
+      (is (v/= '(0 m (* 2 m) (* 3 m))
+               (g/simplify
+                (take 4 (g/* 'm nats0))))))
 
     (testing "division"
       (let [series (s/series 0 0 0 4 3 2 1)]
         (= [1 0 0 0 0]
-           (take 5 (g/div series series)))))
+           (take 5 (g/div series series))
+           (take 5 (g/solve-linear series series))
+           (take 5 (g/solve-linear-right series series)))))
 
     (testing "constant division"
       (is (= [4 -8 4 0 0 0]
@@ -208,10 +239,12 @@
       (is (= [1 2 3 4 5]
              (take 5 (g// (g/* nats 2) 2)))))
 
-    (testing "series invert"
-      (let [series (s/->PowerSeries (iterate inc 3))]
+    (testing "series invert, solve linear"
+      (let [series (s/->PowerSeries (iterate inc 3) nil)]
         (is (= (take 5 (g/invert series))
-               (take 5 (g/div s/one series)))
+               (take 5 (g/div s/one series))
+               (take 5 (g/solve-linear-right s/one series))
+               (take 5 (g/solve-linear series s/one)))
             "invert(xs) matches div(1, xs)")
 
         (is (= [1 0 0 0 0]
@@ -232,12 +265,12 @@
              (take 6 (g/* (g/sqrt nats)
                           (g/sqrt nats)))))
 
-      (let [xs (s/->PowerSeries (iterate inc 9))]
+      (let [xs (s/->PowerSeries (iterate inc 9) nil)]
         (is (= [9 10 11 12 13 14]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs))))))
 
-      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)))]
+      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)) nil)]
         (is (= [0 0 9 10 11 12]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs)))))))
@@ -332,6 +365,28 @@
              (take 6 (s/integral nats)))
           "By default, constant is 0."))
 
+    (testing "arg-scale on power series"
+      (let [base (s/generate (fn [_] 1))
+            scaled (s/arg-scale base [2])]
+        (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                     (s/arg-scale base [2 3]))
+            "multiple scale factors trigger an error.")
+
+        (is (s/power-series? scaled))
+        (is (= (g/simplify (take 10 (scaled 'x)))
+               (g/simplify (take 10 (base (g/* 2 'x))))))))
+
+    (testing "arg-shift on power series"
+      (let [base (s/generate (fn [_] 1))
+            shifted (s/arg-shift base [2])]
+        (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                     (s/arg-shift base [2 3]))
+            "multiple shifts trigger an error.")
+
+        (is (fn? shifted))
+        (is (= (g/simplify (take 10 (shifted 'x)))
+               (g/simplify (take 10 (base (g/+ 2 'x))))))))
+
     (testing "summing N elements of a series"
       (is (= 4 (s/sum S 0)))
       (is (= 7 (s/sum S 1)))
@@ -363,12 +418,13 @@
       (testing "tetrahedral numbers https://en.wikipedia.org/wiki/Tetrahedral_number"
         (is (= '(1 4 10 20 35 56 84)
                (take 7 (g/square nats))))
-        (is (= '(m (* 4 m) (* 10 m) (* 20 m))
-               (->> (s/generate inc)
-                    g/square
-                    (g/* 'm)
-                    (take 4)
-                    g/simplify)))
+
+        (is (v/= '(m (* 4 m) (* 10 m) (* 20 m))
+                 (->> (s/generate inc)
+                      (g/square)
+                      (g/* 'm)
+                      (take 4)
+                      (g/simplify))))
 
         (is (= [1 4 10 20 35 56 84]
                (take 7 (s/partial-sums triangular)))

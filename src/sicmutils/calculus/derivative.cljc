@@ -305,7 +305,7 @@
 (defn- jacobian
   "Takes:
 
-  - some function `f` of a single [[s/structure?]] argument
+  - some function `f` of a single [[sicmutils.structure/structure?]] argument
   - the unperturbed structural `input`
   - a `selectors` vector that can be empty or contain a valid path into the
     `input` structure
@@ -393,14 +393,14 @@
   Single-argument functions don't transform their arguments."
   ([f] (multivariate f []))
   ([f selectors]
-   (let [d #(euclidean % selectors)]
+   (let [d #(euclidean % selectors)
+         df (d f)
+         df* (d (fn [args] (apply f args)))]
      (-> (fn
            ([] (constantly 0))
-           ([x] ((d f) x))
+           ([x] (df x))
            ([x & more]
-            (let [arg-structure (matrix/seq-> (cons x more))]
-              ((d (fn [args] (apply f args)))
-               arg-structure))))
+            (df* (matrix/seq-> (cons x more)))))
          (f/with-arity (f/arity f) {:from ::multivariate})))))
 
 ;; ## Generic [[g/partial-derivative]] Installation
@@ -417,11 +417,12 @@
 ;; - multiple numerical OR structural inputs
 ;;
 ;; NOTE: The reason that this implementation is also installed
-;; for [[s/Structure]] is that structures act as functions that apply their args
-;; to every (functional) entry. Calling `(multivariate structure selectors)`
-;; allows all of the machinery that handles structure-walking and argument
-;; conversion to run a SINGLE time before getting passed to the structure of
-;; functions, instead of separately for every entry in the structure.
+;; for [[sicmutils.structure/Structure]] is that structures act as functions
+;; that apply their args to every (functional) entry. Calling `(multivariate
+;; structure selectors)` allows all of the machinery that handles
+;; structure-walking and argument conversion to run a SINGLE time before getting
+;; passed to the structure of functions, instead of separately for every entry
+;; in the structure.
 ;;
 ;; TODO: I think this is going to cause problems for, say, a Structure of
 ;; PowerSeries, where there is actually a cheap `g/partial-derivative`
@@ -440,8 +441,6 @@
 ;; This section exposes various differential operators as [[o/Operator]]
 ;; instances.
 
-(def ^:no-doc derivative-symbol 'D)
-
 (def ^{:doc "Derivative operator. Takes some function `f` and returns a function
   whose value at some point can multiply an increment in the arguments, to
   produce the best linear estimate of the increment in the function value.
@@ -455,7 +454,13 @@
   opposite orientation as [[D]]. Both of these functions use forward-mode
   automatic differentiation."} D
   (o/make-operator #(g/partial-derivative % [])
-                   derivative-symbol))
+                   g/derivative-symbol))
+
+(defn D-as-matrix [F]
+  (fn [s]
+    (matrix/s->m (s/compatible-shape (F s))
+	               ((D F) s)
+	               s)))
 
 (defn partial
   "Returns an operator that, when applied to a function `f`, produces a function
@@ -465,59 +470,14 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
 
-(def ^{:doc "Operator that takes a function `f` and returns a new function that
-  calculates the [Gradient](https://en.wikipedia.org/wiki/Gradient) of `f`.
-
-  The related [[D]] operator returns a function that produces a structure of the
-  opposite orientation as [[Grad]]. Both of these functions use forward-mode
-  automatic differentiation."}
-  Grad
-  (-> (fn [f]
-        (f/compose s/opposite
-                   (g/partial-derivative f [])))
-      (o/make-operator 'Grad)))
-
-(def ^{:doc "Operator that takes a function `f` and returns a function that
-  calculates the [Divergence](https://en.wikipedia.org/wiki/Divergence) of
-  `f` at its input point.
-
- The divergence is a one-level contraction of the gradient."}
-  Div
-  (-> (f/compose g/trace Grad)
-      (o/make-operator 'Div)))
-
-(def ^{:doc "Operator that takes a function `f` and returns a function that
-  calculates the [Curl](https://en.wikipedia.org/wiki/Curl_(mathematics)) of `f`
-  at its input point.
-
-  `f` must be a function from $\\mathbb{R}^3 \\to \\mathbb{R}^3$."}
-  Curl
-  (-> (fn [f-triple]
-        (let [[Dx Dy Dz] (map partial [0 1 2])
-              fx (f/get f-triple 0)
-              fy (f/get f-triple 1)
-              fz (f/get f-triple 2)]
-          (s/up (g/- (Dy fz) (Dz fy))
-                (g/- (Dz fx) (Dx fz))
-                (g/- (Dx fy) (Dy fx)))))
-      (o/make-operator 'Curl)))
-
-(def ^{:doc "Operator that takes a function `f` and returns a function that
-  calculates the [Vector
-  Laplacian](https://en.wikipedia.org/wiki/Laplace_operator#Vector_Laplacian) of
-  `f` at its input point."}
-  Lap
-  (-> (f/compose g/trace (g/* Grad Grad))
-      (o/make-operator 'Lap)))
-
 ;; ## Derivative Utilities
 ;;
 ;; Functions that make use of the differential operators defined above in
 ;; standard ways.
 
 (defn taylor-series
-  "Returns a [[s/Series]] of the coefficients of the taylor series of the function
-  `f` evaluated at `x`, with incremental quantity `dx`.
+  "Returns a [[sicmutils.series/Series]] of the coefficients of the taylor series
+  of the function `f` evaluated at `x`, with incremental quantity `dx`.
 
   NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
   structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`

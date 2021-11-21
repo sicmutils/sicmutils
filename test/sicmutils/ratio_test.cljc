@@ -151,6 +151,10 @@
               (g/invert (g/sqrt 2)))
         "a rational exponent on a float will drop precision."))
 
+  (testing "GCD between ratio, non-ratio"
+    (is (= #sicm/ratio 5/3 (g/gcd 5 #sicm/ratio 10/3)))
+    (is (= #sicm/ratio 2/3 (g/gcd #sicm/ratio 10/3 4))))
+
   (testing "ratio-operations"
     (is (= #sicm/ratio 3/2
            (g/sqrt #sicm/ratio 9/4))
@@ -169,6 +173,49 @@
                   #sicm/ratio 1/4)))
 
     (is (= #sicm/ratio 5/4 (g/div 5 4)))
+
+    (is (= 2 (g/integer-part #sicm/ratio 9/4)))
+    (is (= -2 (g/integer-part #sicm/ratio -9/4)))
+    (is (= #sicm/ratio 1/4 (g/fractional-part #sicm/ratio 9/4)))
+    (is (= #sicm/ratio 3/4 (g/fractional-part #sicm/ratio -9/4)))
+
+    (is (= 2 (g/floor #sicm/ratio 9/4)))
+    (is (= -3 (g/floor #sicm/ratio -9/4)))
+    (is (= 3 (g/ceiling #sicm/ratio 9/4)))
+    (is (= -2 (g/ceiling #sicm/ratio -9/4)))
+
+    (is (= #sicm/ratio 1/4 (g/modulo #sicm/ratio 9/4 2)))
+    (is (= #sicm/ratio 7/4 (g/modulo #sicm/ratio -9/4 2)))
+    (is (= #sicm/ratio -7/4 (g/modulo #sicm/ratio 9/4 -2)))
+    (is (= #sicm/ratio -1/4 (g/modulo #sicm/ratio -9/4 -2)))
+    (is (= #sicm/ratio 1/4 (g/modulo #sicm/ratio 9/4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 5/12 (g/modulo #sicm/ratio -9/4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio -5/12 (g/modulo #sicm/ratio 9/4 #sicm/ratio -2/3)))
+    (is (= #sicm/ratio -1/4 (g/modulo #sicm/ratio -9/4 #sicm/ratio -2/3)))
+    (is (= 0 (g/modulo -4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 1/3 (g/modulo #sicm/ratio 5 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 1/3 (g/modulo #sicm/ratio -5 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio -1/3 (g/modulo #sicm/ratio 5 #sicm/ratio -2/3)))
+    (is (= #sicm/ratio -1/3 (g/modulo #sicm/ratio -5 #sicm/ratio -2/3)))
+
+    (is (= #sicm/ratio 1/4 (g/remainder #sicm/ratio 9/4 2)))
+    (is (= #sicm/ratio -1/4 (g/remainder #sicm/ratio -9/4 2)))
+    (is (= #sicm/ratio 1/4 (g/remainder #sicm/ratio 9/4 -2)))
+    (is (= #sicm/ratio -1/4 (g/remainder #sicm/ratio -9/4 -2)))
+    (is (= #sicm/ratio 1/4 (g/remainder #sicm/ratio 9/4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio -1/4 (g/remainder #sicm/ratio -9/4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 1/4 (g/remainder #sicm/ratio 9/4 #sicm/ratio -2/3)))
+    (is (= #sicm/ratio -1/4 (g/remainder #sicm/ratio -9/4 #sicm/ratio -2/3)))
+    (is (= 0 (g/remainder #sicm/ratio -4 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 1/3 (g/remainder #sicm/ratio 5 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio -1/3 (g/remainder #sicm/ratio -5 #sicm/ratio 2/3)))
+    (is (= #sicm/ratio 1/3 (g/remainder #sicm/ratio 5 #sicm/ratio -2/3)))
+    (is (= #sicm/ratio -1/3 (g/remainder #sicm/ratio -5 #sicm/ratio -2/3)))
+
+    (is (= 2 (g/floor #sicm/ratio 9/4)))
+    (is (= -3 (g/floor #sicm/ratio -9/4)))
+    (is (= 3 (g/ceiling #sicm/ratio 9/4)))
+    (is (= -2 (g/ceiling #sicm/ratio -9/4)))
 
     (is (= 25 (g/exact-divide #sicm/ratio 10/2
                               #sicm/ratio 2/10)))

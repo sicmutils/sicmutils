@@ -1,3 +1,33 @@
 = Historical Notes
 
-Coming soon!
+== The experience of Clojure
+
+This is my (Colin Smith's) first real attempt at a project in Clojure, so I
+can't say that everything I've done is idiomatic or the best possible. On the
+other hand, I've written a fair amount of Scheme, so it has been a lot of fun to
+consider how to best use Clojure's strengths in implementing this. Of course,
+none of this project should be considered original work of my own; it is the
+brainchild of G.J. Sussman and his collaborators. But allow me take a moment to
+describe some of the pleasant surprises I experienced while doing this.
+
+First of all, a rich set of persistent data structures makes all the difference.
+What few examples of mutability in Scmutils where present have all been removed.
+Many instances of using association lists and other `O(n)` data structures have
+been replaced by maps and sets, and the sorted variants of those.
+
+Using `defrecord` and `deftype` simplified the handling of a lot of Scmutils
+objects that were simply the `cons` of a type tag and a value. Such types can
+implement `IFn` when they need to be callable, allowing me to completely dodge
+the `apply-hook` technique used in MIT/GNU Scheme, which is one of the main
+reasons the code would not have been easy to port to other variants of Scheme,
+let alone any other flavor of LISP.
+
+The Scmutils code is essentially a monolith, given that Scheme has no module
+scoping. This Clojure implementation partitions the codebase into a variety of
+namespaces, with unit tests for each. This adds a bit of sanity to the code
+absent in the original, where it is not easy to see exactly how the user's
+environment is constructed. Clojure's namespace facility allows us to prepare
+the environment in which primitive operations like `+` and `*` are replaced with
+their namespace-qualified generic equivalents exactly at the point where this is
+necessary; but also allows the generic operations to be mixed with the native
+operations when this is useful.

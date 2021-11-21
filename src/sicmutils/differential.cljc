@@ -29,6 +29,7 @@
   (:require [clojure.string :refer [join]]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]
             [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v]))
@@ -254,7 +255,7 @@
 ;; al. (2019).
 ;;
 ;; The solution is to introduce a new $\varepsilon$ for every level, and allow
-;; different $\varepsilon$ instances to multiply without annihalating. Each
+;; different $\varepsilon$ instances to multiply without annihilating. Each
 ;; $\varepsilon$ is called a "tag". [[Differential]] (implemented below) is a
 ;; generalized dual number that can track many tags at once, allowing nested
 ;; derivatives like the one described above to work.
@@ -397,8 +398,11 @@
 ;; A differential term is implemented as a pair whose first element is a set of
 ;; tags and whose second is the coefficient.
 
-(def ^:private tags first)
-(def ^:private coefficient peek)
+(defn- tags [term]
+  (nth term 0))
+
+(defn- coefficient [term]
+  (nth term 1))
 
 ;; The set of tags is implemented as a "vector set",
 ;; from [[sicmutils.util.vector-set]]. This is a sorted set data structure,
@@ -472,39 +476,14 @@
 ;; NOTE: Clojure vectors already implement this ordering properly, so we can
 ;; use [[clojure.core/compare]] to determine an ordering on a tag list.
 
-(defn- terms:+
-  "Returns the sum of the two supplied sequences of differential terms; any terms
+(def ^{:private true
+       :doc "Returns the sum of the two supplied sequences of differential terms; any terms
   in the result with a zero coefficient will be removed.
 
   Each input must be sequence of `[tag-set, coefficient]` pairs, sorted by
-  `tag-set`."
-  ([] [])
-  ([xs] xs)
-  ([xs ys]
-   (loop [xs xs, ys ys, result []]
-     (cond (empty? xs) (into result ys)
-           (empty? ys) (into result xs)
-           :else (let [[x-tags x-coef :as x] (first xs)
-                       [y-tags y-coef :as y] (first ys)
-                       compare-flag (v/compare x-tags y-tags)]
-                   (cond
-                     ;; If the terms have the same tag set, add the coefficients
-                     ;; together. Include the term in the result only if the new
-                     ;; coefficient is non-zero.
-                     (zero? compare-flag)
-                     (let [sum (g/+ x-coef y-coef)]
-                       (recur (rest xs)
-                              (rest ys)
-                              (if (v/zero? sum)
-                                result
-                                (conj result (make-term x-tags sum)))))
-
-                     ;; Else, pass the smaller term on unchanged and proceed.
-                     (neg? compare-flag)
-                     (recur (rest xs) ys (conj result x))
-
-                     :else
-                     (recur xs (rest ys) (conj result y))))))))
+  `tag-set`."}
+  terms:+
+  (ua/merge-fn core-compare g/add v/zero? make-term))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:
@@ -534,18 +513,37 @@
 ;; [[terms:*]] implements the first three steps, and calls [[collect-terms]] on
 ;; the resulting sequence:
 
-(defn- terms:*
+(defn- t*ts
+  "Multiplies a single term on the left by a vector of `terms` on the right.
+  Returns a new vector of terms."
+  [[tags coeff] terms]
+  (loop [acc []
+         i 0]
+    (let [t (nth terms i nil)]
+      (if (nil? t)
+        acc
+	      (let [[tags1 coeff1] t]
+	        (if (empty? (uv/intersection tags tags1))
+		        (recur (conj acc (make-term
+		                          (uv/union tags tags1)
+		                          (g/* coeff coeff1)))
+		               (inc i))
+		        (recur acc (inc i))))))))
+
+(defn terms:*
   "Returns a vector of non-zero [[Differential]] terms that represent the product
-  of the differential term lists `xs` and `ys`."
-  ([] [])
-  ([xs] xs)
-  ([xs ys]
-   (collect-terms
-    (for [[x-tags x-coef] xs
-          [y-tags y-coef] ys
-          :when (empty? (uv/intersection x-tags y-tags))]
-      (make-term (uv/union x-tags y-tags)
-                 (g/* x-coef y-coef))))))
+  of the differential term lists `xs` and `ys`.
+
+  NOTE that this function doesn't need to call [[collect-terms]] internally
+  because grouping is accomplished by the internal [[terms:+]] calls."
+  [xlist ylist]
+  (letfn [(call [i]
+            (let [x (nth xlist i nil)]
+              (if (nil? x)
+                []
+                (terms:+ (t*ts x ylist)
+	                       (call (inc i))))))]
+    (call 0)))
 
 ;; ## Differential Type Implementation
 ;;
@@ -701,13 +699,10 @@
   If you pass a non-[[Differential]], [[->terms]] will return a singleton term
   list (or `[]` if the argument was zero)."
   [dx]
-  (cond (differential? dx)
-        (filterv (fn [term]
-                   (not (v/zero? (coefficient term))))
-                 (bare-terms dx))
-
-        (v/zero? dx) []
-        :else        [(make-term dx)]))
+  (cond (differential? dx) (bare-terms dx)
+        (vector? dx)       dx
+        (v/zero? dx)       []
+        :else              [(make-term dx)]))
 
 (defn- terms->differential
   "Returns a differential instance generated from a vector of terms. This method
@@ -729,7 +724,8 @@
         :else (->Differential terms)))
 
 (defn from-terms
-  "Accepts a sequence of terms (pairs of [tag-list, coefficient]), and returns:
+  "Accepts a sequence of terms (ie, pairs of `[tag-list, coefficient]`), and
+  returns:
 
   - a well-formed [[Differential]] instance, if the terms resolve to a
     differential with non-zero infinitesimal terms
@@ -786,7 +782,12 @@
   ([dx dy]
    (terms->differential
     (terms:+ (->terms dx)
-             (->terms dy)))))
+             (->terms dy))))
+  ([dx dy & more]
+   (terms->differential
+    (transduce (map ->terms)
+               terms:+
+               (cons dx (cons dy more))))))
 
 (defn d:*
   "Returns an object representing the product of the two objects `dx` and `dy`.
@@ -805,6 +806,16 @@
    (terms->differential
     (terms:* (->terms dx)
              (->terms dy)))))
+
+(defn d:+*
+  "Identical to `(d:+ a) (d:* b c)`, but _slightly_ more efficient as the function
+  is able to skip creating a [[Differential]] instance during [[d:*]] and then
+  immediately tearing it down for [[d:+]]."
+  [a b c]
+  (terms->differential
+   (terms:+ (->terms a)
+            (terms:* (->terms b)
+                     (->terms c)))))
 
 (defn- d:apply
   "Accepts a [[Differential]] and a sequence of `args`, interprets each
@@ -833,7 +844,7 @@
   defaults to 1.
 
   `tag` defaults to a side-effecting call to [[fresh-tag]]; you can retrieve
-  this unknown tag by calling [[max-order-tag]]"
+  this unknown tag by calling [[max-order-tag]]."
   ([primal]
    {:pre [(v/numerical? primal)]}
    (bundle-element primal 1 (fresh-tag)))
@@ -842,7 +853,7 @@
    (bundle-element primal 1 tag))
   ([primal tangent tag]
    (let [term (make-term (uv/make [tag]) 1)]
-     (d:+ primal (d:* tangent (->Differential [term]))))))
+     (d:+* primal tangent [term]))))
 
 ;; ## Differential Parts API
 ;;
@@ -858,7 +869,7 @@
   no non-zero tangent parts, or all non-[[Differential]]s), returns nil."
   ([dx]
    (when (differential? dx)
-     (let [last-term   (peek (->terms dx))
+     (let [last-term   (peek (bare-terms dx))
            highest-tag (peek (tags last-term))]
        highest-tag)))
   ([dx & dxs]
@@ -892,7 +903,7 @@
   ([dx tag]
    (if (differential? dx)
      (let [sans-tag? #(not (tag-in-term? % tag))]
-       (->> (->terms dx)
+       (->> (bare-terms dx)
             (filterv sans-tag?)
             (terms->differential)))
      dx)))
@@ -917,7 +928,7 @@
   ([dx] (tangent-part dx (max-order-tag dx)))
   ([dx tag]
    (if (differential? dx)
-     (->> (->terms dx)
+     (->> (bare-terms dx)
           (filterv #(tag-in-term? % tag))
           (terms->differential))
      0)))
@@ -938,7 +949,7 @@
      [dx 0]
      (let [[tangent-terms primal-terms]
            (us/separatev #(tag-in-term? % tag)
-                         (->terms dx))]
+                         (bare-terms dx))]
        [(terms->differential primal-terms)
         (terms->differential tangent-terms)]))))
 
@@ -1011,8 +1022,8 @@
   If you want to ignore the tangent components, use [[equiv]]."
   ([_] true)
   ([a b]
-   (= (->terms a)
-      (->terms b)))
+   (v/= (->terms a)
+        (->terms b)))
   ([a b & more]
    (if (eq a b)
      (if (next more)
@@ -1040,8 +1051,8 @@
   the tangent components into account, prefer [[eq]]."
   ([_] true)
   ([a b]
-   (= (finite-term a)
-      (finite-term b)))
+   (v/= (finite-term a)
+        (finite-term b)))
   ([a b & more]
    (if (equiv a b)
      (if (next more)
@@ -1108,9 +1119,9 @@
        (f x)
        (let [[px tx] (primal-tangent-pair x)
              fx      (call px)]
-         (if (and (v/number? tx) (v/zero? tx))
+         (if (v/numeric-zero? tx)
            fx
-           (d:+ fx (d:* (df:dx px) tx))))))))
+           (d:+* fx (df:dx px) tx)))))))
 
 (defn lift-2
   "Given:
@@ -1142,12 +1153,12 @@
              [xe dx] (primal-tangent-pair x tag)
              [ye dy] (primal-tangent-pair y tag)
              a (call xe ye)
-             b (if (and (v/number? dx) (v/zero? dx))
+             b (if (v/numeric-zero? dx)
                  a
-                 (d:+ a (d:* (df:dx xe ye) dx)))]
-         (if (and (v/number? dy) (v/zero? dy))
+                 (d:+* a (df:dx xe ye) dx))]
+         (if (v/numeric-zero? dy)
            b
-           (d:+ b (d:* (df:dy xe ye) dy))))))))
+           (d:+* b (df:dy xe ye) dy)))))))
 
 (defn lift-n
   "Given:
@@ -1220,6 +1231,12 @@
 ;; provides [[defunary]] and [[defbinary]] calls for all of the generic
 ;; operations for which we know how to declare partial derivatives.
 
+;; First, install `equiv` as to perform proper equality between `Differential`
+;; instances and scalars. `equiv` compares on only the finite part, not the
+;; differential parts.
+
+(defbinary v/= equiv)
+
 (defbinary g/add d:+)
 (defunary g/negate (lift-1 g/negate))
 (defbinary g/sub (lift-2 g/sub))
@@ -1244,6 +1261,31 @@
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
+
+(defn- discont-at-integers [f dfdx]
+  (let [f (lift-1 f (fn [_] dfdx))
+        f-name (v/freeze f)]
+    (fn [x]
+      (if (v/integral? (finite-term x))
+        (u/illegal
+         (str "Derivative of g/" f-name " undefined at integral points."))
+        (f x)))))
+
+(defunary g/floor
+  (discont-at-integers g/floor 0))
+
+(defunary g/ceiling
+  (discont-at-integers g/ceiling 0))
+
+(defunary g/integer-part
+  (discont-at-integers g/integer-part 0))
+
+(defunary g/fractional-part
+  (discont-at-integers g/fractional-part 1))
+
+(let [div (lift-2 g/div)]
+  (defbinary g/solve-linear (fn [l r] (div r l)))
+  (defbinary g/solve-linear-right div))
 
 (defunary g/sqrt (lift-1 g/sqrt))
 (defbinary g/expt (lift-2 g/expt))

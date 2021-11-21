@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.abstract.function-test
-  (:refer-clojure :exclude [partial])
+  (:refer-clojure :exclude [partial =])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
@@ -28,7 +28,7 @@
             [sicmutils.generic :as g]
             [sicmutils.generators :as sg]
             [sicmutils.matrix :as m]
-            [sicmutils.value :as v]
+            [sicmutils.value :as v :refer [=]]
             [sicmutils.series :as series]
             [sicmutils.structure :as s :refer [literal-up
                                                literal-down
@@ -82,22 +82,34 @@
           U     (af/literal-function 'U)
           xyt2  (g/square xyt)
           Uxyt2 (U xyt2)]
-      (is (= '(up x y) (g/simplify xy)))
-      (is (= '(up (x t) (y t)) (g/simplify xyt)))
+      (is (= '(up x y)
+             (v/freeze
+              (g/simplify xy))))
+
+      (is (= '(up (x t) (y t))
+             (v/freeze
+              (g/simplify xyt))))
+
       (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
       (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))))
 
   (testing "moved-from-matrix"
-    (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
-           (g/simplify
-            ((m/by-rows (map af/literal-function '[f g])
-                        (map af/literal-function '[h k])) 'x))))
+    (is (= '(matrix-by-rows
+             (up (f x) (g x))
+             (up (h x) (k x)))
+           (v/freeze
+            (g/simplify
+             ((m/by-rows (map af/literal-function '[f g])
+                         (map af/literal-function '[h k])) 'x)))))
 
     (let [R2f #(af/literal-function % [0 1] 0)]
-      (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
-             (g/simplify
-              ((m/by-rows [(R2f 'f) (R2f 'g)]
-                          [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
+      (is (= '(matrix-by-rows
+               (up (f x y) (g x y))
+               (up (h x y) (k x y)))
+             (v/freeze
+              (g/simplify
+               ((m/by-rows [(R2f 'f) (R2f 'g)]
+                           [(R2f 'h) (R2f 'k)]) 'x 'y))))))))
 
 (deftest function-basic
   (let [f (af/literal-function 'F)]
@@ -132,30 +144,31 @@
 (deftest trig-tests
   (testing "tan, sin, cos"
     (let [f (g/- g/tan (g/div g/sin g/cos))]
-      (is (zero? (g/simplify (f 'x))))))
+      (is (v/zero?
+           (g/simplify (f 'x))))))
 
   (testing "cot"
     (let [f (g/- g/cot (g/invert g/tan))]
-      (is (zero? (g/simplify (f 'x))))))
+      (is (v/zero? (g/simplify (f 'x))))))
 
   (testing "tanh"
     (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
-      (is (zero?
+      (is (v/zero?
            (g/simplify (f 'x))))))
 
   (testing "sec"
     (let [f (g/- (g/invert g/cos) g/sec)]
-      (is (zero?
+      (is (v/zero?
            (g/simplify (f 'x))))))
 
   (testing "csc"
     (let [f (g/- (g/invert g/sin) g/csc)]
-      (is (zero?
+      (is (v/zero?
            (g/simplify (f 'x))))))
 
   (testing "sech"
     (let [f (g/- (g/invert g/cosh) g/sech)]
-      (is (zero?
+      (is (v/zero?
            (g/simplify (f 'x)))))))
 
 (defn transpose-defining-relation
@@ -215,25 +228,39 @@
     (let [h (af/literal-function 'h 0 (up 0 0 0))
           k (af/literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
           q (af/literal-function 'q 0 (down (up 0 1) (up 2 3)))]
-      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
+      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t))
+             (v/freeze
+              (g/simplify (h 't)))))
+
       (is (= '(up (k↑0 t)
                   (up (k↑1↑0 t) (k↑1↑1 t))
                   (down (k↑2_0 t) (k↑2_1 t)))
-             (g/simplify (k 't))))
+             (v/freeze
+              (g/simplify (k 't)))))
+
       (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
-                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))
-      (is (= '(down (up 0 0) (up 0 0)) (g/simplify ((v/zero-like q) 't))))))
+                    (up (q_1↑0 t) (q_1↑1 t)))
+             (v/freeze
+              (g/simplify (q 't)))))
+
+      (is (= '(down (up 0 0) (up 0 0))
+             (v/freeze
+              (g/simplify ((v/zero-like q) 't)))))))
 
   (testing "R^n -> structured range"
     (let [h (af/literal-function 'h [0 1] 0)]
       (is (= '(h x y) (g/simplify (h 'x 'y)))))
     (let [m (af/literal-function 'm [0 1] (up 1 2 3))]
       (is (= '(up (m↑0 x y) (m↑1 x y) (m↑2 x y))
-             (g/simplify (m 'x 'y)))))
+             (v/freeze
+              (g/simplify (m 'x 'y))))))
+
     (let [z (af/literal-function 'm [0 1] (up (down 1 2) (down 3 4)))]
       (is (= '(up (down (m↑0_0 x y) (m↑0_1 x y))
                   (down (m↑1_0 x y) (m↑1_1 x y)))
-             (g/simplify (z 'x 'y)))))
+             (v/freeze
+              (g/simplify (z 'x 'y))))))
+
     (let [g (af/literal-function 'm [0 1 2] (down (down 1 2 3)
                                                   (down 4 5 6)
                                                   (down 7 8 9)))]
@@ -241,7 +268,8 @@
                (down (m_0_0 x y z) (m_0_1 x y z) (m_0_2 x y z))
                (down (m_1_0 x y z) (m_1_1 x y z) (m_1_2 x y z))
                (down (m_2_0 x y z) (m_2_1 x y z) (m_2_2 x y z)))
-             (g/simplify (g 'x 'y 'z))))))
+             (v/freeze
+              (g/simplify (g 'x 'y 'z)))))))
 
   (testing "R -> Rⁿ"
     ;; NB: GJS doesn't allow a function with vector range, because
@@ -271,15 +299,6 @@
     (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP* Real 2) (UP* Real 2)))))
     (is (= [[(up 0 (up 0 0) (down 0 0))] 0]
            (k '(-> (UP Real (UP Real Real) (DOWN Real Real)) Real))))))
-
-(deftest function-differential
-  (testing "structural utilities"
-    (is (af/symbolic-derivative? '(D f)))
-    (is (not (af/symbolic-derivative? '(e f))))
-    (is (not (af/iterated-symbolic-derivative? '(expt D 2))))
-    (is (af/iterated-symbolic-derivative? '((expt D 2) f)))
-    (is (= '((expt D 2) f) (af/symbolic-increase-derivative '(D f))))
-    (is (= '((expt D 3) f) (af/symbolic-increase-derivative '((expt D 2) f))))))
 
 (deftest moved-from-series
   (testing "series"
