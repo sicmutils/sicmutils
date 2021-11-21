@@ -50,11 +50,20 @@
 
 (derive ::complex ::v/number)
 
+#?(:clj
+   (def complex-format (ComplexFormat.)))
+
 (defn complex
   "Returns a [[Complex]] number with the supplied real part `re` and imaginary
   part `im`. `im` defaults to 0."
   ([re]
-   (Complex. (u/double re)))
+   #?(:clj (if (string? re)
+             (.parse complex-format re)
+             (Complex. (u/double re)))
+      :cljs (Complex.
+             (if (string? re)
+               re
+               (u/double re)))))
   ([re im]
    (Complex. (u/double re)
              (u/double im))))
@@ -93,29 +102,33 @@
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
-(#?@(:clj [let [cf (ComplexFormat.)]]
-     :cljs [do])
- (defn parse-complex [x]
-   "Parser that converts a string representation of a complex number,
-  like `1 + 3i`, into a [[Complex]] number object in clj or cljs."
-   (cond (string? x)
-         #?(:clj
-            (let [v (.parse cf x)]
-              `(complex ~(real v)
-                        ~(imaginary v)))
-            :cljs `(complex ~x))
+(defn parse-complex [x]
+  "Parser that converts a string, vector or numeric representation of a complex
+   number, like
 
-         (vector? x)
-         (let [[re im] x]
-           (if (or (nil? im)
-                   (v/zero? im))
-             re
-             `(complex ~re ~im)))
+  - `1 + 3i`
+  - [1 3]
+  - 1
 
-         (number? x) x
+  into a [[Complex]] number object in clj or cljs."
+  (cond (string? x)
+        #?(:clj
+           (let [v (.parse complex-format x)]
+             `(complex ~(real v) ~(imaginary v)))
+           :cljs `(complex ~x))
 
-         :else (u/illegal
-                (str "Complex literals must be either strings or vectors. Received: " x)))))
+        (vector? x)
+        (let [[re im] x]
+          (if (nil? im)
+            `(complex ~re)
+            `(complex ~re ~im)))
+
+        (number? x) `(complex ~x)
+
+        :else (u/illegal
+               (str
+                "Complex literals must be either strings or vectors. Received: "
+                x))))
 
 #?(:cljs
    (extend-type Complex

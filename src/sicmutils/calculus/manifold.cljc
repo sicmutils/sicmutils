@@ -27,6 +27,7 @@
 
   As well as a whole bunch of defined manifolds and coordinate systems for
   exploration and fun!"
+  (:refer-clojure :exclude [uuid])
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
             [sicmutils.abstract.number :refer [simplify-numerical-expression]]

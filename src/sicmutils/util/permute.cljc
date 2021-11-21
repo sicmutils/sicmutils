@@ -92,7 +92,8 @@
                      increment))))]
     (lp1 permuted-list 0)))
 
-(defn permutation-interchanges [permuted-list]
+(defn permutation-interchanges
+  ""[permuted-list]
   (letfn [(lp1 [plist n]
             (if (empty? plist)
               n
@@ -117,6 +118,9 @@
 (defn permutation-parity
   "If a single `permuted-list` is supplied, returns the parity of the number of
   interchanges required to sort the permutation.
+
+  NOTE that the requirement that elements be sortable currently constrains
+  `permuted-list`'s elements to be numbers that respond to `>=`.
 
   For two arguments, given a `permuted-list` and the `original-list`, returns
   the parity (1 for even, -1 for odd) of the number of the number of
