@@ -43,7 +43,7 @@
   Clojure. The fork in the test here captures the different behavior that will
   appear in evaluated Clojure, vs self-hosted Clojurescript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
-              :cljs '(sicmutils.complex/complex "1 + 2i"))
+              :cljs '(sicmutils.complex/complex 1 2))
 
            ;; string input:
            (read-string {:readers {'sicm/complex c/parse-complex}}
