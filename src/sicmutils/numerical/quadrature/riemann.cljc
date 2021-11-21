@@ -18,10 +18,10 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.riemann
-  (:require [sicmutils.numerical.interpolate.richardson :as ir]
-            [sicmutils.numerical.quadrature.common :as qc
+  (:require [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
@@ -242,7 +242,7 @@
 ;; One answer to this problem is to use "sequence acceleration" via Richardson
 ;; extrapolation, as described in `richardson.cljc`.
 ;;
-;; `ir/richardson-sequence` takes a sequence of estimates of some function
+;; `pr/richardson-sequence` takes a sequence of estimates of some function
 ;; and "accelerates" the sequence by combining successive estimates.
 ;;
 ;; The estimates have to be functions of some parameter $n$ that decreases by a
@@ -251,7 +251,7 @@
 ;; time, so $t = 2$.
 ;;
 ;; This library's functional style lets us accelerate a sequence of estimates
-;; `xs` by simply wrapping it in a call to `(ir/richardson-sequence xs 2)`.
+;; `xs` by simply wrapping it in a call to `(pr/richardson-sequence xs 2)`.
 ;; Amazing!
 ;;
 ;; Does Richardson extrapolation help?
@@ -264,7 +264,7 @@
    (let [f (fn [x] (* x x))]
      (-> (map (left-sum f 0 10)
               (us/powers 2))
-         (ir/richardson-sequence 2)
+         (pr/richardson-sequence 2)
          (us/seq-limit))))
 
 ;; We now converge to the actual, true value of the integral in 4 terms!
@@ -293,7 +293,7 @@
   This only applies to the Riemann sequences in this namespace!"
   [estimate-seq {:keys [n accelerate?] :or {n 1}}]
   (if (and accelerate? (number? n))
-    (ir/richardson-sequence estimate-seq 2 1 1)
+    (pr/richardson-sequence estimate-seq 2 1 1)
     estimate-seq))
 
 ;; Check that this works:

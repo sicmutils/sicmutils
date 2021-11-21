@@ -20,7 +20,6 @@
 (ns sicmutils.calculus.basis
   (:require [sicmutils.generic :as g]
             [sicmutils.structure :as s]
-            [sicmutils.calculus.coordinate :as coord]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
@@ -103,7 +102,7 @@
                  (-> (s/mapr #(% coords) vector-basis-coefficient-functions)
                      (invert)
                      (transpose))))
-        oneform-basis-coefficient-functions (coord/generate
+        oneform-basis-coefficient-functions (m/c:generate
                                              (:dimension
                                               (m/manifold coordinate-system))
                                              ::s/up

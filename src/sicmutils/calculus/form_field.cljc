@@ -261,8 +261,9 @@
   (fn [vf-structure]
     (letfn [(internal [vf]
               {:pre [(vf/vector-field? vf)]}
-              (vf (f/compose (apply s/component indices)
-                             (m/chart coordinate-system))))]
+              (vf
+               (f/compose (apply s/component indices)
+                          (m/chart coordinate-system))))]
       (s/mapr internal vf-structure))))
 
 (defn coordinate-basis-oneform-field
@@ -274,9 +275,11 @@
   returns a function that takes the directional derivative in that coordinate's
   direction using the vector field."
   [coordinate-system name & indices]
-  (-> (apply coordinate-basis-oneform-field-procedure
-             coordinate-system indices)
-      (procedure->oneform-field name)))
+  (let [ofp (apply coordinate-basis-oneform-field-procedure
+                   coordinate-system indices)]
+    (-> (f/memoize
+         (comp f/memoize ofp))
+        (procedure->oneform-field name))))
 
 (defn ^:no-doc coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis

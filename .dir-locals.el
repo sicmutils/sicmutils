@@ -1,3 +1,3 @@
 ((clojurec-mode
-  . ((cider-preferred-build-tool . shadow-cljs)
+  . ((cider-preferred-build-tool . lein)
      (cider-default-cljs-repl . shadow))))

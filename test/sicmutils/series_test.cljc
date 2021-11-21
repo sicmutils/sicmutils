@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.series-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
@@ -110,10 +110,10 @@
   (checking "metadata arity of constructors works" 100
             [xs (gen/vector gen/nat)
              m (gen/map gen/keyword gen/nat)]
-            (is (nil? (meta (s/->PowerSeries xs))))
+            (is (nil? (meta (s/->PowerSeries xs nil))))
             (is (= m (meta (s/->PowerSeries xs m))))
 
-            (is (nil? (meta (s/->Series xs))))
+            (is (nil? (meta (s/->Series xs nil))))
             (is (= m (meta (s/->Series xs m)))))
 
   (checking "with-meta / meta for [[Series]], [[PowerSeries]]" 100
@@ -240,7 +240,7 @@
              (take 5 (g// (g/* nats 2) 2)))))
 
     (testing "series invert, solve linear"
-      (let [series (s/->PowerSeries (iterate inc 3))]
+      (let [series (s/->PowerSeries (iterate inc 3) nil)]
         (is (= (take 5 (g/invert series))
                (take 5 (g/div s/one series))
                (take 5 (g/solve-linear-right s/one series))
@@ -265,12 +265,12 @@
              (take 6 (g/* (g/sqrt nats)
                           (g/sqrt nats)))))
 
-      (let [xs (s/->PowerSeries (iterate inc 9))]
+      (let [xs (s/->PowerSeries (iterate inc 9) nil)]
         (is (= [9 10 11 12 13 14]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs))))))
 
-      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)))]
+      (let [xs (s/->PowerSeries (concat [0 0] (iterate inc 9)) nil)]
         (is (= [0 0 9 10 11 12]
                (take 6 (g/* (g/sqrt xs)
                             (g/sqrt xs)))))))

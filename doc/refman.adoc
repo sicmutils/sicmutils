@@ -1380,7 +1380,7 @@ negate, invert, +, -, *, /, expt
 
 NOTE: `sicmutils.series` has many more operations than this that aren't
 registered in the generic system. See the
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
+https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/series.cljc[`sicmutils.series`]
 namespace for a Literate Programming-style exposition of the capabilities
 SICMUtils affords for series and power series.
 
@@ -1863,7 +1863,7 @@ into how Brent's method works. It turns out there is a long history of this
 algorithm being cargo-culted along from library to library. I (@sritchie) now
 _do_ understand Brent's method, and I've tried to disgorge that understanding
 into the
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
 namespace. Expect this to get better over time.
 
 The actual procedure in the system is:
@@ -2107,7 +2107,7 @@ wander off into oblivion:
 ----
 
 See
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
 documentation for `nelder-mead`] for the full menu of options and an accounting
 of the available defaults.
 

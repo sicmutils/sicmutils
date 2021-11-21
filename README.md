@@ -35,9 +35,9 @@ G.J. Sussman and J. Wisdom.
 > Slack](http://clojurians.net/) in
 > [#sicmutils](https://clojurians.slack.com/archives/C01ECA9AA74).
 
-[![Build Status](https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master)](https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
-[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/sicmutils/sicmutils/blob/master/LICENSE)
-[![Codecov branch](https://img.shields.io/codecov/c/github/sicmutils/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/sicmutils/sicmutils)
+[![Build Status](https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=main)](https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
+[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/sicmutils/sicmutils/blob/main/LICENSE)
+[![Codecov branch](https://img.shields.io/codecov/c/github/sicmutils/sicmutils/main.svg?maxAge=3600)](https://codecov.io/github/sicmutils/sicmutils)
 [![cljdoc badge](https://cljdoc.org/badge/sicmutils/sicmutils)](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT)
 [![Clojars Project](https://img.shields.io/clojars/v/sicmutils/sicmutils.svg)](https://clojars.org/sicmutils/sicmutils)
 
@@ -60,6 +60,9 @@ Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 (require '[sicmutils.env :as env])
 (env/bootstrap-repl!)
 ```
+
+See the [demo directory](./demo) for minimal examples of build configurations
+that use the SICMUtils library.
 
 Alternatively, visit the [SICMUtils Tutorial on
 Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
@@ -204,7 +207,7 @@ To cite this repository:
   author = {Colin Smith and Sam Ritchie},
   title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.18.0},
+  version = {0.19.2},
   year = {2016},
 }
 ```

@@ -400,11 +400,11 @@
             [p (sg/polynomial)]
             (let [p+p* (p/add p (p/reciprocal p))
                   p-p* (p/sub p (p/reciprocal p))]
-              (is (= p+p* (p/reciprocal p+p*))
+              (is (v/= p+p* (p/reciprocal p+p*))
                   "p+p* is palindromic")
 
-              (is (= (g/negate p-p*)
-                     (p/reciprocal p-p*))
+              (is (v/= (g/negate p-p*)
+                       (p/reciprocal p-p*))
                   "p+p* is anti-palindromic")))
 
   (checking "reciprocal of a constant acts as identity" 100
@@ -810,7 +810,7 @@
 
 
   (let [pos (gen/fmap inc gen/nat)]
-    (checking "arg-scale, shift" 100
+    (checking "arg-scale, shift" 30
               [term-count (gen/choose 2 10)
                factor pos
                p (gen/fmap p/make (gen/vector pos term-count))]
@@ -1034,7 +1034,7 @@
                      raised)))))
 
 (deftest evaluation-homomorphism-tests
-  (checking "evaluation-homomorphism" 30
+  (checking "evaluation-homomorphism" 20
             [[p q xs] (gen/let [arity (gen/choose 1 6)]
                         (gen/tuple
                          (sg/polynomial :arity arity)

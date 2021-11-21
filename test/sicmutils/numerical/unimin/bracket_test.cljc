@@ -25,9 +25,9 @@
             [same :refer [zeroish? ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.function]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as b]))
 
@@ -53,7 +53,7 @@
               100
               [[a b c] (gen/list-distinct-by first point {:num-elements 3})]
               (let [[p q] (b/parabolic-pieces a b c)
-                    f'    (D (fn [x] (ip/lagrange [a b c] x)))]
+                    f'    (D (fn [x] (pi/lagrange [a b c] x)))]
                 (is (or (zero? q)
                         (ish? 0 (f' (b/parabolic-step a b c)))))))
 
@@ -62,7 +62,7 @@
               100
               [[[xa :as a] [xb :as b] [xc :as c]] (gen/list-distinct-by first point {:num-elements 3})]
               (let [[p q] (b/parabolic-pieces a b c)
-                    f' (D (fn [x] (ip/lagrange [a b c] x)))]
+                    f' (D (fn [x] (pi/lagrange [a b c] x)))]
                 (if (zero? q)
                   (is (and (= (f' xa) (f' xb) (f' xc)))
                       "If the step's denominator is 0, the points are colinear.")

@@ -149,6 +149,6 @@ negate, invert, +, -, *, /, expt
 
 NOTE: `sicmutils.series` has many more operations than this that aren't
 registered in the generic system. See the
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
+https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/series.cljc[`sicmutils.series`]
 namespace for a Literate Programming-style exposition of the capabilities
 SICMUtils affords for series and power series.

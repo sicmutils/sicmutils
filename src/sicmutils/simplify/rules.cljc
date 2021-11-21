@@ -175,7 +175,7 @@ is okay due to the 'equality of mixed partials'."}
 (/ (+ (* 4 x) 5) 3) => (+ (* 4/3 x) 5/3)
 ```
 
-This setting is `false` by default."}
+This setting is `true` by default."}
   *divide-numbers-through-simplify?*
   true)
 

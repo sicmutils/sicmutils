@@ -45,7 +45,6 @@
                             numerator denominator
                             #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
-            #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
@@ -95,11 +94,6 @@
             [sicmutils.sr.boost]
             [sicmutils.sr.frames]))
 
-#?(:clj
-   (defn sicmutils-repl-init
-     []
-     (set! nrepl.middleware.print/*print-fn* x/expression->stream)))
-
 (defmacro bootstrap-repl!
   "Bootstraps a repl or Clojure namespace by requiring all public vars
   from [[sicmutils.env]].
@@ -130,6 +124,9 @@
 
 (defmacro using-coordinates [& args]
   `(cc/using-coordinates ~@args))
+
+(defmacro define-coordinates [& args]
+  `(cc/define-coordinates ~@args))
 
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
@@ -380,6 +377,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   make-manifold coordinate-system-at
   manifold-type
   patch-names coordinate-system-names
+  manifold?
+  manifold-family?
   manifold-point?
   chart point
   typical-coords typical-point transfer-point
@@ -450,6 +449,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
  [sicmutils.sr.frames
   make-SR-coordinates SR-coordinates? SR-name make-SR-frame
+  base-frame-maker
   the-ether boost-direction v:c coordinate-origin
   add-v:cs add-velocities]
 
@@ -492,6 +492,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Hamilton-equations
   Hamiltonian
   Hamiltonian->state-derivative
+  phase-space-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
   Lie-transform

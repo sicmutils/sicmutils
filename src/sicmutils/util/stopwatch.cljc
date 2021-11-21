@@ -19,9 +19,7 @@
 
 (ns sicmutils.util.stopwatch
   (:require [sicmutils.util :as u]
-            [stopwatch.core :as sw])
-  #?(:clj
-     (:import (java.util.concurrent TimeUnit TimeoutException))))
+            [stopwatch.core :as sw]))
 
 (defprotocol IStopwatch
   (running? [this])
@@ -48,32 +46,6 @@
    :minutes "min"
    :hours "h"
    :days "d"})
-
-;; ## Guava Stopwatch Implementation
-;;
-;; This is currently the default stopwatch implementation for Clojure (vs
-;; Clojurescript), though the home-rolled version works just fine in both
-;; languages.
-
-#?(:clj
-   (def ^:private unit-map
-     {:days TimeUnit/DAYS
-      :hours TimeUnit/HOURS
-      :minutes TimeUnit/MINUTES
-      :seconds TimeUnit/SECONDS
-      :micros TimeUnit/MICROSECONDS
-      :millis TimeUnit/MILLISECONDS
-      :nanos TimeUnit/NANOSECONDS}))
-
-#?(:clj
-   (extend-type com.google.common.base.Stopwatch
-     IStopwatch
-     (running? [this] (.isRunning this))
-     (start [this] (.start this))
-     (stop [this] (.stop this))
-     (reset [this] (.reset this))
-     (-elapsed [this unit] (.elapsed ^com.google.common.base.Stopwatch this (unit-map unit)))
-     (repr [this] (str this))))
 
 ;; ## Native Stopwatch Implementation
 
@@ -155,15 +127,10 @@
       (toString [this] (repr @sw)))))
 
 (defn stopwatch
-  "Returns a platform-specific implementation of [[IStopwatch]]. In Clojure,
-  returns an instance of Guava's `Stopwatch` class. Clojurescript receives a
-  homerolled stopwatch."
+  "Returns an implementation of [[IStopwatch]]."
   [& {:keys [started?] :or {started? true}}]
-  #? (:cljs (let [watch (Stopwatch. nil 0 false)]
-              (wrapped
-               (if started?
-                 (start watch)
-                 watch)))
-      :clj (if started?
-             (com.google.common.base.Stopwatch/createStarted)
-             (com.google.common.base.Stopwatch/createUnstarted))))
+  (let [watch (Stopwatch. nil 0 false)]
+    (wrapped
+     (if started?
+       (start watch)
+       watch))))

@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.interpolate.polynomial
+(ns sicmutils.polynomial.interpolate
   "This namespace contains a discussion of polynomial interpolation, and different
   methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
   that polynomial at some different `x`."
