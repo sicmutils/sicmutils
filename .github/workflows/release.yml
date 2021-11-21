@@ -28,3 +28,6 @@ jobs:
 
       - name: Release
         run: lein deploy clojars
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}

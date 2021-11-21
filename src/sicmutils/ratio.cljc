@@ -40,25 +40,41 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
-  #?(:clj (:import [clojure.lang BigInt Ratio])))
+  #?(:clj (:import (clojure.lang BigInt Ratio))))
 
-(def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
+(def ^:no-doc ratiotype
+  #?(:clj Ratio :cljs Fraction))
+
 (derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
      :cljs (fn [r] (instance? Fraction r))))
 
-(def numerator
-  #?(:clj core-numerator
-     :cljs (fn [^Fraction x]
-             (if (pos? (obj/get x "s"))
-               (obj/get x "n")
-               (- (obj/get x "n"))))))
+(defprotocol IRational
+  (numerator [_])
+  (denominator [_]))
 
-(def denominator
-  #?(:clj core-denominator
-     :cljs #(obj/get % "d")))
+(extend-protocol IRational
+  #?(:clj Object :cljs default)
+  (numerator [x] x)
+  (denominator [_] 1)
+
+  #?@(:clj
+      [Ratio
+       (numerator [r] (core-numerator r))
+       (denominator [r] (core-denominator r))]
+
+      :cljs
+      [Fraction
+       (numerator
+        [x]
+        (if (pos? (obj/get x "s"))
+          (obj/get x "n")
+          (- (obj/get x "n"))))
+       (denominator
+        [x]
+        (obj/get x "d"))]))
 
 (defn- promote [x]
   (if (v/one? (denominator x))
@@ -199,13 +215,30 @@
                         "\"")))))))
 
 #?(:clj
-   (doseq [[op f] [[g/exact-divide /]
-                   [g/quotient quot]
-                   [g/remainder rem]
-                   [g/modulo mod]]]
-     (defmethod op [Ratio Ratio] [a b] (f a b))
-     (defmethod op [Ratio ::v/integral] [a b] (f a b))
-     (defmethod op [::v/integral Ratio] [a b] (f a b)))
+   (do
+     (defmethod g/gcd [Ratio ::v/integral] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (biginteger b))
+              (core-denominator a)))
+
+     (defmethod g/gcd [::v/integral Ratio] [a b]
+       (g/div (.gcd (biginteger a)
+                    (core-numerator b))
+              (core-denominator b)))
+
+     (defmethod g/gcd [Ratio Ratio] [a b]
+       (g/div (.gcd (core-numerator a)
+                    (core-numerator b))
+              (g/lcm (core-denominator a)
+                     (core-denominator b))))
+
+     (doseq [[op f] [[g/exact-divide /]
+                     [g/quotient quot]
+                     [g/remainder rem]
+                     [g/modulo mod]]]
+       (defmethod op [Ratio Ratio] [a b] (f a b))
+       (defmethod op [Ratio ::v/integral] [a b] (f a b))
+       (defmethod op [::v/integral Ratio] [a b] (f a b))))
 
    :cljs
    (do
@@ -222,20 +255,32 @@
      ;; arguments around and invoke equiv.
      (defmethod v/= [::v/real Fraction] [l r] (= r l))
 
-     (defmethod g/add [Fraction Fraction] [a b] (promote (.add a b)))
-     (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub a b)))
-     (defmethod g/mul [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.mul a b)))
-     (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
-     (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
-     (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
-     (defmethod g/negative? [Fraction] [^Fraction a] (neg? (obj/get a "s")))
-     (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
-     (defmethod g/square [Fraction] [^Fraction a] (promote (.mul a a)))
-     (defmethod g/cube [Fraction] [^Fraction a] (promote (.pow a 3)))
-     (defmethod g/abs [Fraction] [^Fraction a] (promote (.abs a)))
-     (defmethod g/magnitude [Fraction] [^Fraction a] (promote (.abs a)))
-     (defmethod g/gcd [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.gcd a b)))
-     (defmethod g/lcm [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.lcm a b)))
+     (defmethod g/add [Fraction Fraction] [a b] (promote (.add ^js a b)))
+     (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub ^js a b)))
+
+     (defmethod g/mul [Fraction Fraction] [a b]
+       (promote (.mul ^js a b)))
+
+     (defmethod g/div [Fraction Fraction] [a b]
+       (promote (.div ^js a b)))
+
+     (defmethod g/exact-divide [Fraction Fraction] [a b]
+       (promote (.div ^js a b)))
+
+     (defmethod g/negate [Fraction] [a] (promote (.neg ^js a)))
+     (defmethod g/negative? [Fraction] [a] (neg? (obj/get a "s")))
+     (defmethod g/invert [Fraction] [a] (promote (.inverse ^js a)))
+     (defmethod g/square [Fraction] [a] (promote (.mul ^js a a)))
+     (defmethod g/cube [Fraction] [a] (promote (.pow ^js a 3)))
+     (defmethod g/abs [Fraction] [a] (promote (.abs ^js a)))
+     (defmethod g/magnitude [Fraction] [a] (promote (.abs ^js a)))
+
+     (defmethod g/gcd [Fraction Fraction] [a b]
+       (promote (.gcd ^js a b)))
+
+     (defmethod g/lcm [Fraction Fraction] [a b]
+       (promote (.lcm ^js a b)))
+
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
      (defmethod g/sqrt [Fraction] [a]
        (if (neg? a)
@@ -243,38 +288,38 @@
          (g/div (g/sqrt (u/double (numerator a)))
                 (g/sqrt (u/double (denominator a))))))
 
-     (defmethod g/modulo [Fraction Fraction] [^Fraction a ^Fraction b]
+     (defmethod g/modulo [Fraction Fraction] [a b]
        (promote
-        (.mod ^Fraction (.add ^Fraction (.mod a b) b) b)))
+        (.mod (.add (.mod ^js a b) b) b)))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
      (defmethod g/expt [Fraction Fraction] [a b]
        (if (v/one? (denominator b))
-         (promote (.pow a (numerator b)))
+         (promote (.pow ^js a (numerator b)))
          (g/expt (.valueOf a)
                  (.valueOf b))))
 
-     (defmethod g/quotient [Fraction Fraction] [^Fraction a ^Fraction b]
+     (defmethod g/quotient [Fraction Fraction] [a b]
        (promote
-        (let [^Fraction x (.div a b)]
+        (let [x (.div ^js a b)]
           (if (pos? (obj/get x "s"))
-            (.floor x)
-            (.ceil x)))))
+            (.floor ^js x)
+            (.ceil ^js x)))))
 
-     (defmethod g/remainder [Fraction Fraction] [^Fraction a ^Fraction b]
-       (promote (.mod a b)))
+     (defmethod g/remainder [Fraction Fraction] [a b]
+       (promote (.mod ^js a b)))
 
      ;; Cross-compatibility with numbers in CLJS.
      (defn- downcast-fraction
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/real] [^Fraction a b]
-         (op (.valueOf a) b))
+       (defmethod op [Fraction ::v/real] [a b]
+         (op (.valueOf ^js a) b))
 
-       (defmethod op [::v/real Fraction] [a ^Fraction b]
-         (op a (.valueOf b))))
+       (defmethod op [::v/real Fraction] [a b]
+         (op a (.valueOf ^js b))))
 
      (defn- upcast-number
        "Integrals can stay exact, so they become ratios before op."

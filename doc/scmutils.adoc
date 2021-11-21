@@ -187,17 +187,3 @@ rational-function simplifier is waiting for an implementation of Zippel's
 algorithm for fast multivariate polynomial GCD operations. Currently we use a
 recursive Euclid algorithm, which gives acceptable results for expressions of
 medium complexity, but there is more to be done.
-
-== What's not there yet
-
-=== The latter half of FDG
-
-Most of the code in the early sections of FDG will work, but this cannot be
-considered complete.
-
-=== Quaternions, and other exotica
-
-The Scmutils library is vast, and I don't pretend to have covered anywhere near
-all of it. The breadth-first approach I have used to get the textbook examples
-working has left many corners of the source library unexplored as of this
-writing.

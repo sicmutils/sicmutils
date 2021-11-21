@@ -30,7 +30,7 @@
             #?(:cljs [goog.object :as obj])
             #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
-     (:import [org.apache.commons.math3.complex Complex ComplexFormat])))
+     (:import (org.apache.commons.math3.complex Complex ComplexFormat))))
 
 (def ^{:doc "A [[Complex]] value equal to 0 (south pole on the Riemann Sphere)."}
   ZERO
@@ -50,11 +50,20 @@
 
 (derive ::complex ::v/number)
 
+#?(:clj
+   (def complex-format (ComplexFormat.)))
+
 (defn complex
   "Returns a [[Complex]] number with the supplied real part `re` and imaginary
   part `im`. `im` defaults to 0."
   ([re]
-   (Complex. (u/double re)))
+   #?(:clj (if (string? re)
+             (.parse complex-format re)
+             (Complex. (u/double re)))
+      :cljs (Complex.
+             (if (string? re)
+               re
+               (u/double re)))))
   ([re im]
    (Complex. (u/double re)
              (u/double im))))
@@ -93,35 +102,60 @@
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
-(def ^{:doc "Parser that converts a string representation of a complex number,
-  like `1 + 3i`, into a [[Complex]] number object in clj or cljs."}
-  parse-complex
-  #?(:clj (let [cf (ComplexFormat.)]
-            (fn [s]
-              (let [v (.parse cf s)]
-                `(complex ~(real v)
-                          ~(imaginary v)))))
+(defn parse-complex [x]
+  "Parser that converts a string, vector or numeric representation of a complex
+   number, like
 
-     :cljs (fn [s] `(complex ~s))))
+  - `1 + 3i`
+  - [1 3]
+  - 1
+
+  into a [[Complex]] number object in clj or cljs."
+  (cond (string? x)
+        #?(:clj
+           (let [v (.parse complex-format x)]
+             `(complex ~(real v) ~(imaginary v)))
+           :cljs `(complex ~x))
+
+        (vector? x)
+        (let [[re im] x]
+          (if (nil? im)
+            `(complex ~re)
+            `(complex ~re ~im)))
+
+        (number? x) `(complex ~x)
+
+        :else (u/illegal
+               (str
+                "Complex literals must be either strings or vectors. Received: "
+                x))))
 
 #?(:cljs
    (extend-type Complex
      IEquiv
      (-equiv [this other]
-       (.equals this other))
+       (cond (complex? other)
+             (.equals this other)
+
+             (v/real? other)
+             (and (zero? (imaginary this))
+                  (v/= (real this) other))
+
+             :else false))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
-       (write-all writer "#sicm/complex \"" (.toString x) "\""))))
+       (write-all
+        writer
+        "#sicm/complex "
+        (str [(obj/get x "re")
+              (obj/get x "im")])))))
 
 #?(:clj
-   ;; Clojure implementation of a printer that will emit items that can
-   ;; round-trip via #sicm/complex.
-   (let [cf (ComplexFormat.)]
-     (defmethod print-method Complex [^Complex v ^java.io.Writer w]
-       (.write w (str "#sicm/complex \""
-                      (.format cf v)
-                      "\"")))))
+   (defmethod print-method Complex [^Complex v ^java.io.Writer w]
+     (.write w (str "#sicm/complex "
+                    [(.getReal v)
+                     (.getImaginary v)]))))
 
 (extend-type Complex
   v/Numerical
@@ -154,12 +188,17 @@
   (and (zero? (imaginary a))
        (v/= n (real a))))
 
-(defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
-(defmethod g/add [::complex ::v/real] [^Complex a n] (.add a (u/double n)))
-(defmethod g/add [::v/real ::complex] [n ^Complex a] (.add a (u/double n)))
+(defmethod g/add [::complex ::complex] [^Complex a ^Complex b]
+  (.add a b))
+
+(defmethod g/add [::complex ::v/real] [^Complex a n]
+  (.add a ^double (u/double n)))
+
+(defmethod g/add [::v/real ::complex] [n ^Complex a]
+  (.add a ^double (u/double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a (u/double n)))
+(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a ^double (u/double n)))
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))

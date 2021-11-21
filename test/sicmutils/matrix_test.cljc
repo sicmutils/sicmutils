@@ -247,14 +247,14 @@
   (testing "submatrix"
     (let [M (m/by-rows [1 2 3]
                        [4 5 6]
-                       [7 8 9])]
+                       [7 8 9])
+          SM (s/down (s/up 1 4 7)
+                     (s/up 2 5 8)
+                     (s/up 3 6 9))]
       (is (= (m/by-rows [1 2]
                         [4 5])
-             (m/submatrix M 0 1 0 1)))
-
-      (is (= (m/by-rows [1 2]
-                        [4 5])
-             (m/submatrix M 0 1 0 1)))))
+             (m/submatrix M 0 1 0 1)
+             (m/submatrix SM 0 1 0 1)))))
 
   (checking "make-zero" 100 [m (gen/choose 0 10)
                              n (gen/choose 0 10)]
@@ -266,9 +266,11 @@
   (checking "make-diagonal" 100
             [vs (gen/vector sg/real 1 20)]
             (let [M (m/make-diagonal vs)]
-              (is (m/square? M))
+              (is (m/diagonal? M))
+
               (is (= (g/dimension M)
                      (g/dimension vs)))
+
               (is (= vs (m/diagonal M)))
               (is (= vs (m/diagonal M)))))
 
@@ -344,6 +346,14 @@
                       [1 2 3]
                       [2 3 4])
            (m/generate 3 3 +)))
+
+    (is (= (m/generate 3 +)
+           (m/generate 3 3 +))
+        "Only filling in one dimension for generate returns a square matrix.")
+
+    (is (not (m/diagonal?
+              (m/generate 3 3 +))))
+
     (is (v/zero? (m/by-rows [0 0]
                             [0 0])))))
 
@@ -615,13 +625,55 @@
                               [(g/conjugate c)
                                (g/conjugate d)])
                    (g/conjugate
-                    (m/by-rows [a b] [c d]))))))
+                    (m/by-rows [a b] [c d])))))
+
+  (checking "g/make-rectangular, g/make-polar" 100
+            [a sg/real b sg/real
+             c sg/real d sg/real]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap #(g/make-rectangular % %) M)
+                     (g/make-rectangular M M)))
+
+              (is (= (m/fmap #(g/make-polar % %) M)
+                     (g/make-polar M M)))))
+
+  (testing "incompatible shapes throw for g/make-*"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-rectangular (m/by-rows [1 2 3])
+                                     (m/by-rows [1 2]))))
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-polar (m/by-rows [1 2 3])
+                               (m/by-rows [1 2])))))
+
+  (checking "g/real-part, g/imag-part pass through to values" 100
+            [a sg/complex b sg/complex
+             c sg/complex d sg/complex]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap g/real-part M)
+                     (g/real-part M)))
+
+              (is (= (m/fmap g/imag-part M)
+                     (g/imag-part M)))
+
+              (is (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M)))
+                  "g/make-rectangular rebuilds the original matrix from its
+                  parts."))))
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
     (prop/for-all [p (sg/square-matrix n)
                    q (sg/square-matrix n)]
                   (= (g/+ p q) (g/+ q p)))))
+
+(defspec make-rectangular-imag-real-round-trip
+  (gen/let [n (gen/choose 1 10)]
+    (prop/for-all [M (sg/square-matrix n sg/complex)]
+                  (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M))))))
 
 
 (defspec pq*r=p*qr
@@ -815,9 +867,9 @@
 
     (testing "invert-hilbert-matrix"
       (let [N 3
-            H (apply s/up (for [i (range 1 (inc N))]
-                            (apply s/up (for [j (range 1 (inc N))]
-                                          (g/divide 1 (g/+ i j -1))))))]
+            H (s/up* (for [i (range 1 (inc N))]
+                       (s/up* (for [j (range 1 (inc N))]
+                                (g/divide 1 (g/+ i j -1))))))]
         (is (= (s/down (s/down 9 -36 30)
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))

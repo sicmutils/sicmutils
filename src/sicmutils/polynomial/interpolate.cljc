@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.interpolate.polynomial
+(ns sicmutils.polynomial.interpolate
   "This namespace contains a discussion of polynomial interpolation, and different
   methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
   that polynomial at some different `x`."
@@ -50,8 +50,8 @@
         build-term (fn [i [a fa]]
                      (let [others (for [j (range n) :when (not= i j)]
                                     (get-in points [j 0]))
-                           p (reduce g/* (map #(g/- x %) others))
-                           q (reduce g/* (map #(g/- a %) others))]
+                           p (apply g/* (map #(g/- x %) others))
+                           q (apply g/* (map #(g/- a %) others))]
                        (g// (g/* fa p) q)))]
     (transduce (map-indexed build-term)
                g/+

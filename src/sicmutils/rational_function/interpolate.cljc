@@ -17,12 +17,12 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.interpolate.rational
+(ns sicmutils.rational-function.interpolate
   "This namespace contains a discussion of rational function interpolation, and
   different methods for fitting rational functions to `N` points and evaluating
   them at some value `x`."
-  (:require [sicmutils.numerical.interpolate.polynomial :as ip]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.generic :as g]
+            [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
@@ -153,11 +153,11 @@
                                 (- 1))]
                      [xl xr rl (+ rr (/ p q))]))
          present (fn [row] (map (fn [[_ _ _ r]] r) row))
-         tableau (ip/tableau-fn prepare merge points)]
+         tableau (pi/tableau-fn prepare merge points)]
      (present
       (if column
         (nth tableau column)
-        (ip/first-terms tableau))))))
+        (pi/first-terms tableau))))))
 
 ;; ## Incremental Bulirsch-Stoer
 ;;
@@ -219,9 +219,9 @@
 
    - Press's Numerical Recipes (p105), [Section 3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf)"
   [points x]
-  (ip/mn-present
-   (ip/first-terms
-    (ip/tableau-fn bs-prepare
+  (pi/mn-present
+   (pi/first-terms
+    (pi/tableau-fn bs-prepare
                    (bs-merge x)
                    points))))
 
@@ -239,7 +239,7 @@
   and returns the next row of the tableau using the algorithm described in
   [[modified-bulirsch-stoer]]."
   [x]
-  (ip/tableau-fold-fn
+  (pi/tableau-fold-fn
    bs-prepare
    (bs-merge x)))
 
@@ -248,9 +248,9 @@
   a sequence of successive approximations of `x` using rational functions fitted
   to the points in reverse order."
   [x]
-  (ip/tableau-fold
+  (pi/tableau-fold
    (modified-bulirsch-stoer-fold-fn x)
-   ip/mn-present))
+   pi/mn-present))
 
 (defn modified-bulirsch-stoer-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -266,6 +266,6 @@
    ...]
   ```"
   [x]
-  (ip/tableau-scan
+  (pi/tableau-scan
    (modified-bulirsch-stoer-fold-fn x)
-   ip/mn-present))
+   pi/mn-present))

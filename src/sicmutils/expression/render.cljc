@@ -23,7 +23,7 @@
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
-            [pattern.rule :as R #?@(:cljs [:include-macros true])]
+            [pattern.rule :as R :refer [=>] #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.expression.compile :as compile]
             [sicmutils.ratio :as r]
@@ -46,9 +46,9 @@
        :doc "Historical preference is to write `sin^2(x)` rather
        than `(sin(x))^2`."}
   rewrite-trig-powers
-  (let [ok? #(and ('#{sin cos tan} (% :T))
-                  (= 2 (% :N)))]
-    (R/rule (expt (:T :X) :N) ok? ((expt :T :N) :X))))
+  (R/choice
+   (R/rule (expt ((? f #{'sin 'cos 'tan}) ?x) 2) => ((expt (? f) 2) ?x))
+   (R/return nil)))
 
 (def ^{:private true
        :doc "The simplifier returns sums of products; for negative summands the
@@ -56,8 +56,8 @@
   use a unary minus."}
   rewrite-negation
   (R/ruleset
-   (* -1 :X) => (u- :X)
-   (* -1 :X*) => (u- (* :X*))))
+   (* -1 ?x) => (u- ?x)
+   (* -1 ??x) => (u- (* ??x))))
 
 (defn- render-infix-ratio
   "renders a pair of the form `[numerator denominator]` as a infix ratio of the
@@ -123,15 +123,22 @@
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
+
           (maybe-rename-function [f]
             (or (rename-functions f) f))
+
           (maybe-rewrite-negation [loc]
-            (or (rewrite-negation (z/node loc) #(z/replace loc %) (constantly nil))
-                loc))
+            (let [result (rewrite-negation (z/node loc))]
+              (if (identical? loc result)
+                loc
+                (z/replace loc result))))
+
           (maybe-rewrite-trig-squares [loc]
-            (or (and rewrite-trig-squares
-                     (rewrite-trig-powers (z/node loc) #(z/replace loc %)))
-                loc))
+            (if-let [result (and rewrite-trig-squares
+                                 (rewrite-trig-powers
+                                  (z/node loc)))]
+              (z/replace loc result)
+              loc))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op
@@ -394,8 +401,9 @@
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
-  with square braces. Defaults to true."}
-  *TeX-vertical-down-tuples* true)
+  with square braces. Defaults to false."}
+  *TeX-vertical-down-tuples*
+  false)
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render symbols with more than 1 character

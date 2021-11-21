@@ -26,7 +26,16 @@
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.value :as v]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]))
+
+(def ^{:dynamic true
+       :doc "When bound to a simplifier (a function from symbolic expression =>
+  symbolic expression), this simplifier will be called after every operation
+  performed on `sicmutils.abstract.number` instances.
+
+  `nil` by default."}
+  *incremental-simplifier* nil)
 
 (def operator first)
 (def operands rest)
@@ -83,21 +92,18 @@
 
 ;; these are without constructor simplifications!
 
-(defn- add
-  ([] 0)
-  ([a] a)
-  ([a b]
-   (cond (and (v/number? a) (v/number? b)) (g/add a b)
-         (v/number? a) (cond (v/zero? a) b
-                             (sum? b) `(~'+ ~a ~@(operands b))
-                             :else `(~'+ ~a ~b))
-         (v/number? b) (cond (v/zero? b) a
-                             (sum? a) `(~'+ ~@(operands a) ~b)
-                             :else `(~'+ ~a ~b))
-         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
-                        :else `(~'+ ~@(operands a) ~b))
-         (sum? b) `(~'+ ~a ~@(operands b))
-         :else `(~'+ ~a ~b))))
+(defn- add [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/add a b)
+        (v/number? a) (cond (v/zero? a) b
+                            (sum? b) `(~'+ ~a ~@(operands b))
+                            :else `(~'+ ~a ~b))
+        (v/number? b) (cond (v/zero? b) a
+                            (sum? a) `(~'+ ~@(operands a) ~b)
+                            :else `(~'+ ~a ~b))
+        (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
+                       :else `(~'+ ~@(operands a) ~b))
+        (sum? b) `(~'+ ~a ~@(operands b))
+        :else `(~'+ ~a ~b)))
 
 (defn- sub [a b]
   (cond (and (v/number? a) (v/number? b)) (g/sub a b)
@@ -106,30 +112,22 @@
         (= a b) 0
         :else `(~'- ~a ~b)))
 
-(defn- sub-n [& args]
-  (cond (nil? args) 0
-        (nil? (next args)) (g/negate (first args))
-        :else (sub (first args) (reduce add (next args)))))
+(defn- negate [x] (sub 0 x))
 
-(defn- mul
-  ([] 1)
-  ([a] a)
-  ([a b]
-   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
-         (v/number? a) (cond (v/zero? a) a
-                             (v/one? a) b
-                             (product? b) `(~'* ~a ~@(operands b))
-                             :else `(~'* ~a ~b)
-                             )
-         (v/number? b) (cond (v/zero? b) b
-                             (v/one? b) a
-                             (product? a) `(~'* ~@(operands a) ~b)
-                             :else `(~'* ~a ~b)
-                             )
-         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
-                            :else `(~'* ~@(operands a) ~b))
-         (product? b) `(~'* ~a ~@(operands b))
-         :else `(~'* ~a ~b))))
+(defn- mul [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+        (v/number? a) (cond (v/zero? a) a
+                            (v/one? a) b
+                            (product? b) `(~'* ~a ~@(operands b))
+                            :else `(~'* ~a ~b))
+        (v/number? b) (cond (v/zero? b) b
+                            (v/one? b) a
+                            (product? a) `(~'* ~@(operands a) ~b)
+                            :else `(~'* ~a ~b))
+        (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
+                           :else `(~'* ~@(operands a) ~b))
+        (product? b) `(~'* ~a ~@(operands b))
+        :else `(~'* ~a ~b)))
 
 (defn- div [a b]
   (cond (and (v/number? a) (v/number? b)) (g/div a b)
@@ -139,10 +137,7 @@
                             :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
-(defn- div-n [arg & args]
-  (cond (nil? arg) 1
-        (nil? args) (g/invert arg)
-        :else (div arg (reduce mul args))))
+(defn- invert [x] (div 1 x))
 
 (defn- modulo [a b]
   (mod-rem a b modulo 'modulo))
@@ -172,47 +167,43 @@
 
 ;; ## Trig Functions
 
-(def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
-(def ^:private absolute-integer-tolerance 1e-20)
-
-(defn- almost-integer? [x]
-  (or (integer? x)
-      (and (float? x)
-           (let [x (double x)
-                 z (Math/round x)]
-             (if (zero? z)
-               (< (Math/abs x) absolute-integer-tolerance)
-               (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
-
 (def ^:private pi Math/PI)
 (def ^:private pi-over-4 (/ pi 4))
 (def ^:private two-pi (* 2 pi))
 (def ^:private pi-over-2 (* 2 pi-over-4))
 
 (defn ^:private n:zero-mod-pi? [x]
-  (almost-integer? (/ x pi)))
-(def ^:private symb:zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
+  (v/almost-integral? (/ x pi)))
+
 (defn ^:private n:pi-over-2-mod-2pi? [x]
-  (almost-integer? (/ (- x pi-over-2 two-pi))))
-(def ^:private symb:pi-over-2-mod-2pi? #{'pi-over-2})
+  (v/almost-integral? (/ (- x pi-over-2 two-pi))))
+
 (defn ^:private n:-pi-over-2-mod-2pi? [x]
-  (almost-integer? (/ (+ x pi-over-2) two-pi)))
-(def ^:private symb:-pi-over-2-mod-2pi? #{'-pi-over-2})
+  (v/almost-integral? (/ (+ x pi-over-2) two-pi)))
+
 (defn ^:private n:pi-mod-2pi? [x]
-  (almost-integer? (/ (- x pi) two-pi)))
-(def ^:private symb:pi-mod-2pi? #{'-pi 'pi})
+  (v/almost-integral? (/ (- x pi) two-pi)))
+
 (defn ^:private n:pi-over-2-mod-pi? [x]
-  (almost-integer? (/ (- x pi-over-2) pi)))
-(def ^:private symb:pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
+  (v/almost-integral? (/ (- x pi-over-2) pi)))
+
 (defn ^:private n:zero-mod-2pi? [x]
-  (almost-integer? (/ x two-pi)))
-(def ^:private symb:zero-mod-2pi? #{'-two-pi 'two-pi})
+  (v/almost-integral? (/ x two-pi)))
+
 (defn ^:private n:-pi-over-4-mod-pi? [x]
-  (almost-integer? (/ (+ x pi-over-4) pi)))
-(def ^:private symb:-pi-over-4-mod-pi? #{'-pi-over-4})
+  (v/almost-integral? (/ (+ x pi-over-4) pi)))
+
 (defn ^:private n:pi-over-4-mod-pi? [x]
-  (almost-integer? (/ (- x pi-over-4) pi)))
-(def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
+  (v/almost-integral? (/ (- x pi-over-4) pi)))
+
+(def ^:no-doc zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
+(def ^:no-doc pi-over-2-mod-2pi? #{'pi-over-2})
+(def ^:no-doc -pi-over-2-mod-2pi? #{'-pi-over-2})
+(def ^:no-doc pi-mod-2pi? #{'-pi 'pi})
+(def ^:no-doc pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
+(def ^:no-doc zero-mod-2pi? #{'-two-pi 'two-pi})
+(def ^:no-doc -pi-over-4-mod-pi? #{'-pi-over-4})
+(def ^:no-doc pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn- sin
   "Implementation of sine that attempts to apply optimizations at the call site.
@@ -225,9 +216,9 @@
                               (n:pi-over-2-mod-2pi? x) 1
                               (n:-pi-over-2-mod-2pi? x) -1
                               :else (Math/sin x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-2-mod-2pi? x) 1
-                          (symb:-pi-over-2-mod-2pi? x) -1
+        (symbol? x) (cond (zero-mod-pi? x) 0
+                          (pi-over-2-mod-2pi? x) 1
+                          (-pi-over-2-mod-2pi? x) -1
                           :else (list 'sin x))
         :else (list 'sin x)))
 
@@ -242,9 +233,9 @@
                               (n:zero-mod-2pi? x) 1
                               (n:pi-mod-2pi? x) -1
                               :else (Math/cos x)))
-        (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
-                          (symb:zero-mod-2pi? x) +1
-                          (symb:pi-mod-2pi? x) -1
+        (symbol? x) (cond (pi-over-2-mod-pi? x) 0
+                          (zero-mod-2pi? x) +1
+                          (pi-mod-2pi? x) -1
                           :else (list 'cos x))
         :else (list 'cos x)))
 
@@ -260,10 +251,10 @@
                               (n:-pi-over-4-mod-pi? x) -1
                               (n:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
                               :else (Math/tan x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-4-mod-pi? x) 1
-                          (symb:-pi-over-4-mod-pi? x) -1
-                          (symb:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
+        (symbol? x) (cond (zero-mod-pi? x) 0
+                          (pi-over-4-mod-pi? x) 1
+                          (-pi-over-4-mod-pi? x) -1
+                          (pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
                           :else (list 'tan x))
         :else (list 'tan x)))
 
@@ -356,6 +347,28 @@
     (g/abs x)
     (list 'abs x)))
 
+(defn- gcd [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/gcd a b)
+        (v/number? a) (cond (v/zero? a) b
+                            (v/one? a) 1
+                            :else (list 'gcd a b))
+        (v/number? b) (cond (v/zero? b) a
+                            (v/one? b) 1
+                            :else (list 'gcd a b))
+        (= a b) a
+        :else (list 'gcd a b)))
+
+(defn- lcm [a b]
+  (cond (and (v/number? a) (v/number? b)) (g/lcm a b)
+        (v/number? a) (cond (v/zero? a) 0
+                            (v/one? a) b
+                            :else (list 'lcm a b))
+        (v/number? b) (cond (v/zero? b) 0
+                            (v/one? b) a
+                            :else (list 'lcm a b))
+        (= a b) a
+        :else (list 'lcm a b)))
+
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
@@ -387,12 +400,9 @@
                                  (integer? (* (second (operands b)) e)))
                             (expt (first (operands b))
                                   (* (second (operands b)) e))
-                            (< e 0) (div-n 1 (expt b (- e)))
+                            (< e 0) (invert (expt b (- e)))
                             :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
-
-(defn- negate [x] (sub 0 x))
-(defn- invert [x] (div 1 x))
 
 ;; ## Complex Operations
 
@@ -453,7 +463,7 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- derivative
+(defn ^:no-doc derivative
   "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
 
@@ -543,22 +553,24 @@
   {'zero? sym:zero?
    'one? sym:one?
    'identity? sym:one?
-   '= sym:=
-   'and sym:and
-   'or sym:or
+   '= (ua/monoid sym:= true)
    'not sym:not
-   '+ #(reduce add %&)
-   '- sub-n
-   '* #(reduce mul %&)
-   '/ div-n
+   'and (ua/monoid sym:and true false?)
+   'or (ua/monoid sym:or false true?)
+   'negate negate
+   'invert invert
+   '+ (ua/monoid add 0)
+   '- (ua/group sub add negate 0)
+   '* (ua/monoid mul 1 v/zero?)
+   '/ (ua/group div mul invert 1 v/zero?)
    'modulo modulo
    'remainder remainder
+   'gcd (ua/monoid gcd 0)
+   'lcm (ua/monoid lcm 1 v/zero?)
    'floor floor
    'ceiling ceiling
    'integer-part integer-part
    'fractional-part fractional-part
-   'negate negate
-   'invert invert
    'sin sin
    'cos cos
    'tan tan

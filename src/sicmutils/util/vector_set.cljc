@@ -83,6 +83,24 @@
             (> xi yj) (recur i (inc j) r)
             :else     (recur (inc i) (inc j) r)))))
 
+(defn symmetric-difference
+  "Returns a vector-set that contains all elements present in vector-set `x` and
+  vector-set `y`, but not in both.
+
+  `x` and `y` must be vector sets, ie, sorted and containing only distinct
+  entries."
+  [x y]
+  (loop [i (long 0)
+         j (long 0)
+         r (transient [])]
+    (let [xi (nth x i nil)
+          yj (nth y j nil)]
+      (cond (not xi) (into (persistent! r) (subvec y j))
+            (not yj) (into (persistent! r) (subvec x i))
+            (< xi yj) (recur (inc i) j (conj! r xi))
+            (> xi yj) (recur i (inc j) (conj! r yj))
+            :else     (recur (inc i) (inc j) r)))))
+
 (defn contains?
   "Return true if the element `x` is present in the supplied vector `vset`, false
   otherwise."

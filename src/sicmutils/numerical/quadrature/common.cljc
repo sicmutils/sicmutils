@@ -120,7 +120,7 @@
 
   False otherwise. This inequality measures how close the two floating point
   values are, scaled by the sum of their magnitudes."
-  [a b cutoff]
+  [^double a ^double b cutoff]
   (let [sum (+ (Math/abs a)
                (Math/abs b))]
     (or (<= sum cutoff)

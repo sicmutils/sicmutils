@@ -28,7 +28,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.simplify :as s]
+            [sicmutils.simplify :as ss]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -133,7 +133,12 @@
 (defn- defunary [generic-op op-sym]
   (if-let [op (sym/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
-      (literal-number (op (x/expression-of a))))
+      (let [newexp (op (x/expression-of a))]
+        (literal-number
+         (if-let [simplify sym/*incremental-simplifier*]
+           (simplify newexp)
+           newexp))))
+
     (defmethod generic-op [::x/numeric] [a]
       (x/literal-apply ::x/numeric op-sym [a]))))
 
@@ -144,9 +149,12 @@
     (if-let [op (sym/symbolic-operator op-sym)]
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
-          (literal-number
-           (op (x/expression-of a)
-               (x/expression-of b)))))
+          (let [newexp (op (x/expression-of a)
+                           (x/expression-of b))]
+            (literal-number
+             (if-let [simplify sym/*incremental-simplifier*]
+               (simplify newexp)
+               newexp)))))
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
@@ -209,8 +217,25 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+(defbinary g/lcm 'lcm)
 
 (defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
   (literal-number
-   (s/simplify-expression (v/freeze a))))
+   (ss/simplify-expression
+    (v/freeze a))))
+
+(def ^:private memoized-simplify
+  (memoize g/simplify))
+
+(defn ^:no-doc simplify-numerical-expression
+  "This function will only simplify instances of [[expression/Literal]]; if `x` is
+  of that type, [[simplify-numerical-expression]] acts as a memoized version
+  of [[generic/simplify]]. Else, acts as identity.
+
+  This trick is used in [[sicmutils.calculus.manifold]] to memoize
+  simplification _only_ for non-[[differential/Differential]] types."
+  [x]
+  (if (literal-number? x)
+    (memoized-simplify x)
+    x))

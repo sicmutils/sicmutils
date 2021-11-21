@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.modint
   "This namespace contains an implementation of a [[ModInt]] datatype and various
@@ -30,10 +30,9 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defrecord ModInt [i m]
-  v/Numerical
-  (numerical? [_] true)
+(declare mod:=)
 
+(deftype ModInt [i m]
   v/Value
   (zero? [_] (v/zero? i))
   (one? [_] (v/one? i))
@@ -43,12 +42,50 @@
   (identity-like [_] (ModInt. (v/one-like i) m))
   (freeze [_] (list 'modint i m))
   (exact? [_] true)
-  (kind [_] ::modint))
+  (kind [_] ::modint)
+
+  #?@(:clj
+      [Object
+       (equals [this that] (mod:= this that))
+       (toString [_] (str "[" i " mod " m "]"))]
+
+      :cljs
+      [IEquiv
+       (-equiv [this that] (mod:= this that))
+
+       Object
+       (toString [_] (str "[" i " mod " m "]"))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer
+                              "#object[sicmutils.modint.ModInt \""
+                              (.toString x)
+                              "\"]"))]))
 
 (defn modint?
   "Returns true if `x` is an instance of [[ModInt]], false otherwise."
   [x]
-  (instance? x ModInt))
+  (instance? ModInt x))
+
+(defn residue [x]
+  (.-i ^ModInt x))
+
+(defn modulus [x]
+  (.-m ^ModInt x))
+
+(defn- mod:= [this that]
+  (cond (modint? that)
+        (and (= (modulus this)
+                (modulus that))
+             (v/= (residue this)
+                  (residue that)))
+
+        (v/number? that)
+        (v/= (residue this)
+             (g/modulo that (modulus this)))
+
+        :else false))
 
 (defn make
   "Returns an instance of [[ModInt]] that represents integer `i` with integral
@@ -60,13 +97,13 @@
 
 (defn- modular-binop [op]
   (fn [a b]
-    (if-not (= (:m a) (:m b))
+    (if-not (= (modulus a) (modulus b))
       (u/arithmetic-ex "unequal moduli")
-      (make (op (:i a) (:i b)) (:m a)))))
+      (make (op (residue a) (residue b)) (modulus a)))))
 
 (defn- invert
   "Modular inverse. JVM implementation uses the native BigInt implementation."
-  ([m] (invert (:i m) (:m m)))
+  ([m] (invert (residue m) (modulus m)))
   ([i modulus]
    #?(:clj
       (try (-> (biginteger i)
@@ -86,7 +123,7 @@
   "Modular exponentiation, more efficient on the JVM."
   [base pow modulus]
   #?(:clj (let [base (if (neg? pow)
-                       (:i (invert base modulus))
+                       (residue (invert base modulus))
                        base)]
             (-> (.modPow (biginteger base)
                          (.abs (biginteger pow))
@@ -103,9 +140,9 @@
 (defn chinese-remainder
   "[Chinese Remainder Algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem).
 
-  Accepts a sequence of [[ModInt]] instances (where the modulus `:m` of
+  Accepts a sequence of [[ModInt]] instances (where the `modulus` of
   all [[ModInt]] instances are relatively prime), and returns a [[ModInt]] `x`
-  such that `(:i input) == (mod x (:m input))`.
+  such that `(residue input) == (mod x (modulus input))`.
 
   For example:
 
@@ -113,15 +150,17 @@
   (let [a1 (m/make 2 5)
         a2 (m/make 3 13)]
     [(= 42 (chinese-remainder a1 a2))
-     (= (:i a1) (mod cr (:m a1)))
-     (= (:i a2) (mod cr (:m a2)))])
+     (= (residue a1) (mod cr (modulus a1)))
+     (= (residue a2) (mod cr (modulus a2)))])
   ;;=> [true true true]
   ```"
   [& modints]
-  (let [prod  (transduce (map :m) g/* modints)
-        xform (map (fn [{:keys [i m]}]
-		                 (let [c (g/quotient prod m)]
-                       (g/* i c (:i (invert c m))))))]
+  (let [prod  (transduce (map modulus) g/* modints)
+        xform (map (fn [mi]
+		                 (let [i (residue mi)
+                           m (modulus mi)
+                           c (g/quotient prod m)]
+                       (g/* i c (residue (invert c m))))))]
     (-> (transduce xform g/+ modints)
         (g/modulo prod))))
 
@@ -134,7 +173,10 @@
 (defn- div [a b]
   (mul a (invert b)))
 
-(defmethod g/integer-part [::modint] [a] (:i a))
+(defmethod v/= [::v/number ::modint] [l r] (mod:= r l))
+(defmethod v/= [::modint ::v/number] [l r] (mod:= l r))
+
+(defmethod g/integer-part [::modint] [a] (residue a))
 (defmethod g/fractional-part [::modint] [a] 0)
 (defmethod g/floor [::modint] [a] a)
 (defmethod g/ceiling [::modint] [a] a)
@@ -142,23 +184,27 @@
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/div [::modint ::modint] [a b] (div a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
-(defmethod g/negate [::modint] [a] (make (g/negate (:i a)) (:m a)))
+(defmethod g/negate [::modint] [a] (make (g/negate (residue a)) (modulus a)))
 (defmethod g/invert [::modint] [a] (invert a))
-(defmethod g/magnitude [::modint] [{:keys [i m] :as a}] (g/modulo i m))
-(defmethod g/abs [::modint] [{:keys [i m] :as a}]
-  (if (g/negative? i)
-    (make i m)
-    a))
+(defmethod g/magnitude [::modint] [a]
+  (g/modulo (residue a)
+            (modulus a)))
+
+(defmethod g/abs [::modint] [a]
+  (let [i (residue a)]
+    (if (g/negative? i)
+      (make i (modulus a))
+      a)))
 
 (defmethod g/quotient [::modint ::modint] [a b] (mul a (invert b)))
 (defmethod g/remainder [::modint ::modint] [a b] (remainder a b))
 (defmethod g/modulo [::modint ::modint] [a b] (modulo a b))
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (invert b)))
-(defmethod g/negative? [::modint] [a] (g/negative? (:i a)))
+(defmethod g/negative? [::modint] [a] (g/negative? (residue a)))
 
 ;; A more efficient exponent implementation is available on the JVM.
-(defmethod g/expt [::v/integral ::modint] [a b](mod-expt a (:i b) (:m b)))
-(defmethod g/expt [::modint ::v/integral] [a b] (mod-expt (:i a) b (:m a)))
+(defmethod g/expt [::v/integral ::modint] [a b](mod-expt a (residue b) (modulus b)))
+(defmethod g/expt [::modint ::v/integral] [a b] (mod-expt (residue a) b (modulus a)))
 
 (defmethod g/solve-linear [::modint ::modint] [a b] (div b a))
 (defmethod g/solve-linear-right [::modint ::modint] [a b] (div a b))
@@ -166,11 +212,11 @@
 ;; Methods that allow interaction with other integral types. The first block is
 ;; perhaps slightly more efficient:
 (doseq [op [g/add g/mul g/sub]]
-  (defmethod op [::v/integral ::modint] [a b] (make (op a (:i b)) (:m b)))
-  (defmethod op [::modint ::v/integral] [a b] (make (op (:i a) b) (:m a))))
+  (defmethod op [::v/integral ::modint] [a b] (make (op a (residue b)) (modulus b)))
+  (defmethod op [::modint ::v/integral] [a b] (make (op (residue a) b) (modulus a))))
 
 ;; The second block promotes any integral type to a ModInt before operating.
 (doseq [op [g/div g/solve-linear g/solve-linear-right
             g/quotient g/remainder g/exact-divide]]
-  (defmethod op [::v/integral ::modint] [a b] (op (make a (:m b)) b))
-  (defmethod op [::modint ::v/integral] [a b] (op a (make b (:m a)))))
+  (defmethod op [::v/integral ::modint] [a b] (op (make a (modulus b)) b))
+  (defmethod op [::modint ::v/integral] [a b] (op a (make b (modulus a)))))

@@ -176,7 +176,6 @@
                 initial-state-array (into-array
                                      (flatten initial-state))
                 array->state #(struct/unflatten % initial-state)
-                output-buffer (double-array dimension)
                 observe-fn    (when observe
                                 (set! (.-denseOutput integrator) true)
                                 (.grid integrator step-size

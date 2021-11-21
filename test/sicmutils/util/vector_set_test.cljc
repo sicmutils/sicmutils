@@ -71,6 +71,50 @@
     (checking "difference(x, []) == x" 100 [v (sg/vector-set gen/nat)]
               (is (= v (vs/difference v vs/empty-set)))))
 
+  (testing "symmetric difference"
+    (checking "algebraic properties" 100
+              [v1 (sg/vector-set gen/nat)
+               v2 (sg/vector-set gen/nat)
+               v3 (sg/vector-set gen/nat)]
+              (is (= v1
+                     (vs/symmetric-difference v1 [])
+                     (vs/symmetric-difference [] v1))
+                  "empty set is neutral")
+
+              (is (= [] (vs/symmetric-difference v1 v1))
+                  "every set is its own inverse")
+
+              (is (= (vs/symmetric-difference v1 v2)
+                     (vs/symmetric-difference v2 v1))
+                  "symmetric difference is commutative")
+
+              (is (= (vs/symmetric-difference
+                      v1
+                      (vs/symmetric-difference v2 v3))
+                     (vs/symmetric-difference
+                      (vs/symmetric-difference v1 v2)
+                      v3))
+                  "symmetric difference is associative"))
+
+    (checking "vs/symmetric-difference is correct" 100
+              [v1 (sg/vector-set gen/nat)
+               v2 (sg/vector-set gen/nat)]
+              (let [s1      (set v1)
+                    s2      (set v2)
+                    symdiff (vs/symmetric-difference v1 v2)]
+                (is (= (sort
+                        (cs/union
+                         (cs/difference s1 s2)
+                         (cs/difference s2 s1)))
+                       symdiff)
+                    "symmetric diff == union of relative complements")
+
+                (is (= (sort (cs/difference
+                              (cs/union s1 s2)
+                              (cs/intersection s1 s2)))
+                       symdiff)
+                    "vs/symmetric-difference matches (union s1 s2) - (intersection s1 s2)")))
+    )
 
   (testing "conj"
     (checking "conj every element matches make" 100

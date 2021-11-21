@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.midpoint
-  (:require [sicmutils.numerical.interpolate.richardson :as ir]
+  (:require [sicmutils.polynomial.richardson :as pr]
             [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
@@ -169,7 +169,7 @@
          next-S (Sn->S3n f a b)
          xs     (qr/incrementalize S next-S 3 n)]
      (if (and accelerate? (number? n))
-       (ir/richardson-sequence xs 3 2 2)
+       (pr/richardson-sequence xs 3 2 2)
        xs))))
 
 ;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
@@ -207,12 +207,12 @@
 ;;
 ;; We noted above that the the terms of the error series for the midpoint method
 ;; increase as $h^2, h^4, h^6$... Because of this, we pass $p = q = 2$ into
-;; `ir/richardson-sequence` below. Additionally, `integral` hardcodes the factor
+;; `pr/richardson-sequence` below. Additionally, `integral` hardcodes the factor
 ;; of `3` and doesn't currently allow for a custom sequence of $n$. This
-;; requires passing $t = 3$ into `ir/richardson-sequence`.
+;; requires passing $t = 3$ into `pr/richardson-sequence`.
 ;;
 ;; If you want to accelerate some other geometric sequence, call
-;; `ir/richardson-sequence` with some other value of `t.`
+;; `pr/richardson-sequence` with some other value of `t.`
 ;;
 ;; To accelerate an arbitrary sequence of midpoint evaluations, investigate
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either

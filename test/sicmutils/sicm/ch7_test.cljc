@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.sicm.ch7-test
   (:refer-clojure :exclude [+ - * / = partial])
@@ -26,7 +26,7 @@
                      up down
                      sin cos square cube exp]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :refer [within]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -85,9 +85,9 @@
     (is (= '(down
              (up (+ (* 2 x) (* 2 y))
                  (+ (* -3 (expt x 2)) (* 6 x y) (* -3 (expt y 2)))
-                 (exp (+ x y)))
+                 (* (exp x) (exp y)))
              (up (+ (* 2 x) (* 2 y))
                  (+ (* 3 (expt x 2)) (* -6 x y) (* 3 (expt y 2)))
-                 (exp (+ x y))))
+                 (* (exp x) (exp y))))
            (e/freeze
             (simplify ((D g) 'x 'y)))))))

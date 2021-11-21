@@ -26,6 +26,7 @@
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.differential :as sd]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
                                              cot sec csc
@@ -150,7 +151,18 @@
               :cube '(* 3 (expt x 2))}
              (simplify ((D f) 'x)))
           "derivative of a fn returning a map returns the derivative for each
-          value")))
+          value"))
+
+    (letfn [(f [x]
+              {:type ::my-custom-type
+               :square (g/square x)
+               :cube   (g/cube x)})]
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   ((D f) 'x))
+          "If the function returns a map with a `:type` key, the system will NOT
+          attempt to recurse into the values, and will instead error. (If you
+          want to take derivatives of some object represented with a map, either
+          use a `defrecord` or `deftype` or file an issue to discuss!.)")))
 
   (testing "Operator"
     (letfn [(f [x]
@@ -165,7 +177,7 @@
 (deftest partial-diff-test
   (testing "partial derivative simplification rules"
     (let [f (af/literal-function 'f '(-> (UP Real Real) Real))]
-      (is (= '(((* (partial 1) (expt (partial 0) 2)) f) (up x y))
+      (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y))
              (simplify
               (((partial 0)
                 ((partial 1)
@@ -390,92 +402,6 @@
          (simplify (((* sin D) g/cube) 't)))
       "fn * D == multiplies after D"))
 
-(deftest vector-calculus
-  (let [f (fn [[x y z]]
-            (s/up (identity x) (sin y) (cos z)))
-        xyz (s/up 'x 'y 'z)]
-    (is (= '(down
-             (up 1 0 0)
-             (up 0 (cos y) 0)
-             (up 0 0 (* -1 (sin z))))
-           (simplify ((D f) xyz))))
-    (is (= '(up
-             (up 1 0 0)
-             (up 0 (cos y) 0)
-             (up 0 0 (* -1 (sin z))))
-           (simplify ((d/Grad f) xyz))))
-
-    (is (= '(up 0 (* -1 (sin y)) (* -1 (cos z)))
-           (simplify ((d/Lap f) xyz))))
-
-    (is (= '(+ (cos y) (* -1 (sin z)) 1)
-           (simplify ((d/Div f) (s/up 'x 'y 'z)))))))
-
-(deftest vector-operator-tests
-  (testing "symbolic representations of Div, Curl, Grad, Lap are correct"
-    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
-          A (af/literal-function 'A '(-> (UP Real Real Real)
-                                         (UP Real Real Real)))]
-      (is (= '(up (((partial 0) F) (up x y z))
-                  (((partial 1) F) (up x y z))
-                  (((partial 2) F) (up x y z)))
-             (simplify
-              ((d/Grad F) (s/up 'x 'y 'z)))))
-
-      (is (= '(+ (((partial 0) A↑0) (up x y z))
-                 (((partial 1) A↑1) (up x y z))
-                 (((partial 2) A↑2) (up x y z)))
-             (simplify
-              ((d/Div A) (s/up 'x 'y 'z)))))
-
-      (is (= '(up (+ (((partial 1) A↑2) (up x y z))
-                     (* -1 (((partial 2) A↑1) (up x y z))))
-                  (+ (((partial 2) A↑0) (up x y z))
-                     (* -1 (((partial 0) A↑2) (up x y z))))
-                  (+ (((partial 0) A↑1) (up x y z))
-                     (* -1 (((partial 1) A↑0) (up x y z)))))
-             (simplify
-              ((d/Curl A) (s/up 'x 'y 'z)))))
-
-      (is (= '(+ (((expt (partial 0) 2) F) (up x y z))
-                 (((expt (partial 1) 2) F) (up x y z))
-                 (((expt (partial 2) 2) F) (up x y z)))
-             (simplify
-              ((d/Lap F) (s/up 'x 'y 'z)))))))
-
-  (testing "Div, Curl, Grad, Lap identities"
-    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
-          G (af/literal-function 'G '(-> (UP Real Real Real) Real))
-          A (af/literal-function 'A '(-> (UP Real Real Real)
-                                         (UP Real Real Real)))]
-      (is (= '(up 0 0 0)
-             (simplify
-              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z))))
-          "Curl of the gradient is zero!")
-
-      (is (= 0 (simplify
-                ((d/Div (d/Curl A)) (s/up 'x 'y 'z))))
-          "divergence of curl is 0.")
-
-      (is (= 0 (simplify
-                ((- (d/Div (d/Grad F))
-                    (d/Lap F))
-                 (s/up 'x 'y 'z))))
-          "The Laplacian of a scalar field is the div of its gradient.")
-
-      (is (= '(up 0 0 0)
-             (simplify
-              ((- (d/Curl (d/Curl A))
-                  (- (d/Grad (d/Div A)) (d/Lap A)))
-               (s/up 'x 'y 'z)))))
-
-      (is (= 0 (simplify
-                ((- (d/Div (* F (d/Grad G)))
-                    (+ (* F (d/Lap G))
-                       (g/dot-product (d/Grad F)
-                                      (d/Grad G))))
-                 (s/up 'x 'y 'z))))))))
-
 (deftest more-trig-tests
   (testing "cotangent"
     (is (= '(/ (cos x) (sin x))
@@ -574,7 +500,7 @@
                     (/ (tan x) y))
              (simplify ((D f3) 'x 'y))))
       (is (= '(down (/ (sin y) (expt (cos x) 2))
-                    (/ (* (sin x) (cos y)) (cos x)))
+                    (* (tan x) (cos y)))
              (simplify ((D f4) 'x 'y))))
       (is (= '(down
                (/ 1 (* (expt (cos x) 2) (sin y)))
@@ -671,16 +597,86 @@
 
   (testing "eq. 5.291"
     (let [V  (fn [[xi eta]]
-               (g/sqrt (+ (g/square (+ xi 'R_0))
-                          (g/square eta))))
+               (g/sqrt
+                (+ (g/square (+ xi 'R_0))
+                   (g/square eta))))
           x  (s/up 0 0)
           dx (s/up 'xi 'eta)]
-      (is (v/= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-               (->> (d/taylor-series V x dx)
-                    (take 3)
-                    (g/simplify)))))))
+      (is (= '(R_0 xi (/ (* (/ 1 2) (expt eta 2))
+                         R_0))
+             (->> (d/taylor-series V x dx)
+                  (take 3)
+                  (simplify)))))))
 
 (deftest moved-from-structure-and-matrix
+  (testing "as-matrix, D-as-matrix"
+    (let [Hamiltonian2 '(-> (UP Real
+                                (UP Real Real)
+                                (DOWN Real Real))
+                            Real)
+          S (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y))
+          present (fn [expr]
+                    (-> (simplify expr)
+                        (x/substitute (v/freeze S) 'p)))]
+      (is (= '(matrix-by-rows
+               (up (((partial 0) H) p)
+                   (((partial 1 0) H) p)
+                   (((partial 1 1) H) p)
+                   (((partial 2 0) H) p)
+                   (((partial 2 1) H) p)))
+             (present
+              ((d/D-as-matrix (af/literal-function 'H Hamiltonian2))
+               S)))))
+
+    (let [C-general (af/literal-function
+                     'C '(-> (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))
+                             (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))))
+          S (s/up 't (s/up 'x 'y) (s/down 'px 'py))
+          present (fn [expr]
+                    (-> (simplify expr)
+                        (x/substitute (v/freeze S) 'p)))]
+      (is (= '(matrix-by-rows (up (((partial 0) C↑0) p)
+                                  (((partial 1 0) C↑0) p)
+                                  (((partial 1 1) C↑0) p)
+                                  (((partial 2 0) C↑0) p)
+                                  (((partial 2 1) C↑0) p))
+                              (up (((partial 0) C↑1↑0) p)
+                                  (((partial 1 0) C↑1↑0) p)
+                                  (((partial 1 1) C↑1↑0) p)
+                                  (((partial 2 0) C↑1↑0) p)
+                                  (((partial 2 1) C↑1↑0) p))
+                              (up (((partial 0) C↑1↑1) p)
+                                  (((partial 1 0) C↑1↑1) p)
+                                  (((partial 1 1) C↑1↑1) p)
+                                  (((partial 2 0) C↑1↑1) p)
+                                  (((partial 2 1) C↑1↑1) p))
+                              (up (((partial 0) C↑2_0) p)
+                                  (((partial 1 0) C↑2_0) p)
+                                  (((partial 1 1) C↑2_0) p)
+                                  (((partial 2 0) C↑2_0) p)
+                                  (((partial 2 1) C↑2_0) p))
+                              (up (((partial 0) C↑2_1) p)
+                                  (((partial 1 0) C↑2_1) p)
+                                  (((partial 1 1) C↑2_1) p)
+                                  (((partial 2 0) C↑2_1) p)
+                                  (((partial 2 1) C↑2_1) p)))
+             (present
+              ((matrix/as-matrix (D C-general)) S))))
+
+      (is (= '(matrix-by-rows (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0))
+             (simplify
+              ((- (d/D-as-matrix C-general)
+                  (matrix/as-matrix (D C-general)))
+               S))))))
+
   (let [vs (s/up
             (s/up 'vx1 'vy1)
             (s/up 'vx2 'vy2))
@@ -760,8 +756,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                       (fn [t] (g/* k t))
-                       (fn [t] (g/* k k t))))]
+                      (fn [t] (g/* k t))
+                      (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 

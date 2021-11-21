@@ -20,10 +20,10 @@
 (ns sicmutils.numerical.quadrature.riemann-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.util.aggregate :as ua]
@@ -89,7 +89,7 @@
             (let [f (fn [x] (* x x))]
               (-> (map (@#'qr/left-sum f 0 10)
                        (us/powers 2))
-                  (ir/richardson-sequence 2)
+                  (pr/richardson-sequence 2)
                   (us/seq-limit))))
       "Richardson extrapolation speeds up convergence.")
 

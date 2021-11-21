@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.expression-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -163,5 +163,28 @@
     ;; TODO add more tests as we start to explore this function.
     ))
 
-(deftest is-literal-test
-  )
+(deftest string-form-test
+  (let [expr (g/+ 'x 'x)]
+    (is (re-matches
+         #"\(\* 2 x\)\r?\n"
+         (with-out-str
+           (e/print-expression expr))))
+
+    (is (= (str (e/expression->string expr) "\n")
+           (with-out-str
+             (e/print-expression expr)))))
+
+  (is (= "+" (e/expression->string g/+)))
+  (is (= "nil" (e/expression->string nil)))
+  (is (= "(up nil 3 (+ x 2))" (e/expression->string [nil 3 (g/+ 2 'x)])))
+  (is (= "1" (e/expression->string
+              ((g/+ (g/square g/sin)
+                    (g/square g/cos))
+               'x))))
+
+  (is (#{"(/ (+ (* -1 (expt (cos x) 4)) 1N) (expt (cos x) 2))"
+         "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"}
+       (e/expression->string
+        ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))
+      "This expression evaluates to one or the other, depending on what's been
+      evaluated."))
