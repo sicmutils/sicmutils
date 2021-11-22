@@ -27,7 +27,10 @@
             [sicmutils.value :as v]))
 
 (defn eval [form]
-  (sci/eval-form (sci/fork es/context) form))
+  (let [ctx (sci/fork es/context)]
+    (sci/binding [sci/ns @sci/ns]
+      (sci/eval-form ctx '(require '[sicmutils.env :refer :all]))
+      (sci/eval-form ctx form))))
 
 (deftest pattern-tests
   (is (= ['(+ 2 1) "done!"]
