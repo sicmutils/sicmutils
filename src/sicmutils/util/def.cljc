@@ -156,7 +156,7 @@
            nsm (ns-map ns)
            remote? (fn [sym]
                      (when-let [v (nsm sym)]
-                       (not= *ns* (:ns (meta v)))))
+                       (not= ns (:ns (meta v)))))
            warn (fn [sym]
                   `(.println
                     (RT/errPrintWriter)

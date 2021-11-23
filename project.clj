@@ -27,7 +27,7 @@
                  [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [borkdude/sci "0.2.5"]
+                 [borkdude/sci "0.2.7"]
                  [com.taoensso/timbre "5.1.2"
                   :exclusions [org.clojure/clojurescript]]
                  [dm3/stopwatch "0.1.1"]

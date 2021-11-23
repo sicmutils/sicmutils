@@ -101,26 +101,36 @@
                       (= 2 (y p))]))))
         "using-coordinates works!")
 
-    (is (= [true true]
-           (eval '(do (define-coordinates [x y] R2-rect)
+    (is (= [true true true true]
+           (eval '(do
+                    (require '[sicmutils.calculus.manifold :as m])
 
-                      (let [p ((point R2-rect) (up 1 2))]
-                        [(= 1 (x p))
-                         (= 2 (y p))]))))
+                    (def old-prototype
+                      (m/coordinate-prototype R2-rect))
+
+                    (define-coordinates [x y] R2-rect)
+
+                    (let [p ((point R2-rect) (up 1 2))]
+                      [(= 1 (x p))
+                       (= 2 (y p))
+                       ;; Note that `R2-rect` is actually rebound.
+                       (= ['x0 'x1] old-prototype)
+                       (= ['x 'y] (m/coordinate-prototype R2-rect))]))))
         "define-coordinates version of that test")
 
-    (is (eval '(do (define-coordinates (up x y) R2-rect)
+    (is (eval
+         '(do (define-coordinates (up x y) R2-rect)
 
-                   (let [circular (- (* x d:dy) (* y d:dx))]
-                     (= '(+ (* 3 x0) (* -2 y0))
-                        (freeze
-                         (simplify
-                          ((circular (+ (* 2 x) (* 3 y)))
-                           ((point R2-rect) (up 'x0 'y0)))))))))
+              (let [circular (- (* x d:dy) (* y d:dx))]
+                (= '(+ (* 3 x0) (* -2 y0))
+                   (freeze
+                    (simplify
+                     ((circular (+ (* 2 x) (* 3 y)))
+                      ((point R2-rect) (up 'x0 'y0)))))))))
         "define-coordinates works with a test from form_field_test.cljc")
 
     (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"
+      (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
              (eval
               '(do (defn L-central-polar [m U]
                      (fn [[_ [r] [rdot φdot]]]

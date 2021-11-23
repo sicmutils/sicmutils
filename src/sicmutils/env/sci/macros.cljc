@@ -137,21 +137,23 @@
         coord-names        (cc/symbols-from-prototype coordinate-prototype)
         vector-field-names (map vf/coordinate-name->vf-name coord-names)
         form-field-names   (map ff/coordinate-name->ff-name coord-names)
-        value-sym          (gensym)]
-    `(do
-       (def ~sys-name
-         (m/with-coordinate-prototype
-           ~coordinate-system
-           ~(cc/quotify-coordinate-prototype coordinate-prototype)))
-
+        sys-sym            (gensym)
+        value-sym          (gensym)
+        bind               (fn [sym form]
+                             `(do (ns-unmap *ns* '~sym)
+                                  (intern *ns* '~sym ~form)))]
+    `(let [~sys-sym (m/with-coordinate-prototype
+                      ~coordinate-system
+                      ~(cc/quotify-coordinate-prototype coordinate-prototype))]
+       ~(bind sys-name sys-sym)
        (let [~value-sym
              (into [] (flatten
-                       [(cc/coordinate-functions ~sys-name)
-                        (vf/coordinate-system->vector-basis ~sys-name)
-                        (ff/coordinate-system->oneform-basis ~sys-name)]))]
+                       [(cc/coordinate-functions ~sys-sym)
+                        (vf/coordinate-system->vector-basis ~sys-sym)
+                        (ff/coordinate-system->oneform-basis ~sys-sym)]))]
          ~@(map-indexed
             (fn [i sym]
-              `(def ~sym (nth ~value-sym ~i)))
+              (bind sym `(nth ~value-sym ~i)))
             (concat coord-names vector-field-names form-field-names))))))
 
 (defn- tag-as-macro [f]
