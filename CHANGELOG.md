@@ -13,6 +13,8 @@
     evaluate `(require '[sicmutils.env :refer :all])` against your SCI
     environment to get all bindings.
 
+  - bumps the default version of SCI to 0.2.7.
+
 ## 0.20.0
 
 - #348:
