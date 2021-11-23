@@ -19,12 +19,15 @@
 
 (ns sicmutils.env.sci-test
   (:refer-clojure :exclude [eval])
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sci.core :as sci]
             [sicmutils.env :as e]
             [sicmutils.env.sci :as es]
             [sicmutils.operator :as o]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
+
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn eval [form]
   (let [ctx (sci/fork es/context)]
@@ -127,20 +130,22 @@
                     (simplify
                      ((circular (+ (* 2 x) (* 3 y)))
                       ((point R2-rect) (up 'x0 'y0)))))))))
-        "define-coordinates works with a test from form_field_test.cljc")
+        "define-coordinates works with a test from form_field_test.cljc")))
 
-    (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
-             (eval
-              '(do (defn L-central-polar [m U]
-                     (fn [[_ [r] [rdot φdot]]]
-                       (- (* (/ 1 2) m
-                             (+ (square rdot)
-                                (square (* r φdot))))
-                          (U r))))
-                   (with-literal-functions [U r φ]
-                     (let [L     (L-central-polar 'm U)
-                           state (up r φ)]
-                       (->infix
-                        (simplify
-                         (((Lagrange-equations L) state) 't))))))))))))
+(deftest more-sci-tests
+  ;; breaking these out to give the simplifier some repeatability.
+  (testing "internal defn, funky symbols, internal with-literal-functions macro"
+    (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
+           (eval
+            '(do (defn L-central-polar [m U]
+                   (fn [[_ [r] [rdot φdot]]]
+                     (- (* (/ 1 2) m
+                           (+ (square rdot)
+                              (square (* r φdot))))
+                        (U r))))
+                 (with-literal-functions [U r φ]
+                   (let [L     (L-central-polar 'm U)
+                         state (up r φ)]
+                     (->infix
+                      (simplify
+                       (((Lagrange-equations L) state) 't)))))))))))
