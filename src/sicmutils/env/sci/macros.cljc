@@ -140,8 +140,8 @@
         sys-sym            (gensym)
         value-sym          (gensym)
         bind               (fn [sym form]
-                             `(do (ns-unmap *ns* '~sym)
-                                  (intern *ns* '~sym ~form)))]
+                             `(do (clojure.core/ns-unmap *ns* '~sym)
+                                  (clojure.core/intern *ns* '~sym ~form)))]
     `(let [~sys-sym (m/with-coordinate-prototype
                       ~coordinate-system
                       ~(cc/quotify-coordinate-prototype coordinate-prototype))]
