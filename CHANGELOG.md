@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+## 0.20.1
+
 - #396:
 
   - fixes a bug in the SCI version of `define-coordinates` which didn't allow
