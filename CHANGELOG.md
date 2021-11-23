@@ -2,6 +2,19 @@
 
 ## [unreleased]
 
+- #396:
+
+  - fixes a bug in the SCI version of `define-coordinates` which didn't allow
+    any rebinding of manifolds.
+
+  - Removes the `bindings` key from `sicmutils.env.sci/context-opts`.
+    https://github.com/babashka/sci/issues/637 is a bug with variable rebinding
+    that occurs when `:bindings` is in play. Instead of relying on this key,
+    evaluate `(require '[sicmutils.env :refer :all])` against your SCI
+    environment to get all bindings.
+
+  - bumps the default version of SCI to 0.2.7.
+
 ## 0.20.0
 
 - #348:
