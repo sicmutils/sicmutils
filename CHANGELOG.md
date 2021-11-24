@@ -2,17 +2,17 @@
 
 ## [unreleased]
 
-- `sicmutils.calculus.manifold/typical-coords` now returns generated coordinate
-  symbols that start with the same symbol as the coordinate system's prototype,
-  like:
+- #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
+  coordinate symbols that start with the same symbol as the coordinate system's
+  prototype, like:
 
 ```clj
 (typical-coords R2-polar)
-(up x065308 x165309)
+;;=> (up x065308 x165309)
 
 (typical-coords
  (with-coordinate-prototype R2-polar (up 'r 'theta)))
-(up r65312 theta65313)
+;;=> (up r65312 theta65313)
 ```
 
 ## 0.20.1
