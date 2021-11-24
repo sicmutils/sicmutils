@@ -19,7 +19,8 @@
 
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.string :as cs]
+            [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
@@ -106,12 +107,33 @@
   (is (m/check-coordinates coord-system coords)
       "Coordinates pass.")
 
+  (is (m/check-coordinates coord-system (m/typical-coords coord-system))
+      "coords returned by `typical-coords` passes.")
+
   (let [point (m/coords->point coord-system coords)]
     (is (m/manifold-point? point)
-        "coords->point returns a valid point.")
+        "`coords->point` returns a valid point.")
 
     (is (m/check-point coord-system point)
         "point returned by `m/coords->point` is always valid.")
+
+    (is (m/check-point coord-system (m/typical-point coord-system))
+        "Point returned by `typical-point` is always valid.")
+
+    (let [proto   (m/coordinate-prototype coord-system)
+          proto   (if (sequential? proto) proto [proto])
+          typical (m/typical-coords coord-system)
+          typical (if (sequential? typical) typical [typical])]
+      (is (every? true?
+                  (map (fn [proto-sym coord-sym]
+                         (and (cs/starts-with?
+                               (str coord-sym)
+                               (str proto-sym))
+                              (not= proto-sym coord-sym)))
+                       proto
+                       typical))
+          "each coordinate in `typical-coords` starts with the prototype, but none
+        are equal to the prototype symbol."))
 
     (is (= coords
            (m/get-coordinates
