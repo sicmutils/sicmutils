@@ -21,7 +21,9 @@
   "Implementations of various [greatest common
   divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) algorithms."
   (:require [sicmutils.generic :as g]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [sicmutils.complex :as c]
+            [sicmutils.numbers]))
 
 (defn extended-gcd
   "Returns a vector containing the [greatest common
@@ -55,6 +57,30 @@
                   a
                   (recur b (g/remainder a b))))))
 
+(defn nearest-int [x]
+  "Rounds x to the closest integer."
+  (cond (> (g/fractional-part x) 0.5) (g/ceiling x)
+        :else (g/floor x)))
+
+(defn round-complex [z]
+  "Rounds a complex number the closest complex number whose real and imaginary parts are both integers.
+   See [Gaussian integer](https://en.wikipedia.org/wiki/Gaussian_integer)."
+  (c/complex (nearest-int (g/real-part z))
+             (nearest-int (g/imag-part z))))
+
+(defn gcd-complex [a b]
+  "Returns the complex gcd of two complex numbers using the euclidean algorithm.
+   For more details on the algorithm, see:
+   https://web.archive.org/web/20190720160400/http://mathforum.org/library/drmath/view/67068.html
+   Note that the GCD of two complex numbers is determinet up to a factor of ±1 and ±i."
+  ;; wanted to a (ish? z (round-complex z)) precondition to both a and b, but not sure how to import ish? here
+  (cond (v/zero? a) b
+        (v/zero? b) a
+        ;; we want the first number to be the one with the higher magnitude
+        (< (g/magnitude a) (g/magnitude b)) (gcd-complex b a)  
+        :else (let [q (round-complex (g// a b))
+                    r  (g/- a (g/* q b))]
+                (gcd-complex b r))))
 ;; multimethod implementation for basic numeric types.
 
 (defmethod g/gcd :default [a b]

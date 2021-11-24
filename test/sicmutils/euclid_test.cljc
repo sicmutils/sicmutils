@@ -61,6 +61,11 @@
     (is (= (ok 934132 (* 934132 71)) 934132))
     (is (= [2 -9 47] (e/extended-gcd 240 46)))
     (is (= [2 1 0] (e/extended-gcd 2 4))))
+  
+  (testing "gcd-complex"
+    ;; plan is to add a bunch of tests here by comparing to wolfram alpha.
+    ;; one thing I'm not sure about is how to best do these testing given the multiplicity of the solutions.
+  )
 
   (testing "lcm"
     (is (= 21 (g/lcm 3 7)))
