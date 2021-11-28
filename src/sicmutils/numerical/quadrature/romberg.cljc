@@ -22,7 +22,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as qm]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.numerical.interpolate.richardson :as ir]))
+            [sicmutils.polynomial.richardson :as pr]))
 
 ;; ## Romberg's Method
 ;;
@@ -85,7 +85,7 @@
   ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}
    (-> (qm/midpoint-sequence f a b opts)
-       (ir/richardson-sequence 3 2 2))))
+       (pr/richardson-sequence 3 2 2))))
 
 (defn closed-sequence
   "Returns a (lazy) sequence of successively refined estimates of the integral of
@@ -107,7 +107,7 @@
   ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}
    (-> (qt/trapezoid-sequence f a b opts)
-       (ir/richardson-sequence 2 2 2))))
+       (pr/richardson-sequence 2 2 2))))
 
 (defn romberg-sequence
   "Higher-level abstraction over `closed-sequence` and `open-sequence`. Identical

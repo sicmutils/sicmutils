@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.numbers
   "This namespace extends of all appropriate SICMUtils generic operations
@@ -43,8 +43,9 @@
   #?(:cljs
      (:import (goog.math Long Integer))
      :clj
-     (:import [clojure.lang BigInt Ratio]
-              [java.math BigInteger])))
+     (:import (clojure.lang BigInt Ratio)
+              (java.math BigInteger)
+              (org.apache.commons.math3.util ArithmeticUtils))))
 
 ;; "Backstop" implementations that apply to anything that descends from
 ;; ::v/real.
@@ -158,6 +159,11 @@
   (g/quotient a b))
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
+(defmethod g/exact-divide [::v/scalar ::v/real] [b a]
+  (cond (= a b) (v/one-like a)
+        (v/one? a) b
+        :else (u/illegal
+               (str "exact not allowed: " b ", " a))))
 
 (defmethod g/integer-part [::v/integral] [a] a)
 (defmethod g/fractional-part [::v/integral] [a] 0)
@@ -175,24 +181,79 @@
 ;; type system.
 #?(:clj
    ;; Efficient, native GCD on the JVM.
-   (defmethod g/gcd [BigInteger BigInteger] [a b] (.gcd a b)))
+   (do (defmethod g/gcd [BigInteger BigInteger] [a b]
+         (.gcd ^BigInteger a
+               ^BigInteger b))
+
+       (defmethod g/gcd [BigInt BigInt] [a b]
+         (.gcd (biginteger a)
+               (biginteger b)))
+
+       (defmethod g/gcd [Long Long] [a b]
+         (ArithmeticUtils/gcd ^long a ^long b))
+
+       (defmethod g/gcd [Integer Integer] [a b]
+         (ArithmeticUtils/gcd ^int a ^int b))
+
+       (doseq [from [Long BigInt Integer]]
+         (defmethod g/gcd [BigInteger from] [a b]
+           (.gcd ^BigInteger a (biginteger b)))
+
+         (defmethod g/gcd [from BigInteger] [a b]
+           (.gcd (biginteger a) b)))
+
+       (doseq [from [Long Integer]]
+         (defmethod g/gcd [BigInt from] [a b]
+           (.gcd (biginteger a) (biginteger b)))
+
+         (defmethod g/gcd [from BigInt] [a b]
+           (.gcd (biginteger a) (biginteger b))))))
 
 #?(:cljs
-   (do (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
-         (if (neg? b)
-           (g/invert (u/compute-expt a (core-minus b)))
-           (u/compute-expt a b)))
+   (do
+     (letfn [(abs [a]
+               (if (neg? a) (core-minus a) a))
 
-       (defmethod g/div [::v/integral ::v/integral] [a b]
-         (let [rem (g/remainder a b)]
-           (if (v/zero? rem)
-             (g/quotient a b)
-             (r/rationalize a b))))
+             (bigint-gcd [a b]
+               (loop [a (abs a)
+                      b (abs b)]
+                 (if (js* "~{} == ~{}" b 0)
+                   a
+                   (recur b (js* "~{} % ~{}" a b)))))]
 
-       (defmethod g/invert [::v/integral] [a]
-         (if (v/one? a)
-           a
-           (r/rationalize 1 a)))))
+       ;; The following GCD implementations use native operations to get more
+       ;; speed than the generic implementation in `sicmutils.euclid`.
+       (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
+         (loop [a (abs a)
+                b (abs b)]
+           (if (core-zero? b)
+             a
+             (recur b (rem a b)))))
+
+       (defmethod g/gcd [js/BigInt js/BigInt] [a b]
+         (bigint-gcd a b))
+
+       (defmethod g/gcd [::v/native-integral js/BigInt] [a b]
+         (bigint-gcd (js/BigInt a) b))
+
+       (defmethod g/gcd [ js/BigInt ::v/native-integral] [a b]
+         (bigint-gcd a (js/BigInt b))))
+
+     (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
+       (if (neg? b)
+         (g/invert (u/compute-expt a (core-minus b)))
+         (u/compute-expt a b)))
+
+     (defmethod g/div [::v/integral ::v/integral] [a b]
+       (let [rem (g/remainder a b)]
+         (if (v/zero? rem)
+           (g/quotient a b)
+           (r/rationalize a b))))
+
+     (defmethod g/invert [::v/integral] [a]
+       (if (v/one? a)
+         a
+         (r/rationalize 1 a)))))
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
@@ -203,7 +264,6 @@
      (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
      (defmethod g/modulo [js/BigInt js/BigInt] [a b] (g/modulo-default a b))
-     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (g/remainder-default a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
 
@@ -232,10 +292,10 @@
      (doseq [op [g/add g/mul g/sub g/div g/expt g/modulo g/remainder g/quotient]]
        ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
-         (op a (u/bigint b)))
+         (op a (js/BigInt b)))
 
        (defmethod op [::v/integral js/BigInt] [a b]
-         (op (u/bigint a) b))
+         (op (js/BigInt a) b))
 
        ;; For NON integrals, we currently have no choice but to downcast the
        ;; BigInt to a floating point number.

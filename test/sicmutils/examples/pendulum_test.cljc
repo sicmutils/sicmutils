@@ -24,10 +24,12 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest simple-pendulum
   (is (= '(+ (* (/ 1 2) (expt l 2) m (expt thetadot 2))
              (* g l m (cos theta)))
          (v/freeze
-          (simplify ((p/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot)))))))
+          (simplify
+           ((p/L 'm 'l 'g (fn [_t] (up 0 0)))
+            (up 't 'theta 'thetadot)))))))

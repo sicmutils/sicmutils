@@ -31,6 +31,7 @@
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
+            [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
 ;; # Function Compilation
@@ -55,7 +56,7 @@
 (let [f (fn [x] (g/sqrt
                 (g/+ (g/square (g/sin x))
                      (g/square (g/cos x)))))]
-  (= 1 (g/simplify (f 'x))))
+  (v/= 1 (g/simplify (f 'x))))
 
 ;; 3. Apply "common subexpression elimination". Any subexpression inside the
 ;;    new, simplified body that appears more than once gets extracted out into a
@@ -90,7 +91,7 @@
    '/ /
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
-   'abs #(Math/abs %)
+   'abs #(Math/abs ^double %)
    'log #(Math/log %)
    'exp #(Math/exp %)
    'cos #(Math/cos %)
@@ -492,7 +493,8 @@
         generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g              (apply f generic-params)
         body           (cse-form
-                        (g/simplify (g generic-state)))
+                        (v/freeze
+                         (g/simplify (g generic-state))))
         compiler       (if (native?)
                          compile-state-native
                          compile-state-sci)
@@ -582,7 +584,8 @@
    (let [sw       (us/stopwatch)
          args     (repeatedly n #(gensym 'x))
          body     (cse-form
-                   (g/simplify (apply f args)))
+                   (v/freeze
+                    (g/simplify (apply f args))))
          compiled (if (native?)
                     (compile-native args body)
                     (compile-sci args body))]

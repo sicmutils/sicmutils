@@ -1,27 +1,27 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.sicm.ch1-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D partial simplify
+             :refer [+ - * / D partial
                      compose up down abs sin cos square expt
                      Lagrange-equations
                      F->C p->r s->r ->local
@@ -34,7 +34,10 @@
             [sicmutils.examples.pendulum :as pendulum]
             [sicmutils.examples.driven-pendulum :as driven]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (def ^:private near (within 1e-6))
 
@@ -227,8 +230,9 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
+
         (is (= '(+ (* (/ 1 2) (expt l 2) m (expt θdot 2))
-                   (* l m θdot ((D y_s) t) (sin θ))
+                   (* l m θdot (sin θ) ((D y_s) t))
                    (* g l m (cos θ))
                    (* -1 g m (y_s t))
                    (* (/ 1 2) m (expt ((D y_s) t) 2)))
@@ -288,9 +292,10 @@
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
-                (/ (+ (* a (expt ω 2) (sin θ) (cos (* t ω))) (* -1 g (sin θ))) l))
-           (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
-                      (up 't 'θ 'θdot)))))
+                (/ (+ (* a (expt ω 2) (cos (* t ω)) (sin θ)) (* -1 g (sin θ))) l))
+           (simplify
+            ((pend-state-derivative 'm 'l 'g 'a 'ω)
+             (up 't 'θ 'θdot)))))
 
     (let [opts      {:compile? true :epsilon 1.0e-13}
           evolve-fn (e/evolve pend-state-derivative
@@ -324,13 +329,16 @@
       (is (= '(down (+ (* m r (expt φdot 2) (expt (sin θ) 2))
                        (* m r (expt θdot 2))
                        (* -1 ((D V) r)))
-                    (* m (expt r 2) (expt φdot 2) (cos θ) (sin θ))
+                    (* m (expt r 2) (expt φdot 2) (sin θ) (cos θ))
                     0)
-             (simplify (((partial 1) (L3-central 'm V)) spherical-state))))
+             (simplify
+              (((partial 1) (L3-central 'm V)) spherical-state))))
+
       (is (= '(down (* m rdot)
                     (* m (expt r 2) θdot)
                     (* m (expt r 2) φdot (expt (sin θ) 2)))
              (simplify (((partial 2) (L3-central 'm V)) spherical-state))))
+
       ;; p. 82
       (is (= '(* m (expt r 2) φdot (expt (sin θ) 2))
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))

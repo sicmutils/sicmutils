@@ -1,7 +1,7 @@
-# sicmutils
+# SICMUtils
 
 A Clojure(script) implementation of the
-[Scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
+[scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
 for math and physics investigations in the Clojure and Clojurescript languages.
 SICMUtils provides facilities for
 
@@ -9,7 +9,7 @@ SICMUtils provides facilities for
   computation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/symbolic-expressions),
   including state of the art TeX rendering and [expression
   simplification](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/simplification)
-- [automatic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+- [automatic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation),
   [numerical](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/numerical-methods/numerical-derivative)
   and
   [symbolic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
@@ -35,9 +35,9 @@ G.J. Sussman and J. Wisdom.
 > Slack](http://clojurians.net/) in
 > [#sicmutils](https://clojurians.slack.com/archives/C01ECA9AA74).
 
-[![Build Status](https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master)](https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
-[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/sicmutils/sicmutils/blob/master/LICENSE)
-[![Codecov branch](https://img.shields.io/codecov/c/github/sicmutils/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/sicmutils/sicmutils)
+[![Build Status](https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=main)](https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
+[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/sicmutils/sicmutils/blob/main/LICENSE)
+[![Codecov branch](https://img.shields.io/codecov/c/github/sicmutils/sicmutils/main.svg?maxAge=3600)](https://codecov.io/github/sicmutils/sicmutils)
 [![cljdoc badge](https://cljdoc.org/badge/sicmutils/sicmutils)](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT)
 [![Clojars Project](https://img.shields.io/clojars/v/sicmutils/sicmutils.svg)](https://clojars.org/sicmutils/sicmutils)
 
@@ -61,6 +61,9 @@ Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 (env/bootstrap-repl!)
 ```
 
+See the [demo directory](./demo) for minimal examples of build configurations
+that use the SICMUtils library.
+
 Alternatively, visit the [SICMUtils Tutorial on
 Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
 examples below in your browser with no setup required:
@@ -79,7 +82,7 @@ and proper ratios in Clojurescript:
 ;;=> 3/2
 
 (asin -10)
-;;=> #sicm/complex "-1.5707963268 + 2.9932228461i"
+;;=> #sicm/complex [-1.5707963267948966 2.9932228461263786]
 ```
 
 Symbols are interpreted as abstract complex numbers, and arithmetic on them
@@ -113,7 +116,7 @@ to collapse symbolic expressions into tidy form:
 (simplify ((D cube) 'x))
 ;;=> (* 3 (expt x 2))
 
-(render
+(->infix
  (simplify ((D cube) 'x)))
 ;;-> "3 x²"
 ```
@@ -160,7 +163,7 @@ examples above and start to explore on your own.
   together.
 - Visit our [CLJDocs][CLJDOCS] page for an introduction and detailed
   documentation
-- Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for on overview
+- Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for an overview
   of SICMUtils and its implementation
 - Visit the HTML version of [Structure and Interpretation of Classical
   Mechanics](https://tgvaughan.github.io/sicm/). Many of the SICM exercises have
@@ -202,9 +205,9 @@ To cite this repository:
 ```
 @software{sicmutils2016github,
   author = {Colin Smith and Sam Ritchie},
-  title = {{SICMUtils}: functional {C}omputer {A}lgebra in {C}clojure@+{N}um{P}y programs},
+  title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.16.0},
+  version = {0.20.1},
   year = {2016},
 }
 ```

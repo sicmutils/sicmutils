@@ -27,9 +27,10 @@
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn milne-step
   "Implements a single step of Milne's method, as laid out in the [Wikipedia
@@ -62,7 +63,7 @@
                               (let [t**p (g/expt 2 p)]
                                 (/ (- (* t**p b) a)
                                    (- t**p 1))))]
-        (is (zero?
+        (is (v/zero?
              (g/simplify
               (- (richardson-step 2 m1 m2)
                  (milne-step f a b))))

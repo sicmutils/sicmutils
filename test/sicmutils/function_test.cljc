@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.function-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -226,6 +226,16 @@
                    (f/joint-arity [[:between 1 3] [:at-least 4]])
                    (f/joint-arity [[:between 2 3] [:exactly 1]])
                    (f/joint-arity [[:exactly 1] [:between 2 3]])])))))
+
+(deftest memoize-tests
+  (checking "memoize preserves metadata" 100
+            [m (gen/map gen/keyword gen/any-equatable)]
+            (let [f (with-meta identity m)]
+              (is (= (assoc m :arity (f/arity f))
+                     (meta (f/memoize f)))
+                  "f/memoize also adds the arity onto the new metadata, making
+                  it slightly different. That's because the arity isn't
+                  recoverable across the memoization boundary."))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
@@ -598,8 +608,8 @@
                               (gen/tuple
                                (gen/vector sg/real n)
                                (gen/vector sg/real n)))]
-            (is (== (apply (apply f/arg-scale g/+ factors) args)
-                    (apply g/+ (map g/* factors args)))))
+            (is (ish? (apply (apply f/arg-scale g/+ factors) args)
+                      (apply g/+ (map g/* factors args)))))
 
   (testing "arg-scale unit"
     (is (= 144 ((f/arg-scale g/square 3) 4)))

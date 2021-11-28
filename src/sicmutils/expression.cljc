@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.expression
   "This namespace contains a number of functions and utilities for manipulating
@@ -23,9 +23,12 @@
 
   Also included is an implementation of a [[Literal]] type that forms the basis
   for [[sicmutils.abstract.number/literal-number]]."
-  (:refer-clojure :rename {compare core-compare}
-                  #?@(:cljs [:exclude [compare]]))
-  (:require [clojure.walk :as w]
+  (:refer-clojure :rename {compare core-compare
+                           sort core-sort}
+                  :exclude [sorted? #?@(:cljs [compare sort])])
+  (:require [clojure.pprint :as pp]
+            [clojure.walk :as w]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -84,7 +87,7 @@
              (if (instance? Literal b)
                (let [b ^Literal b]
                  (and (= type (.-type b))
-                      (= expression (.-expression b))
+                      (v/= expression (.-expression b))
                       (= m (.-m b))))
                (v/= expression b))))
 
@@ -111,7 +114,7 @@
                (if (instance? Literal b)
                  (let [b ^Literal b]
                    (and (= type (.-type b))
-                        (= expression (.-expression b))
+                        (v/= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= expression b)))
 
@@ -188,11 +191,11 @@
   as a numerical literal expression), returns the wrapped expression (or the
   symbol).
 
-  Throws otherwise."
+  Else, returns `expr`."
   [expr]
-  (cond (literal? expr) (.-expression ^Literal expr)
-        (symbol? expr)  expr
-        :else (u/illegal (str "unknown expression type: " expr))))
+  (if (literal? expr)
+    (.-expression ^Literal expr)
+    expr))
 
 ;; ## Expression Walking
 
@@ -218,10 +221,15 @@
                   (sequential? node)
                   (let [[f-sym & args] node]
                     (if-let [f (sym->f f-sym)]
-                      (apply f (map walk args))
+                      ;; NOTE: I'm not sure why this `doall` is required.
+                      ;; Without it, we were getting heisenbugs in the rational
+                      ;; function simplifier, and `mismatched-arity` notes.
+                      (apply f (doall
+                                (map walk args)))
                       (u/illegal (str "Missing fn for symbol - " f-sym))))
                   :else node))]
-    (walk expr)))
+    (walk
+     (expression-of expr))))
 
 (defn substitute
   "Returns a form similar to `expr`, with all instances of `old` replaced by
@@ -248,6 +256,7 @@
         l-empty? (and lseq? (empty? l))
         r-empty? (and rseq? (empty? r))
         raw-comp (delay (core-compare (hash l) (hash r)))]
+
     (cond (and l-empty? r-empty?) 0
           l-empty?                -1
           r-empty?                1
@@ -281,3 +290,42 @@
           rseq? 1
 
           :else @raw-comp)))
+
+(defn sorted? [xs]
+  (or (not (sequential? xs))
+      (every? (fn [[l r]]
+                (<= (compare l r) 0))
+              (partition 2 1 xs))))
+
+(defn sort [xs]
+  (if (sequential? xs)
+    (core-sort compare xs)
+    xs))
+
+;; ## Printing
+
+(defn expression->stream
+  "Renders an expression through the simplifier and onto the stream."
+  ([expr stream]
+   (-> (v/freeze
+        (g/simplify expr))
+       (pp/write :stream stream)))
+  ([expr stream options]
+   (let [opt-seq (->> (assoc options :stream stream)
+                      (apply concat))
+         simple (v/freeze
+                 (g/simplify expr))]
+     (apply pp/write simple opt-seq))))
+
+(defn expression->string
+  "Returns a string representation of a frozen, simplified version of the supplied
+  expression `expr`."
+  [expr]
+  (pr-str
+   (v/freeze (g/simplify expr))))
+
+(defn print-expression [expr]
+  (pp/pprint
+   (v/freeze (g/simplify expr))))
+
+(def pe print-expression)

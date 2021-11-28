@@ -18,13 +18,13 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.bulirsch-stoer
-  (:require [sicmutils.numerical.interpolate.polynomial :as poly]
-            [sicmutils.numerical.interpolate.rational :as rat]
-            [sicmutils.numerical.quadrature.common :as qc
+  (:require [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.interpolate :as poly]
+            [sicmutils.rational-function.interpolate :as rat]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]))
 

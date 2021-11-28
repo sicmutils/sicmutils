@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.generic-test
   (:refer-clojure :exclude [+ - * / zero?])
@@ -125,9 +125,7 @@
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")
-  (checking "g/+"
-            100
-            [x gen/any]
+  (checking "g/+" 100 [x gen/any-equatable]
             (is (= x (g/+ x)) "single arg should return itself, for any type.")
             (is (= (if (v/zero? x) 0 x)
                    (g/+ x 0))
@@ -141,13 +139,12 @@
 (deftest generic-minus
   (is (= 0 (g/-)) "no-arity returns the additive identity.")
   (checking "Subtracting a zero acts as id, with no implementations registered."
-            100
-            [x gen/any]
+            100 [x gen/any-equatable]
             (is (= x (g/- x 0)))))
 
 (deftest generic-times
   (is (= 1 (g/*)) "No args returns the multiplicative identity.")
-  (checking "g/*" 100 [x gen/any]
+  (checking "g/*" 100 [x gen/any-equatable]
             (is (v/= x (g/* x)) "single arg returns itself.")
             (is (v/= (if (v/one? x) 1 x)
                      (g/* x 1)) "First unity gets returned.")
@@ -155,9 +152,7 @@
 
 (deftest generic-divide
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
-  (checking "g/divide"
-            100
-            [x gen/any]
+  (checking "g/divide" 100 [x gen/any-equatable]
             (is (= x (g/divide x 1)) "dividing by one a single time returns the input")
             (is (= x (g/divide x 1 1 1 1.0 1)) "dividing by 1 returns the input")))
 
@@ -376,8 +371,3 @@
   [float->a & {:keys [exclusions eq]}]
   (floating-point-unary-tests float->a :exclusions exclusions :eq (or eq =))
   (floating-point-binary-tests float->a float->a :exclusions exclusions :eq (or eq =)))
-
-(deftest misc-tests
-  (testing "factorial"
-    (is (= (apply g/* (range 1 8))
-           (g/factorial 7)))))

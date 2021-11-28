@@ -1,22 +1,22 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
-
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+                                        ;
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
@@ -34,7 +34,7 @@
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def f (f/literal-function 'f))
 (def g (f/literal-function 'g))
@@ -57,10 +57,10 @@
       (checking " identity-like" 100 [n sg/real]
                 (is (= (g/sin n) (f n)))))
 
-    (testing "one? zero? identity? always return false (for now!)"
-      (is (not (v/zero? (v/zero-like x2))))
+    (testing "one? zero? identity? return true appropriately"
+      (is (v/zero? (v/zero-like x2)))
       (is (not (v/one? (v/one-like x2))))
-      (is (not (v/identity? (v/identity-like x2)))))
+      (is (v/identity? (v/identity-like x2))))
 
     (testing "v/numerical?"
       (is (not (v/numerical? x2))))
@@ -86,6 +86,61 @@
                 [m (gen/map gen/keyword gen/any)]
                 (is (= m (meta
                           (with-meta o/identity m))))))))
+
+(deftest simplifier-tests
+  (testing "identity gets stripped from products"
+    (is (= 'D
+           (v/freeze (g/* D o/identity))
+           (v/freeze (g/* o/identity D)))))
+
+  (testing "identity does NOT get stripped from sums"
+    (is (= '(+ identity D)
+           (v/freeze
+            (g/+ o/identity D))))
+
+    (is (= '(+ D identity)
+           (v/freeze
+            (g/+ D o/identity)))))
+
+  (let [x2 (-> (fn [f] (fn [x] (* 2 (f x))))
+               (o/make-operator 'double))]
+    (is (= '(+ D (* D double (expt D 2)))
+           (v/freeze
+            (g/+ D (g/* D x2 o/identity D D))))
+        "operators next to each other are gathered into exponents, and `identity`
+      gets removed (since it's the multiplicative identity)")
+
+    (is (= '(expt D 2)
+           (v/freeze (g/* D D))))
+
+    (is (= '(* D double D)
+           (v/freeze (g/* (* D x2) D)))
+        "multiplication is commutative but NOT associative, so we gather these
+       together."))
+
+  (testing "internal multiplication on both sides"
+    (is (= '(expt D 6)
+           (v/freeze (g/* (g/* D D D) (g/* D D D)))
+           (v/freeze (g/* (g/* D (g/expt D 2) D) (g/* D D)))
+           (v/freeze (g/* (g/* (g/expt D 2) D) (g/* D D D)))
+           (v/freeze (g/* (g/* D D D) (g/* D (g/expt D 2))))
+           (v/freeze (g/* (g/* D D D) (g/* (g/expt D 2) D)))
+           (v/freeze (g/* (g/* D D D) (g/* D (g/expt D 2))))
+           (v/freeze (g/* (g/* D D D) (g/* (g/expt D 2) D))))))
+
+  (testing "internal multiplication on right"
+    (is (= '(expt D 4)
+           (v/freeze (g/* D (g/* D D D)))
+           (v/freeze (g/* (g/expt D 2) (g/* D D)))
+           (v/freeze (g/* D (g/* D (g/expt D 2))))
+           (v/freeze (g/* D (g/* (g/expt D 2) D)))
+           (v/freeze (g/* D (g/* D (g/expt D 2))))
+           (v/freeze (g/* D (g/* (g/expt D 2) D))))))
+
+  (testing "sums collapse too via the associative rule"
+    (is (= '(+ D (partial 1) (expt D 3))
+           (v/freeze
+            (g/+ D (g/+ (partial 1) (g/* D (g/expt D 2)))))))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
@@ -196,27 +251,35 @@
                  (* (partial 0) (partial 1))])))
 
   (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
-    (is (= '(+ (((expt D 2) f) x) (* -1 (f x)))
-           (g/simplify
-            (((* (+ D I) (- D I)) f) 'x)))))
+    (is (v/= '(+ (((expt D 2) f) x) (* -1 (f x)))
+             (g/simplify
+              (((* (+ D I) (- D I)) f) 'x)))))
 
   (testing "that Operators compose correctly with functions"
-    (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
-               (* -1 ((D f) x) ((D g) (+ ((D f) x) (f x))))
+    (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ (f x) ((D f) x))))
+               (* -1 ((D f) x) ((D g) (+ (f x) ((D f) x))))
                (((expt D 2) f) x)
                (((expt D 3) f) x))
-           (g/simplify ((D ((* (- D g) (+ D I)) f)) 'x)))))
+           (v/freeze
+            (g/simplify
+             ((D ((* (- D g) (+ D I)) f)) 'x))))))
 
   (testing "that basic arithmetic operations work on multivariate literal functions"
-    (is (= (g/simplify (((+ D D) ff) 'x 'y))
-           '(down (* 2 (((partial 0) ff) x y)) (* 2 (((partial 1) ff) x y)))))
-    (is (= (g/simplify (((- D D) ff) 'x 'y))
-           '(down 0 0)))
+    (is (= '(down (* 2 (((partial 0) ff) x y))
+                  (* 2 (((partial 1) ff) x y)))
+           (v/freeze
+            (g/simplify
+             (((+ D D) ff) 'x 'y)))))
+
+    (is (= (down 0 0)
+           (g/simplify (((- D D) ff) 'x 'y))))
+
     (is (= (((* D D) ff) 'x 'y)
            (down
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))
-    (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
+
+    (is (= (((* (partial 1) (partial 0)) ff) 'x 'y)
            (((partial 1) ((partial 0) ff)) 'x 'y))))
 
   (testing "operator derivative shape"
@@ -227,9 +290,9 @@
     (is (= [:exactly 1] (arity (* D 'e))))
     (is (= [:exactly 1] (arity g/sin)))
     (is (= [:exactly 1] (arity (o/identity g/sin))))
-    (is (= '(sin x) (g/simplify ((o/identity g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* D o/identity) g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* o/identity D) g/sin) 'x)))))
+    (is (= (g/sin 'x) (g/simplify ((o/identity g/sin) 'x))))
+    (is (= (g/cos 'x) (g/simplify (((* D o/identity) g/sin) 'x))))
+    (is (= (g/cos 'x) (g/simplify (((* o/identity D) g/sin) 'x)))))
 
   (testing "exponentiation"
     (is (= '((f t)
@@ -299,16 +362,59 @@
           q (o/make-operator identity 'q {:subtype ::x :color :blue})
           r (o/make-operator identity 'r {:subtype ::x :color :green})]
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ o p) inc)))
-      (is (= {:subtype ::y} (o/context (* o p))))
+                   (g/+ o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/+ q r)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/+ q p)))
+
       (is (= 2 (((+ o o) inc) 0)))
       (is (= 1 (((* o o) inc) 0)))
       (is (= {:subtype ::x} (o/context (+ o o))))
       (is (= {:subtype ::y} (o/context (* p p))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ q r) inc)))
-      (is (= {:subtype ::x :color :blue} (o/context (+ q o))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   (+ q p))))))
+      (is (= {:subtype ::x :color :blue}
+             (o/context (+ q o))))))
 
-    ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....
+  (testing "subtypes combine by choosing the parent"
+    (derive ::cake ::o/operator)
+    (derive ::face ::cake)
+    (let [o (o/make-operator identity 'o {:subtype ::cake})
+          p (o/make-operator identity 'p {:subtype ::face})]
+      (is (= {:subtype ::cake}
+             (o/context (+ o p))
+             (o/context (+ p o))))
+
+      (is (= {:subtype ::cake}
+             (o/context (- o p))
+             (o/context (- p o))))
+
+      (is (= {:subtype ::cake}
+             (o/context (* o p))
+             (o/context (* p o))))))
+
+  (testing "*, -, + between operators simplifies"
+    (is (= (o/procedure D)
+           (o/procedure (* o/identity D))
+           (o/procedure (* D o/identity)))
+        "* ignores identity")
+
+    (is (= (o/procedure D)
+           (o/procedure (+ D (v/zero-like D)))
+           (o/procedure (+ (v/zero-like D) D)))
+        "+ ignores zeros")
+
+    (is (= (o/procedure D)
+           (o/procedure (- D (v/zero-like D))))
+        "- ignores zeros on right")
+
+    (is (not= (o/procedure D)
+              (o/procedure (- (v/zero-like D) D)))
+        "- does NOT ignore zero on left")))
+
+    ;;; more testing to come as we implement multivariate literal functions that
+    ;;; rely on operations on structures....

@@ -21,8 +21,8 @@ TIP: Need help getting started? Say hi on https://twitter.com/sritchie[Twitter]
 or http://clojurians.net/[Clojurians Slack] in
 https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils].
 
-image:https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master[Build Status, link=https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22]
-image:https://img.shields.io/codecov/c/github/sicmutils/sicmutils/master.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/sicmutils/sicmutils]
+image:https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=main[Build Status, link=https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22]
+image:https://img.shields.io/codecov/c/github/sicmutils/sicmutils/main.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/sicmutils/sicmutils]
 image:https://cljdoc.org/badge/sicmutils/sicmutils[cljdoc badge, link=https://cljdoc.org/d/sicmutils/sicmutils/CURRENT]
 image:https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[Clojars Project, link=https://clojars.org/sicmutils/sicmutils]
 

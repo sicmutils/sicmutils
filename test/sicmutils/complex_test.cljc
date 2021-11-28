@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -43,9 +43,28 @@
   Clojure. The fork in the test here captures the different behavior that will
   appear in evaluated Clojure, vs self-hosted Clojurescript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
-              :cljs '(sicmutils.complex/complex "1 + 2i"))
+              :cljs '(sicmutils.complex/complex 1 2))
+
+           ;; string input:
            (read-string {:readers {'sicm/complex c/parse-complex}}
-                        (pr-str #sicm/complex "1 + 2i"))))))
+                        (pr-str #sicm/complex "1 + 2i"))
+
+           ;; vector input:
+           (read-string {:readers {'sicm/complex c/parse-complex}}
+                        (pr-str #sicm/complex [1 2]))))
+
+    (checking "complex constructor can handle strings OR direct inputs" 100
+              [re (sg/reasonable-double)
+               im (sg/reasonable-double)]
+              (is (= (c/complex re im)
+                     (c/complex (str re " + " im "i")))))
+
+    (testing "complex inputs"
+      (is (= (c/complex 1 2) #sicm/complex [1 2]))
+      (is (= (c/complex 1) #sicm/complex [1]))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex "1.2+3.4i") #sicm/complex "1.2+3.4i")))))
 
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some

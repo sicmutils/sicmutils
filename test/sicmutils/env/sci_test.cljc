@@ -19,14 +19,38 @@
 
 (ns sicmutils.env.sci-test
   (:refer-clojure :exclude [eval])
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sci.core :as sci]
             [sicmutils.env :as e]
             [sicmutils.env.sci :as es]
-            [sicmutils.operator :as o]))
+            [sicmutils.operator :as o]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
+
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn eval [form]
-  (sci/eval-form (sci/fork es/context) form))
+  (let [ctx (sci/fork es/context)]
+    (sci/binding [sci/ns @sci/ns]
+      (sci/eval-form ctx '(require '[sicmutils.env :refer :all]))
+      (sci/eval-form ctx form))))
+
+(deftest pattern-tests
+  (is (= ['(+ 2 1) "done!"]
+         (eval
+          '(do (require '[pattern.rule :as r :refer [=>]])
+               (let [R (r/ruleset
+                        (+ 10 _) => "done!"
+                        (+ ?a ?b) => (+ ?b ?a))]
+                 [(R '(+ 1 2))
+                  (R (R '(+ 11 10)))])))))
+
+  (is (= '(+ 6)
+         (eval
+          '(do (require '[pattern.rule :as r :refer [=>]])
+               (let [R (r/term-rewriting
+                        (r/rule (+ ?a ?b ??c) => (+ ?b ??c)))]
+                 (R '(+ 1 2 3 4 5 6))))))))
 
 (deftest basic-sci-tests
   (is (= [:at-least 0]
@@ -35,8 +59,8 @@
       "This isn't a GOOD thing; but this documents that arity inside an SCI
       environment isn't something we can trust.")
 
-  (is (= 1 (eval '(simplify (+ (square (sin 'x))
-                               (square (cos 'x))))))
+  (is (v/= 1 (eval '(simplify (+ (square (sin 'x))
+                                 (square (cos 'x))))))
       "simplifications work inside sci")
 
   (is (= "{\\cos}^{2}\\left(x\\right) + {\\sin}^{2}\\left({x}^{2}\\right)"
@@ -54,10 +78,10 @@
                o/identity)))
       "can sci internally require namespaces?")
 
-  (is (= '(* 10 face)
-         (eval
-          '(do (require '[sicmutils.env :as e])
-               (e/simplify (e/* 'face 10)))))
+  (is (v/= '(* 10 face)
+           (eval
+            '(do (require '[sicmutils.env :as e])
+                 (e/simplify (e/* 'face 10)))))
       "sicmutils.env is available as a namespace and also included as the
       default bindings in `user`.")
 
@@ -78,20 +102,50 @@
                    (let [p ((point R2-rect) (up 1 2))]
                      [(= 1 (x p))
                       (= 2 (y p))]))))
-        "using-coordinates works")
+        "using-coordinates works!")
 
-    (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
-             (eval
-              '(do (defn L-central-polar [m U]
-                     (fn [[_ [r] [rdot φdot]]]
-                       (- (* (/ 1 2) m
-                             (+ (square rdot)
-                                (square (* r φdot))))
-                          (U r))))
-                   (with-literal-functions [U r φ]
-                     (let [L     (L-central-polar 'm U)
-                           state (up r φ)]
-                       (->infix
-                        (simplify
-                         (((Lagrange-equations L) state) 't))))))))))))
+    (is (= [true true true true]
+           (eval '(do
+                    (require '[sicmutils.calculus.manifold :as m])
+
+                    (def old-prototype
+                      (m/coordinate-prototype R2-rect))
+
+                    (define-coordinates [x y] R2-rect)
+
+                    (let [p ((point R2-rect) (up 1 2))]
+                      [(= 1 (x p))
+                       (= 2 (y p))
+                       ;; Note that `R2-rect` is actually rebound.
+                       (= ['x0 'x1] old-prototype)
+                       (= ['x 'y] (m/coordinate-prototype R2-rect))]))))
+        "define-coordinates version of that test")
+
+    (is (eval
+         '(do (define-coordinates (up x y) R2-rect)
+
+              (let [circular (- (* x d:dy) (* y d:dx))]
+                (= '(+ (* 3 x0) (* -2 y0))
+                   (freeze
+                    (simplify
+                     ((circular (+ (* 2 x) (* 3 y)))
+                      ((point R2-rect) (up 'x0 'y0)))))))))
+        "define-coordinates works with a test from form_field_test.cljc")))
+
+(deftest more-sci-tests
+  ;; breaking these out to give the simplifier some repeatability.
+  (testing "internal defn, funky symbols, internal with-literal-functions macro"
+    (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
+           (eval
+            '(do (defn L-central-polar [m U]
+                   (fn [[_ [r] [rdot φdot]]]
+                     (- (* (/ 1 2) m
+                           (+ (square rdot)
+                              (square (* r φdot))))
+                        (U r))))
+                 (with-literal-functions [U r φ]
+                   (let [L     (L-central-polar 'm U)
+                         state (up r φ)]
+                     (->infix
+                      (simplify
+                       (((Lagrange-equations L) state) 't)))))))))))

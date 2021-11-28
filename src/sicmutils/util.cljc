@@ -24,13 +24,15 @@
                            int core-int
                            long core-long
                            double core-double}
-                  #?@(:cljs [:exclude [bigint double long int]]))
+                  #?@(:cljs [:exclude [bigint double long int uuid]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long))
+            #?(:cljs goog.math.Long)
+            [taoensso.timbre :as log])
   #?(:clj
-     (:import [clojure.lang BigInt]
-              [java.util.concurrent TimeUnit TimeoutException])))
+     (:import (clojure.lang BigInt)
+              (java.util UUID)
+              (java.util.concurrent TimeUnit TimeoutException))))
 
 (defn counted
   "Takes a function and returns a pair of:
@@ -63,6 +65,12 @@
              (empty m)
              m))
 
+(defn re-matches?
+  "Returns true if s matches the regex pattern re, false otherwise."
+  [re s]
+  #?(:clj  (.matches (re-matcher re s))
+     :cljs (.test re s)))
+
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
@@ -94,22 +102,29 @@
 
 (defn unsupported [s]
   (throw
-   #?(:clj (UnsupportedOperationException. s)
+   #?(:clj (UnsupportedOperationException. ^String s)
       :cljs (js/Error s))))
 
 (defn exception [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
+
+(defn uuid
+  "Returns a string containing a randomly generated unique identifier."
+  []
+  (str
+   #?(:clj (UUID/randomUUID)
+      :cljs (random-uuid))))
 
 (defn illegal [s]
   (throw
-   #?(:clj (IllegalArgumentException. s)
+   #?(:clj (IllegalArgumentException. ^String s)
       :cljs (js/Error s))))
 
 (defn illegal-state [s]
   (throw
-   #?(:clj (IllegalStateException. s)
+   #?(:clj (IllegalStateException. ^String s)
       :cljs (js/Error s))))
 
 (defn arithmetic-ex [s]
@@ -124,5 +139,5 @@
 
 (defn failure-to-converge [s]
   (throw
-   #?(:clj (Exception. s)
+   #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))

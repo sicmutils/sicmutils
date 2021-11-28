@@ -20,11 +20,11 @@
 (ns sicmutils.numerical.quadrature.trapezoid-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.util.stream :as us]))
@@ -68,7 +68,7 @@
             3.1415926535897927
             3.1415926535897927]
            (-> (take 10 (pi-estimator-sequence 10))
-               (ir/richardson-sequence 2 2 2)))
+               (pr/richardson-sequence 2 2 2)))
      "The sequence converges fairly quickly, even without acceleration.")
 
     (testing "explicit Pi convergence tests"

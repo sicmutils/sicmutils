@@ -29,9 +29,10 @@
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn simpson38-step
   "Implements a single step of Simpson's 3/8 rule, as laid out in the [Wikipedia
@@ -67,7 +68,7 @@
             richardson-step (let [t**2 (g/square 3)]
                               (/ (- (* t**2 t3) t1)
                                  (- t**2 1)))]
-        (is (zero?
+        (is (v/zero?
              (g/simplify
               (g/- richardson-step
                    (simpson38-step f a b))))

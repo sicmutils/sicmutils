@@ -23,14 +23,18 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.function :as f]
+            [sicmutils.expression :as x]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
+            [sicmutils.operator :as o]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -80,7 +84,41 @@
     (is (= ::s/up (v/kind (s/up 1 2))))
     (is (= ::s/down (v/kind (s/down (s/up 1 2)
                                     (s/up 2 3))))
-        "Kind only depends on the outer wrapper, not on the contents.")))
+        "Kind only depends on the outer wrapper, not on the contents."))
+
+  (testing "string rep"
+    (is (= "(up sin cos tan)" (x/expression->string
+                               (s/up g/sin g/cos g/tan)))))
+
+  (testing "approximate equality of structures"
+    (is (not (ish? {:a 1 :b (s/up 1.99999999999999 3)}
+                   {:a 1.00000000000001 :b (s/down 2 3.0)}))
+        "nested approx values with OPPOSITE orientation are not ish?")
+
+    (is (ish? {:a 1 :b (s/up 1.99999999999999 3)}
+              {:a 1.00000000000001 :b (s/up 2 3.0)})
+        "nested approx values with the SAME orientation are ish?")
+
+    (is (ish? [1.99999999999999 3]
+              (s/down 2 3.0))
+        "One potential problem is that explicit on the left is approximately
+        equal to either an up or down on the right.")
+
+    (is (and (not (ish? (s/down 1.99999999999999 3)
+                        [2 3.0]))
+             (not (ish? (s/down 1.99999999999999 3)
+                        (s/up 2 3.0))))
+        "Down on the left DOES distinguish, and is not equal to a vector or up
+    on the right.")
+
+    (is (and (ish? (s/up 1.99999999999999 3)
+                   [2 3.0])
+             (ish? (s/up 1.99999999999999 3)
+                   (s/up 2 3.0))
+             (not (ish? (s/up 1.99999999999999 3)
+                        (s/down 2 3.0))))
+        "up on the left also distinguishes by being equal to a vector or up, but
+        not a down.")))
 
 (defn arity-check
   "Takes a constructor function `build` and a `descriptor` string, and executes a
@@ -209,6 +247,18 @@
     (let [s (pr-str (s/up 1 2 3))]
       (is (= "(up 1 2 3)" s)))
     (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
+
+  (testing "down is not equal to up or seqs"
+    (is (= [1 2 3] (s/down 1 2 3))
+        "It is with clojure.core/=! not good.")
+
+    (is (not (= (s/down 1 2 3) [1 2 3]))
+        "core= does the right thing with the args flipped. Not good that these
+        don't match.")
+
+    (is (and (not (v/= [1 2 3] (s/down 1 2 3)))
+             (not (v/= (s/down 1 2 3) [1 2 3])))
+        "v/= does the right thing both ways."))
 
   (testing "equality"
     (is (= (s/up 1 2 3) [1 2 3]))
@@ -378,6 +428,38 @@
         about the entries.")))
 
 (deftest mapper-tests
+  (testing "sumr"
+    (with-comparator (v/within 1e-7)
+      (checking "sumr sums all entries when passed a single structure" 100
+                [s (-> (gen/fmap #(g/modulo % 100) sg/real)
+                       (sg/structure 3))]
+                (is (ish? (reduce g/+ (flatten s))
+                          (s/sumr identity s)))))
+
+    (is (== (ua/sum g/square 0 10)
+            (s/sumr g/square
+                    (s/up (s/down 1 2 3)
+                          (s/down 4 5 6)
+                          (s/down 7 8 9))))
+        "sumr on one structure sums single entries")
+
+    (is (== (ua/sum (map inc [1 3 5 7]))
+            (s/sumr g/+
+                    (s/up (s/down 1 3)
+                          (s/down 5 7))
+                    (s/up (s/down 1 1)
+                          (s/down 1 1))))
+        "sumr applies functions across multiple structures before summing")
+
+    (is (= (g/+ 'a 'b 'c 'd 'e 'f 'g 'h)
+           (g/simplify
+            (s/sumr g/+
+                    (s/up (s/down 'a 'b)
+                          (s/down 'c 'd))
+                    (s/up (s/down 'e 'f)
+                          (s/down 'g 'h)))))
+        "sumr uses g/+, so symbols etc can be added too."))
+
   (testing "mapr"
     (is (= (s/up (s/down 1  4  9)
                  (s/down 16 25 36)
@@ -496,7 +578,7 @@
             (is (v/zero? (g/* s (s/transpose
                                  (s/unflatten (repeat 0) s))))
                 "flipping indices after replacing with all zeros creates a
-                structure that annihalates the original on multiplying."))
+                structure that annihilates the original on multiplying."))
 
   (testing "unflatten unit tests"
     (is (= (s/up (s/down 0 1) (s/down 2 3))
@@ -534,7 +616,13 @@
   (checking "s/compatible-zero works" 100
             [s (sg/structure sg/real)]
             (is (v/zero? (g/* s (s/compatible-zero s))))
-            (is (v/zero? (g/* (s/compatible-zero s) s))))
+            (is (v/zero? (g/* (s/compatible-zero s) s)))
+
+            (is (v/zero? (g/* s (s/dual-zero s)))
+                "dual-zero is an alias for compatible-zero.")
+
+            (is (v/zero? (g/* (s/dual-zero s) s))
+                "dual-zero is an alias for compatible-zero."))
 
   (testing "compatible-shape"
     (let [o (s/compatible-shape (s/up 1 2))]
@@ -835,6 +923,26 @@
            (/ (s/up (u/long 2) 4 -6)
               (u/long 2)))))
 
+  (testing "<structure> * <operator> pushes operator multiplication into the
+  structure (unlike <structure> * <function>!)"
+    (is (= (v/freeze
+            (s/up (s/down (* 1 o/identity)
+                          (* 2 o/identity))
+                  (s/down (* 4 o/identity)
+                          (* 5 o/identity))))
+           (v/freeze
+            (* (s/up (s/down 1 2)
+                     (s/down 4 5))
+               o/identity))))
+
+    (is (= (v/freeze
+            (s/up (s/down (* o/identity 1)
+                          (* o/identity 2))))
+           (v/freeze
+            (* o/identity
+               (s/up (s/down 1 2)))))
+        "operator*structure is not commutative."))
+
   (testing "s*t outer simple"
     (is (= (s/up (s/up 3 6)
                  (s/up 4 8))
@@ -1039,6 +1147,27 @@
     (let [m (g/magnitude [#sicm/complex "3+4i" (g/sqrt 11)])]
       (is (= (g/sqrt (g/square m))
              (c/complex (g/abs m))))))
+
+  (testing "g/real-part, g/imag-part, g/make-rectangular, g/make-polar"
+    (let [s3      [3 (s/up 3) (s/down 3)]
+          s4      [4 (s/up 4) (s/down 4)]
+          s-rect  (g/make-rectangular s3 s4)
+          s-polar (g/make-polar s3 s4)]
+      (is (ish? s3 (g/real-part s-rect)))
+      (is (ish? s4 (g/imag-part s-rect)))
+
+      (is (ish? s3 (s/mapr g/magnitude s-polar))
+          "magnitudes are mirrored back out")
+      (is (ish? s4 (s/mapr (comp #(g/modulo % (* 2 Math/PI))
+                                 g/angle)
+                           s-polar))
+          "angles are mirrored back out, but only equal after we mod by 2pi.")))
+
+  (checking "g/make-rectangular rebuilds the original structure" 100
+            [s (sg/structure sg/complex 3)]
+            (is (= s (g/make-rectangular
+                      (g/real-part s)
+                      (g/imag-part s)))))
 
   (testing "g/conjugate"
     (is (= (s/up 3 4 5) (g/conjugate [3 4 5])))

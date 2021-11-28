@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.expression.render-test
   (:refer-clojure :exclude [+ - * /])
@@ -27,11 +27,12 @@
             [sicmutils.expression.render :as r :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]
             [sicmutils.function :as f]
+            [sicmutils.numsymb :as sym]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def ^:private s->infix
   (f/compose ->infix g/simplify))
@@ -130,20 +131,20 @@
           (down (up 1 2) (up 3 4)))))
 
   (testing "customizable down tuple rendering in TeX"
-    (is (= (str "\\begin{bmatrix}\\"
-                "displaystyle{1} \\cr \\cr "
-                "\\displaystyle{2} \\cr \\cr "
-                "\\displaystyle{3}"
+    (is (= (str "\\begin{bmatrix}"
+                "\\displaystyle{1}&\\displaystyle{2}&\\displaystyle{3}"
                 "\\end{bmatrix}")
            (->TeX (down 1 2 3)))
-        "Downs render vertically by default")
+        "Downs render horizontally by default")
 
-    (binding [r/*TeX-vertical-down-tuples* false]
-      (is (= (str "\\begin{bmatrix}"
-                  "\\displaystyle{1}&\\displaystyle{2}&\\displaystyle{3}"
+    (binding [r/*TeX-vertical-down-tuples* true]
+      (is (= (str "\\begin{bmatrix}\\"
+                  "displaystyle{1} \\cr \\cr "
+                  "\\displaystyle{2} \\cr \\cr "
+                  "\\displaystyle{3}"
                   "\\end{bmatrix}")
              (->TeX (down 1 2 3)))
-          "bind the dynamic variable falsey to get horz down tuples."))))
+          "bind the dynamic variable truthy to get vertical down tuples."))))
 
 (deftest variable-sub-super-scripts
   (testing "infix"
@@ -265,7 +266,21 @@
     (testing "Both sides if a subscript or superscript are rendered."
       (is (= "φ_θ" (->infix "phi_theta")))
       (is (= "φ↑θ₁↑ζ_π" (->infix 'phi↑theta_1↑zeta_pi))
-          "numbers are subscripted when they appear"))))
+          "numbers are subscripted when they appear")))
+
+  (testing "boolean operations"
+    (let [or    (sym/symbolic-operator 'or)
+          and   (sym/symbolic-operator 'and)
+          not   (sym/symbolic-operator 'not)
+          sym:= (sym/symbolic-operator '=)]
+      (is (= "\\left(a \\lor b\\right) \\land \\left(\\lnot\\left(c \\lor d\\right)\\right)"
+             (->TeX (and (or 'a 'b)
+                         (not (or 'c 'd))))))
+
+      (is (= "((a ∨ b) ∧ ¬(c ∨ d)) = (x ∨ z)"
+             (->infix (sym:= (and (or 'a 'b)
+                                  (not (or 'c 'd)))
+                             (or 'x 'z))))))))
 
 (deftest equation-wrapper-tests
   (is (= (str "\\begin{equation}\n"
@@ -427,11 +442,13 @@
         (is (= "1/2 dx² ∂₀²f(up(x, y)) + dx dy (∂₀ ∂₁)(f)(up(x, y)) + 1/2 dy² ∂₁²f(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
                (s->infix expr)))
 
+
         (is (= (str "function(dx, dy, f, partial, x, y) {\n"
-                    "  var _0001 = partial(0);\n"
-                    "  var _0002 = partial(1);\n"
-                    "  var _0003 = [x, y];\n"
-                    "  return 1/2 * Math.pow(dx, 2) * Math.pow(_0001, 2)(f)(_0003) + dx * dy * (_0001 * _0002)(f)(_0003) + 1/2 * Math.pow(dy, 2) * Math.pow(_0002, 2)(f)(_0003) + dx * _0001(f)(_0003) + dy * _0002(f)(_0003) + f(_0003);\n}")
+                    "  var _0001 = 1/2;\n"
+                    "  var _0002 = partial(0);\n"
+                    "  var _0003 = partial(1);\n"
+                    "  var _0004 = [x, y];\n"
+                    "  return _0001 * Math.pow(dx, 2) * Math.pow(_0002, 2)(f)(_0004) + dx * dy * (_0002 * _0003)(f)(_0004) + _0001 * Math.pow(dy, 2) * Math.pow(_0003, 2)(f)(_0004) + dx * _0002(f)(_0004) + dy * _0003(f)(_0004) + f(_0004);\n}")
                (s->JS expr :deterministic? true)))
 
         (is (= "\\frac{1}{2}\\,{dx}^{2}\\,{\\partial_0}^{2}f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,dy\\,\\left(\\partial_0\\,\\partial_1\\right)\\left(f\\right)\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,{\\partial_1}^{2}f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right)"
