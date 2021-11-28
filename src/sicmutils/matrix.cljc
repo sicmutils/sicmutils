@@ -224,12 +224,22 @@
   [m]
   (instance? Matrix m))
 
+;; TODO add v/= implementations here, CERTAINLY the one with scalar on the
+;; left!!
+
 (defn- m:= [^Matrix this that]
   (and (instance? Matrix that)
        (let [^Matrix m that]
          (and (= (.-r this) (.-r m))
               (= (.-c this) (.-c m))
               (v/= (.-v this) (.-v m))))))
+
+(comment
+  (defn matrix=scalar [m c]
+    (m:= m (scalar*matrix c (m:make-identity (m:num-rows m)))))
+
+  (defn scalar=matrix [c m]
+    (m:= (scalar*matrix c (m:make-identity (m:num-rows m))) m)))
 
 (defn num-rows
   "Returns the number of rows of the supplied matrix `m`. Throws if a
@@ -904,25 +914,35 @@
                 (transpose b)))
         :else (u/illegal (str "I don't know how to solve:" b A))))
 
-(defmethod g/solve-linear [::square-matrix ::s/up] [A b] (rsolve b A))
-(defmethod g/solve-linear [::square-matrix ::s/down] [A b] (rsolve b A))
-(defmethod g/solve-linear [::square-matrix ::column-matrix] [A b] (rsolve b A))
-(defmethod g/solve-linear [::square-matrix ::row-matrix] [A b] (rsolve b A))
-
-(defmethod g/solve-linear-right [::row-matrix ::square-matrix] [b A] (rsolve b A))
-(defmethod g/solve-linear-right [::down ::square-matrix] [b A] (rsolve b A))
-
 ;; ## Generic Operation Installation
+;;
+;; TODO there is a bunch missing here. Finish impls.
 
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
+
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
+(defmethod g/sub [::square-matrix ::v/scalar] [a b])
+(defmethod g/sub [::v/scalar ::square-matrix] [a b])
+
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
+(defmethod g/add [::square-matrix ::v/scalar] [a b])
+(defmethod g/add [::v/scalar ::square-matrix] [a b])
+
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::v/scalar ::matrix] [n a] (fmap #(g/* n %) a))
 (defmethod g/mul [::matrix ::v/scalar] [a n] (fmap #(g/* % n) a))
+
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
-(defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
+
+(defmethod g/div [::matrix ::v/scalar] [m u])
+(defmethod g/div [::v/scalar ::square-matrix] [u m])
+(defmethod g/div [::column-matrix ::square-matrix] [c m])
+(defmethod g/div [::row-matrix ::square-matrix] [r m])
+(defmethod g/div [::s/up ::square-matrix] [u m])
+(defmethod g/div [::s/down ::square-matrix] [d m])
+(defmethod g/div [::matrix ::square-matrix] [d m])
+
 (defmethod g/exp [::square-matrix] [m] (series/exp-series m))
 (defmethod g/cos [::square-matrix] [m] (series/cos-series m))
 (defmethod g/sin [::square-matrix] [m] (series/sin-series m))
@@ -951,11 +971,12 @@
 (defmethod g/conjugate [::matrix] [m]  (fmap g/conjugate m))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
-(defmethod g/trace [::square-matrix] [m] (trace m))
+
 (defmethod g/determinant [::square-matrix] [m] (determinant m))
 (defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
+(defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/trace [::s/structure] [s]
   (square-structure-> s (fn [m _] (trace m))))
 
@@ -978,9 +999,15 @@
 (defmethod g/div [::s/structure ::s/structure] [rv s]
   (s:solve-linear-left s rv))
 
+(defmethod g/solve-linear [::square-matrix ::s/up] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::s/down] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::column-matrix] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::row-matrix] [A b] (rsolve b A))
 (defmethod g/solve-linear [::s/structure ::s/structure] [s product]
   (s:solve-linear-left s product))
 
+(defmethod g/solve-linear-right [::row-matrix ::square-matrix] [b A] (rsolve b A))
+(defmethod g/solve-linear-right [::down ::square-matrix] [b A] (rsolve b A))
 (defmethod g/solve-linear-right [::s/structure ::s/structure] [product s]
   (s:solve-linear-right product s))
 
