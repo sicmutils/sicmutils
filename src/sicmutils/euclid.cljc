@@ -57,16 +57,14 @@
                   a
                   (recur b (g/remainder a b))))))
 
-(defn nearest-int [x]
-  "Rounds x to the closest integer."
-  (cond (> (g/fractional-part x) 0.5) (g/ceiling x)
-        :else (g/floor x)))
-
 (defn round-complex [z]
   "Rounds a complex number the closest complex number whose real and imaginary parts are both integers.
    See [Gaussian integer](https://en.wikipedia.org/wiki/Gaussian_integer)."
-  (c/complex (nearest-int (g/real-part z))
-             (nearest-int (g/imag-part z))))
+  (c/complex (Math/round (g/real-part z))
+             (Math/round (g/imag-part z))))
+
+(defn is-gaussian-integer [a]
+  (and (v/almost-integral? (g/real-part a)) (v/almost-integral? (g/imag-part a))))
 
 (defn gcd-complex [a b]
   "Returns the complex gcd of two complex numbers using the euclidean algorithm.
@@ -76,12 +74,13 @@
   ;; wanted to a (ish? z (round-complex z)) precondition to both a and b, but not sure how to import ish? here
   (cond (v/zero? a) b
         (v/zero? b) a
-        ;; we want the first number to be the one with the higher magnitude
-        (< (g/magnitude a) (g/magnitude b)) (gcd-complex b a)  
-        :else (let [q (round-complex (g// a b))
-                    r  (g/- a (g/* q b))]
-                (gcd-complex b r))))
-;; multimethod implementation for basic numeric types.
+        (not (and (is-gaussian-integer a) (is-gaussian-integer b))) 1
+        :else (let [[a b] (if (< (g/magnitude a) (g/magnitude b)) [a b] [b a])]
+                (loop [a a 
+                       b b]
+                (if (v/zero? b) a
+                  (recur b (g/- a (g/* (round-complex (g// a b)) b))))))))
 
+;; multimethod implementation for basic numeric types.
 (defmethod g/gcd :default [a b]
   (gcd a b))
