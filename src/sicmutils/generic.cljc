@@ -568,6 +568,9 @@
 
 ;; ## Operations on structures
 
+;; TODO add a two-arity version of transpose that should on work on structures.
+;; Still make it generic I believe.
+
 (defgeneric transpose 1)
 (defgeneric trace 1)
 (defgeneric determinant 1)

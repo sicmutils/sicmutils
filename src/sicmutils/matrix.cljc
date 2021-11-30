@@ -680,6 +680,14 @@
 (defn s:transpose [ls ms rs]
   (m->s rs (transpose (s->m ls ms rs)) ls))
 
+(comment
+  ;; TODO add this!
+  (defn s:transpose1 [ms rs]
+    (let [ls (compatible-shape (g/* ms rs))]
+      (m->s rs
+            (transpose (s->m ls ms rs))
+            ls))))
+
 (defn- delete
   "Returns the vector formed by deleting the `i`'th element of the given vector
   `v`."
@@ -799,6 +807,14 @@
   (m->s (s/compatible-shape rs)
         (invert (s->m ls ms rs))
         (s/compatible-shape ls)))
+
+(comment
+  ;; can we just make `ls` and call s:inverse? YES! Same as above.
+  (defn s:inverse1 [ms rs]
+    (let [ls (compatible-shape (g:* ms rs))]
+      (m->s (s/compatible-shape rs)
+	          (invert (s->m ls ms rs))
+	          (compatible-shape ls)))))
 
 (defn make-zero
   "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is

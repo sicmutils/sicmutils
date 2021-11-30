@@ -430,6 +430,40 @@
                    (g/- (m/s:transpose l inner r)
                         (s/transpose-outer inner))))))
 
+  (comment
+    (defn transpose-test [left-multiplier thing right-multiplier]
+      ;; Should produce numerical zero and a zero structure
+      [(- (* left-multiplier (* thing right-multiplier))
+          (* (* (s:transpose2 thing) left-multiplier) right-multiplier))
+       (- (s:transpose left-multiplier thing right-multiplier)
+          (s:transpose1 thing right-multiplier))])
+
+    ;; down down
+    (transpose-test (up 'a 'b)
+                    (down (down 'c 'd) (down 'e 'f) (down 'g 'h))
+                    (up 'i 'j 'k))
+    ;; (0 (down (down 0 0 0) (down 0 0 0)))
+
+    ;; up up
+    (transpose-test (down 'a 'b)
+                    (up (up 'c 'd) (up 'e 'f) (up 'g 'h))
+                    (down 'i 'j 'k))
+    ;; (0 (up (up 0 0 0) (up 0 0 0)))
+
+    ;; up down
+    (transpose-test (up 'a 'b)
+                    (up (down 'c 'd) (down 'e 'f) (down 'g 'h))
+                    (down 'i 'j 'k))
+    ;; (0 (down (up 0 0 0) (up 0 0 0)))
+
+    ;; down up
+    (transpose-test (down 'a 'b)
+                    (down (up 'c 'd) (up 'e 'f) (up 'g 'h))
+                    (up 'i 'j 'k))
+
+    ;; (0 (up (down 0 0 0) (down 0 0 0)))
+    )
+
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
         M (m/by-rows [1 2 3]
                      [4 5 6])]
@@ -768,6 +802,42 @@
           "s = x*(s/x)")
 
       (testing "structure multiplication, division are associative"
+        (comment
+          ;; TODO integrate remaining!
+
+          ;; Test by equation solving.  All answers should be <0 0>.
+
+          ;; down of downs
+          (let ((a (down (down 'a 'b) (down 'c 'd)))
+                (b (up 'e 'f)))
+            (let ((c (* a b)))
+              (- b (* (s:inverse1 a b) c))))
+          ;; (up 0 0)
+
+          ;; up of ups
+          (let ((a (up (up 'a 'b) (up 'c 'd)))
+                (b (down 'e 'f)))
+            (let ((c (* a b)))
+              (- b (* (s:inverse1 a b) c))))
+          ;; (down 0 0)
+
+          ;; up of downs
+          (let ((a (up (down 'a 'b) (down 'c 'd)))
+                (b (down 'e 'f)))
+            (let ((c (* a b)))
+              (- b (* (s:inverse1 a b) c))))
+          ;; (down 0 0)
+
+          ;; down of ups
+          (let ((a (down (up 'a 'b) (up 'c 'd)))
+                (b (up 'e 'f)))
+            (let ((c (* a b)))
+              (- b (* (s:inverse1 a b) c))))
+          ;; (up 0 0)
+
+          )
+
+
         (let [a (s/up (s/down 'a 'b)
                       (s/down 'c 'd))
               b (s/down 'e 'f)]
