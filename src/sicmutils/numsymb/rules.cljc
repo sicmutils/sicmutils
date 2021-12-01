@@ -30,7 +30,7 @@
             [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [pattern.rule :as r]
+            [pattern.rule :as r :refer [=>]]
             [sicmutils.numsymb :as sym]))
 
 (defn sym:not
@@ -38,9 +38,9 @@
   negation of `x`. For boolean `x`, returns the negation of `x`."
   [x]
   (let [RS (r/ruleset
-            (? ?x true?) r/=> false
-            (? ?x false?) r/=> true
-            ?x r/=> (not ?x))]
+            (? ?x true?) => false
+            (? ?x false?) => true
+            ?x => (not ?x))]
     (RS x)))
 
 ;; basic tests - these should probavbly live elsewhere?
@@ -50,12 +50,12 @@
 
 (defn sym:gcd [x y]
   (let [gcd (r/ruleset
-             ((? ?a v/number?) (? ?b v/number?)) r/=> (?? #(g/gcd (% '?a) (% '?b)))
-             (0 ?b) r/=> ?b
-             (1 ?b) r/=> 1
-             (?a 0) r/=> ?a
-             (?a 1) r/=> 1
-             (?a ?b) r/=> (gcd ?a ?b))]
+             ((? ?a v/number?) (? ?b v/number?)) => (?? #(g/gcd (% '?a) (% '?b)))
+             (0 ?b) => ?b
+             (1 ?b) => 1
+             (?a 0) => ?a
+             (?a 1) => 1
+             (?a ?b) => (gcd ?a ?b))]
     (gcd [x y])))
 
 
@@ -66,19 +66,19 @@
 (defn tan
   [x]
   (let [tan (r/ruleset
-             (? ?x v/zero?) r/=> 0
-             (? ?x v/exact?) r/=> (tan ?x)
-             (? ?x sym/n:zero-mod-pi?) r/=> 0
-             (? ?x sym/n:pi-over-4-mod-pi?) r/=> 1
-             (? ?x sym/n:-pi-over-4-mod-pi?) r/=> -1
-             (? ?x sym/n:pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
-             (? ?x v/number?) r/=> (?? #(Math/tan (% '?x)))
-             (? ?x sym/zero-mod-pi?) r/=> 0
-             (? ?x sym/pi-over-4-mod-pi?) r/=> 1
-             (? ?x sym/-pi-over-4-mod-pi?) r/=> -1
-             (? ?x sym/pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
-             (? ?x v/number?) r/=> (?? #(Math/tan (% '?x)))
-             ?x r/=> (tan ?x))]
+             (? ?x v/zero?) => 0
+             (? ?x v/exact?) => (tan ?x)
+             (? ?x sym/n:zero-mod-pi?) => 0
+             (? ?x sym/n:pi-over-4-mod-pi?) => 1
+             (? ?x sym/n:-pi-over-4-mod-pi?) => -1
+             (? ?x sym/n:pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
+             (? ?x v/number?) => (?? #(Math/tan (% '?x)))
+             (? ?x sym/zero-mod-pi?) => 0
+             (? ?x sym/pi-over-4-mod-pi?) => 1
+             (? ?x sym/-pi-over-4-mod-pi?) => -1
+             (? ?x sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
+             (? ?x v/number?) => (?? #(Math/tan (% '?x)))
+             ?x => (tan ?x))]
     (tan x)))
 
 (def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
@@ -91,20 +91,20 @@
   ([y]
    (let [not-exact? (fn [x] (not (v/exact? x)))
          atan (r/ruleset
-               (? ?y v/number? not-exact?) r/=> (?? #(g/atan (% '?y)))
-               (? ?y v/number? v/zero?) r/=> 0
-               ?y r/=> (atan ?y))]
+               (? ?y v/number? not-exact?) => (?? #(g/atan (% '?y)))
+               (? ?y v/number? v/zero?) => 0
+               ?y => (atan ?y))]
      (atan y)))
   ([y x]
    (let [atan (r/ruleset
-               (?y (? ?x v/one?)) r/=> (?? #(atan (% '?y))) ;;(atan ?y)
-               ((? ?y v/number? v/exact? v/zero?) ?x) r/=> 0
-               ((? ?y v/number? v/exact?) (? ?x v/number? v/exact? v/zero?)) r/=> (?? #(g/atan (% '?y) (% '?x)))
-               ((? ?y v/number? v/exact?) (? ?x v/number? v/exact?)) r/=> (atan ?y ?x)
-               ((? ?y v/number? v/exact?) (? ?x v/number?)) r/=> (?? #(g/atan (% '?y) (% '?x)))
-               ((? ?y v/number? v/exact?) ?x) r/=> (atan ?y ?x)
-               ((? ?y v/number?) (? ?x v/number?)) r/=> (?? #(g/atan (% '?y) (% '?x)))
-               (?y ?x) r/=> (atan ?y ?x))]
+               (?y (? ?x v/one?)) => (?? #(atan (% '?y))) ;;(atan ?y)
+               ((? ?y v/number? v/exact? v/zero?) ?x) => 0
+               ((? ?y v/number? v/exact?) (? ?x v/number? v/exact? v/zero?)) => (?? #(g/atan (% '?y) (% '?x)))
+               ((? ?y v/number? v/exact?) (? ?x v/number? v/exact?)) => (atan ?y ?x)
+               ((? ?y v/number? v/exact?) (? ?x v/number?)) => (?? #(g/atan (% '?y) (% '?x)))
+               ((? ?y v/number? v/exact?) ?x) => (atan ?y ?x)
+               ((? ?y v/number?) (? ?x v/number?)) => (?? #(g/atan (% '?y) (% '?x)))
+               (?y ?x) => (atan ?y ?x))]
      (atan [y x]))))
 
 (def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
