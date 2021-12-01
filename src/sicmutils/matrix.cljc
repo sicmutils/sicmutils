@@ -326,6 +326,23 @@
               (fn [i j]
                 (symbol (str prefix j "↑" i))))))
 
+(comment
+  (define (literal-column-matrix name nrows)
+    (m:generate nrows 1
+                (lambda (i j)
+                        (string->symbol
+                         (string-append (symbol->string name)
+                                        "^"
+                                        (number->string i))))))
+
+  (define (literal-row-matrix name ncols)
+    (m:generate 1 ncols
+                (lambda (i j)
+                        (string->symbol
+                         (string-append (symbol->string name)
+                                        "_"
+                                        (number->string j)))))))
+
 (defn get-in
   "Like [[clojure.core/get-in]] for matrices, but obeying the scmutils convention:
   only one index is required to get an unboxed element from a column vector.
@@ -499,6 +516,25 @@
                       g/+ (for [k (range ca)]
                             (g/* (core-get-in a [%1 k])
                                  (core-get-in b [k %2])))))))
+
+(comment
+  (define (m:expt M n)
+    (assert (matrix? M) "Not a matrix -- EXPT")
+    (cond ((or (not (integer? n)) (inexact? n))
+           (error "Only integer powers allowed -- M:EXPT"))
+          ((fix:< n 0)
+           (m:expt (m:invert M) (fix:- 0 n)))
+          ((fix:zero? n)
+           (m:make-identity (m:num-rows M)))
+          (else
+           (let loop ((count n))
+                (cond ((fix:= count 1) M)
+                      ((even? count)
+                       (let ((a (loop (fix:quotient count 2))))
+                         (matrix*matrix a a)))
+                      (else
+                       (matrix*matrix M
+                                      (loop (fix:- count 1))))))))))
 
 (defn- elementwise
   "Applies `f` elementwise between the matrices `a` and `b`. Throws if `a` and `b`
@@ -725,7 +761,9 @@
 
 (defn without
   "Returns the matrix formed by deleting the `i`-th row and `j`-th column of the
-  given matrix `m`."
+  given matrix `m`.
+
+  This is also called the 'minor' of m."
   [m i j]
   (->Matrix (dec (num-rows m))
             (dec (num-cols m))
@@ -755,6 +793,55 @@
                g/+
                (range 0 rows))))
 
+;;; Kleanthes Konaris determinant routine, slightly edited by GJS
+;;; -------------------------------------------------------------
+
+;;; (iota 4) --> (0 1 2 3), as in APL.
+
+(comment
+  (define (general-determinant add sub mul easy-zero?)
+    (let ((zero (add)))
+      (define (det m)
+        (let ((cache '()))
+          (define (c-det row active-column-list)
+            (if (null? (cdr active-column-list)) ;one active column
+              (matrix-ref m row (car active-column-list))
+              (let ((value
+                     (assoc (list row active-column-list) cache)))
+                (if value
+                  (cadr value)  ; cache hit!
+                  (let loop   ; cache miss!
+                    ((index 0)
+                     (remaining-columns active-column-list)
+                     (answer zero))
+                    (if (null? remaining-columns)
+                      (begin (set! cache
+                                   (cons (list (list row
+                                                     active-column-list)
+                                               answer)
+                                         cache))
+                             answer)
+                      (let ((term
+                             (matrix-ref m row (car remaining-columns))))
+                        (if (easy-zero? term)
+                          (loop (fix:+ index 1)
+                            (cdr remaining-columns)
+                            answer)
+                          (let ((contrib
+                                 (mul term
+                                      (c-det (fix:+ row 1)
+                                             (delete-nth index
+                                                         active-column-list)))))
+                            (if (even? index)
+                              (loop (fix:+ index 1)
+                                (cdr remaining-columns)
+                                (add answer contrib))
+                              (loop (fix:+ index 1)
+                                (cdr remaining-columns)
+                                (sub answer contrib))))))))))))
+          (c-det 0 (iota (m:dimension m)))))
+      det)))
+
 (defn determinant
   "Returns the determinant of the supplied square matrix `m`.
 
@@ -773,6 +860,12 @@
           (nth m 0)
           (for [i (range (num-rows m))]
             (determinant (without m 0 i)))))))
+
+(comment
+  (define (m:determinant A)
+    (if numerical?
+      (determinant-numerical A)
+      (determinant-general A))))
 
 (defn cofactors
   "Returns the matrix of cofactors of the supplied square matrix `m`."
@@ -813,8 +906,8 @@
   (defn s:inverse1 [ms rs]
     (let [ls (compatible-shape (g:* ms rs))]
       (m->s (s/compatible-shape rs)
-	          (invert (s->m ls ms rs))
-	          (compatible-shape ls)))))
+            (invert (s->m ls ms rs))
+            (compatible-shape ls)))))
 
 (defn make-zero
   "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is
@@ -912,6 +1005,48 @@
                     d))
            (range bv)))))
 
+;;; The following implements the classical adjoint formula for the
+;;; inverse of a matrix.  This may be useful for symbolic applications.
+
+(comment
+  (define (classical-adjoint-formula zero one add sub mul div zero?)
+    (let ((det (general-determinant add sub mul zero?)))
+      (define (matinv A)
+        (let ((dim (m:dimension A)))
+          (if (fix:= dim 1)
+            (m:generate 1 1
+                        (lambda (i j) (div one (matrix-ref A 0 0))))
+            (let* ((d (det A)) (-d (sub zero d)))
+              (m:generate dim dim
+                          (lambda (j i)
+                                  (if (even? (+ i j))
+                                    (div (det (m:minor A i j)) d)
+                                    (div (det (m:minor A i j)) -d))))))))
+      matinv)))
+
+(comment
+  (def numerical? false)
+
+  (define (easy-zero? x)
+    (cond ((number? x) (zero? x))
+          ;; Perhaps some form of easy simplification here?
+          ;;  e.g. substitution of numbers for literals,
+          ;;  and testing for zero result.
+          (else false)))
+
+  (define solve-general
+    (Cramers-rule g/+ g/- g/* g// easy-zero?))
+
+  (define (m:invert A)
+    (if numerical?
+      (matinv-numerical A)
+      (matinv-general A)))
+
+  (define (m:solve A b)
+    (if numerical?
+      (solve-numerical A b)
+      (solve-general A b))))
+
 (defn solve [A b]
   (cramers-rule A b))
 
@@ -932,8 +1067,6 @@
 
 ;; ## Generic Operation Installation
 ;;
-;; TODO there is a bunch missing here. Finish impls.
-
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
 
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
