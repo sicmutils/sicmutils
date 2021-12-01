@@ -33,49 +33,6 @@
             [pattern.rule :as r]
             [sicmutils.numsymb :as sym]))
 
-
-;; Q - what would be the best way to reuse these?
-;; ## Trig Functions
-
-(def ^:private pi Math/PI)
-(def ^:private pi-over-4 (/ pi 4))
-(def ^:private two-pi (* 2 pi))
-(def ^:private pi-over-2 (* 2 pi-over-4))
-
-(defn ^:private n:zero-mod-pi? [x]
-  (v/almost-integral? (/ x pi)))
-
-(defn ^:private n:pi-over-2-mod-2pi? [x]
-  (v/almost-integral? (/ (- x pi-over-2 two-pi))))
-
-(defn ^:private n:-pi-over-2-mod-2pi? [x]
-  (v/almost-integral? (/ (+ x pi-over-2) two-pi)))
-
-(defn ^:private n:pi-mod-2pi? [x]
-  (v/almost-integral? (/ (- x pi) two-pi)))
-
-(defn ^:private n:pi-over-2-mod-pi? [x]
-  (v/almost-integral? (/ (- x pi-over-2) pi)))
-
-(defn ^:private n:zero-mod-2pi? [x]
-  (v/almost-integral? (/ x two-pi)))
-
-(defn ^:private n:-pi-over-4-mod-pi? [x]
-  (v/almost-integral? (/ (+ x pi-over-4) pi)))
-
-(defn ^:private n:pi-over-4-mod-pi? [x]
-  (v/almost-integral? (/ (- x pi-over-4) pi)))
-
-(def ^:no-doc zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
-(def ^:no-doc pi-over-2-mod-2pi? #{'pi-over-2})
-(def ^:no-doc -pi-over-2-mod-2pi? #{'-pi-over-2})
-(def ^:no-doc pi-mod-2pi? #{'-pi 'pi})
-(def ^:no-doc pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
-(def ^:no-doc zero-mod-2pi? #{'-two-pi 'two-pi})
-(def ^:no-doc -pi-over-4-mod-pi? #{'-pi-over-4})
-(def ^:no-doc pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
-
-
 (defn sym:not
   "For symbolic `x`, returns a symbolic expression representing the logical
   negation of `x`. For boolean `x`, returns the negation of `x`."
@@ -111,20 +68,20 @@
   (let [tan (r/ruleset
              (? ?x v/zero?) r/=> 0
              (? ?x v/exact?) r/=> (tan ?x)
-             (? ?x n:zero-mod-pi?) r/=> 0
-             (? ?x n:pi-over-4-mod-pi?) r/=> 1
-             (? ?x n:-pi-over-4-mod-pi?) r/=> -1
-             (? ?x n:pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
+             (? ?x sym/n:zero-mod-pi?) r/=> 0
+             (? ?x sym/n:pi-over-4-mod-pi?) r/=> 1
+             (? ?x sym/n:-pi-over-4-mod-pi?) r/=> -1
+             (? ?x sym/n:pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
              (? ?x v/number?) r/=> (?? #(Math/tan (% '?x)))
-             (? ?x zero-mod-pi?) r/=> 0
-             (? ?x pi-over-4-mod-pi?) r/=> 1
-             (? ?x -pi-over-4-mod-pi?) r/=> -1
-             (? ?x pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
+             (? ?x sym/zero-mod-pi?) r/=> 0
+             (? ?x sym/pi-over-4-mod-pi?) r/=> 1
+             (? ?x sym/-pi-over-4-mod-pi?) r/=> -1
+             (? ?x sym/pi-over-2-mod-pi?) r/=> (u/illegal "Undefined: tan")
              (? ?x v/number?) r/=> (?? #(Math/tan (% '?x)))
              ?x r/=> (tan ?x))]
     (tan x)))
 
-(def v [0 0.1 (/ pi 4) (/ (* 3 pi) 4) 0/1 1/3 -1.2])
+(def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
 (map tan v)
 (= (map tan v)
    (map (sym/symbolic-operator 'tan) v))
@@ -150,7 +107,7 @@
                (?y ?x) r/=> (atan ?y ?x))]
      (atan [y x]))))
 
-(def v [0 0.1 (/ pi 4) (/ (* 3 pi) 4) 0/1 1/3 -1.2])
+(def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
 (= (map atan v)
    (map (sym/symbolic-operator 'atan) v))
 

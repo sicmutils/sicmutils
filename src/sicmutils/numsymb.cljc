@@ -167,33 +167,33 @@
 
 ;; ## Trig Functions
 
-(def ^:private pi Math/PI)
-(def ^:private pi-over-4 (/ pi 4))
-(def ^:private two-pi (* 2 pi))
-(def ^:private pi-over-2 (* 2 pi-over-4))
+(def pi Math/PI)
+(def pi-over-4 (/ pi 4))
+(def two-pi (* 2 pi))
+(def pi-over-2 (* 2 pi-over-4))
 
-(defn ^:private n:zero-mod-pi? [x]
+(defn n:zero-mod-pi? [x]
   (v/almost-integral? (/ x pi)))
 
-(defn ^:private n:pi-over-2-mod-2pi? [x]
+(defn n:pi-over-2-mod-2pi? [x]
   (v/almost-integral? (/ (- x pi-over-2 two-pi))))
 
-(defn ^:private n:-pi-over-2-mod-2pi? [x]
+(defn n:-pi-over-2-mod-2pi? [x]
   (v/almost-integral? (/ (+ x pi-over-2) two-pi)))
 
-(defn ^:private n:pi-mod-2pi? [x]
+(defn n:pi-mod-2pi? [x]
   (v/almost-integral? (/ (- x pi) two-pi)))
 
-(defn ^:private n:pi-over-2-mod-pi? [x]
+(defn n:pi-over-2-mod-pi? [x]
   (v/almost-integral? (/ (- x pi-over-2) pi)))
 
-(defn ^:private n:zero-mod-2pi? [x]
+(defn n:zero-mod-2pi? [x]
   (v/almost-integral? (/ x two-pi)))
 
-(defn ^:private n:-pi-over-4-mod-pi? [x]
+(defn n:-pi-over-4-mod-pi? [x]
   (v/almost-integral? (/ (+ x pi-over-4) pi)))
 
-(defn ^:private n:pi-over-4-mod-pi? [x]
+(defn n:pi-over-4-mod-pi? [x]
   (v/almost-integral? (/ (- x pi-over-4) pi)))
 
 (def ^:no-doc zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
