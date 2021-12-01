@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- #434: allow pattern matching forms to successfully bind to `nil` or `false`.
+
 - #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
   coordinate symbols that start with the same symbol as the coordinate system's
   prototype, like:
