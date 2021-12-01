@@ -196,7 +196,12 @@
    d/IPerturbed
    (perturbed? [m] (boolean (some d/perturbed? (vals m))))
    (replace-tag [m old new] (u/map-vals #(d/replace-tag % old new) m))
-   (extract-tangent [m tag] (u/map-vals #(d/extract-tangent % tag) m))))
+   (extract-tangent [m tag]
+     (if-let [t (:type m)]
+       ;; Do NOT attempt to recurse into the values if this map is being used as a
+       ;; simple representation for some other type, like a manifold point.
+       (u/unsupported (str "`extract-tangent` not supported for type " t "."))
+       (u/map-vals #(d/extract-tangent % tag) m)))))
 
 
 ;; ## Sets

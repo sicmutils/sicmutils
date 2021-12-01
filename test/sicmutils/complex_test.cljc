@@ -43,9 +43,28 @@
   Clojure. The fork in the test here captures the different behavior that will
   appear in evaluated Clojure, vs self-hosted Clojurescript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
-              :cljs '(sicmutils.complex/complex "1 + 2i"))
+              :cljs '(sicmutils.complex/complex 1 2))
+
+           ;; string input:
            (read-string {:readers {'sicm/complex c/parse-complex}}
-                        (pr-str #sicm/complex "1 + 2i"))))))
+                        (pr-str #sicm/complex "1 + 2i"))
+
+           ;; vector input:
+           (read-string {:readers {'sicm/complex c/parse-complex}}
+                        (pr-str #sicm/complex [1 2]))))
+
+    (checking "complex constructor can handle strings OR direct inputs" 100
+              [re (sg/reasonable-double)
+               im (sg/reasonable-double)]
+              (is (= (c/complex re im)
+                     (c/complex (str re " + " im "i")))))
+
+    (testing "complex inputs"
+      (is (= (c/complex 1 2) #sicm/complex [1 2]))
+      (is (= (c/complex 1) #sicm/complex [1]))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex "1.2+3.4i") #sicm/complex "1.2+3.4i")))))
 
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some

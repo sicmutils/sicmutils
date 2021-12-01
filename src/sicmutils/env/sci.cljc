@@ -144,8 +144,7 @@
   bindings) required to evaluate SICMUtils forms from inside of an SCI
   context. Pass these to `sci/init` to generate an sci context."}
   context-opts
-  {:namespaces namespaces
-   :bindings (namespaces 'sicmutils.env)})
+  {:namespaces namespaces})
 
 (def ^{:doc "sci context (currently only `:namespace` bindings) required to
   evaluate SICMUtils forms via SCI"}

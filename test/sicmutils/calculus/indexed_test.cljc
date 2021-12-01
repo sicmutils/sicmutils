@@ -27,6 +27,7 @@
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
@@ -46,6 +47,10 @@
                 (ci/with-argument-types [::ff/oneform-field
                                          ::ff/oneform-field
                                          ::vf/vector-field]))]
+      (is (ci/has-argument-types? T))
+      (is (= [:exactly 3] (f/arity T))
+          "with-argument-types sets the arity correctly")
+
       (is (= '(+ (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)))
                  (* b (v1↑1 (up x y)) (w2_0 (up x y)) (w1_1 (up x y)))
                  (* a (v1↑0 (up x y)) (w2_1 (up x y)) (w1_0 (up x y))))
@@ -76,6 +81,17 @@
                                             ::ff/oneform-field]))
             iT2 (ci/typed->indexed T2 (b/coordinate-system->basis R2-rect))
             iT3 (ci/outer-product iT1 iT2)]
+        (is (not (ci/has-index-types? T1)))
+        (is (ci/has-index-types? iT1))
+
+        (is (= [:exactly 3]
+               (f/arity T1)
+               (f/arity iT1))
+            "Arity is preserved")
+
+        (is (= [:exactly 2] (f/arity iT2)))
+        (is (= [:exactly 5] (f/arity iT3)))
+
         (testing "outer-product"
           (is (= '(+ (* a (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
                      (* a (w3_1 (up x y)) (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)) (w4_0 (up x y)))

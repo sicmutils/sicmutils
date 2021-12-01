@@ -39,7 +39,7 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.mechanics.lagrange :as ml]
             [sicmutils.expression :as x]
-            [sicmutils.function :as f]
+            [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [+ - * / sin cos tan]]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -145,19 +145,22 @@
         ;; Is this correct? No! Cannot add to a manifold point.
 
         ;; g(t) = ( Y(f) ((I + t v(I))(x)) - Y(f circ (I + t v(I)))(x))
-        (letfn [(Lie-test [V]
-                  (fn [Y]
-                    (fn [f]
-                      (fn [x]
-                        (letfn [(g [t]
-                                  (- ((Y f) ((+ identity (* t (V identity))) x))
-                                     ((Y (f/compose f (+ identity (* t (V identity))))) x)))]
-                          ((D g) 0))))))]
-          (comment
-            ;; TODO I think this is broken in Lie.scm; it only works because
-            ;; zero-like on a point returns 0.
-            (is (= 0 (- ((((Lie-test X) Y) f) R2-rect-point)
-                        ((((g/Lie-derivative X) Y) f) R2-rect-point))))))))
+        (let [I (chart R2-rect)]
+          (letfn [(Lie-test [V]
+                    (fn [Y]
+                      (fn [f]
+                        (fn [x]
+                          (letfn [(g [t]
+                                    (- ((compose (Y f) (point R2-rect))
+                                        ((+ I (* t (V I))) x))
+                                       ((Y (compose f (point R2-rect)
+                                                    (+ I (* t (V I)))))
+                                        x)))]
+                            ((D g) 0))))))]
+            (is (zero?
+                 (simplify
+                  (- ((((Lie-test X) Y) f) R2-rect-point)
+                     ((((g/Lie-derivative X) Y) f) R2-rect-point)))))))))
 
     (testing "Lie derivative satisfies extended Leibnitz rule"
       (let [V (vf/literal-vector-field 'V R2-rect)
@@ -196,7 +199,7 @@
                            ((point R2-rect) coords))))))
 
             gamma (fn [initial-point]
-                    (f/compose
+                    (compose
                      (point R2-rect)
                      (q ((chart R2-rect) initial-point))))
 
@@ -219,14 +222,14 @@
                (present
                 ((D (fn [t]
                       (- ((Y f) ((phiX t) m_0))
-                         ((Y (f/compose f (phiX t))) m_0))))
+                         ((Y (compose f (phiX t))) m_0))))
                  0))))
 
         (is (= 0 (simplify
                   (- result-via-Lie
                      ((D (fn [t]
                            (- ((Y f) ((phiX t) m_0))
-                              ((Y (f/compose f (phiX t))) m_0))))
+                              ((Y (compose f (phiX t))) m_0))))
                       0)))
                ))
 
@@ -596,15 +599,15 @@
                           (down (up zero (/ 1 (tan theta)))
                                 (up (- (* (sin theta) (cos theta))) zero))))
                   spherical-basis)
-          gamma:N->M (f/compose (point S2-spherical)
+          gamma:N->M (compose (point S2-spherical)
                                 (up (af/literal-function 'alpha)
                                     (af/literal-function 'beta))
                                 (chart the-real-line))
           basis-over-gamma (cm/basis->basis-over-map gamma:N->M spherical-basis)
           w (vf/basis-components->vector-field
-             (up (f/compose (af/literal-function 'w0)
+             (up (compose (af/literal-function 'w0)
                             (chart the-real-line))
-                 (f/compose (af/literal-function 'w1)
+                 (compose (af/literal-function 'w1)
                             (chart the-real-line)))
              (b/basis->vector-basis basis-over-gamma))
           sphere-Cartan (cov/Christoffel->Cartan G-S2-1)]
@@ -648,7 +651,7 @@
                       t the-real-line]
       (let [CG (cov/make-Christoffel G (b/coordinate-system->basis R2-rect))
 
-            gamma:N->M (f/compose
+            gamma:N->M (compose
                         (point R2-rect)
                         (up (af/literal-function 'alpha)
                             (af/literal-function 'beta))
@@ -657,10 +660,10 @@
                               gamma:N->M
                               (b/coordinate-system->basis R2-rect))
             u (vf/basis-components->vector-field
-               (up (f/compose (af/literal-function 'u0)
-                              (chart the-real-line))
-                   (f/compose (af/literal-function 'u1)
-                              (chart the-real-line)))
+               (up (compose (af/literal-function 'u0)
+                            (chart the-real-line))
+                   (compose (af/literal-function 'u1)
+                            (chart the-real-line)))
                (b/basis->vector-basis basis-over-gamma))]
         (is (= '(up (+ (* (G↑0_00 (up (alpha t) (beta t))) ((D alpha) t) (u0 t))
                        (* ((D alpha) t) (G↑0_10 (up (alpha t) (beta t))) (u1 t))
@@ -719,10 +722,10 @@
                      (down (up zero (/ 1 (tan theta)))
                            (up (- (* (sin theta) (cos theta))) zero))))
              two-sphere-basis)
-            mu:N->M (f/compose (point S2-spherical)
-                               (up (af/literal-function 'mu-theta)
-                                   (af/literal-function 'mu-phi))
-                               (chart R1-rect))
+            mu:N->M (compose (point S2-spherical)
+                             (up (af/literal-function 'mu-theta)
+                                 (af/literal-function 'mu-phi))
+                             (chart R1-rect))
             Cartan (cov/Christoffel->Cartan G-S2-1)]
         (is (= '(up (+ (* -1
                           (sin (mu-theta tau))
@@ -764,12 +767,12 @@
           ;; this no longer works, because R3-rect does not accept an S2-spherical
           ;; point as in the same manifold. Fixed by explicit transfer of a point --
           ;; see manifold.scm
-          F (f/compose
+          F (compose
              (chart R3-rect)
              (man/transfer-point S2-spherical R3-rect)
              (point S2-spherical)
              ml/coordinate)
-          Lsphere (f/compose (Lfree 1) (ml/F->C F))]
+          Lsphere (compose (Lfree 1) (ml/F->C F))]
       ;; Note these are DOWN while the geodesic equations are UP.  This is
       ;; due to the fact that the geodesic equations are raised by the
       ;; metric, which is diagonal, here R=1, and cancels an instance
@@ -991,16 +994,16 @@
                                           (cos theta)))
                                     zero))))
                   S2-basis)
-          gamma (f/compose (point S2-spherical)
-                           (up (af/literal-function 'alpha)
-                               (af/literal-function 'beta))
-                           (chart the-real-line))
+          gamma (compose (point S2-spherical)
+                         (up (af/literal-function 'alpha)
+                             (af/literal-function 'beta))
+                         (chart the-real-line))
           basis-over-gamma (cm/basis->basis-over-map gamma S2-basis)
           u (vf/basis-components->vector-field
-             (up (f/compose (af/literal-function 'u↑0)
-                            (chart the-real-line))
-                 (f/compose (af/literal-function 'u↑1)
-                            (chart the-real-line)))
+             (up (compose (af/literal-function 'u↑0)
+                          (chart the-real-line))
+                 (compose (af/literal-function 'u↑1)
+                          (chart the-real-line)))
              (b/basis->vector-basis basis-over-gamma))
           sphere-Cartan (cov/Christoffel->Cartan G-S2-1)]
 

@@ -24,13 +24,14 @@
                            int core-int
                            long core-long
                            double core-double}
-                  #?@(:cljs [:exclude [bigint double long int]]))
+                  #?@(:cljs [:exclude [bigint double long int uuid]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long)
             [taoensso.timbre :as log])
   #?(:clj
      (:import (clojure.lang BigInt)
+              (java.util UUID)
               (java.util.concurrent TimeUnit TimeoutException))))
 
 (defn counted
@@ -108,6 +109,13 @@
   (throw
    #?(:clj (Exception. ^String s)
       :cljs (js/Error s))))
+
+(defn uuid
+  "Returns a string containing a randomly generated unique identifier."
+  []
+  (str
+   #?(:clj (UUID/randomUUID)
+      :cljs (random-uuid))))
 
 (defn illegal [s]
   (throw

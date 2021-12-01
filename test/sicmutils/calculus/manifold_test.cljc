@@ -19,7 +19,8 @@
 
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.string :as cs]
+            [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
@@ -76,16 +77,63 @@
       "rep stays the same after round-tripping back through the coordinate
       system."))
 
+(defn check-manifold
+  "Collection of tests to run on the supplied `manifold`."
+  [manifold]
+  (is (m/manifold? manifold))
+  (is (not (m/manifold-family? manifold)))
+  (is (m/manifold-family? (:family manifold))))
+
+(defn check-manifold-family
+  "Collection of tests to run on some manifold family `fam`."
+  [fam]
+  (is (m/manifold-family? fam)))
+
 (defn check-coord-system [coord-system coords]
+  (is (m/coordinate-system? coord-system)
+      "The input is in fact a coordinate system.")
+
+  (is (not (or (m/manifold? coord-system)
+               (m/manifold-family? coord-system)))
+      "A coordsys is not a manifold...")
+
+  (is (m/manifold? (m/manifold coord-system))
+      "But `m/manifold` returns a valid, attached manifold.")
+
+  (is (m/manifold? (m/manifold
+                    (m/manifold coord-system)))
+      "manifold returns a manifold when given a manifold.")
+
   (is (m/check-coordinates coord-system coords)
       "Coordinates pass.")
 
+  (is (m/check-coordinates coord-system (m/typical-coords coord-system))
+      "coords returned by `typical-coords` passes.")
+
   (let [point (m/coords->point coord-system coords)]
     (is (m/manifold-point? point)
-        "coords->point returns a valid point.")
+        "`coords->point` returns a valid point.")
 
     (is (m/check-point coord-system point)
         "point returned by `m/coords->point` is always valid.")
+
+    (is (m/check-point coord-system (m/typical-point coord-system))
+        "Point returned by `typical-point` is always valid.")
+
+    (let [proto   (m/coordinate-prototype coord-system)
+          proto   (if (sequential? proto) proto [proto])
+          typical (m/typical-coords coord-system)
+          typical (if (sequential? typical) typical [typical])]
+      (is (every? true?
+                  (map (fn [proto-sym coord-sym]
+                         (and (cs/starts-with?
+                               (str coord-sym)
+                               (str proto-sym))
+                              (not= proto-sym coord-sym)))
+                       proto
+                       typical))
+          "each coordinate in `typical-coords` starts with the prototype, but none
+        are equal to the prototype symbol."))
 
     (is (= coords
            (m/get-coordinates
@@ -96,6 +144,11 @@
         manifold-point was created.")))
 
 (deftest Rn-manifold-tests
+  (check-manifold-family m/Rn)
+
+  (doseq [manifold [m/R1 m/R2 m/R3 m/R4 m/spacetime]]
+    (check-manifold manifold))
+
   (checking "R1-rect" 100 [x sg/real]
             ;; Both a bare number and a single-entry structure are valid for R1.
             (check-coord-system m/R1-rect x)
@@ -129,6 +182,8 @@
                 (roundtrips? m/R2-rect coords))))
 
   (testing "R2-polar unit"
+    (m/coordinate-system? m/R2-polar)
+
     (testing "check-coordinates"
       (is (not (m/check-coordinates m/R2-polar (up 1))))
       (is (not (m/check-coordinates m/R2-polar (up 1 2 3))))
@@ -249,6 +304,8 @@
                      (* (- 1 't) ((m/chart S2-gnomonic) q))))))))))))
 
 (deftest S1-tests
+  (check-manifold m/S1)
+
   (testing "S1"
     (roundtrips? m/S1-circular (literal-number 'theta))
 
@@ -275,9 +332,15 @@
       (rep-roundtrips? m/S1-slope point rep))))
 
 (deftest S2-tests
+  (check-manifold-family m/S2-type)
+  (check-manifold m/S2)
+
   (run-S2-tests "S2"
                 m/S2-spherical m/S2-tilted m/S2-Riemann
                 m/S2-gnomonic m/S2-stereographic)
+
+  (check-manifold-family m/Sn)
+  (check-manifold m/S2p)
 
   (run-S2-tests "S2p"
                 m/S2p-spherical m/S2p-tilted m/S2p-Riemann
@@ -328,6 +391,8 @@
                (up 'theta 'phi))))))))
 
 (deftest S3-tests
+  (check-manifold m/S3)
+
   ;; NOTE: Should be warned singular!
   (roundtrips? m/S3-spherical (up 0 0 0))
   (roundtrips? m/S3-spherical (up 'a 'b 'c))
@@ -388,6 +453,9 @@
                (up 'x 'y 'z)))))))))
 
 (deftest SO3-tests
+  (check-manifold-family m/SO3-type)
+  (check-manifold m/SO3)
+
   (testing "SO(3)"
     (roundtrips? m/alternate-angles (up 'theta 'phi 'psi))
     (roundtrips? m/Euler-angles (up 'theta 'phi 'psi))

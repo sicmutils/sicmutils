@@ -101,6 +101,17 @@
              parities)
           "parity cycles between 1 and -1.")))
 
+  (checking "permutation-parity laws" 100 [xs (gen/shuffle (range 6))]
+            (let [sorted (sort xs)]
+              (is (= 1 (p/permutation-parity sorted))
+                  "sorted lists have parity == 1")
+
+              (let [changes (p/permutation-interchanges xs)]
+                (is (= (if (odd? changes) -1 1)
+                       (p/permutation-parity xs))
+                    "given odd interchanges, permutation-parity returns -1, else
+                    1. Never 0 in the single-arg case."))))
+
   (checking "permutation-interchanges" 100
             [xs (gen/vector gen/nat 6)]
             (is (= (p/list-interchanges xs (sort xs))
