@@ -51,9 +51,9 @@
   (let [gcd (r/ruleset
              ((? ?a v/number?) (? ?b v/number?)) => (?? #(g/gcd (% '?a) (% '?b)))
              (0 ?b) => ?b
-             (1 ?b) => 1
+             (1 _) => 1
              (?a 0) => ?a
-             (?a 1) => 1
+             (_ 1) => 1
              (?a ?b) => (gcd ?a ?b))]
     (gcd [x y])))
 
@@ -65,17 +65,17 @@
 (defn tan
   [x]
   (let [tan (r/ruleset
-             (? ?x v/zero?) => 0
+             (? _ v/zero?) => 0
              (? ?x v/exact?) => (tan ?x)
-             (? ?x sym/n:zero-mod-pi?) => 0
-             (? ?x sym/n:pi-over-4-mod-pi?) => 1
-             (? ?x sym/n:-pi-over-4-mod-pi?) => -1
-             (? ?x sym/n:pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
-             (? ?x v/number?) => (?? #(Math/tan (% '?x)))
-             (? ?x sym/zero-mod-pi?) => 0
-             (? ?x sym/pi-over-4-mod-pi?) => 1
-             (? ?x sym/-pi-over-4-mod-pi?) => -1
-             (? ?x sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
+             (? _ sym/n:zero-mod-pi?) => 0
+             (? _ sym/n:pi-over-4-mod-pi?) => 1
+             (? _ sym/n:-pi-over-4-mod-pi?) => -1
+             (? _ sym/n:pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
+             (? ?x v/number?) => (? #(Math/tan (% '?x)))
+             (? _ sym/zero-mod-pi?) => 0
+             (? _ sym/pi-over-4-mod-pi?) => 1
+             (? _ sym/-pi-over-4-mod-pi?) => -1
+             (? _ sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
              (? ?x v/number?) => (? #(Math/tan (% '?x)))
              ?x => (tan ?x))]
     (tan x)))
@@ -91,13 +91,13 @@
    (let [not-exact? (fn [x] (not (v/exact? x)))
          atan (r/ruleset
                (? ?y v/number? not-exact?) => (?? #(g/atan (% '?y)))
-               (? ?y v/number? v/zero?) => 0
+               (? _ v/number? v/zero?) => 0
                ?y => (atan ?y))]
      (atan y)))
   ([y x]
    (let [atan (r/ruleset
                (?y (? ?x v/one?)) => (?? #(atan (% '?y))) ;;(atan ?y)
-               ((? ?y v/number? v/exact? v/zero?) ?x) => 0
+               ((? _ v/number? v/exact? v/zero?) ?x) => 0
                ((? ?y v/number? v/exact?) (? ?x v/number? v/exact? v/zero?)) => (?? #(g/atan (% '?y) (% '?x)))
                ((? ?y v/number? v/exact?) (? ?x v/number? v/exact?)) => (atan ?y ?x)
                ((? ?y v/number? v/exact?) (? ?x v/number?)) => (?? #(g/atan (% '?y) (% '?x)))
