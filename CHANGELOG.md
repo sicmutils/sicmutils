@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- latest:
+
+- figure out how to properly implement and test the expt change!
+
 - #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
   coordinate symbols that start with the same symbol as the coordinate system's
   prototype, like:

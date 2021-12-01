@@ -529,13 +529,32 @@
     (not x)
     (list 'not x)))
 
-(defn- sym:= [l r]
+(defn- sym:bin= [l r]
   (let [num-l? (v/number? l)
         num-r? (v/number? r)]
     (cond (and num-l? num-r?) (v/= l r)
           (or num-l? num-r?)  false
           (= l r)             true
           :else (list '= l r))))
+
+;; TODO make symbolic operator version of and do the reduce, to skip early work
+;; if we hit a false?
+
+(let [symb:and (ua/monoid sym:and true false?)]
+  (defn- sym:=
+    ([] true)
+    ([x] true)
+    ([x y] (sym:bin= x y))
+    ([x y & more]
+     ;; TODO rewrite this so that if you do something like the following...
+     #_(time (dotimes [_ 500000] (sym:= 1 2 'c 'd 'e 'f 'g)))
+     ;;
+     ;; when you hit a FALSE that the `and` would apply to, or if `sym:bin=`
+     ;; returns false, you bail out.
+     (->> (partition 2 1 (cons y more))
+          (map (fn [[l r]] (sym:bin= l r)))
+          (cons (sym:bin= x y))
+          (apply sym:and)))))
 
 (defn- sym:zero? [x]
   (if (v/number? x)
@@ -553,7 +572,7 @@
   {'zero? sym:zero?
    'one? sym:one?
    'identity? sym:one?
-   '= (ua/monoid sym:= true)
+   '= sym:=
    'not sym:not
    'and (ua/monoid sym:and true false?)
    'or (ua/monoid sym:or false true?)

@@ -54,7 +54,23 @@
 (defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core-minus) a b))
 (defmethod g/negate [::v/real] [a] (core-minus a))
 (defmethod g/negative? [::v/real] [a] (neg? a))
-(defmethod g/expt [::v/real ::v/real] [a b] (u/compute-expt a b))
+
+;; TODO see discussion here and here on expt..
+;; https://srfi.schemers.org/srfi-70/srfi-70.html,
+;; http://clhs.lisp.se/Body/f_exp_e.htm responding to - base and fractional
+;; expt. And make it work in non-goofed cases.
+
+;; test: Indeed, (expt -1 (/ 1. 3)) will not be close to above!
+;;   (expt -1 1/3)
+;;    => .5000000000000001+.8660254037844386i
+
+(defmethod g/expt [::v/real ::v/real] [a b]
+  (if (and (neg? b)
+           (not (zero? (g/fractional-part x))))
+    (g/exp (g/* x (g/log b)))
+    (Math/pow b x))
+  (u/compute-expt a b))
+
 (defmethod g/abs [::v/real] [a] (u/compute-abs a))
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))

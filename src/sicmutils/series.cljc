@@ -496,6 +496,16 @@
   [f s]
   ((-make s) (map f s) (meta s)))
 
+(comment
+  (define (series:function-> f . opt)
+    (let ((x0 (if (null? opt) :zero (car opt))))
+      (make-series *exactly-one*
+		               (let lp ((i 1) (fn f) (factn 1))
+		                    (cons-stream (g// (fn x0) factn)
+				                             (lp (fix:1+ i)
+				                                 (derivative fn)
+				                                 (* factn i))))))))
+
 (defn inflate
   "Accepts an input series `s` and an exponent `n`, and expands the series in the
   `n`th power of its argument. Every term `i` maps to position `i*n`, with zeros

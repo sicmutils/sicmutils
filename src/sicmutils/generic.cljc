@@ -571,6 +571,12 @@
 ;; TODO add a two-arity version of transpose that should on work on structures.
 ;; Still make it generic I believe.
 
+(comment
+  (define (g:transpose thing #!optional shape)
+    (if (default-object? shape)
+      (g:transpose-1-arg thing)
+      (s:transpose1 thing shape))))
+
 (defgeneric transpose 1)
 (defgeneric trace 1)
 (defgeneric determinant 1)
