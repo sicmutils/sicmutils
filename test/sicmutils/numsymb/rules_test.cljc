@@ -40,4 +40,13 @@
   (testing "tan"
     (doseq [v [-0.1 0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2 () nil true false 'a]]
       (is (= (sr/tan v) ((sym/symbolic-operator 'tan) v)))))
+  
+  (testing "atan - single argument"
+    (doseq [v [-0.1 0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2 () nil true false 'a]]
+      (is (= (sr/atan v) ((sym/symbolic-operator 'atan) v)))))
+  
+  (testing "atan - two argument"
+    (doseq [v1 [-0.1 0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2 () nil true false 'a]
+            v2 [-0.1 0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2 () nil true false 'a]]
+      (is (= (sr/atan v1 v2) ((sym/symbolic-operator 'atan) v1 v2)))))
 )

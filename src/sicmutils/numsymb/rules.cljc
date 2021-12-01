@@ -92,16 +92,3 @@
                ((? ?y v/number?) (? ?x v/number?)) => (? #(g/atan (% '?y) (% '?x)))
                (?y ?x) => (atan ?y ?x))]
      (atan [y x]))))
-
-(def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
-(= (map atan v)
-   (map (sym/symbolic-operator 'atan) v))
-
-(= (map #(atan 0 %) v)
-   (map #((sym/symbolic-operator 'atan) 0 %) v))
-
-(= (map #(atan 1 %) v)
-   (map #((sym/symbolic-operator 'atan) 1 %) v))
-
-(= (map #(atan % 1) v)
-   (map #((sym/symbolic-operator 'atan) % 1) v))
