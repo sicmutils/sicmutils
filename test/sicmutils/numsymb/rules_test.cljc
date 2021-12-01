@@ -35,4 +35,9 @@
   (testing "gcd"
     (doseq [v1 [-1 0 1 2 3 4 () nil true false 'a]
             v2 [-1 0 1 2 3 4 () nil true false 'a]]
-      (is (= ((ua/monoid sr/sym:gcd 0) v1 v2) ((sym/symbolic-operator 'gcd) v1 v2))))))
+      (is (= ((ua/monoid sr/sym:gcd 0) v1 v2) ((sym/symbolic-operator 'gcd) v1 v2)))))
+  
+  (testing "tan"
+    (doseq [v [-0.1 0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2 () nil true false 'a]]
+      (is (= (sr/tan v) ((sym/symbolic-operator 'tan) v)))))
+)

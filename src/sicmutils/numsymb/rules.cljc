@@ -55,32 +55,22 @@
     (gcd [x y])))
 
 
-(let [v [0 1 2 3 4 'a true +]]
-  (= (map #((ua/monoid sym:gcd 0) 2 %) v)
-     (map #((sym/symbolic-operator 'gcd) 2 %) v)))
-
 (defn tan
   [x]
   (let [tan (r/ruleset
-             (? _ v/zero?) => 0
-             (? ?x v/exact?) => (tan ?x)
-             (? _ sym/n:zero-mod-pi?) => 0
-             (? _ sym/n:pi-over-4-mod-pi?) => 1
-             (? _ sym/n:-pi-over-4-mod-pi?) => -1
-             (? _ sym/n:pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
+             (? _ v/number? v/zero?) => 0
+             (? ?x v/number? v/exact?) => (tan ?x)
+             (? _ v/number? sym/n:zero-mod-pi?) => 0
+             (? _ v/number? sym/n:pi-over-4-mod-pi?) => 1
+             (? _ v/number? sym/n:-pi-over-4-mod-pi?) => -1
+             (? _ v/number? sym/n:pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
              (? ?x v/number?) => (? #(Math/tan (% '?x)))
-             (? _ sym/zero-mod-pi?) => 0
-             (? _ sym/pi-over-4-mod-pi?) => 1
-             (? _ sym/-pi-over-4-mod-pi?) => -1
-             (? _ sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
-             (? ?x v/number?) => (? #(Math/tan (% '?x)))
+             (? _ symbol? sym/zero-mod-pi?) => 0
+             (? _ symbol? sym/pi-over-4-mod-pi?) => 1
+             (? _ symbol? sym/-pi-over-4-mod-pi?) => -1
+             (? _ symbol? sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
              ?x => (tan ?x))]
     (tan x)))
-
-(def v [0 0.1 (/ sym/pi 4) (/ (* 3 sym/pi) 4) 0/1 1/3 -1.2])
-(map tan v)
-(= (map tan v)
-   (map (sym/symbolic-operator 'tan) v))
 
 
 (defn atan
