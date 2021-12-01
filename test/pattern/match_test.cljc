@@ -80,6 +80,26 @@
     (is (= {:x 'a} ((m/bind :x) {} 'a identity)))
     (is (= {:x '(a b)} ((m/bind :x) {} '(a b) identity))))
 
+  (testing "bind on nil, false"
+    (is (false? ((m/bind :x) {:x false} nil identity))
+        "false and nil don't match")
+
+    (is (false? ((m/bind :x) {:x nil} false identity))
+        "false and nil don't match")
+
+    (is (= {:x false} ((m/bind :x) {} false identity))
+        "false is bound if present")
+
+    (is (= {:x false}
+           ((m/bind :x) {:x false} false identity)
+           ((m/bind :x) {} false identity))
+        "false is bound if present and equal, or not present")
+
+    (is (= {:x nil}
+           ((m/bind :x) {:x nil} nil identity)
+           ((m/bind :x) {} nil identity))
+        "nil is bound if present and equal, or not present"))
+
   (testing "bind with constraint"
     (is (= {:x 6} ((m/bind :x integer?) {} 6 identity)))
 
