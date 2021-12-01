@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numsymb-rules
+(ns sicmutils.numsymb.rules
   "Implementations of the generic operations for numeric types that have
    optimizations available, and for the general symbolic case.
    The implementations in this namespace are pattern-matching-based versions
