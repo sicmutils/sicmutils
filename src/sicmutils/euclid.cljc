@@ -70,7 +70,6 @@
    For more details on the algorithm, see:
    https://web.archive.org/web/20190720160400/http://mathforum.org/library/drmath/view/67068.html
    Note that the GCD of two complex numbers is determinet up to a factor of ±1 and ±i."
-  ;; wanted to a (ish? z (round-complex z)) precondition to both a and b, but not sure how to import ish? here
   (cond (v/zero? a) b
         (v/zero? b) a
         (not (and (is-gaussian-integer a) (is-gaussian-integer b))) 1

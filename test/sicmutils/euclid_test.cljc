@@ -24,8 +24,10 @@
             [sicmutils.numbers]
             [sicmutils.euclid :as e]
             [sicmutils.value :as v]
+            [sicmutils.complex :as c]
             [sicmutils.generic :as g]
-            [sicmutils.generators :as sg]))
+            [sicmutils.generators :as sg]
+            [same :refer [ish?]]))
 
 (defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned
@@ -37,6 +39,16 @@
          (= 0 (g/modulo y g))
          (= g (g/+ (g/* a x) (g/* b y)))
          g)))
+
+(defn ^:private fourth-power-is-one?
+  "Checks if x^4 is 1+0i. This is needed because the gcd-complex function returns
+   solutions that are determined up to a factor of ±1 and ±i."
+  [x]
+  (let [x4 (g/expt x 4)
+        re (g/real-part x4)
+        im (g/imag-part x4)]
+    (and (ish? re 1)
+         (ish? im 0))))
 
 (deftest euclid-test
   (testing "gcd"
@@ -65,33 +77,31 @@
     (is (= (ok 934132 (* 934132 71)) 934132))
     (is (= [2 -9 47] (e/extended-gcd 240 46)))
     (is (= [2 1 0] (e/extended-gcd 2 4))))
-  
+
   (testing "gcd-complex"
     (checking "GCD of anything with itself is itself."
               10 [z sg/complex]
               (let [gaussian-z (e/round-complex z)]
-                (is (= gaussian-z (e/gcd-complex gaussian-z gaussian-z))))
-              )
-    
+                (is (= gaussian-z (e/gcd-complex gaussian-z gaussian-z)))))
+
     (checking "GCD of anything with 0 is itself, also for non-gaussian complex numbers (by definition)"
               10 [z sg/complex]
-              (is (= z (e/gcd-complex z 0)))
-              (is (= z (e/gcd-complex 0 z))))
-    
+              (is (= z (e/gcd-complex z (c/complex 0 0))))
+              (is (= z (e/gcd-complex (c/complex 0 0) z))))
+
     (checking "GCD of anything with 1 is 1."
               10 [z sg/complex]
-              (is (= 1 (e/gcd-complex (e/round-complex z) 1)))
-              (is (= 1 (e/gcd-complex 1 (e/round-complex z)))))
-    
-    (checking "dividing out the GCD gives relatively prime results"
+              (is (fourth-power-is-one? (e/gcd-complex (e/round-complex z) (c/complex 1 0))))
+              (is (fourth-power-is-one? (e/gcd-complex (c/complex 1 0) (e/round-complex z)))))
+
+    (checking "dividing out the GCD gives coprime results"
               10 [l sg/complex r sg/complex]
               (let [gaussian-l (e/round-complex l)
                     gaussian-r (e/round-complex r)
                     z (e/gcd-complex gaussian-l gaussian-r)]
-                (is (v/one?) (e/gcd-complex
-                              (g// gaussian-l z)
-                              (g// gaussian-r z)))))
-    )
+                (is (fourth-power-is-one? (e/gcd-complex
+                                          (g// gaussian-l z)
+                                          (g// gaussian-r z)))))))
   (testing "lcm"
     (is (= 21 (g/lcm 3 7)))
     (is (= 6 (g/lcm 2 6)))
