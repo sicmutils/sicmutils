@@ -38,8 +38,7 @@
   negation of `x`. For boolean `x`, returns the negation of `x`."
   [x]
   (let [RS (r/ruleset
-            (? ?x true?) => false
-            (? ?x false?) => true
+            (? ?x boolean?) => (? #(not (% '?x)))
             ?x => (not ?x))]
     (RS x)))
 
@@ -77,7 +76,7 @@
              (? ?x sym/pi-over-4-mod-pi?) => 1
              (? ?x sym/-pi-over-4-mod-pi?) => -1
              (? ?x sym/pi-over-2-mod-pi?) => (u/illegal "Undefined: tan")
-             (? ?x v/number?) => (?? #(Math/tan (% '?x)))
+             (? ?x v/number?) => (? #(Math/tan (% '?x)))
              ?x => (tan ?x))]
     (tan x)))
 
