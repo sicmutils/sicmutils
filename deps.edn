@@ -1,4 +1,5 @@
-{:deps {org.clojure/clojure {:mvn/version "1.10.1"},
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"},
         dm3/stopwatch {:mvn/version "0.1.1"},
         cljsjs/odex {:mvn/version "2.0.4-0"},
         org.apache.commons/commons-math3 {:mvn/version "3.6.1"},
@@ -10,4 +11,6 @@
         org.clojure/core.match {:mvn/version "1.0.0"},
         cljsjs/complex {:mvn/version "2.0.11-0"},
         borkdude/sci {:mvn/version "0.2.7"},
-        cljsjs/bigfraction {:mvn/version "4.1.1-0"}}}
+        cljsjs/bigfraction {:mvn/version "4.1.1-0"}}
+ :aliases {:dev {:extra-paths ["dev"]
+                 :extra-deps { io.github.nextjournal/clerk {:mvn/version "0.3.233"}}}}}

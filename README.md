@@ -60,6 +60,7 @@ Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 (require '[sicmutils.env :as env])
 (env/bootstrap-repl!)
 ```
+See the [user namespace](./dev/user.clj) for how to render namespaces to a browser window.
 
 See the [demo directory](./demo) for minimal examples of build configurations
 that use the SICMUtils library.

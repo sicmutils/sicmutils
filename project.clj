@@ -49,6 +49,7 @@
   :profiles {:dev
              {:plugins [[lein-cloverage "1.2.1"]]
               :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
+              :source-paths ["dev"]
               :repl-options {:nrepl-middleware
                              [cider.piggieback/wrap-cljs-repl]}
               :dependencies [[org.clojure/test.check "1.1.0"]
@@ -57,6 +58,10 @@
                              [com.gfredericks/test.chuck "0.2.10"]
                              [nrepl "0.7.0"]
                              [same/ish "0.1.4"]
+                             ;; required for proper load of httpkit by clerk 
+                             ;; see https://forum.devtalk.com/t/web-development-with-clojure-third-edition-p145-sente-error-caused-by-java-lang-runtimeexception-no-such-var-hk-as-channel-requires-luminus-http-kit-0-1-7-or-greater/17050
+                             [luminus-http-kit "0.1.9"] 
+                             [io.github.nextjournal/clerk "0.3.233"]
                              [thheller/shadow-cljs "2.11.6"]]}}
   :deploy-repositories [["clojars"
                          {:url "https://repo.clojars.org"

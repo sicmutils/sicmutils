@@ -15,3 +15,8 @@ node_modules
 **.shadow-cljs
 package-lock.json
 public/
+/.clj-kondo
+/.cpcache
+/.lsp
+/.calva
+/.cache
