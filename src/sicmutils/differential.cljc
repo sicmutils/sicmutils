@@ -103,9 +103,9 @@
 ;; series expansion](https://en.wikipedia.org/wiki/Taylor_series) of some
 ;; arbitrary function $f$. As a reminder, the Taylor series expansion of $f$
 ;; around some point $a$ is:
-;;
+
 ;; $$f(x) = f(a)+\frac{Df(a)}{1!}(x-a)+\frac{D^2f(a)}{2!}(x-a)^{2}+\frac{D^3f(a)}{3!}(x-a)^{3}+\cdots$$
-;;
+
 ;; NOTE: See this nice overview of [Taylor series
 ;; expansion](https://medium.com/@andrew.chamberlain/an-easy-way-to-remember-the-taylor-series-expansion-a7c3f9101063)
 ;; by Andrew Chamberlain if you want to understand this idea and why we can
@@ -114,13 +114,13 @@
 ;; If you evaluate the expansion of $f(x)$ around $a$ with a dual number
 ;; argument whose first component is $a$ -- take $x=a+b\varepsilon$, for example
 ;; -- watch how the expansion simplifies:
-;;
+
 ;; $$f(a+b\varepsilon) = f(a)+\frac{Df(a)}{1!}(b\varepsilon)+\frac{D^2f(a)}{2!}(b\varepsilon)^2+\cdots$$
-;;
+
 ;; Since $\varepsilon^2=0$ we can ignore all terms beyond the first two:
-;;
+
 ;; $$f(a+b\varepsilon) = f(a)+ (Df(a)b)\varepsilon$$
-;;
+
 ;; NOTE: See [[lift-1]] for an implementation of this idea.
 ;;
 ;; This justifies our claim above: applying a function to some dual number
@@ -132,14 +132,14 @@
 ;; If we do this twice, the second component of the returned dual number
 ;; beautifully recreates the [Chain
 ;; Rule](https://en.wikipedia.org/wiki/Chain_rule):
-;;
+
 ;; $$
 ;; \begin{aligned}
 ;; g(f(a+\varepsilon)) &= g(f(a) + Df(a)\varepsilon) \\
 ;; &= g(f(a)) + (Dg(f(a)))(Df(a))\varepsilon
 ;; \end{aligned}
 ;; $$
-;;
+
 ;; ### Terminology Change
 ;;
 ;; A "dual number" is a very general idea. Because we're interested in dual
@@ -169,17 +169,17 @@
 ;;
 ;; NOTE: See [[lift-2]] for an implementation of this idea.
 ;;
-;; This expansion generalizes for n-ary functions; every new argument $x_n +
-;; x'_n\varepsilon$ contributes $\partial_n f(...)x'_n$ to the result.
-;;
+;; This expansion generalizes for n-ary functions; every new argument $x_n + x'_n\varepsilon$ 
+;; contributes $\partial_n f(...)x'_n$ to the result.
+
 ;; We can check this with the simple cases of addition, subtraction and
 ;; multiplication.
 ;;
 ;; The real parts of a dual number add commutatively, so we can rearrange the
 ;; components of a sum to get a new dual number:
-;;
+
 ;; $$(x+x'\varepsilon)+(y+y'\varepsilon) == (x+y)+(x'+y')\varepsilon$$
-;;
+
 ;; This matches the [sum
 ;; rule](https://en.wikipedia.org/wiki/Differentiation_rules#Differentiation_is_linear)
 ;; of differentiation, since the partials of $x + y$ with respect to either $x$
@@ -197,7 +197,7 @@
 ;; $$
 ;; \begin{aligned}
 ;; (x+ x'\varepsilon)*(y+y'\epsilon) &= xy+(xy')\varepsilon+(x'y)\varepsilon+(x'y')\epsilon^2 \\
-;; &= xy+(xy'+y'x)\varepsilon
+;; &= xy+(xy'+yx')\varepsilon
 ;; \end{aligned}
 ;; $$
 ;;
@@ -240,8 +240,8 @@
 ;; the `x` received by `inner-d` will ALREADY be a dual number $x+\varepsilon$!
 ;; This will cause two immediate problems:
 ;;
-;; - `(make-dual x 1)` will return $(x+\varepsilon)+\varepsilon =
-;;   x+2\varepsilon$, which is not what we we want
+;; - `(make-dual x 1)` will return $(x+\varepsilon)+\varepsilon = x+2\varepsilon$
+;; , which is not what we we want
 
 ;; - The `extract-tangent` call inside `inner-d` will return the `Df(x)`
 ;;   component of the dual number... which, remember, is no longer a dual
