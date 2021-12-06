@@ -64,7 +64,7 @@
 
 (defn metric->Christoffel-2 [metric basis]
   {:pre [(b/coordinate-basis? basis)]}
-  (let [metric (f/memoize
+  (let [metric (f/memoize-sym-func
                 (comp f/memoize metric))
         gi (metric/invert metric basis)
         vector-basis (b/basis->vector-basis basis)

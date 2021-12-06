@@ -109,6 +109,16 @@
     (with-meta (core-memoize f)
       m)))
 
+(defn memoize-sym-func
+  [f]
+  (let [mem (atom {})]
+    (fn [x y]
+      (if-let [e (find @mem (sort-by v/freeze [x y]))]
+        (val e)
+        (let [ret (apply f [x y])]
+          (swap! mem assoc (sort-by v/freeze [x y]) ret)
+          ret)))))
+
 (defn get
   "For non-functions, acts like [[clojure.core/get]]. For function
   arguments (anything that responds true to [[function?]]), returns
