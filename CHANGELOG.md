@@ -2,10 +2,10 @@
 
 ## [unreleased]
 
-- latest: convert `doall` calls to `run!`, `dorun` or `mapv` where applicable.
-  In cases where we were trying to force side effects (mostly in the tests),
-  this change prevents the environment from retaining the full sequence. This
-  will save memory!
+- #438: convert `doall` calls to `run!`, `dorun` or `mapv` where applicable. In
+  cases where we were trying to force side effects (mostly in the tests), this
+  change prevents the environment from retaining the full sequence. This will
+  save memory!
 
 - #434: allow pattern matching forms to successfully bind to `nil` or `false`.
 
