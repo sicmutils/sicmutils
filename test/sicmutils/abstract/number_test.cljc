@@ -84,12 +84,12 @@
 
 (deftest predicate-tests
   (testing "v/="
-    (doall
+    (dorun
      (for [l ['x (an/literal-number 'x)]
            r ['x (an/literal-number 'x)]]
        (is (v/= l r))))
 
-    (doall
+    (dorun
      (for [l [12 (an/literal-number 12)]
            r [12 (an/literal-number 12)]]
        (do (is (v/= l r))
@@ -139,7 +139,7 @@
                ;; NOTE: This is cased to NOT consider rational numbers for now.
                [[l-num r-num] (gen/vector sg/real-without-ratio 2)]
                (let [compare-bit (v/compare l-num r-num)]
-                 (doall
+                 (dorun
                   (for [l [l-num (an/literal-number l-num)]
                         r [r-num (an/literal-number r-num)]]
                     (cond (neg? compare-bit)  (is (< l r))
@@ -196,7 +196,7 @@
                   others   [[(an/literal-number l) r]
                             [l (an/literal-number r)]
                             [(an/literal-number l) (an/literal-number r)]]]
-              (doall
+              (dorun
                (for [[x y] others]
                  (is (v/= expected (op x y)))))))]
     (checking "+, -, *, / fall through to number ops"
@@ -672,7 +672,7 @@
            (v/freeze
             (g/conjugate (an/literal-number
                           '(random x))))))
-    (doall
+    (dorun
      (for [op @#'sym/conjugate-transparent-operators]
        (is (= (v/freeze
                (an/literal-number

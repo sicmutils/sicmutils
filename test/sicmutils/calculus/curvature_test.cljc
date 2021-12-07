@@ -141,7 +141,7 @@
                   a-function)
                  a-point))))
 
-        (doall
+        (dorun
          (for [x [d:dtheta d:dphi]
                y [d:dtheta d:dphi]]
            (is (= 0 (simplify
@@ -163,7 +163,7 @@
             G-S2-1 (S2-Christoffel M-basis theta)
             nabla (cov/covariant-derivative
                    (cov/Christoffel->Cartan G-S2-1))]
-        (doall
+        (dorun
          (for [x [d:dtheta d:dphi]
                y [d:dtheta d:dphi]]
            (is (= 0 (simplify

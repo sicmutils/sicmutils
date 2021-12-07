@@ -124,7 +124,7 @@
        (checking "[[Differential]] is transparent to native comparison operators" 100
                  [[l-num r-num] (gen/vector real-minus-rationals 2)]
                  (let [compare-bit (v/compare l-num r-num)]
-                   (doall
+                   (dorun
                     (for [l [l-num (d/bundle-element l-num 1 0)]
                           r [r-num (d/bundle-element r-num 1 0)]]
                       (cond (neg? compare-bit)  (is (< l r))

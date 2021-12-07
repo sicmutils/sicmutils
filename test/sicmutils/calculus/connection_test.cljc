@@ -173,7 +173,7 @@
                       polar-Gamma))
               curvature (curv/Riemann nabla)]
           (testing "Now look at curvature:"
-            (doall
+            (dorun
              (for [alpha [dr dtheta]
                    beta [d:dr d:dtheta]
                    gamma [d:dr d:dtheta]
@@ -226,7 +226,7 @@
               (let [nabla (cov/covariant-derivative
                            (cov/Christoffel->Cartan spherical-Gamma))
                     curvature (curv/Riemann nabla)]
-                (doall
+                (dorun
                  (for [alpha [dr dtheta dphi]
                        beta [d:dr d:dtheta]
                        gamma [d:dr d:dtheta]
@@ -308,7 +308,7 @@
                      (orthonormal-spherical-Lorentz-basis c-2))))]
 
             (testing "look at curvature: (154s as of 11.9.2021)"
-              (doall
+              (dorun
                (for [alpha [dt dr dtheta dphi]
                      beta [d:dt d:dr d:dtheta d:dphi]
                      gamma [d:dt d:dr d:dtheta d:dphi]

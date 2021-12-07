@@ -82,7 +82,7 @@
               SR-V (b/basis->vector-basis SR-basis)
               SR-V1 (flatten (hs/Gram-Schmidt SR-V (g-Lorentz 'c)))]
           (testing "SR-V1 is orthogonal"
-            (doall
+            (dorun
              (for [v1 SR-V1
                    v2 (rest (drop-while #(not= % v1) SR-V1))]
                (is (= 0 (simplify

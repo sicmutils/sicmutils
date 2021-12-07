@@ -111,8 +111,8 @@
 
         ;; run each sequence fully through, counting the function invocations
         ;; required by each.
-        (doall (qr/left-sequence f1 0 10 {:n n-seq}))
-        (doall (map (@#'qr/left-sum f2 0 10) n-seq))
+        (dorun (qr/left-sequence f1 0 10 {:n n-seq}))
+        (run! (@#'qr/left-sum f2 0 10) n-seq)
         (is (= 210
                (int (ua/sum identity 1 21))
                @counter2)

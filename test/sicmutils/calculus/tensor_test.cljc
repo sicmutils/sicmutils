@@ -65,7 +65,7 @@
 (defn run-tensor-test [T types coordsys]
   (let [args (mapv (literal-field coordsys) types)
         f    ((literal-field coordsys) :scalar)]
-    (doall
+    (dorun
      (for [i (range (count types))
            :let [thing ((literal-field coordsys) (nth types i))]]
        (simplify
