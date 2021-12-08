@@ -221,11 +221,10 @@
                   (sequential? node)
                   (let [[f-sym & args] node]
                     (if-let [f (sym->f f-sym)]
-                      ;; NOTE: I'm not sure why this `doall` is required.
-                      ;; Without it, we were getting heisenbugs in the rational
+                      ;; NOTE: without `mapv` (ie, with `map` and a lazy
+                      ;; sequence), we were getting heisenbugs in the rational
                       ;; function simplifier, and `mismatched-arity` notes.
-                      (apply f (doall
-                                (map walk args)))
+                      (apply f (mapv walk args))
                       (u/illegal (str "Missing fn for symbol - " f-sym))))
                   :else node))]
     (walk

@@ -2,6 +2,17 @@
 
 ## [unreleased]
 
+- #438:
+
+  - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
+    applicable. In cases where we were trying to force side effects (mostly in
+    the tests), this change prevents the environment from retaining the full
+    sequence. This will save memory!
+
+  - adds missing tests from `connection.scm` to
+    `sicmutils.calculus.connection-test`, stressing pages 205 - 213 from MTW,
+    Gravitation.
+
 - #434: allow pattern matching forms to successfully bind to `nil` or `false`.
 
 - #397: `sicmutils.calculus.manifold/typical-coords` now returns generated

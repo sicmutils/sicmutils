@@ -184,8 +184,8 @@
       n-seq (interleave
              (iterate (fn [x] (* 2 x)) 2)
              (iterate (fn [x] (* 2 x)) 3))]
-  (doall (take 12 (midpoint-sequence f1 0 1 {:n n-seq})))
-  (doall (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
+  (dorun (take 12 (midpoint-sequence f1 0 1 {:n n-seq})))
+  (dorun (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
   (= [253 315]
      [@counter1 @counter2]))
 

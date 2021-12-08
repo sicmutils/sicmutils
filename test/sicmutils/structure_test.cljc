@@ -323,18 +323,16 @@
   (checking "s/component" 100
             [s (sg/structure1
                 (sg/structure1 sg/real 5) 5)]
-            (doall
-             (for [i (range 0 5)
-                   j (range 0 5)]
-               (is (= (get-in s [i j])
-                      ((s/component i j) s))))))
+            (doseq [i (range 0 5)
+                    j (range 0 5)]
+              (is (= (get-in s [i j])
+                     ((s/component i j) s)))))
 
   (testing "same-orientation?"
     (testing "up and vector same"
-      (doall
-       (for [l [(s/up 1 2) [1 2]]
-             r [(s/up 1 2) [1 2]]]
-         (is (s/same-orientation? l r)))))
+      (doseq [l [(s/up 1 2) [1 2]]
+              r [(s/up 1 2) [1 2]]]
+        (is (s/same-orientation? l r))))
 
     (testing "down is unique"
       (is (s/same-orientation? (s/down 1 2) (s/down 1 2)))

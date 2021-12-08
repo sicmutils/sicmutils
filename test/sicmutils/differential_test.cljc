@@ -124,12 +124,11 @@
        (checking "[[Differential]] is transparent to native comparison operators" 100
                  [[l-num r-num] (gen/vector real-minus-rationals 2)]
                  (let [compare-bit (v/compare l-num r-num)]
-                   (doall
-                    (for [l [l-num (d/bundle-element l-num 1 0)]
-                          r [r-num (d/bundle-element r-num 1 0)]]
-                      (cond (neg? compare-bit)  (is (< l r))
-                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                            :else (is (> l r)))))))))
+                   (doseq [l [l-num (d/bundle-element l-num 1 0)]
+                           r [r-num (d/bundle-element r-num 1 0)]]
+                     (cond (neg? compare-bit)  (is (< l r))
+                           (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                           :else (is (> l r))))))))
 
   (checking "v/numerical?" 100 [diff (sg/differential sg/real)]
             (is (v/numerical? diff)
