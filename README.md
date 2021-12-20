@@ -82,7 +82,7 @@ and proper ratios in Clojurescript:
 ;;=> 3/2
 
 (asin -10)
-;;=> #sicm/complex "-1.5707963268 + 2.9932228461i"
+;;=> #sicm/complex [-1.5707963267948966 2.9932228461263786]
 ```
 
 Symbols are interpreted as abstract complex numbers, and arithmetic on them
@@ -116,7 +116,7 @@ to collapse symbolic expressions into tidy form:
 (simplify ((D cube) 'x))
 ;;=> (* 3 (expt x 2))
 
-(render
+(->infix
  (simplify ((D cube) 'x)))
 ;;-> "3 x²"
 ```
@@ -163,7 +163,7 @@ examples above and start to explore on your own.
   together.
 - Visit our [CLJDocs][CLJDOCS] page for an introduction and detailed
   documentation
-- Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for on overview
+- Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for an overview
   of SICMUtils and its implementation
 - Visit the HTML version of [Structure and Interpretation of Classical
   Mechanics](https://tgvaughan.github.io/sicm/). Many of the SICM exercises have
@@ -207,7 +207,7 @@ To cite this repository:
   author = {Colin Smith and Sam Ritchie},
   title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.19.2},
+  version = {0.20.1},
   year = {2016},
 }
 ```

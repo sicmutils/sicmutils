@@ -84,18 +84,17 @@
 
 (deftest predicate-tests
   (testing "v/="
-    (doall
-     (for [l ['x (an/literal-number 'x)]
-           r ['x (an/literal-number 'x)]]
-       (is (v/= l r))))
+    (doseq [l ['x (an/literal-number 'x)]
+            r ['x (an/literal-number 'x)]]
+      (is (v/= l r)))
 
-    (doall
-     (for [l [12 (an/literal-number 12)]
-           r [12 (an/literal-number 12)]]
-       (do (is (v/= l r))
-           #?(:cljs (is (= l r)
-                        "cljs overrides equality, and can compare literals with
-                        true numbers on the left side."))))))
+    (doseq [l [12 (an/literal-number 12)]
+            r [12 (an/literal-number 12)]]
+      (is (v/= l r))
+      #?(:cljs
+         (is (= l r)
+             "cljs overrides equality, and can compare literals with
+                        true numbers on the left side."))))
 
   (checking "interaction with symbols" 100 [x gen/symbol]
             (is (not (an/literal-number? x))
@@ -139,12 +138,11 @@
                ;; NOTE: This is cased to NOT consider rational numbers for now.
                [[l-num r-num] (gen/vector sg/real-without-ratio 2)]
                (let [compare-bit (v/compare l-num r-num)]
-                 (doall
-                  (for [l [l-num (an/literal-number l-num)]
-                        r [r-num (an/literal-number r-num)]]
-                    (cond (neg? compare-bit)  (is (< l r))
-                          (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                          :else (is (> l r))))))))
+                 (doseq [l [l-num (an/literal-number l-num)]
+                         r [r-num (an/literal-number r-num)]]
+                   (cond (neg? compare-bit)  (is (< l r))
+                         (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                         :else (is (> l r)))))))
 
   #?(:cljs
      (checking "`literal-number` implements valueOf properly" 100 [n sg/real]
@@ -196,9 +194,8 @@
                   others   [[(an/literal-number l) r]
                             [l (an/literal-number r)]
                             [(an/literal-number l) (an/literal-number r)]]]
-              (doall
-               (for [[x y] others]
-                 (is (v/= expected (op x y)))))))]
+              (doseq [[x y] others]
+                (is (v/= expected (op x y))))))]
     (checking "+, -, *, / fall through to number ops"
               100 [x sg/native-integral
                    y sg/native-integral]
@@ -672,18 +669,17 @@
            (v/freeze
             (g/conjugate (an/literal-number
                           '(random x))))))
-    (doall
-     (for [op @#'sym/conjugate-transparent-operators]
-       (is (= (v/freeze
-               (an/literal-number
-                (list op
-                      (g/conjugate 'x)
-                      (g/conjugate 'y))))
-              (v/freeze
-               (g/conjugate (an/literal-number
-                             (list op 'x 'y)))))
-           "This is a little busted, since we don't check for the proper number
-           of inputs... but conjugates move inside these operators."))))
+    (doseq [op @#'sym/conjugate-transparent-operators]
+      (is (= (v/freeze
+              (an/literal-number
+               (list op
+                     (g/conjugate 'x)
+                     (g/conjugate 'y))))
+             (v/freeze
+              (g/conjugate (an/literal-number
+                            (list op 'x 'y)))))
+          "This is a little busted, since we don't check for the proper number
+           of inputs... but conjugates move inside these operators.")))
 
   (checking "make-rectangular" 100 [re gen/symbol
                                     im gen/symbol]

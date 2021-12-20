@@ -4,7 +4,67 @@
 
 - #361 - quaternions!
 
+- #438:
+
+  - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
+    applicable. In cases where we were trying to force side effects (mostly in
+    the tests), this change prevents the environment from retaining the full
+    sequence. This will save memory!
+
+  - adds missing tests from `connection.scm` to
+    `sicmutils.calculus.connection-test`, stressing pages 205 - 213 from MTW,
+    Gravitation.
+
+- #434: allow pattern matching forms to successfully bind to `nil` or `false`.
+
+- #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
+  coordinate symbols that start with the same symbol as the coordinate system's
+  prototype, like:
+
+```clj
+(typical-coords R2-polar)
+;;=> (up x065308 x165309)
+
+(typical-coords
+ (with-coordinate-prototype R2-polar (up 'r 'theta)))
+;;=> (up r65312 theta65313)
+```
+
+## 0.20.1
+
+- #396:
+
+  - fixes a bug in the SCI version of `define-coordinates` which didn't allow
+    any rebinding of manifolds.
+
+  - Removes the `bindings` key from `sicmutils.env.sci/context-opts`.
+    https://github.com/babashka/sci/issues/637 is a bug with variable rebinding
+    that occurs when `:bindings` is in play. Instead of relying on this key,
+    evaluate `(require '[sicmutils.env :refer :all])` against your SCI
+    environment to get all bindings.
+
+  - bumps the default version of SCI to 0.2.7.
+
 ## 0.20.0
+
+- #348:
+
+  - Adds a new single arity version of
+    `sicmutils.util.permute/permutation-parity`, which returns the parity of a
+    permutation relative to its sorted version.
+
+  - `sicmutils.complex/complex` can now take a single string argument in both
+    Clojure and Clojurescript.
+
+  - Expands the complex number literal parser to take these forms, in addition
+    to the previously-supported string argument:
+
+```clj
+#sicm/complex [1.2 3.6]    ;; 1.2+3.6i
+#sicm/complex [1.2]        ;; 1.2
+#sicm/complex 1.4          ;; 1.4
+#sicm/complex "1.2 + 3.6i" ;; 1.2+3.6i
+```
 
 - #394 fixes a bug with derivatives of functions that returned a map... but
   where the map was actually meant to represent some other type, by holding a

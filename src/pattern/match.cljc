@@ -167,7 +167,7 @@
      (predicate pred)
      (fn bind-match [frame data succeed]
        (when (pred data)
-         (if-let [binding (frame sym)]
+         (if-let [[_ binding] (find frame sym)]
            (core:and (= binding data)
                      (succeed frame))
            (succeed (assoc frame sym data))))))))

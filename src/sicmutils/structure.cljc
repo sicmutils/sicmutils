@@ -613,7 +613,7 @@
   For example:
 
   ```clojure
-  (doall (map-chain print (s/down (s/up 1 2) (s/up 3 4))))
+  (dorun (map-chain println (s/down (s/up 1 2) (s/up 3 4))))
 
   1 [0 0] [:s/down :s/up]
   2 [0 1] [:s/down :s/up]

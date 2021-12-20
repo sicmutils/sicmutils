@@ -101,10 +101,10 @@
                 n-seq (take (inc n)
                             (iterate (fn [x] (* 2 x)) 1))]
             ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-            (doall (qt/trapezoid-sequence f1 0 1 {:n n-seq}))
+            (dorun (qt/trapezoid-sequence f1 0 1 {:n n-seq}))
 
             ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-            (doall (map (qt/trapezoid-sum f2 0 1) n-seq))
+            (run! (qt/trapezoid-sum f2 0 1) n-seq)
 
             ;; A single evaluation of the final `n`
             ((qt/trapezoid-sum f3 0 1) (last n-seq))

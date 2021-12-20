@@ -65,16 +65,15 @@
 (defn run-tensor-test [T types coordsys]
   (let [args (mapv (literal-field coordsys) types)
         f    ((literal-field coordsys) :scalar)]
-    (doall
-     (for [i (range (count types))
-           :let [thing ((literal-field coordsys) (nth types i))]]
-       (simplify
-        ((- (apply T (assoc args i
-                            (+ (* f (get args i))
-                               thing)))
-            (+ (* f (apply T args))
-               (apply T (assoc args i thing))))
-         (m/typical-point coordsys)))))))
+    (for [i (range (count types))
+          :let [thing ((literal-field coordsys) (nth types i))]]
+      (simplify
+       ((- (apply T (assoc args i
+                           (+ (* f (get args i))
+                              thing)))
+           (+ (* f (apply T args))
+              (apply T (assoc args i thing))))
+        (m/typical-point coordsys))))))
 
 (deftest ^:long long-tensor-tests
   (is (= [0 0 0 0]

@@ -147,32 +147,31 @@
   compiler does not currently error in case 2 and already handles emitting the
   warning for us.)"
   [ns]
-  (fork
-   :cljs
-   (fn [sym form]
-     `(def ~sym ~form))
-
-   :clj
-   (let [ns-sym (ns-name ns)
-         nsm (ns-map ns)
-         remote? (fn [sym]
-                   (when-let [v (nsm sym)]
-                     (not= *ns* (:ns (meta v)))))
-         warn (fn [sym]
-                `(.println
-                  (RT/errPrintWriter)
-                  (str "WARNING: "
-                       '~sym
-                       " already refers to: "
-                       ~(nsm sym)
-                       " in namespace: "
-                       '~ns-sym
-                       ", being replaced by: "
-                       ~(str "#'" ns-sym "/" sym))))]
+  #?(:cljs
      (fn [sym form]
-       (if (remote? sym)
-         `(do
-            ~(warn sym)
-            (ns-unmap '~ns-sym '~sym)
-            (intern '~ns-sym '~sym ~form))
-         `(def ~sym ~form))))))
+       `(def ~sym ~form))
+
+     :clj
+     (let [ns-sym (ns-name ns)
+           nsm (ns-map ns)
+           remote? (fn [sym]
+                     (when-let [v (nsm sym)]
+                       (not= ns (:ns (meta v)))))
+           warn (fn [sym]
+                  `(.println
+                    (RT/errPrintWriter)
+                    (str "WARNING: "
+                         '~sym
+                         " already refers to: "
+                         ~(nsm sym)
+                         " in namespace: "
+                         '~ns-sym
+                         ", being replaced by: "
+                         ~(str "#'" ns-sym "/" sym))))]
+       (fn [sym form]
+         (if (remote? sym)
+           `(do
+              ~(warn sym)
+              (ns-unmap '~ns-sym '~sym)
+              (intern '~ns-sym '~sym ~form))
+           `(def ~sym ~form))))))

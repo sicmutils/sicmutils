@@ -27,6 +27,7 @@
 
   As well as a whole bunch of defined manifolds and coordinate systems for
   exploration and fun!"
+  (:refer-clojure :exclude [uuid])
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
             [sicmutils.abstract.number :refer [simplify-numerical-expression]]
@@ -416,8 +417,7 @@
 
   See [[typical-point]] for a coordinate-free version of this function."
   [coordinate-system]
-  (s/typical-object
-   (coordinate-prototype coordinate-system)))
+  (s/mapr gensym (coordinate-prototype coordinate-system)))
 
 (defn typical-point
   "Given an [[ICoordinateSystem]], returns a unique, symbolically-represented
