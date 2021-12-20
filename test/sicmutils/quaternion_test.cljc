@@ -41,6 +41,16 @@
   (g/* (g/invert (g/abs v))
 		   v))
 
+(deftest type-tests
+  (is (= #sicm/quaternion ['(* 2 x) '(* 3 (expt x 2)) '(* 4 (expt x 3)) 1]
+         (g/simplify
+          ((sicmutils.env/D
+            (fn [x] #sicm/quaternion [(g/* x x)
+                                     (g/* x x x)
+                                     (g/* x x x x)
+                                     x]))
+           'x)))))
+
 (deftest basic-tests
   (is (= '(up theta
               (up x y (sqrt (+ (* -1 (expt x 2))

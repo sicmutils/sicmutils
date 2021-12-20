@@ -18,6 +18,12 @@
 ;;
 
 (ns sicmutils.quaternion
+  "This namespace provides a number of functions and constructors for working
+  with [[Quaternion]] instances in Clojure and Clojurescript, and
+  installs [[Quaternion]] into the SICMUtils generic arithmetic system.
+
+  For other numeric extensions, see [[sicmutils.ratio]], [[sicmutils.complex]]
+  and [[sicmutils.numbers]]."
   (:require [sicmutils.complex :as sc]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
@@ -30,39 +36,30 @@
   #?(:clj
      (:import (clojure.lang AFn Associative Counted IObj IFn Sequential))))
 
-;; ## Implementation Notes
+;; # Quaternions
 ;;
-;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
-;; indeed true? Does the logging just happen as the default failure?
+;; A "quaternion" is an extension of a complex number...
 ;;
-;; NOTE I think I know what this does now, and it lives in
-;; `sicmutils.util.logic`. We can augment what that does - but it tries to
-;; execute whatever statement it can,and fails if that thing can provably go
-;; false.
-;;
-;; NOTE AND you might not want to normalize every damned time, if you have some
-;; symbolic thing. Do it twice and it's going to get crazy. So why not just
-;; assume that it's normalized?
+;; note how this idea came up, link to the history of vector analysis book.
 
-;; TODO:
-;; - dot-product and whatever else fits... https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L302
+;; - this namespace implements them, provides an API and installs them into the
+;;   generic arithmetic system, making them COMPATIBLE with complex, real
+;;   numbers etc where possible.
 ;;
-;; - sqrt https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L202
-;;
-;; - signum function! https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L174
-;;
-;; TODO slerp, fromAxisAngle (confirm), fromEuler (confirm), fromBetweenVectors https://github.com/infusion/Quaternion.js/
-;;
-;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
-;;
-;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
-
-;; TODO see remaining interfaces here, and PICK the functions below:
-;; https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
+;; - also note rotation matrix API etc
 
 (declare arity eq evaluate q:zero? one?)
 
 ;; ## Quaternion Type Definition
+;;
+;; TODO note what we are trying to support here with these various protocol and
+;; interface implementations.
+;;
+;; - quaternions can hold functions in each position, so we want to support
+;;   `f/Arity` and `IFn`. These are basically vectors that can be applied in the
+;;   function position AS IFn instances.
+;;
+;; -
 
 (deftype Quaternion [r i j k m]
   f/IArity
@@ -379,9 +376,6 @@
 (def J (->Quaternion 0 0 1 0))
 (def K (->Quaternion 0 0 0 1))
 
-;; TODO note that right now this will only work (if you call it as a data
-;; reader) for a single symbol or number, OR a vector that definitely has 4.
-
 (defn make
   "Same as `make`, and `real&3vector->quaternion`... plus one more.
 
@@ -396,6 +390,20 @@
    (->Quaternion r i j k))
   ([r i j k]
    (->Quaternion r i j k)))
+
+;; TODO note that right now this will only work (if you call it as a data
+;; reader) for a single symbol or number, OR a vector that definitely has 4.
+;;
+;; TODO obviously mod this comment...
+
+(defn parse-quaternion [x]
+  (if (vector? x)
+    (if (= (count x) 4)
+      (let [[r i j k] x]
+        `(make ~r ~i ~j ~k))
+      (u/illegal
+       (str "Quaternion literal vectors require 4 elements. Received: " x)))
+    `(make ~x)))
 
 ;; ## Quaternions and 3D rotations
 
@@ -1006,3 +1014,34 @@
 
 (defmethod g/solve-linear [::v/scalar ::quaternion] [s q] (q-div-scalar q s))
 (defmethod g/solve-linear [::quaternion ::quaternion] [a b] (div b a))
+
+
+;; ## Implementation Notes
+;;
+;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
+;; indeed true? Does the logging just happen as the default failure?
+;;
+;; NOTE I think I know what this does now, and it lives in
+;; `sicmutils.util.logic`. We can augment what that does - but it tries to
+;; execute whatever statement it can,and fails if that thing can provably go
+;; false.
+;;
+;; NOTE AND you might not want to normalize every damned time, if you have some
+;; symbolic thing. Do it twice and it's going to get crazy. So why not just
+;; assume that it's normalized?
+
+;; TODO:
+;; - dot-product and whatever else fits... https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L302
+;;
+;; - sqrt https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L202
+;;
+;; - signum function! https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L174
+;;
+;; TODO slerp, fromAxisAngle (confirm), fromEuler (confirm), fromBetweenVectors https://github.com/infusion/Quaternion.js/
+;;
+;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
+;;
+;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
+
+;; TODO see remaining interfaces here, and PICK the functions below:
+;; https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj

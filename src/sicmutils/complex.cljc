@@ -127,7 +127,7 @@
 
         :else (u/illegal
                (str
-                "Complex literals must be either strings or vectors. Received: "
+                "#sicm/complex takes a string, 2-vector or a number. Received: "
                 x))))
 
 #?(:cljs
