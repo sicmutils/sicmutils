@@ -149,7 +149,9 @@
              (Math/log2 x))))
 
 (defmethod g/exp [::v/real] [a]
-  (Math/exp a))
+  (if (core-zero? a)
+    1
+    (Math/exp a)))
 
 (defn ^:private exact-divide
   "Checked implementation of g/exact-divide general enough to use for any type

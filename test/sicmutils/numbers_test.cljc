@@ -197,7 +197,8 @@
     (is (= (c/complex 0 Math/PI) (g/log -1))))
 
   (testing "exp"
-    (is (= 1.0 (g/exp 0)))))
+    (is (= 1 (g/exp 0))
+        "exp(0) evaluates to an exact 1, vs 1.0")))
 
 ;; Test of generic wrapper operations.
 
