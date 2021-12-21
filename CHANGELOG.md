@@ -2,7 +2,7 @@
 
 ## [unreleased]
 
-- newest:
+- #440:
 
   - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.
 
