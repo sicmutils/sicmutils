@@ -133,7 +133,12 @@
 
     (is (= '(* (/ 1 2) (log x))
            ((rule) '(log (sqrt x))))
-        "Drop the internal sqrt down as a 1/2 exponent.")))
+        "Drop the internal sqrt down as a 1/2 exponent."))
+
+  (testing "exp-contract"
+    (is (= '(exp (* 2 x))
+           (r/exp-contract '(expt (exp x) 2)))
+        "Test for bugfix from issue #439 ")))
 
 (deftest magnitude-tests
   (is (= '(expt x 10)

@@ -1449,7 +1449,7 @@ out of the first term of the argument."}
     =>
     (* ??x1 ??x3 ??x5 (exp (+ ?x2 ?x4)))
 
-    (expt (exp ?x) (? p)) => (exp (* ?p ?x))
+    (expt (exp ?x) ?p) => (exp (* ?p ?x))
 
     (/ (exp ?x) (exp ?y)) => (exp (- ?x ?y))
 
