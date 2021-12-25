@@ -9,6 +9,13 @@
   - quaternions are implemented like vectors of length 4, and implement all
     appropriate Clojure protocols.
 
+- #440:
+
+  - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.
+
+  - Fixes a bug in `sicmutils.rules/exp-contract` leftover from the port from
+    Scheme. Thanks to @adamhaber for pointing this out!
+
 - #438:
 
   - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
