@@ -38,7 +38,8 @@
             [sicmutils.value :as v]))
 
 (defn v:make-unit
-  "TODO move this to a collections, or vector namespace?"
+  "Normalizes the supplied vector. TODO move this to a collections, or vector
+  namespace?"
   [v]
   (g/* (g/invert (g/abs v))
 		   v))
@@ -205,7 +206,6 @@
     (checking "kind" 100 [x (sg/quaternion)]
               (is (= ::q/quaternion (v/kind x))))))
 
-
 (deftest basic-tests
   (checking "accessors" 100 [x (sg/quaternion)]
             (let [[r i j k] x]
@@ -300,7 +300,6 @@
                      (q/make (concat v [10 11 12])))
                   "make ignores elements beyond the 4th"))))
 
-
 (deftest arithmetic-tests
   (testing "Quaternions form a skew field, ie, a division ring."
     (with-comparator (v/within 5e-4)
@@ -350,9 +349,23 @@
                    (g/simplify (q/q-div-scalar x s)))
                 "q/s matches quaternion division"))
 
-  ;; TODO test higher arities of div, mul, add, sub
-  ;;
-  ;; TODO test the variadic forms of each thing.
+  (checking "multi-arg arithmetic" 100
+            [xs (gen/vector (sg/quaternion) 0 20)]
+            (is (= (apply g/+ xs)
+                   (apply q/add xs))
+                "q/add matches g/+ for all arities")
+
+            (is (= (apply g/- xs)
+                   (apply q/sub xs))
+                "q/sub matches g/- for all arities")
+
+            (is (= (apply g/* xs)
+                   (apply q/mul xs))
+                "q/mul matches g/* for all arities")
+
+            (is (= (apply g// xs)
+                   (apply q/div xs))
+                "q/div matches g// for all arities"))
 
   (checking "q/conjugate" 100 [x (sg/quaternion sg/any-integral)]
             (let [sum (g/+ x (q/conjugate x))]
@@ -365,8 +378,34 @@
 
             (is (q/real?
                  (g/* x (q/conjugate x)))
-                "x*conj(x) is real")))
+                "x*conj(x) is real")
 
+            (is (= (q/dot-product x x)
+                   (q/real-part
+                    (g/* x (q/conjugate x))))
+                "x*conj(x) == xx*, the squared norm"))
+
+  (checking "q/normalize, q/magnitude" 100
+            [x (sg/quaternion sg/small-integral)]
+            (is (ish? (q/dot-product x x)
+                      (g/square
+                       (q/magnitude x)))
+                "the dot-product of a quaternion with itself equals its squared
+                magnitude.")
+
+            (let [m (q/magnitude x)]
+              (if (v/zero? m)
+                (is (q/zero? x)
+                    "can't normalize if the quaternion is zero.")
+
+                (let [normal (q/normalize x)]
+                  (is (q/unit? normal :epsilon 1e-8)
+                      "normalizing a quaternion makes it (approximately) a unit
+                      quaternion."))))))
+
+;; TODO test dot-product between complex, scalar, quaternion combos
+;;
+;; TODO look at https://www.3dgep.com/understanding-quaternions/#Quaternion_Dot_Product
 (deftest rotation-tests
   (is (= '(up theta
               (up x y (sqrt (+ (* -1 (expt x 2))
