@@ -32,9 +32,9 @@
   #?(:clj
      (:import (clojure.lang Associative
                             AFn IFn
-                            IPersistentVector IReduce
+                            IPersistentVector IReduce IKVReduce
                             IObj
-                            Indexed Sequential))))
+                            Indexed Reversible Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -132,6 +132,12 @@
        IReduce
        (reduce [_ f] (.reduce ^IReduce v f))
        (reduce [_ f start] (.reduce ^IReduce v f start))
+
+       IKVReduce
+       (kvreduce [_ f init] (.kvreduce ^IKVReduce v f init))
+
+       Reversible
+       (rseq [_] (.rseq ^Reversible v))
 
        IFn
        (invoke [_]
@@ -232,6 +238,12 @@
        IReduce
        (-reduce [_ f] (-reduce v f))
        (-reduce [_ f start] (-reduce v f start))
+
+       IKVReduce
+       (-kv-reduce [_ f init] (-kv-reduce v f init))
+
+       IReversible
+       (-rseq [_] (-rseq v))
 
        IFn
        (-invoke [_]

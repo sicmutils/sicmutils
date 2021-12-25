@@ -37,54 +37,85 @@
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
-(deftest value-protocol-tests
-  (testing "zero?"
-    (is (v/zero? (s/up)))
-    (is (v/zero? (s/down)))
-    (is (v/zero? (s/down 0)))
-    (is (v/zero? (s/up 0 0)))
-    (is (v/zero? (s/up 0)))
-    (is (v/zero? (s/down 0 0)))
-    (is (v/zero? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
-    (is (v/zero? (s/up 0 (u/long 0) (u/int 0)))))
+(deftest interface-tests
+  (checking "Clojure interface definitions" 100
+            [q (sg/structure1 (sg/reasonable-double))]
+            (let [v (vec q)]
+              (is (coll? q))
+              (is (seqable? q))
+              (is (sequential? q))
 
-  (testing "zero-like"
-    (is (v/zero? (v/zero-like (s/up 1 2 3))))
-    (is (= (s/up 0 0 0) (v/zero-like (s/up 1 2 3))))
-    (is (= (s/up) (v/zero-like (s/up))))
-    (is (= (s/down 0 0 0) (v/zero-like (s/down 1 2 3))))
-    (is (= (s/down) (v/zero-like (s/down))))
-    (is (= (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))
-           (v/zero-like (s/up 1 (s/down (s/up 2 3) (s/up 4 5))))))
-    (is (= (s/up (u/long 0) (u/int 0) 0)
-           (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
+              (is (reversible? q))
+              (is (= (rseq v) (rseq q))
+                  "rseq matches vector impl")
 
-  (testing "one-like"
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/one-like (s/up 1 2 3)))))
+              (is (counted? q))
+              (is (= (count v) (count q))
+                  "count matches vector impl")
 
-  (testing "identity-like"
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/identity-like (s/up 1 2 3)))))
+              (is (associative? q))
+              (is (indexed? q))
+              (is (ifn? q))
 
-  (testing "exact?"
-    (is (v/exact? (s/up 1 2 3 4)))
-    (is (not (v/exact? (s/up 1.2 3 4))))
-    (is (v/exact? (s/up 0 1 #sicm/ratio 3/2)))
-    (is (not (v/exact? (s/up 0 0 0.00001)))))
+              (is (= (reduce-kv + 0 v)
+                     (reduce-kv + 0 q))
+                  "reduce-kv matches vector impl")
 
-  (testing "numerical?"
-    (is (not (v/numerical? (s/up 1 2 3 4)))
-        "no structure is numerical."))
+              (is (= (reduce + 0 v)
+                     (reduce + v)
+                     (reduce + 0 q)
+                     (reduce + q))
+                  "reduce matches vector impl")))
 
-  (testing "freeze"
-    (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
+  (testing "value protocol"
+    (testing "zero?"
+      (is (v/zero? (s/up)))
+      (is (v/zero? (s/down)))
+      (is (v/zero? (s/down 0)))
+      (is (v/zero? (s/up 0 0)))
+      (is (v/zero? (s/up 0)))
+      (is (v/zero? (s/down 0 0)))
+      (is (v/zero? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
+      (is (v/zero? (s/up 0 (u/long 0) (u/int 0)))))
 
-  (testing "kind"
-    (is (= ::s/up (v/kind (s/up 1 2))))
-    (is (= ::s/down (v/kind (s/down (s/up 1 2)
-                                    (s/up 2 3))))
-        "Kind only depends on the outer wrapper, not on the contents."))
+    (testing "zero-like"
+      (is (v/zero? (v/zero-like (s/up 1 2 3))))
+      (is (= (s/up 0 0 0) (v/zero-like (s/up 1 2 3))))
+      (is (= (s/up) (v/zero-like (s/up))))
+      (is (= (s/down 0 0 0) (v/zero-like (s/down 1 2 3))))
+      (is (= (s/down) (v/zero-like (s/down))))
+      (is (= (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))
+             (v/zero-like (s/up 1 (s/down (s/up 2 3) (s/up 4 5))))))
+      (is (= (s/up (u/long 0) (u/int 0) 0)
+             (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
+
+    (testing "one-like"
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   (v/one-like (s/up 1 2 3)))))
+
+    (testing "identity-like"
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   (v/identity-like (s/up 1 2 3)))))
+
+    (testing "exact?"
+      (is (v/exact? (s/up 1 2 3 4)))
+      (is (not (v/exact? (s/up 1.2 3 4))))
+      (is (v/exact? (s/up 0 1 #sicm/ratio 3/2)))
+      (is (not (v/exact? (s/up 0 0 0.00001)))))
+
+    (testing "numerical?"
+      (checking "no structure is numerical." 100
+                [s (sg/structure sg/real)]
+                (is (not (v/numerical? s)))))
+
+    (testing "freeze"
+      (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
+
+    (testing "kind"
+      (is (= ::s/up (v/kind (s/up 1 2))))
+      (is (= ::s/down (v/kind (s/down (s/up 1 2)
+                                      (s/up 2 3))))
+          "Kind only depends on the outer wrapper, not on the contents.")))
 
   (testing "string rep"
     (is (= "(up sin cos tan)" (x/expression->string

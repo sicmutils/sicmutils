@@ -4,6 +4,11 @@
 
 - #361 - quaternions!
 
+  - support reversible? and reduce-kv for structures
+
+  - quaternions are implemented like vectors of length 4, and implement all
+    appropriate Clojure protocols.
+
 - #438:
 
   - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
