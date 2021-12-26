@@ -2,7 +2,7 @@
 
 ## [unreleased]
 
-- new fixes #441 by upgrading the implementations of
+- #442 fixes #441 by upgrading the implementations of
   `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
   handle large inputs. Thanks to @swapneils for the report.
 
