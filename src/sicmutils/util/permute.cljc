@@ -19,6 +19,13 @@
 
 (ns sicmutils.util.permute
   "Utilities for generating permutations of sequences."
+  #?(:cljs
+     ;; these are currently only required for `:cljs` because [[factorial]]
+     ;; needs to use these to prevent overflow when the result required a
+     ;; `js/BigInt`.
+     (:require [sicmutils.generic :as g]
+               [sicmutils.numbers]
+               [sicmutils.util :as u]))
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
@@ -184,9 +191,17 @@
              m))
 
 (defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
+  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive).
+
+  [[factorial]] will return a platform-specific [[sicmutils.util/bigint]] given
+  some `n` that causes integer overflow."
   [n]
-  (apply * (range 1 (inc n))))
+  #?(:clj
+     (apply *' (range 1 (inc n)))
+     :cljs
+     (if (<= n 20)
+       (apply * (range 1 (inc n)))
+       (transduce (map u/bigint) g/* (range 1 (inc n))))))
 
 (defn number-of-permutations
   "Returns the number of possible ways of permuting a collection of `n` distinct
@@ -194,13 +209,25 @@
   [n]
   (factorial n))
 
-(defn number-of-combinations
-  "Returns the number of possible ways of choosing `k` distinct elements from a
-  collection of `n` total items."
-  [n k]
-  (quot (factorial n)
-        (* (factorial (- n k))
-           (factorial k))))
+;; The algorithm used below comes from the [Wikipedia page on binomial
+;; coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient#Factorial_formula).
+;; The section on the "factorial formula" gives this more efficient method of
+;; computation.
+;;
+;; The tests compare this implementation to the more obvious relationship with
+;; factorials.
+
+(let [* #?(:clj *' :cljs g/*)
+      / #?(:clj / :cljs g//)]
+  (defn number-of-combinations
+    "Returns 'n choose k', the number of possible ways of choosing `k` distinct
+  elements from a collection of `n` total items."
+    [n k]
+    (if (> (* 2 k) n)
+      (number-of-combinations n (- n k))
+      (transduce (map (fn [i] (/ (- (inc n) i) i)))
+                 *
+                 (range 1 (inc k))))))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence
