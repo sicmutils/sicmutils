@@ -901,6 +901,12 @@
                 "conjugate the left arg!")))
 
 (deftest structure-generics
+  (testing "g/* returns a proper zero"
+    (is (= (s/up 0 0 0)
+           (g/* 0 0 0 (s/up 0 0 0) 0 0))
+        "make sure that leading zeros don't stop the reduction and `g/*`
+        discovers it needs to return a proper structure."))
+
   (testing "up/down +, same kind"
     (is (= (+ (s/up 1 2) (s/up 2 3))
            (s/up 3 5)))

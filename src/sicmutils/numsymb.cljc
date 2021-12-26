@@ -27,7 +27,8 @@
             [sicmutils.ratio]
             [sicmutils.value :as v]
             [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]))
+            [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.logic :as ul]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>
@@ -234,7 +235,7 @@
                               (n:pi-mod-2pi? x) -1
                               :else (Math/cos x)))
         (symbol? x) (cond (pi-over-2-mod-pi? x) 0
-                          (zero-mod-2pi? x) +1
+                          (zero-mod-2pi? x) 1
                           (pi-mod-2pi? x) -1
                           :else (list 'cos x))
         :else (list 'cos x)))
@@ -304,23 +305,34 @@
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (if (v/one? x)
-     (atan y)
-     (if (v/number? y)
-       (if (v/exact? y)
-         (if (v/zero? y)
-           0
-           (if (v/number? x)
-             (if (v/exact? x)
-               (if (v/zero? x)
-                 (g/atan y x)
-                 (list 'atan y x))
-               (g/atan y x))
-             (list 'atan y x)))
-         (if (v/number? x)
+   (let [nx?      (v/number? x)
+         exact-x? (v/exact? x)
+         zero-x?  (v/zero? x)
+         ny?      (v/number? y)
+         exact-y? (v/exact? y)
+         zero-y?  (v/zero? y)]
+     (cond (v/one? x)
+           (atan y)
+
+           (and ny? exact-y? zero-y?)
+           (if nx?
+             (if (g/negative? x) 'pi 0)
+             (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
+                  0))
+
+           (and nx? exact-x? zero-x?)
+           (if ny?
+             (if (g/negative? y)
+               (list '- (list '/ 'pi 2))
+               (list '/ 'pi 2))
+             (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
+                  (list '/ 'pi 2)))
+
+           (and nx? ny? (or (not exact-x?)
+                            (not exact-y?)))
            (g/atan y x)
-           (list 'atan y x)))
-       (list 'atan y x)))))
+
+           :else (list 'atan y x)))))
 
 (defn- cosh [x]
   (if (v/number? x)

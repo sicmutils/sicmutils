@@ -393,15 +393,67 @@
                 "the dot-product of a quaternion with itself equals its squared
                 magnitude.")
 
-            (let [m (q/magnitude x)]
+            (let [m      (q/magnitude x)
+                  normal (q/normalize x)]
               (if (v/zero? m)
                 (is (q/zero? x)
                     "can't normalize if the quaternion is zero.")
 
-                (let [normal (q/normalize x)]
-                  (is (q/unit? normal :epsilon 1e-8)
-                      "normalizing a quaternion makes it (approximately) a unit
-                      quaternion."))))))
+                (is (q/unit? normal :epsilon 1e-8)
+                    "normalizing a quaternion makes it (approximately) a unit
+                      quaternion."))))
+
+  (checking "exp, log match real and complex impls" 100 [x sg/complex]
+            (let [quat (q/make x)]
+              (is (ish? (g/log x) (g/log quat))
+                  "complex log matches quat log when j==k==0")
+
+              (is (ish? (g/exp x) (g/exp quat))
+                  "complex exp matches quat exp when j==k==0")
+
+              (is (ish? (g/log (q/get-r quat))
+                        (g/log (q/make (q/get-r quat))))
+                  "real log matches quat log when i==j==k==0")
+
+              (is (ish? (g/exp (q/get-r quat))
+                        (g/exp (q/make (q/get-r quat))))
+                  "real exp matches quat exp when i==j==k==0")))
+
+  ;; TODO notate these
+  (is (= '(quaternion (log y) (* (/ 1 2) pi) 0 0)
+         (v/freeze
+          (g/simplify
+           (q/log (q/make 0 'y 0 0))))))
+
+  (is (= '(quaternion (log y) 0 0 0)
+         (v/freeze
+          (g/simplify
+           (q/log (q/make 'y 0 0 0))))))
+
+  (let [gen (sg/quaternion
+             (sg/reasonable-double
+              {:min -1e3
+               :max 1e3
+               :excluded-lower -1
+               :excluded-upper 1}))]
+    (with-comparator (v/within 1e-4)
+      (checking "exp/log" 100 [x gen]
+                (is (ish? x (q/exp (q/log x)))
+                    "exp(log(q)) acts as identity"))
+
+      (checking "expt/sqrt" 100 [x gen]
+                (is (ish? x (q/mul
+                             (q/sqrt x)
+                             (q/sqrt x)))
+                    "q == sqrt(q)*sqrt(q)")
+
+                (is (ish? (q/sqrt x)
+                          (q/expt x 0.5))
+                    "sqrt(q) == q^0.5")
+
+                (is (ish? (q/mul x x)
+                          (q/expt x 2))
+                    "q*q == q^2, expt impl matches manual exponentiation")))))
 
 ;; TODO test dot-product between complex, scalar, quaternion combos
 ;;
