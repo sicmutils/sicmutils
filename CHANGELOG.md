@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- #442 fixes #441 by upgrading the implementations of
+  `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
+  handle large inputs. Thanks to @swapneils for the report.
+
 - #440:
 
   - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.

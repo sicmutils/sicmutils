@@ -152,7 +152,11 @@
 
   (testing "factorial"
     (is (= (apply g/* (range 1 8))
-           (p/factorial 7))))
+           (p/factorial 7)))
+
+    (is (= #sicm/bigint "15511210043330985984000000"
+           (p/factorial 25))
+        "factorial can handle `n` that triggers overflow in cljs and clj."))
 
   (checking "number-of-permutations" 100
             [xs (gen/let [n (gen/choose 0 6)]
@@ -167,7 +171,22 @@
                        (gen/choose 0 n)))]
             (is (= (p/number-of-combinations (count xs) k)
                    (count
-                    (p/combinations xs k))))))
+                    (p/combinations xs k)))))
+
+  (letfn [(n-choose-k [n k]
+            ;; simple but inefficient implementation for comparison with the
+            ;; more efficient method in the library.
+            (g/quotient
+             (p/factorial n)
+             (g/* (p/factorial (- n k))
+                  (p/factorial k))))]
+    (is (= (n-choose-k 1000 290)
+           (p/number-of-combinations 1000 290))
+        "n choose k with large values")
+
+    (is (= (n-choose-k 1000 800)
+           (p/number-of-combinations 1000 800))
+        "k > n/2")))
 
 (deftest permutation-test
   (testing "permutation-sequence"
