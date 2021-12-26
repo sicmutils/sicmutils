@@ -898,7 +898,9 @@
 
 (defn sqrt
   "Thanks to Spire for the implementation:
-  https://github.com/typelevel/spire/blob/82f607714f94ba1c70b13fd4751063dfdcd155f5/core/src/main/scala/spire/math/Quaternion.scala#L217"
+  https://github.com/typelevel/spire/blob/82f607714f94ba1c70b13fd4751063dfdcd155f5/core/src/main/scala/spire/math/Quaternion.scala#L217
+
+  NOTE that if we have a real number we "
   [q]
   (let [r (get-r q)]
     (if (real? q)
@@ -1325,6 +1327,7 @@
 (defmethod g/mul [::quaternion ::sc/complex] [a b] (mul a (make b)))
 
 (defmethod g/expt [::quaternion ::quaternion] [a b] (expt a b))
+(defmethod g/expt [::quaternion ::sc/complex] [a b] (expt a (make b)))
 (defmethod g/expt [::quaternion ::v/real] [a b] (expt a b))
 
 (defmethod g/sqrt [::quaternion] [q] (sqrt q))
