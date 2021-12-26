@@ -305,34 +305,33 @@
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (let [nx?      (v/number? x)
-         exact-x? (v/exact? x)
-         zero-x?  (v/zero? x)
-         ny?      (v/number? y)
-         exact-y? (v/exact? y)
-         zero-y?  (v/zero? y)]
-     (cond (v/one? x)
-           (atan y)
+   (if (v/one? x)
+     (atan y)
+     (let [nx?      (v/number? x)
+           exact-x? (v/exact? x)
+           zero-x?  (v/zero? x)
+           ny?      (v/number? y)
+           exact-y? (v/exact? y)
+           zero-y?  (v/zero? y)]
+       (cond (and ny? exact-y? zero-y?)
+             (if nx?
+               (if (g/negative? x) 'pi 0)
+               (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
+                    0))
 
-           (and ny? exact-y? zero-y?)
-           (if nx?
-             (if (g/negative? x) 'pi 0)
-             (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
-                  0))
+             (and nx? exact-x? zero-x?)
+             (if ny?
+               (if (g/negative? y)
+                 '(- (/ pi 2))
+                 '(/ pi 2))
+               (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
+                    (list '/ 'pi 2)))
 
-           (and nx? exact-x? zero-x?)
-           (if ny?
-             (if (g/negative? y)
-               (list '- (list '/ 'pi 2))
-               (list '/ 'pi 2))
-             (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
-                  (list '/ 'pi 2)))
+             (and nx? ny? (or (not exact-x?)
+                              (not exact-y?)))
+             (g/atan y x)
 
-           (and nx? ny? (or (not exact-x?)
-                            (not exact-y?)))
-           (g/atan y x)
-
-           :else (list 'atan y x)))))
+             :else (list 'atan y x))))))
 
 (defn- cosh [x]
   (if (v/number? x)
