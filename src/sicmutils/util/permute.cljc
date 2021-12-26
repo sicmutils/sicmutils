@@ -217,15 +217,15 @@
 ;; The tests compare this implementation to the more obvious relationship with
 ;; factorials.
 
-(let [* #?(:clj *' :cljs g/*)
-      / #?(:clj / :cljs g//)]
+(let [*   #?(:clj *' :cljs g/*)
+      div #?(:clj / :cljs g//)]
   (defn number-of-combinations
     "Returns 'n choose k', the number of possible ways of choosing `k` distinct
   elements from a collection of `n` total items."
     [n k]
     (if (> (* 2 k) n)
       (number-of-combinations n (- n k))
-      (transduce (map (fn [i] (/ (- (inc n) i) i)))
+      (transduce (map (fn [i] (div (- (inc n) i) i)))
                  *
                  (range 1 (inc k))))))
 
