@@ -73,11 +73,11 @@
   [a]
   (instance? Complex a))
 
-(defn- real [^Complex a]
+(defn ^:no-doc real [^Complex a]
   #?(:clj (.getReal a)
      :cljs (obj/get a "re")))
 
-(defn- imaginary [^Complex a]
+(defn ^:no-doc imaginary [^Complex a]
   #?(:clj (.getImaginary a)
      :cljs (obj/get a "im")))
 
@@ -127,7 +127,7 @@
 
         :else (u/illegal
                (str
-                "Complex literals must be either strings or vectors. Received: "
+                "#sicm/complex takes a string, 2-vector or a number. Received: "
                 x))))
 
 #?(:cljs
