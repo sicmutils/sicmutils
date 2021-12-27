@@ -162,15 +162,15 @@
        (seq [_] (list r i j k))
        (valAt [this key]
               (.valAt ^Associative this key nil))
-       (valAt [_ key default]
+       (valAt [_ key not-found]
               (if (int? key)
                 (case (int key)
                   0 r
                   1 i
                   2 j
                   3 k
-                  default)
-                default))
+                  not-found)
+                not-found))
        (empty [this] (Quaternion. 0 0 0 0 m))
        (equiv [this that] (.equals this that))
 
@@ -244,26 +244,30 @@
        (toString [_]
                  (str "#sicm/quaternion [" r " " i  " " j " " k "]"))
 
+       IEquiv
+       (-equiv [this that] (eq this that))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer (.toString x)))
+
        IMeta
        (-meta [_] m)
 
        IWithMeta
        (-with-meta [_ meta] (Quaternion. r i j k meta))
 
-       IPrintWithWriter
-       (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-
-       ;; ICollection
-       ;; (-conj [_ item] (. orientation (-conj v item) m))
+       ISequential
 
        IEmptyableCollection
        (-empty [_] (Quaternion. 0 0 0 0 m))
 
-       ISequential
-
-       IEquiv
-       (-equiv [this that] (eq this that))
+       ICollection
+       (-conj [coll o]
+              (throw
+               (js/Error.
+                (str "conj not suported on Quaternion instances. convert to"
+                     " vector first!"))))
 
        ISeqable
        (-seq [_] (list r i j k))
@@ -271,24 +275,58 @@
        ICounted
        (-count [_] 4)
 
-       ;; IIndexed
-       ;; (-nth [_ n] (-nth v n))
-       ;; (-nth [_ n not-found] (-nth v n not-found))
+       IIndexed
+       (-nth [this n] (-nth this n nil))
+       (-nth [_ n default]
+             (case n
+               0 r
+               1 i
+               2 j
+               3 k
+               default))
 
-       ;; ILookup
-       ;; (-lookup [_ k] (-lookup v k))
-       ;; (-lookup [_ k not-found] (-lookup v k not-found))
+       ILookup
+       (-lookup [this key] (-lookup this key nil))
+       (-lookup [this key not-found]
+                (if (number? key)
+                  (-nth this key not-found)
+                  not-found))
 
-       ;; IAssociative
-       ;; (-assoc [_ k entry] (Structure. orientation (-assoc v k entry) m))
-       ;; (-contains-key? [_ k] (-contains-key? v k))
+       IAssociative
+       (-assoc [_ key v]
+               (case key
+                 0 (Quaternion. v i j k m)
+                 1 (Quaternion. r v j k m)
+                 2 (Quaternion. r i v k m)
+                 3 (Quaternion. r i j v m)
+                 (throw
+                  (js/Error.
+                   "Quaternion's key for assoc must be 0, 1, 2 or 3."))))
+       (-contains-key? [coll k]
+                       (boolean
+                        (#{0 1 2 3} k)))
 
-       ;; IFind
-       ;; (-find [_ n] (-find v n))
+       IFind
+       (-find [this n]
+              (when (-contains-key? this n)
+                (MapEntry. n (-nth this key nil) nil)))
 
-       ;; IReduce
-       ;; (-reduce [_ f] (-reduce v f))
-       ;; (-reduce [_ f start] (-reduce v f start))
+       IReduce
+       (-reduce [_ f] (f (f (f r i) j) k))
+       (-reduce [_ f start] (f (f (f (f start r) i) j) k))
+
+       IKVReduce
+       (-kv-reduce [_ f init]
+                   (-> (f init r 0)
+                       (f i 1)
+                       (f j 2)
+                       (f k 3)))
+
+       IReversible
+       (-rseq [coll] (list k j i r))
+
+       IIterable
+       (-iterator [this] (ranged-iterator (vec this) 0 4))
 
        IFn
        (-invoke [this]

@@ -102,7 +102,7 @@
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
-(defn parse-complex [x]
+(defn ^:no-doc parse-complex
   "Parser that converts a string, vector or numeric representation of a complex
    number, like
 
@@ -111,6 +111,7 @@
   - 1
 
   into a [[Complex]] number object in clj or cljs."
+  [x]
   (cond (string? x)
         #?(:clj
            (let [v (.parse complex-format x)]

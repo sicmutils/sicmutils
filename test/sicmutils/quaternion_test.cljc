@@ -96,11 +96,11 @@
              (assoc x 0 10))
           "assoc replaces indices")
 
-      (is (thrown? IllegalArgumentException
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (assoc x :face 10))
           "wrong type of key")
 
-      (is (thrown? IndexOutOfBoundsException
+      (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error)
                    (assoc x 10 10))
           "int, but wrong index")))
 
@@ -114,7 +114,7 @@
           "find works on quaternions, returning MapEntry instances.")))
 
   (testing "conj"
-    (is (thrown? UnsupportedOperationException
+    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                  (conj (q/make 4 5 6 7) 10))))
 
   (testing "f/arity"
@@ -124,9 +124,9 @@
 
   (testing "IFn"
     (is (= (q/make 6 0 9 1)
-           ((q/make + - * /) 3 3)))
+           ((q/make + - * g//) 3 3)))
     (is (= (q/make 22 -18 2048 (g/expt 2 -9))
-           ((q/make + - * /) 2 2 2 2 2 2 2 2 2 2 2))))
+           ((q/make + - * g//) 2 2 2 2 2 2 2 2 2 2 2))))
 
   (checking "quaternions hold metadata" 100
             [x (sg/quaternion)
@@ -156,8 +156,8 @@
           quaternion-valued functions to play well with D. (This tests the
           higher-order-function derivative ability too.)"))
 
-    (let [fq (D #sicm/quaternion [g/square g/cube g/exp g/log])]
-      (is (= #sicm/quaternion ['(* 2 x) '(* 3 (expt x 2)) '(exp x) '(/ 1 x)]
+    (let [fq (D (q/make g/square g/cube g/exp g/log))]
+      (is (= (q/make '(* 2 x) '(* 3 (expt x 2)) '(exp x) '(/ 1 x))
              (g/simplify
               (fq 'x)))
           "Derivatives of quaternions with functional coefficients works")))
@@ -275,7 +275,7 @@
               (is (v/= (q/make v) v) "quaternion == vector")))
 
   (testing "constructors"
-    (is (thrown? IllegalArgumentException
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                  (q/parse-quaternion [1 2]))
         "passing an ill-formed literal to parse-quaternion throws an error at
         read-time.")

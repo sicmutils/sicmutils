@@ -60,6 +60,7 @@
             [sicmutils.structure :as structure]
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
+            [sicmutils.quaternion]
             [sicmutils.series :as series]
             [sicmutils.util.aggregate]
             [sicmutils.util.def :as util.def
