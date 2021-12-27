@@ -309,7 +309,7 @@
        IFind
        (-find [this n]
               (when (-contains-key? this n)
-                (MapEntry. n (-nth this key nil) nil)))
+                (MapEntry. n (-nth this n nil) nil)))
 
        IReduce
        (-reduce [_ f] (f (f (f r i) j) k))
@@ -890,20 +890,6 @@
 
 ;; TODO documented etc up to here.
 
-(defn exp
-  "TODO this is good as well, lovely! I think this works now."
-  [q]
-  (let [r     (real-part q)
-        v     (three-vector q)
-        v-mag (g/abs v)]
-    (if (v/zero? v-mag)
-      (make (g/exp r) 0 0 0)
-      (make (g/* (g/exp r)
-                 (g/cos v-mag))
-            (g/* (g/exp r)
-                 (g/sin v-mag)
-                 (g/div v v-mag))))))
-
 (defn log
   ";; NOTE that this is good, ported from quaternion.js... not bad, handles zero
   cases well."
@@ -921,6 +907,93 @@
               (g/mul (g/acos (g/div r q-mag))
                      (g/div v v-mag)))))))
 
+(defn exp
+  "TODO this is good as well, lovely! I think this works now."
+  [q]
+  (let [r     (real-part q)
+        exp-r (g/exp r)
+        v     (three-vector q)
+        v-mag (g/abs v)]
+    (if (v/zero? v-mag)
+      (make exp-r 0 0 0)
+      (make (g/* exp-r
+                 (g/cos v-mag))
+            (g/* exp-r
+                 (g/sin v-mag)
+                 (g/div v v-mag))))))
+
+;; TODO add more transcendental functions to be totally complete
+;; https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html
+
+;; template<typename T>
+;; inline quaternion<T>                    cos(quaternion<T> const & q)
+;; {
+;;  using    ::std::sin;
+;;  using    ::std::cos;
+;;  using    ::std::cosh;
+
+;;  using    ::boost::math::sinhc_pi;
+
+;;  T    z = abs(unreal(q));
+
+;;  T    w = -sin(q.real())*sinhc_pi(z);
+
+;;  return(quaternion<T>(cos(q.real())*cosh(z),
+;;                          w*q.R_component_2(), w*q.R_component_3(),
+;;                          w*q.R_component_4()));
+;;  }
+
+(defn cos [q]
+  (let [r     (real-part q)
+        v     (three-vector q)
+        v-mag (g/abs v)
+        ]
+    q))
+
+;; template<typename T>
+;; inline quaternion<T>                    sin(quaternion<T> const & q)
+;; {
+;;  using    ::std::sin;
+;;  using    ::std::cos;
+;;  using    ::std::cosh;
+
+;;  using    ::boost::math::sinhc_pi;
+
+;;  T    z = abs(unreal(q));
+
+;;  T    w = +cos(q.real())*sinhc_pi(z);
+
+;;  return(quaternion<T>(sin(q.real())*cosh(z),
+;;                          w*q.R_component_2(), w*q.R_component_3(),
+;;                          w*q.R_component_4()));
+;;  }
+
+(defn sin [q] q)
+
+(defn tan [q]
+  (div (sin q) (cos q)))
+
+;; template<typename T>
+;; inline quaternion<T>                    cosh(quaternion<T> const & q)
+;; {
+;;  return((exp(+q)+exp(-q))/static_cast<T>(2));
+;;  }
+
+(defn cosh [q] q)
+
+
+;; template<typename T>
+;; inline quaternion<T>                    sinh(quaternion<T> const & q)
+;; {
+;;  return((exp(+q)-exp(-q))/static_cast<T>(2));
+;;  }
+
+(defn sinh [q] q)
+
+
+(defn tanh [q]
+  (div (sinh q) (cosh q)))
+
 ;; TODO do a better job here based on this quaternion.js impl, so we match when
 ;; complex numbers are at play...:
 ;; https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L577-L645
@@ -933,6 +1006,9 @@
    (if (quaternion? p)
      (mul (log q) p)
      (scale (log q) p))))
+
+;; TODO double check sqrt impl here:
+;; https://www.johndcook.com/blog/2021/01/06/quaternion-square-roots/
 
 (defn sqrt
   "Thanks to Spire for the implementation:
@@ -1368,16 +1444,27 @@
 (defmethod g/expt [::quaternion ::sc/complex] [a b] (expt a (make b)))
 (defmethod g/expt [::quaternion ::v/real] [a b] (expt a b))
 
-(defmethod g/sqrt [::quaternion] [q] (sqrt q))
-(defmethod g/exp [::quaternion] [q] (exp q))
-(defmethod g/log [::quaternion] [q] (log q))
-
 (defmethod g/invert [::quaternion] [q] (invert q))
 
-(defmethod g/div [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
+;; TODO add tests for scalar / quat
 (defmethod g/div [::quaternion ::quaternion] [a b] (div a b))
+(defmethod g/div [::v/scalar ::quaternion] [q s] (scale-l s (g/invert q)))
+(defmethod g/div [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
 (defmethod g/div [::sc/complex ::quaternion] [a b] (div (make a) b))
 (defmethod g/div [::quaternion ::sc/complex] [a b] (div a (make b)))
+
+(defmethod g/sqrt [::quaternion] [q] (sqrt q))
+(defmethod g/log [::quaternion] [q] (log q))
+
+;; ### Transcendental Functions
+
+(defmethod g/exp [::quaternion] [q] (exp q))
+(defmethod g/sin [::quaternion] [q] (sin q))
+(defmethod g/cos [::quaternion] [q] (cos q))
+(defmethod g/tan [::quaternion] [q] (tan q))
+(defmethod g/cosh [::quaternion] [q] (cosh q))
+(defmethod g/sinh [::quaternion] [q] (sinh q))
+(defmethod g/tanh [::quaternion] [q] (tanh q))
 
 (defmethod g/abs [::quaternion] [q] (magnitude q))
 (defmethod g/magnitude [::quaternion] [q] (magnitude q))

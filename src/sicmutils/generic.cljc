@@ -25,7 +25,7 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :exclude [/ + - * divide])
+  (:refer-clojure :exclude [/ + - * divide #?@(:cljs [infinite?])])
   (:require [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.def :refer [defgeneric]
@@ -347,6 +347,11 @@
 (defmethod negative? :default [a]
   (< a (v/zero-like a)))
 
+(defgeneric infinite? 1
+  "TODO docs")
+
+(defmethod infinite? :default [a] false)
+
 (defgeneric abs 1)
 
 (declare integer-part)
@@ -475,6 +480,8 @@
 
 (defgeneric sin 1 {:dfdx cos})
 
+;; TODO add defaults for these too!
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/
 (defgeneric asin 1
   {:dfdx (fn [x]
            (invert
@@ -498,6 +505,10 @@
                 (add (square x)
                      (square y))))})
 
+;; TODO add asec, acsc, acot
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ with
+;; defaults. Also look up derivatives?
+
 (declare sinh)
 
 (defgeneric cosh 1
@@ -507,6 +518,7 @@
   {:dfdx cosh})
 
 ;; Trig functions with default implementations provided.
+
 (defgeneric tan 1
   {:dfdx (fn [x]
            (invert
@@ -550,6 +562,89 @@
   (div (sub (log (add 1 x))
             (log (sub 1 x)))
        2))
+
+;; TODO look at
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ and see
+;; if I am missing anything! Definitely missing default implementations for
+;; sinh, cosh and friends, asinh, arcosh
+
+;; TODO peruse ;;
+;; http://web.mit.edu/julia_v0.6.2/julia/share/doc/julia/html/en/stdlib/math.html
+;; for various functions, see what the deal is with the pi here?? Convert to the
+;; normalized forms here, at least for sinc and friends.
+
+;; ## Sinc and friends (TODO move up?)
+;; TODO add
+;;
+;; https://en.wikipedia.org/wiki/Sinc_function
+;;
+;; https://mathworld.wolfram.com/TancFunction.html
+;;
+;; note on the cos version
+;; https://math.stackexchange.com/questions/2137090/is-there-a-textsinc-function-for-cos-x
+;;
+;; julia has it, derivative of the sinc function http://www.jlhub.com/julia/manual/en/function/cosc
+;;
+;; TODO when we do complex sinc, define a weird case the way julia does, finite
+;; real! if it's infinite.
+
+(defgeneric sinc 1
+  {:dfdx (fn [x]
+           (sub (div (cos x) x)
+                (div (sin x) (* x x))))})
+
+(defmethod sinc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sin x) x)))
+
+(defgeneric cosc 1
+  {:dfdx (fn [x]
+           (sub (div (cos x) x)
+                (div (sin x) (* x x))))})
+
+(defmethod cosc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (cos x) x)))
+
+;; TODO add these goodies
+
+;; https://en.wikipedia.org/wiki/Sinhc_function
+;;
+;; https://mathworld.wolfram.com/SinhcFunction.html
+
+(defgeneric sinhc 1
+  {:dfdx (fn [x]
+           (sub (div (cosh x) x)
+                (div (sinh x) (* x x))))})
+(defmethod sinhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sinh x) x)))
+
+;; https://en.wikipedia.org/wiki/Coshc_function
+
+(defgeneric coshc 1
+  {:dfdx (fn [x]
+           (sub (div (sinh x) x)
+                (div (cosh x) (* x x))))})
+(defmethod coshc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tanh x) x)))
+
+;; DONE implemented: https://mathworld.wolfram.com/TanhcFunction.html
+
+(defgeneric tanhc 1
+  {:dfdx (fn [x]
+           (let [sx (sech x)]
+             (sub (div (* sx sx) x)
+                  (div (tanh x) (* x x)))))})
+(defmethod tanhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tanh x) x)))
 
 ;; ## Complex Operators
 
@@ -643,6 +738,7 @@
   clojure.core/quot 'quotient
   clojure.core/rem 'remainder
   clojure.core/neg? 'negative?
+  #?@(:cljs [cljs.core/infinite? 'infinite?])
   clojure.core/< '<
   clojure.core/<= '<=
   clojure.core/> '>

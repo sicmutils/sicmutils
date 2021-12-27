@@ -1251,7 +1251,10 @@
 (defbinary g/div (lift-2 g/div))
 
 (defunary g/negative?
-  (fn [x] (g/negative? (finite-term x))))
+  (comp g/negative? finite-term))
+
+(defunary g/infinite?
+  (comp g/infinite? finite-term))
 
 (defunary g/abs
   (fn [x]

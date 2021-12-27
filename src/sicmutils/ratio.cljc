@@ -232,6 +232,8 @@
               (g/lcm (core-denominator a)
                      (core-denominator b))))
 
+     (defmethod g/infinite? [Ratio] [a] false)
+
      (doseq [[op f] [[g/exact-divide /]
                      [g/quotient quot]
                      [g/remainder rem]
@@ -269,6 +271,7 @@
 
      (defmethod g/negate [Fraction] [a] (promote (.neg ^js a)))
      (defmethod g/negative? [Fraction] [a] (neg? (obj/get a "s")))
+     (defmethod g/infinite? [Fraction] [a] false)
      (defmethod g/invert [Fraction] [a] (promote (.inverse ^js a)))
      (defmethod g/square [Fraction] [a] (promote (.mul ^js a a)))
      (defmethod g/cube [Fraction] [a] (promote (.pow ^js a 3)))
