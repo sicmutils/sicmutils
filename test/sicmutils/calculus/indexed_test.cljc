@@ -80,6 +80,7 @@
                    (ci/with-argument-types [::ff/oneform-field
                                             ::ff/oneform-field]))
             iT2 (ci/typed->indexed T2 (b/coordinate-system->basis R2-rect))
+            _ (def cake [iT1 iT2])
             iT3 (ci/outer-product iT1 iT2)]
         (is (not (ci/has-index-types? T1)))
         (is (ci/has-index-types? iT1))

@@ -313,6 +313,16 @@
     (is (= q/ONE (q/mul)) "multiplicative identity")
     (is (= q/ONE (q/div)) "multiplicative identity"))
 
+  (testing "generic handles zeros"
+    (is (= q/ONE (g/+ q/ZERO 1))
+        "addition handles zero structures on the left")
+
+    (is (= q/ZERO (g/* q/ONE q/ZERO))
+        "mul handles zero structures on the left")
+
+    (is (= (g/negate q/ONE) (g/- q/ZERO 1))
+        "sub handles zero structures on the left"))
+
   (checking "scalar / quaternion arithmetic matches quaternion-only
             implementations." 100 [s sg/symbol
                                    x (sg/quaternion sg/symbol)]
@@ -454,6 +464,110 @@
                 (is (ish? (q/mul x x)
                           (q/expt x 2))
                     "q*q == q^2, expt impl matches manual exponentiation")))))
+
+(deftest trig-tests
+  (testing "cos^2(x) + sin^2(x) == 1, sort of"
+    (with-comparator (v/within 1e-10)
+      (doseq [x [(q/make 2 0 0 0)
+                 (q/make 2 2 0 0)
+                 (q/make 2 2 2 0)
+                 (q/make 1 1 1 1 )]]
+        (is (ish? q/ONE
+                  (g/+ (g/square (g/cos x))
+                       (g/square (g/sin x))))))))
+
+  (testing "transcendental functions match complex implementation"
+    (doseq [f [g/log g/exp g/sin g/cos g/tan g/sinh g/cosh g/tanh]]
+      (testing "tan matches complex"
+        (is (ish? (f sc/I)
+                  (f q/I)))
+
+        (is (= (q/get-i (f q/I))
+               (q/get-j (f q/J))
+               (q/get-k (f q/K)))))))
+
+  (testing "transcendental unit"
+    (is (= q/ONE (q/cos q/ZERO)))
+    (is (= q/ZERO (q/sin q/ZERO)))
+    (is (= q/ZERO (q/tan q/ZERO))))
+
+  (testing "unit tests ported from Boost's quaternion test suite"
+    (let [q4 (q/make 34 56 20 2)]
+      (is (= (q/make -321776 -4032, -1440, -144)
+             (g/expt q4 3))
+          "exponents with native integral powers stay exact")
+
+      (is (ish? #sicm/quaternion
+                [-730823.7637667366
+                 -156449.1960650097
+                 -55874.71288036061
+                 -5587.471288036061]
+                (g/expt q4 3.2))
+          "not so much for fractional exponents")
+
+      (testing "transcendental functions"
+        (is (ish? #sicm/quaternion
+                  [-5.727001093501774E14
+                   1.0498682596332112E14
+                   3.749529498690041E13
+                   3.7495294986900405E12]
+                  (g/exp q4)))
+
+        (is (ish? #sicm/quaternion
+                  [1.8285331065398575E25
+                   -2.7602822237164246E25
+                   -9.85815079898723E24
+                   -9.85815079898723E23]
+                  (g/sin q4)))
+
+        (is (ish? #sicm/quaternion
+                  [-2.932696308866326E25
+                   -1.7210331032912269E25
+                   -6.146546797468668E24
+                   -6.146546797468668E23]
+                  (g/cos q4)))
+
+        (is (ish? #sicm/quaternion
+                  [0.0
+                   0.9412097036339402
+                   0.3361463227264072
+                   0.03361463227264068]
+                  (g/tan q4)))
+
+        (is (ish? #sicm/quaternion
+                  [-2.863500546750887E14
+                   5.249341298166056E13
+                   1.8747647493450203E13
+                   1.8747647493450203E12]
+                  (q/sinh q4)))
+
+        (is (ish? #sicm/quaternion
+                  [-2.863500546750887E14
+                   5.249341298166056E13
+                   1.8747647493450203E13
+                   1.8747647493450203E12]
+                  (q/cosh q4)))
+
+        (is (ish? #sicm/quaternion
+                  [1.0
+                   0.0
+                   -6.288372600415926E-18
+                   1.734723475976807E-18]
+                  (q/tanh q4)))
+
+        (is (ish? #sicm/quaternion
+                  [-2.391804589431832E23
+                   -4.179034275395878E23
+                   -1.4925122412128137E23
+                   -1.4925122412128143E22]
+                  (g/sinc q4)))
+
+        (is (ish? #sicm/quaternion
+                  [-1.3666031202326084E12
+                   3.794799638667254E12
+                   1.3552855852383052E12
+                   1.3552855852383054E11]
+                  (g/sinhc q4)))))))
 
 ;; TODO test dot-product between complex, scalar, quaternion combos
 ;;

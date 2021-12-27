@@ -890,6 +890,8 @@
 
 ;; TODO documented etc up to here.
 
+;; ## Transcendental Functions
+
 (defn log
   ";; NOTE that this is good, ported from quaternion.js... not bad, handles zero
   cases well."
@@ -925,71 +927,34 @@
 ;; TODO add more transcendental functions to be totally complete
 ;; https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html
 
-;; template<typename T>
-;; inline quaternion<T>                    cos(quaternion<T> const & q)
-;; {
-;;  using    ::std::sin;
-;;  using    ::std::cos;
-;;  using    ::std::cosh;
-
-;;  using    ::boost::math::sinhc_pi;
-
-;;  T    z = abs(unreal(q));
-
-;;  T    w = -sin(q.real())*sinhc_pi(z);
-
-;;  return(quaternion<T>(cos(q.real())*cosh(z),
-;;                          w*q.R_component_2(), w*q.R_component_3(),
-;;                          w*q.R_component_4()));
-;;  }
-
 (defn cos [q]
   (let [r     (real-part q)
         v     (three-vector q)
-        v-mag (g/abs v)
-        ]
-    q))
+        v-mag (g/abs v)]
+    (make (g/* (g/cos r) (g/cosh v-mag))
+          (g/* (g/* (g/- (g/sin r))
+                    (g/sinhc v-mag))
+               v))))
 
-;; template<typename T>
-;; inline quaternion<T>                    sin(quaternion<T> const & q)
-;; {
-;;  using    ::std::sin;
-;;  using    ::std::cos;
-;;  using    ::std::cosh;
-
-;;  using    ::boost::math::sinhc_pi;
-
-;;  T    z = abs(unreal(q));
-
-;;  T    w = +cos(q.real())*sinhc_pi(z);
-
-;;  return(quaternion<T>(sin(q.real())*cosh(z),
-;;                          w*q.R_component_2(), w*q.R_component_3(),
-;;                          w*q.R_component_4()));
-;;  }
-
-(defn sin [q] q)
+(defn sin [q]
+  (let [r     (real-part q)
+        v     (three-vector q)
+        v-mag (g/abs v)]
+    (make (g/* (g/sin r) (g/cosh v-mag))
+          (g/* (g/* (g/cos r)
+                    (g/sinhc v-mag))
+               v))))
 
 (defn tan [q]
   (div (sin q) (cos q)))
 
-;; template<typename T>
-;; inline quaternion<T>                    cosh(quaternion<T> const & q)
-;; {
-;;  return((exp(+q)+exp(-q))/static_cast<T>(2));
-;;  }
+(defn cosh [q]
+  (-> (add (exp q) (exp (negate q)))
+      (q-div-scalar 2)))
 
-(defn cosh [q] q)
-
-
-;; template<typename T>
-;; inline quaternion<T>                    sinh(quaternion<T> const & q)
-;; {
-;;  return((exp(+q)-exp(-q))/static_cast<T>(2));
-;;  }
-
-(defn sinh [q] q)
-
+(defn sinh [q]
+  (-> (sub (exp q) (exp (negate q)))
+      (q-div-scalar 2)))
 
 (defn tanh [q]
   (div (sinh q) (cosh q)))
@@ -1006,9 +971,6 @@
    (if (quaternion? p)
      (mul (log q) p)
      (scale (log q) p))))
-
-;; TODO double check sqrt impl here:
-;; https://www.johndcook.com/blog/2021/01/06/quaternion-square-roots/
 
 (defn sqrt
   "Thanks to Spire for the implementation:
@@ -1443,6 +1405,8 @@
 (defmethod g/expt [::quaternion ::quaternion] [a b] (expt a b))
 (defmethod g/expt [::quaternion ::sc/complex] [a b] (expt a (make b)))
 (defmethod g/expt [::quaternion ::v/real] [a b] (expt a b))
+(defmethod g/expt [::quaternion ::v/native-integral] [a b]
+  (g/default-expt a b))
 
 (defmethod g/invert [::quaternion] [q] (invert q))
 

@@ -88,8 +88,8 @@
   ([] 0)
   ([x] x)
   ([x y]
-   (cond (v/zero? x) y
-         (v/zero? y) x
+   (cond (v/numeric-zero? x) y
+         (v/numeric-zero? y) x
          :else (add x y)))
   ([x y & more]
    (reduce + (+ x y) more)))
@@ -137,8 +137,8 @@
   ([] 0)
   ([x] (negate x))
   ([x y]
-   (cond (v/zero? y) x
-         (v/zero? x) (negate y)
+   (cond (v/numeric-zero? y) x
+         (v/numeric-zero? x) (negate y)
          :else (sub x y)))
   ([x y & more]
    (- x (apply + y more))))
@@ -244,7 +244,7 @@
   ([] 1)
   ([x] (invert x))
   ([x y]
-   (if (v/one? y)
+   (if (and (v/number? y) (v/one? y))
      x
      (div x y)))
   ([x y & more]
@@ -276,7 +276,9 @@
                0)
              (mul (log x) (expt x y))))})
 
-(defmethod expt :default [s e]
+(defn ^:no-doc default-expt
+  "TODO default implementation."
+  [s e]
   {:pre [(v/native-integral? e)]}
   (let [kind (v/kind s)]
     (if-let [mul' (get-method mul [kind kind])]
@@ -294,6 +296,8 @@
               (zero? e) (v/one-like e)
               :else (invert (expt' s (negate e)))))
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
+(defmethod expt :default [s e] (default-expt s e))
 
 (defgeneric square 1)
 (defmethod square :default [x] (expt x 2))
@@ -348,7 +352,9 @@
   (< a (v/zero-like a)))
 
 (defgeneric infinite? 1
-  "TODO docs")
+  "TODO docs, TODO make the renderer aware!!
+
+  \\infty for latex, -\\infty for negative.")
 
 (defmethod infinite? :default [a] false)
 
@@ -574,65 +580,68 @@
 ;; normalized forms here, at least for sinc and friends.
 
 ;; ## Sinc and friends (TODO move up?)
-;; TODO add
-;;
-;; https://en.wikipedia.org/wiki/Sinc_function
+
 ;;
 ;; https://mathworld.wolfram.com/TancFunction.html
 ;;
-;; note on the cos version
-;; https://math.stackexchange.com/questions/2137090/is-there-a-textsinc-function-for-cos-x
-;;
-;; julia has it, derivative of the sinc function http://www.jlhub.com/julia/manual/en/function/cosc
+;; julia has it, derivative of the sinc function
 ;;
 ;; TODO when we do complex sinc, define a weird case the way julia does, finite
 ;; real! if it's infinite.
 
 (defgeneric sinc 1
+  ;; https://en.wikipedia.org/wiki/Sinc_function, note that this is the
+  ;; unnormalized version.
+  ;;
+  ;; NOTE make sure we evaluate to 0 at infinity in the real implementation.
+  ;;
+  ;; Boost notes on `sinc` and `sinch`:
+  ;; https://www.boost.org/doc/libs/1_65_0/libs/math/doc/html/math_toolkit/sinc/sinc_overview.html
   {:dfdx (fn [x]
-           (sub (div (cos x) x)
-                (div (sin x) (* x x))))})
+           (if (v/zero? x)
+             x
+             (sub (div (cos x) x)
+                  (div (sin x) (* x x)))))})
 
 (defmethod sinc :default [x]
   (if (v/zero? x)
     (v/one-like x)
     (div (sin x) x)))
 
-(defgeneric cosc 1
-  {:dfdx (fn [x]
-           (sub (div (cos x) x)
-                (div (sin x) (* x x))))})
-
-(defmethod cosc :default [x]
-  (if (v/zero? x)
-    (v/one-like x)
-    (div (cos x) x)))
-
-;; TODO add these goodies
-
-;; https://en.wikipedia.org/wiki/Sinhc_function
-;;
-;; https://mathworld.wolfram.com/SinhcFunction.html
-
 (defgeneric sinhc 1
+  ;; https://en.wikipedia.org/wiki/Sinhc_function
+  ;; https://mathworld.wolfram.com/SinhcFunction.html
   {:dfdx (fn [x]
-           (sub (div (cosh x) x)
-                (div (sinh x) (* x x))))})
+           (if (v/zero? x)
+             x
+             (sub (div (cosh x) x)
+                  (div (sinh x) (* x x)))))})
+
 (defmethod sinhc :default [x]
   (if (v/zero? x)
     (v/one-like x)
     (div (sinh x) x)))
 
-;; https://en.wikipedia.org/wiki/Coshc_function
+;; NOTE there is no `cosc`... [julia has
+;; this](http://www.jlhub.com/julia/manual/en/function/cosc), but it is simply
+;; the derivative of `sinc`. Wikipedia has [a page on
+;; `coshc`](https://en.wikipedia.org/wiki/Coshc_function). [This
+;; link](https://math.stackexchange.com/a/2137104) states: "The motivation for
+;; functions such as $\sinc x$, $\sinch x$, $\tanc x$, $\tanch x$ is to consider
+;; the behaviour of a ratio with limit 1 as $𝑥 \to 0$. There is no such
+;; motivation for $\frac{\cos x}{x}$, since $\cos 0 = 1 \neq 0$."
 
-(defgeneric coshc 1
+;; NOTE this is one at infinity
+(defgeneric tanc 1
   {:dfdx (fn [x]
-           (sub (div (sinh x) x)
-                (div (cosh x) (* x x))))})
-(defmethod coshc :default [x]
+           (let [sx (sec x)]
+             (sub (div (* sx sx) x)
+                  (div (tan x) (* x x)))))})
+
+(defmethod tanc :default [x]
   (if (v/zero? x)
     (v/one-like x)
-    (div (tanh x) x)))
+    (div (tan x) x)))
 
 ;; DONE implemented: https://mathworld.wolfram.com/TanhcFunction.html
 
@@ -641,6 +650,7 @@
            (let [sx (sech x)]
              (sub (div (* sx sx) x)
                   (div (tanh x) (* x x)))))})
+
 (defmethod tanhc :default [x]
   (if (v/zero? x)
     (v/one-like x)

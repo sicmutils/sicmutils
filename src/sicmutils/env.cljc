@@ -272,6 +272,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   acosh asinh atanh
   sec csc cot
   sech csch
+  sinc tanc sinhc tanhc
   make-rectangular make-polar
   real-part imag-part
   magnitude angle conjugate

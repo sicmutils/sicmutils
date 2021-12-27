@@ -62,18 +62,19 @@
 
 (defn reasonable-double
   ([] (reasonable-double {}))
-  ([{:keys [min max]
+  ([{:keys [min max excluded-lower excluded-upper]
      :or {min -10e5
-          max 10e5}}]
-   (let [[excluded-lower excluded-upper] [-1e-4 1e-4]]
-     (gen/one-of [(gen/double* {:infinite? false
-                                :NaN? false
-                                :min min
-                                :max excluded-lower})
-                  (gen/double* {:infinite? false
-                                :NaN? false
-                                :min excluded-upper
-                                :max max})]))))
+          max 10e5
+          excluded-lower -1e-4
+          excluded-upper 1e-4}}]
+   (gen/one-of [(gen/double* {:infinite? false
+                              :NaN? false
+                              :min min
+                              :max excluded-lower})
+                (gen/double* {:infinite? false
+                              :NaN? false
+                              :min excluded-upper
+                              :max max})])))
 
 (defn inexact-double
   ([] (inexact-double {}))
@@ -428,6 +429,10 @@
                                 (c/real that))
                (si/*comparator* (c/imaginary this)
                                 (c/imaginary that)))
+
+          (quat/quaternion? that)
+          (si/ish that this)
+
           (v/real? that)
           (and (si/*comparator* 0.0 (c/imaginary this))
                (si/*comparator*
