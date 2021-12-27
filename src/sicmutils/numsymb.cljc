@@ -310,7 +310,7 @@
          (v/exact-zero? y)
          (if (v/number? x)
            (if (g/negative? x) 'pi 0)
-           (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
+           (and (ul/assume! `(~'non-negative? ~x) 'numsymb-atan)
                 0))
 
          (v/exact-zero? x)
@@ -318,7 +318,7 @@
            (if (g/negative? y)
              '(- (/ pi 2))
              '(/ pi 2))
-           (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
+           (and (ul/assume! `(~'non-negative? ~y) 'numsymb-atan)
                 '(/ pi 2)))
 
          (and (v/number? x)

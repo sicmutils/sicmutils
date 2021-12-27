@@ -9,6 +9,22 @@
   - quaternions are implemented like vectors of length 4, and implement all
     appropriate Clojure protocols.
 
+- #443:
+
+  - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`
+    and `reduce-kv` to work with structures.
+
+  - Removes a `reduced` shortcut condition in `sicmutils.generic/*` that was
+    causing multiplications of the form `(* 0 0 (up 0 0))` to shortcut and
+    return `0` instead of the appropriate structural form.
+
+  - the `atan` implementation for symbolic numbers is now careful not to return
+    a floating point number in the case of a 0 argument in the second position.
+    Additionally, it now returns symbolic `pi` or 0 in the case of `0` in the y
+    argument for positive and negative `x` argument, respectively, and symbolic
+    `(/ pi 2)` or `(- (/ pi 2))` for a 0 `x` argument and respective positive or
+    negative `y` argument.
+
 - #442 fixes #441 by upgrading the implementations of
   `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
   handle large inputs. Thanks to @swapneils for the report.
