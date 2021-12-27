@@ -305,33 +305,29 @@
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (if (v/one? x)
-     (atan y)
-     (let [nx?      (v/number? x)
-           exact-x? (v/exact? x)
-           zero-x?  (v/zero? x)
-           ny?      (v/number? y)
-           exact-y? (v/exact? y)
-           zero-y?  (v/zero? y)]
-       (cond (and ny? exact-y? zero-y?)
-             (if nx?
-               (if (g/negative? x) 'pi 0)
-               (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
-                    0))
+   (cond (v/one? x) (atan y)
 
-             (and nx? exact-x? zero-x?)
-             (if ny?
-               (if (g/negative? y)
-                 '(- (/ pi 2))
-                 '(/ pi 2))
-               (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
-                    (list '/ 'pi 2)))
+         (v/exact-zero? y)
+         (if (v/number? x)
+           (if (g/negative? x) 'pi 0)
+           (and (ul/assume! `(~'positive? ~x) 'numsymb-atan)
+                0))
 
-             (and nx? ny? (or (not exact-x?)
-                              (not exact-y?)))
-             (g/atan y x)
+         (v/exact-zero? x)
+         (if (v/number? y)
+           (if (g/negative? y)
+             '(- (/ pi 2))
+             '(/ pi 2))
+           (and (ul/assume! `(~'positive? ~y) 'numsymb-atan)
+                '(/ pi 2)))
 
-             :else (list 'atan y x))))))
+         (and (v/number? x)
+              (v/number? y)
+              (or (not (v/exact? x))
+                  (not (v/exact? y))))
+         (g/atan y x)
+
+         :else (list 'atan y x))))
 
 (defn- cosh [x]
   (if (v/number? x)
