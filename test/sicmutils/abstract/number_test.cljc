@@ -409,10 +409,11 @@
               (is (= (cond (and x-one? y-zero?)            0
                            (and x-one? y-exact?)           (list 'atan y)
                            x-one?                          (g/atan y)
-                           (and y-exact? y-zero?)           0
-                           (and y-exact? x-exact? x-zero?) (g/atan y x)
+                           (and y-exact? y-zero?)          (if (neg? x) 'pi 0)
+                           (and x-exact? x-zero?)          (if (neg? y)
+                                                             '(- (/ pi 2))
+                                                             '(/ pi 2))
                            (and y-exact? x-exact?)         (list 'atan y x)
-                           y-exact?                        (g/atan y x)
                            :else                           (g/atan y x))
                      (x/expression-of
                       (g/atan

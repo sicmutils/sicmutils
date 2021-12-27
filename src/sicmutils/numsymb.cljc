@@ -27,7 +27,8 @@
             [sicmutils.ratio]
             [sicmutils.value :as v]
             [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]))
+            [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.logic :as ul]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>
@@ -234,7 +235,7 @@
                               (n:pi-mod-2pi? x) -1
                               :else (Math/cos x)))
         (symbol? x) (cond (pi-over-2-mod-pi? x) 0
-                          (zero-mod-2pi? x) +1
+                          (zero-mod-2pi? x) 1
                           (pi-mod-2pi? x) -1
                           :else (list 'cos x))
         :else (list 'cos x)))
@@ -304,23 +305,29 @@
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (if (v/one? x)
-     (atan y)
-     (if (v/number? y)
-       (if (v/exact? y)
-         (if (v/zero? y)
-           0
-           (if (v/number? x)
-             (if (v/exact? x)
-               (if (v/zero? x)
-                 (g/atan y x)
-                 (list 'atan y x))
-               (g/atan y x))
-             (list 'atan y x)))
+   (cond (v/one? x) (atan y)
+
+         (v/exact-zero? y)
          (if (v/number? x)
-           (g/atan y x)
-           (list 'atan y x)))
-       (list 'atan y x)))))
+           (if (g/negative? x) 'pi 0)
+           (and (ul/assume! `(~'non-negative? ~x) 'numsymb-atan)
+                0))
+
+         (v/exact-zero? x)
+         (if (v/number? y)
+           (if (g/negative? y)
+             '(- (/ pi 2))
+             '(/ pi 2))
+           (and (ul/assume! `(~'non-negative? ~y) 'numsymb-atan)
+                '(/ pi 2)))
+
+         (and (v/number? x)
+              (v/number? y)
+              (or (not (v/exact? x))
+                  (not (v/exact? y))))
+         (g/atan y x)
+
+         :else (list 'atan y x))))
 
 (defn- cosh [x]
   (if (v/number? x)
