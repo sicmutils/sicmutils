@@ -623,6 +623,7 @@
    'conjugate conjugate
    'magnitude magnitude
    'dot-product dot-product
+   'inner-product dot-product
    'angle angle
    'derivative derivative})
 

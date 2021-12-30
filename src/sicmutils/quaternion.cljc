@@ -1184,60 +1184,62 @@
   "Return the three axes of the quaternion."
   [q]
   ;; NOTE that this norm was actually the dot-product.
-  (let [n  (magnitude-sq q)
+  (let [n (magnitude-sq q)]
+    (if (and (v/number? n)
+             (or (v/zero? n)
+                 (g/negative? n)))
+      (m/I 3)
+      (let [;; TODO check assumption here! for symbolic we can log an assumption.
+            ;; Can we hardcode the zero case more easily, since so much disappears?
+            s (g// 2 n)
+            [w x y z] q
+            xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
+            xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
+            yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
+            zz (g/* z zs) zw (g/* z ws)]
+        [[(g/- 1 (g/+ yy zz)) (g/+ xy zw) (g/- xz yw)]
+         [(g/- xy zw) (g/- 1 (g/+ xx zz)) (g/+ yz xw)]
+         [(g/+ xz yw) (g/- yz xw) (g/- 1 (g/+ xx yy))]]))))
 
-        ;; TODO check assumption here! for symbolic we can log an assumption.
-        ;; Can we hardcode the zero case more easily, since so much disappears?
-        s  (if (> n 0) (/ 2 n) 0)
-        [w x y z] q
-        xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
-        xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
-        yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
-        zz (g/* z zs) zw (g/* z ws)]
-    [[(- 1.0 (+ yy zz)) (+ xy zw) (- xz yw)]
-     [(- xy zw) (- 1.0 (+ xx zz)) (+ yz xw)]
-     [(+ xz yw) (- yz xw) (- 1.0 (+ xx yy))]]))
+(defn from-axes
+  "Create a quaternion from three axis vectors."
+  [x-axis y-axis z-axis]
+  (let [[m00 m10 m20] x-axis
+        [m01 m11 m21] y-axis
+        [m02 m12 m22] z-axis
+        trace (g/+ m00 m11 m22)]
+    (cond
+      (>= trace 0)
+      (let [s (Math/sqrt (inc trace))
+            r (/ 0.5 s)]
+        (Quaternion. (* r (- m21 m12))
+                     (* r (- m02 m20))
+                     (* r (- m10 m01))
+                     (* 0.5 s)))
 
-(comment
-  (defn from-axes
-    "Create a quaternion from three axis vectors."
-    [^Vector3D x-axis ^Vector3D y-axis ^Vector3D z-axis]
-    (let [m00 (.getX x-axis), m01 (.getX y-axis), m02 (.getX z-axis)
-          m10 (.getY x-axis), m11 (.getY y-axis), m12 (.getY z-axis)
-          m20 (.getZ x-axis), m21 (.getZ y-axis), m22 (.getZ z-axis)
-          trace (+ m00 m11 m22)]
-      (cond
-        (>= trace 0)
-        (let [s (Math/sqrt (inc trace))
-              r (/ 0.5 s)]
-          (Quaternion. (* r (- m21 m12))
-                       (* r (- m02 m20))
-                       (* r (- m10 m01))
-                       (* 0.5 s)))
+      (and (> m00 m11) (> m00 m22))
+      (let [s (Math/sqrt (- (inc m00) m11 m22))
+            r (/ 0.5 s)]
+        (Quaternion. (* 0.5 s)
+                     (* r (+ m10 m01))
+                     (* r (+ m02 m20))
+                     (* r (- m21 m12))))
 
-        (and (> m00 m11) (> m00 m22))
-        (let [s (Math/sqrt (- (inc m00) m11 m22))
-              r (/ 0.5 s)]
-          (Quaternion. (* 0.5 s)
-                       (* r (+ m10 m01))
-                       (* r (+ m02 m20))
-                       (* r (- m21 m12))))
+      (> m11 m22)
+      (let [s (Math/sqrt (- (inc m11) m00 m22))
+            r (/ 0.5 s)]
+        (Quaternion. (* r (+ m10 m01))
+                     (* 0.5 s)
+                     (* r (+ m21 m12))
+                     (* r (- m02 m20))))
 
-        (> m11 m22)
-        (let [s (Math/sqrt (- (inc m11) m00 m22))
-              r (/ 0.5 s)]
-          (Quaternion. (* r (+ m10 m01))
-                       (* 0.5 s)
-                       (* r (+ m21 m12))
-                       (* r (- m02 m20))))
-
-        :else
-        (let [s (Math/sqrt (- (inc m22) m00 m11))
-              r (/ 0.5 s)]
-          (Quaternion. (* r (+ m02 m20))
-                       (* r (+ m21 m12))
-                       (* 0.5 s)
-                       (* r (- m10 m01))))))))
+      :else
+      (let [s (Math/sqrt (- (inc m22) m00 m11))
+            r (/ 0.5 s)]
+        (Quaternion. (* r (+ m02 m20))
+                     (* r (+ m21 m12))
+                     (* 0.5 s)
+                     (* r (- m10 m01)))))))
 
 (comment
   (defn look-at

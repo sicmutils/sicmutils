@@ -687,9 +687,12 @@
 
 ;; TODO is THIS possibly correct? for scalars? inner product should be the same
 ;; as dot product for all scalars... probably that's the right move, NOT the
-;; conjugate.
+;; conjugate. But maybe with complex numbers?
+;; removing:
+;; (dot-product (conjugate l) r)
+;; in favor of:
 (defmethod inner-product [::v/scalar ::v/scalar] [l r]
-  (dot-product (conjugate l) r))
+  (dot-product l r))
 
 ;; ## Solvers
 

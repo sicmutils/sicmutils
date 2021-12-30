@@ -216,6 +216,7 @@
 (defunary g/angle 'angle)
 (defunary g/conjugate 'conjugate)
 (defbinary g/dot-product 'dot-product)
+(defbinary g/inner-product 'inner-product)
 
 (defbinary g/gcd 'gcd)
 (defbinary g/lcm 'lcm)
