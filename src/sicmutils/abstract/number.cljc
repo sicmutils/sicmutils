@@ -215,15 +215,18 @@
 (defunary g/magnitude 'magnitude)
 (defunary g/angle 'angle)
 (defunary g/conjugate 'conjugate)
+(defbinary g/dot-product 'dot-product)
 
 (defbinary g/gcd 'gcd)
 (defbinary g/lcm 'lcm)
 
 (defmethod g/simplify [Symbol] [a] a)
+
+;; TODO test that this causes no issues?
 (defmethod g/simplify [::x/numeric] [a]
   (literal-number
    (ss/simplify-expression
-    (v/freeze a))))
+    (x/expression-of a))))
 
 (def ^:private memoized-simplify
   (memoize g/simplify))

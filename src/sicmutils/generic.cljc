@@ -684,7 +684,12 @@
 (defmethod determinant [::v/scalar] [a] a)
 (defmethod dimension [::v/scalar] [a] 1)
 (defmethod dot-product [::v/scalar ::v/scalar] [l r] (mul l r))
-(defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
+
+;; TODO is THIS possibly correct? for scalars? inner product should be the same
+;; as dot product for all scalars... probably that's the right move, NOT the
+;; conjugate.
+(defmethod inner-product [::v/scalar ::v/scalar] [l r]
+  (dot-product (conjugate l) r))
 
 ;; ## Solvers
 

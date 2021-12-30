@@ -102,6 +102,12 @@
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
+(defmethod g/dot-product [::complex ::complex] [a b]
+  (+ (* (real a) (real b))
+     (* (imaginary a) (imaginary b))))
+(defmethod g/dot-product [::complex ::v/real] [a b] (* (real a) b))
+(defmethod g/dot-product [::v/real ::complex] [a b] (* a (real b)))
+
 (defn ^:no-doc parse-complex
   "Parser that converts a string, vector or numeric representation of a complex
    number, like
@@ -163,9 +169,17 @@
   (numerical? [_] true)
 
   v/Value
-  (zero? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
-  (one? [c] (= ONE c))
-  (identity? [c] (= ONE c))
+  ;; TODO test that 0, -0 gives true here and for identity
+  (zero? [c]
+    #?(:clj (and (zero? (real c))
+                 (zero? (imaginary c)))
+       :cljs (.isZero c)))
+
+  ;; TODO test that 1, -0 gives true here and for identity
+  (one? [c]
+    (and (v/one? (real c))
+         (zero? (imaginary c))))
+  (identity? [c] (v/one? c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
   (identity-like [_] ONE)

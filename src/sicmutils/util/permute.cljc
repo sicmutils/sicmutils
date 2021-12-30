@@ -223,11 +223,14 @@
     "Returns 'n choose k', the number of possible ways of choosing `k` distinct
   elements from a collection of `n` total items."
     [n k]
-    (if (> (* 2 k) n)
-      (number-of-combinations n (- n k))
-      (transduce (map (fn [i] (div (- (inc n) i) i)))
-                 *
-                 (range 1 (inc k))))))
+    {:pre [(>= n 0)]}
+    (cond (or (> k n)
+              (< k 0))  0
+          (< k 1)       1
+          (> (* 2 k) n) (number-of-combinations n (- n k))
+          :else (transduce (map (fn [i] (div (- (inc n) i) i)))
+                           *
+                           (range 1 (inc k))))))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence

@@ -432,6 +432,11 @@
   [^Quaternion q]
   (.-k q))
 
+;; TODO write ->polar rep
+;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L552
+
+(defn ->polar [q])
+
 (defn ->complex
   "Returns a complex number created from the real and imaginary
   components (dropping `j`, `k`).
@@ -615,20 +620,47 @@
 ;; TODO fill these in from
 ;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L482
 
-(defn spherical [rho theta phi1 phi2])
+(declare scale-l)
 
-(defn semipolar [rho alpha phi1 phi2])
+(defn spherical
+  "TODO docs"
+  [rho theta phi1 phi2]
+  (let [s1    (g/sin phi1)
+        s2    (g/sin phi2)
+        c1    (g/cos phi2)
+        c2    (g/cos phi2)
+        c1*c2 (g/* c1 c2)]
+    (make (g/* rho (g/cos theta) c1*c2)
+          (g/* rho (g/sin theta) c1*c2)
+          (g/* rho s1 c2)
+          (g/* rho s2))))
 
-(defn multipolar [])
+(defn semipolar [rho alpha theta1 theta2]
+  (let [cos-a (g/cos alpha)
+        sin-a (g/sin alpha)]
+    (make (g/* rho cos-a (g/cos theta1))
+          (g/* rho cos-a (g/sin theta1))
+          (g/* rho sin-a (g/cos theta2))
+          (g/* rho sin-a (g/sin theta2)))))
 
-(defn cylindrospherical [])
+(defn multipolar [rho1 theta1 rho2 theta2]
+  (make (g/* rho1 (g/cos theta1))
+        (g/* rho1 (g/sin theta1))
+        (g/* rho2 (g/cos theta2))
+        (g/* rho2 (g/sin theta2))))
 
-(defn cylindrical [])
+(defn cylindrospherical [t r lon lat]
+  (let [cos-lat (g/cos lat)]
+    (make t
+          (g/* r (g/cos lon) cos-lat)
+          (g/* r (g/sin lon) cos-lat)
+          (g/* r (g/sin lat)))))
 
-;; write ->polar rep
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L552
-
-(defn ->polar [q])
+(defn cylindrical [r angle h1 h2]
+  (make (g/* r (g/cos angle))
+        (g/* r (g/sin angle))
+        h1
+        h2))
 
 ;; ## Quaternions with Function Coefficients
 ;;
@@ -859,12 +891,13 @@
          (g/* lj rj)
          (g/* lk rk))))
 
+;; TODO document that the suggestion here came from
+;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1109
+
 (defn cross-product
-  "Returns a quaternion representing the cross product of the two unreal sides of the supplied quaternions.
-
-  TODO document
-
-  https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1109"
+  "Returns a quaternion representing the (vector) cross product of the two pure
+  sides (retrieved via [[three-vector]]) of the supplied quaternions `l` and
+  `r`."
   [l r]
   (make 0 (ss/cross-product
            (three-vector l)
@@ -907,8 +940,6 @@
   (g/sqrt
    (dot-product q q)))
 
-;; TODO tests
-
 (defn magnitude-sq
   "Returns the square of the [[magnitude]] of the supplied quaternion `q`,
   equivalent to taking the [[dot-product]] of `q` with itself."
@@ -928,18 +959,25 @@
     q
     (q-div-scalar q (magnitude q))))
 
-;; TODO documented etc up to here.
+
+;; TODO note the idea from https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1117
 
 (defn commutator
-  "TODO document
+  "Returns the commutator of the supplied quaternions `l` and `r`.
 
-  https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1117"
+  The commutator of two quaternions is equal to
+
+  ```clj
+  (- (* l r) (* r l))
+  ```"
   [l r]
   (sub
    (mul l r)
    (mul r l)))
 
 ;; ## Transcendental Functions
+
+;; TODO documented etc up to here.
 
 (defn log
   ";; NOTE that this is good, ported from quaternion.js... not bad, handles zero
@@ -1024,10 +1062,12 @@
   "TODO check if it's a native integer and go here:
   https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1268"
   [q p]
-  (exp
-   (if (quaternion? p)
-     (mul (log q) p)
-     (scale (log q) p))))
+  (if (v/native-integral? p)
+    (g/default-expt q p)
+    (exp
+     (if (quaternion? p)
+       (mul (log q) p)
+       (scale (log q) p)))))
 
 (defn sqrt
   "Thanks to Spire for the implementation:
@@ -1104,17 +1144,20 @@
 ;;   so we can make that assumption, no problem... log it!
 
 (defn pitch
-  "Create a quaternion representing a pitch rotation by an angle in radians."
+  "Create a quaternion representing a pitch rotation by the supplied
+  `angle` (specified in radians)."
   [angle]
   (from-angle-normal-axis angle [1 0 0]))
 
 (defn yaw
-  "Create a quaternion representing a yaw rotation by an angle in radians."
+  "Create a quaternion representing a yaw rotation by the supplied
+  `angle` (specified in radians)."
   [angle]
   (from-angle-normal-axis angle [0 1 0]))
 
 (defn roll
-  "Create a quaternion representing a roll rotation by an angle in radians."
+  "Create a quaternion representing a roll rotation by the supplied
+  `angle` (specified in radians)."
   [angle]
   (from-angle-normal-axis angle [0 0 1]))
 
@@ -1137,20 +1180,23 @@
 ;; NOTE this one is weird. I think this is, give me the new orthogonal set of
 ;; axes you want to point at, and I will generate a rotation to get to those.
 
-(comment
-  (defn axes
-    "Return the three axes of the quaternion."
-    [^Quaternion q]
-    ;; NOTE that this norm was actually the dot-product.
-    (let [n  (norm q),  s  (if (> n 0) (/ 2.0 n) 0.0)
-          x  (.getX q), y  (.getY q), z  (.getZ q), w  (.getW q)
-          xs (* x s),   ys (* y s),   zs (* z s),   ws (* w s)
-          xx (* x xs),  xy (* x ys),  xz (* x zs),  xw (* x ws)
-          yy (* y ys),  yz (* y zs),  yw (* y ws)
-          zz (* z zs),  zw (* z ws)]
-      [(Vector3D. (- 1.0 (+ yy zz)) (+ xy zw) (- xz yw))
-       (Vector3D. (- xy zw) (- 1.0 (+ xx zz)) (+ yz xw))
-       (Vector3D. (+ xz yw) (- yz xw) (- 1.0 (+ xx yy)))])))
+(defn axes
+  "Return the three axes of the quaternion."
+  [q]
+  ;; NOTE that this norm was actually the dot-product.
+  (let [n  (magnitude-sq q)
+
+        ;; TODO check assumption here! for symbolic we can log an assumption.
+        ;; Can we hardcode the zero case more easily, since so much disappears?
+        s  (if (> n 0) (/ 2 n) 0)
+        [w x y z] q
+        xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
+        xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
+        yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
+        zz (g/* z zs) zw (g/* z ws)]
+    [[(- 1.0 (+ yy zz)) (+ xy zw) (- xz yw)]
+     [(- xy zw) (- 1.0 (+ xx zz)) (+ yz xw)]
+     [(+ xz yw) (- yz xw) (- 1.0 (+ xx yy))]]))
 
 (comment
   (defn from-axes
@@ -1468,8 +1514,6 @@
 (defmethod g/expt [::quaternion ::quaternion] [a b] (expt a b))
 (defmethod g/expt [::quaternion ::sc/complex] [a b] (expt a (make b)))
 (defmethod g/expt [::quaternion ::v/real] [a b] (expt a b))
-(defmethod g/expt [::quaternion ::v/native-integral] [a b]
-  (g/default-expt a b))
 
 (defmethod g/invert [::quaternion] [q] (invert q))
 

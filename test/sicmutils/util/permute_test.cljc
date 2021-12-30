@@ -179,14 +179,19 @@
             (g/quotient
              (p/factorial n)
              (g/* (p/factorial (- n k))
-                  (p/factorial k))))]
+                  (p/factorial k))))
+          (check [n k expected explanation]
+            (is (= expected
+                   (n-choose-k n k)
+                   (p/number-of-combinations n k))
+                explanation))]
     (is (= (n-choose-k 1000 290)
            (p/number-of-combinations 1000 290))
         "n choose k with large values")
 
-    (is (= (n-choose-k 1000 800)
-           (p/number-of-combinations 1000 800))
-        "k > n/2")))
+    (check 100 -2  0 "k < 0")
+    (check 100 0   1 "k == 0")
+    (check 100 200 0 "k > n")))
 
 (deftest permutation-test
   (testing "permutation-sequence"

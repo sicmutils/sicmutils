@@ -395,13 +395,42 @@
                     (g/* x (q/conjugate x))))
                 "x*conj(x) == xx*, the squared norm"))
 
-  (checking "q/normalize, q/magnitude" 100
+  (checking "q/dot-product, q/normalize, q/magnitude" 100
             [x (sg/quaternion sg/small-integral)]
+            (is (= (q/magnitude-sq x)
+                   (q/dot-product x x))
+                "dot product of a quaternion with itself == the square of its
+                magnitude")
+
             (is (ish? (q/dot-product x x)
                       (g/square
                        (q/magnitude x)))
                 "the dot-product of a quaternion with itself equals its squared
                 magnitude.")
+
+            (let [x-complex (q/->complex x)
+                  x-real    (q/real-part x)]
+              (is (= (g/dot-product x x-complex)
+                     (g/dot-product x-complex x)
+
+                     ;; TODO gotta implement dot product for complex numbers??
+                     ;; what the hell, not sure if that is normal. Have I goofed
+                     ;; that?
+                     ;;
+                     ;; TODO inner-product and dot-product of complex numbers...
+                     ;; TODO and inner product of quaternions too would probably
+                     ;; conjugate each side.
+                     ;;
+                     ;; also broken in scmutils, tell GJS
+                     ;; 1 ]=> (dot-product 1+2i 2+3i)
+                     ;; #| -4+7i |#
+                     (g/dot-product x-complex x-complex))
+                  "quaternion dots with complex")
+
+              (is (= (g/dot-product x x-real)
+                     (g/dot-product x-real x)
+                     (g/dot-product x-real x-real))
+                  "quaternion dots with real"))
 
             (let [m      (q/magnitude x)
                   normal (q/normalize x)]
@@ -413,59 +442,134 @@
                     "normalizing a quaternion makes it (approximately) a unit
                       quaternion."))))
 
-  (checking "exp, log match real and complex impls" 100 [x sg/complex]
-            (let [quat (q/make x)]
-              (is (ish? (g/log x) (g/log quat))
-                  "complex log matches quat log when j==k==0")
+  (checking "q/cross-product" 100
+            [q1 (sg/quaternion sg/any-integral)
+             q2 (sg/quaternion sg/any-integral)]
+            (let [q1xq2 (q/cross-product q1 q2)]
+              (is (q/pure? q1xq2)
+                  "quaternion cross product has no real component")
 
-              (is (ish? (g/exp x) (g/exp quat))
-                  "complex exp matches quat exp when j==k==0")
+              (is (v/zero? (q/dot-product q1 q1xq2))
+                  "dot of quaternion with an orthogonal quaternion == 0")
 
-              (is (ish? (g/log (q/get-r quat))
-                        (g/log (q/make (q/get-r quat))))
-                  "real log matches quat log when i==j==k==0")
+              (is (v/zero? (q/dot-product q2 q1xq2))
+                  "dot of quaternion with an orthogonal quaternion == 0")))
 
-              (is (ish? (g/exp (q/get-r quat))
-                        (g/exp (q/make (q/get-r quat))))
-                  "real exp matches quat exp when i==j==k==0")))
+  (testing "commutator"
+    (let [q (q/make 'r 'i 'j 'k)]
+      (is (q/zero?
+           (g/simplify
+            (q/commutator q q)))
+          "the commutator of a vector with itself is zero")
 
-  ;; TODO notate these
-  (is (= '(quaternion (log y) (* (/ 1 2) pi) 0 0)
-         (v/freeze
-          (g/simplify
-           (q/log (q/make 0 'y 0 0))))))
+      (is (= #sicm/quaternion
+             [0
+              '(+ (* 2 j1 k2) (* -2 j2 k1))
+              '(+ (* -2 i1 k2) (* 2 i2 k1))
+              '(+ (* 2 i1 j2) (* -2 i2 j1))]
+             (g/simplify
+              (q/commutator
+               (q/make 'r1 'i1 'j1 'k1)
+               (q/make 'r2 'i2 'j2 'k2))))
+          "commutator is only 0 when
+           j_1 k_2 == j_2 k_1,
+           i_1 k_2 == i_2 k_1,
+           i_1 j_2 == i_2 j_1,
 
-  (is (= '(quaternion (log y) 0 0 0)
-         (v/freeze
-          (g/simplify
-           (q/log (q/make 'y 0 0 0))))))
+           which is of course true for any form of 'complex numbers' built from
+           quaternions, where 2 components are 0.")))
 
-  (let [gen (sg/quaternion
-             (sg/reasonable-double
-              {:min -1e3
-               :max 1e3
-               :excluded-lower -1
-               :excluded-upper 1}))]
-    (with-comparator (v/within 1e-4)
-      (checking "exp/log" 100 [x gen]
-                (is (ish? x (q/exp (q/log x)))
-                    "exp(log(q)) acts as identity"))
+  (checking "q/commutator" 100
+            [q1 (sg/quaternion sg/any-integral)
+             q2 (sg/quaternion sg/any-integral)]
+            (is (v/zero?
+                 (q/commutator
+                  (q/make (q/->complex q1))
+                  (q/make (q/->complex q2))))
+                "complex multiplication commutes, so the commutator of the
+                complex part is always zero.")))
 
-      (checking "expt/sqrt" 100 [x gen]
-                (is (ish? x (q/mul
-                             (q/sqrt x)
-                             (q/sqrt x)))
-                    "q == sqrt(q)*sqrt(q)")
+(deftest transcendental-tests
+  (testing "exp, log, expt"
+    (checking
+     "exp, log match real and complex impls" 100 [x sg/complex]
+     (let [quat (q/make x)]
+       (is (ish? (g/log x) (g/log quat))
+           "complex log matches quat log when j==k==0")
 
-                (is (ish? (q/sqrt x)
-                          (q/expt x 0.5))
-                    "sqrt(q) == q^0.5")
+       (is (ish? (g/exp x) (g/exp quat))
+           "complex exp matches quat exp when j==k==0")
 
-                (is (ish? (q/mul x x)
-                          (q/expt x 2))
-                    "q*q == q^2, expt impl matches manual exponentiation")))))
+       (is (ish? (g/log (q/get-r quat))
+                 (g/log (q/make (q/get-r quat))))
+           "real log matches quat log when i==j==k==0")
 
-(deftest trig-tests
+       (is (ish? (g/exp (q/get-r quat))
+                 (g/exp (q/make (q/get-r quat))))
+           "real exp matches quat exp when i==j==k==0")))
+
+    (testing "q/log unit tests"
+      (is (= '(quaternion (log y) (* (/ 1 2) pi) 0 0)
+             (v/freeze
+              (g/simplify
+               (q/log (q/make 0 'y 0 0)))))
+          "this test failed before a fix in `sicmutils.numsymb` forced atan to
+        return an exact value of `pi/2` instead of a floating point number.")
+
+      (is (= '(quaternion (log y) 0 0 0)
+             (v/freeze
+              (g/simplify
+               (q/log (q/make 'y 0 0 0)))))
+          "note that symbolic log on a real quaternion generates a symbolic real
+      entry in the real position."))
+
+    (let [gen (sg/quaternion
+               (sg/reasonable-double
+                {:min -1e3
+                 :max 1e3
+                 :excluded-lower -1
+                 :excluded-upper 1}))]
+      (with-comparator (v/within 1e-4)
+        (checking "exp/log" 100 [x gen]
+                  (is (ish? x (q/exp (q/log x)))
+                      "exp(log(q)) acts as identity"))
+
+        (checking "expt/sqrt" 100 [x gen]
+                  (is (ish? x (q/mul
+                               (q/sqrt x)
+                               (q/sqrt x)))
+                      "q == sqrt(q)*sqrt(q)")
+
+                  (is (ish? (q/sqrt x)
+                            (q/expt x 0.5))
+                      "sqrt(q) == q^0.5")
+
+                  (is (ish? (q/mul x x)
+                            (q/expt x 2))
+                      "q*q == q^2, expt impl matches manual exponentiation")
+
+                  (is (q/one? (g/expt x q/ZERO))
+                      "x to the quaternion 0 power == 1")
+
+                  (is (ish? x (g/expt x q/ONE))
+                      "x to the quaternion 1 power is approx= x"))))
+
+    ;; TODO what does it mean to take a complex number to a complex power? What
+    ;; else can I test about it? Then check `(g/expt q q)`
+
+    (testing "q/expt unit tests"
+      (let [i**i (g/expt sc/I sc/I)]
+        (is (= i**i
+               (g/expt q/I q/I)
+               (g/expt q/J q/J)
+               (g/expt q/K q/K))
+            "i^i matches quaternion implementation for each of the components.")
+
+        ;; TODO does this make sense? check against wolfram alpha?
+        (is (ish? q/K (g/expt q/I q/J)))
+        (is (ish? q/I (g/expt q/J q/K)))
+        (is (ish? q/J (g/expt q/K q/I))))))
+
   (testing "cos^2(x) + sin^2(x) == 1, sort of"
     (with-comparator (v/within 1e-10)
       (doseq [x [(q/make 2 0 0 0)
@@ -569,9 +673,8 @@
                    1.3552855852383054E11]
                   (g/sinhc q4)))))))
 
-;; TODO test dot-product between complex, scalar, quaternion combos
-;;
 ;; TODO look at https://www.3dgep.com/understanding-quaternions/#Quaternion_Dot_Product
+
 (deftest rotation-tests
   (is (= '(up theta
               (up x y (sqrt (+ (* -1 (expt x 2))
