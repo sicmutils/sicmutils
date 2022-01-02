@@ -455,6 +455,8 @@
               (is (v/zero? (q/dot-product q2 q1xq2))
                   "dot of quaternion with an orthogonal quaternion == 0")))
 
+  ;; TODO add commutator identity from here:
+  ;; https://en.wikipedia.org/wiki/Quaternion#Quaternions_and_the_space_geometry
   (testing "commutator"
     (let [q (q/make 'r 'i 'j 'k)]
       (is (q/zero?
@@ -487,10 +489,32 @@
                   (q/make (q/->complex q1))
                   (q/make (q/->complex q2))))
                 "complex multiplication commutes, so the commutator of the
-                complex part is always zero.")))
+                complex part is always zero.")
+
+            (is (v/zero?
+                 (q/commutator
+                  (q/make (q/real-part q1))
+                  q2))
+                "real quaternions commute with all other quaternions")
+
+            (is (v/zero?
+                 (q/commutator
+                  q1
+                  (q/make (q/real-part q2))))
+                "real quaternions commute with all other quaternions")))
 
 (deftest transcendental-tests
   (testing "exp, log, expt"
+    (with-comparator (v/within 1e-4)
+      (checking "x^(a+b) == x^a x^b holds for all b when a is a real
+                      quaternion."
+                20 [r  (gen/choose 1 10)
+                    q2 (sg/quaternion (gen/choose 1 10))]
+                (let [q1 (q/make r)]
+                  (is (ish? (g/* (g/exp q1)
+                                 (g/exp q2))
+                            (g/exp (g/+ q1 q2)))))))
+
     (checking
      "exp, log match real and complex impls" 100 [x sg/complex]
      (let [quat (q/make x)]
@@ -523,12 +547,12 @@
           "note that symbolic log on a real quaternion generates a symbolic real
       entry in the real position."))
 
-    (let [gen (sg/quaternion
-               (sg/reasonable-double
-                {:min -1e3
-                 :max 1e3
-                 :excluded-lower -1
-                 :excluded-upper 1}))]
+    (let [double-gen (sg/reasonable-double
+                      {:min -1e3
+                       :max 1e3
+                       :excluded-lower -1
+                       :excluded-upper 1})
+          gen (sg/quaternion double-gen)]
       (with-comparator (v/within 1e-4)
         (checking "exp/log" 100 [x gen]
                   (is (ish? x (q/exp (q/log x)))

@@ -529,8 +529,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
- [sicmutils.util.permute factorial]
  [sicmutils.util.stream vector:generate]
+ [sicmutils.special.factorial factorial]
  [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

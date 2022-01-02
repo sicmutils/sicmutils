@@ -1210,36 +1210,36 @@
         trace (g/+ m00 m11 m22)]
     (cond
       (>= trace 0)
-      (let [s (Math/sqrt (inc trace))
+      (let [s (g/sqrt (inc trace))
             r (/ 0.5 s)]
-        (Quaternion. (* r (- m21 m12))
-                     (* r (- m02 m20))
-                     (* r (- m10 m01))
-                     (* 0.5 s)))
+        (make (* r (- m21 m12))
+              (* r (- m02 m20))
+              (* r (- m10 m01))
+              (* 0.5 s)))
 
       (and (> m00 m11) (> m00 m22))
       (let [s (Math/sqrt (- (inc m00) m11 m22))
             r (/ 0.5 s)]
-        (Quaternion. (* 0.5 s)
-                     (* r (+ m10 m01))
-                     (* r (+ m02 m20))
-                     (* r (- m21 m12))))
+        (make (* 0.5 s)
+              (* r (+ m10 m01))
+              (* r (+ m02 m20))
+              (* r (- m21 m12))))
 
       (> m11 m22)
       (let [s (Math/sqrt (- (inc m11) m00 m22))
             r (/ 0.5 s)]
-        (Quaternion. (* r (+ m10 m01))
-                     (* 0.5 s)
-                     (* r (+ m21 m12))
-                     (* r (- m02 m20))))
+        (make (* r (+ m10 m01))
+              (* 0.5 s)
+              (* r (+ m21 m12))
+              (* r (- m02 m20))))
 
       :else
       (let [s (Math/sqrt (- (inc m22) m00 m11))
             r (/ 0.5 s)]
-        (Quaternion. (* r (+ m02 m20))
-                     (* r (+ m21 m12))
-                     (* 0.5 s)
-                     (* r (- m10 m01)))))))
+        (make (* r (+ m02 m20))
+              (* r (+ m21 m12))
+              (* 0.5 s)
+              (* r (- m10 m01)))))))
 
 (comment
   (defn look-at
@@ -1305,24 +1305,23 @@
 
 ;; To rotate a 3-vector by the angle prescribed by a unit quaternion.
 
-(comment
-  ;; TODO see if it's more efficient to do this, AND if so move the next one to
-  ;; the tests.
+;; TODO see if it's more efficient to do this, AND if so move the next one to
+;; the tests.
 
-  (defn rotate
-    "Rotate a vector with a quaternion."
-    [q [vx vy vz]]
-    {:pre [(quaternion? q)
-           (vector? v)
-           (= 3 (count v))]}
-    (let [qx (.getX q), qy (.getY q), qz (.getZ q), qw (.getW q)]
-      [(+ (* qw qw vx)     (* 2 qy qw vz) (* -2 qz qw vy)  (* qx qx vx)
-          (* 2 qy qx vy)   (* 2 qz qx vz) (- (* qz qz vx)) (- (* qy qy vx)))
-       (+ (* 2 qx qy vx)   (* qy qy vy)   (* 2 qz qy vz)   (* 2 qw qz vx)
-          (- (* qz qz vy)) (* qw qw vy)   (* -2 qx qw vz)  (- (* qx qx vy)))
-       (+ (* 2 qx qz vx)   (* 2 qy qz vy) (* qz qz vz)     (* -2 qw qy vx)
-          (- (* qy qy vz)) (* 2 qw qx vy) (- (* qx qx vz)) (* qw qw vz))]))
-  )
+(defn rotate
+  "Rotate a vector with a quaternion."
+  [q v]
+  {:pre [(quaternion? q)
+         (vector? v)
+         (= 3 (count v))]}
+  (let [[vx vy vz] v
+        [qw qx qy qz] q]
+    [(g/+ (g/* qw qw vx)       (g/* 2 qy qw vz) (g/* -2 qz qw vy)    (g/* qx qx vx)
+          (g/* 2 qy qx vy)     (g/* 2 qz qx vz) (g/- (g/* qz qz vx)) (g/- (g/* qy qy vx)))
+     (g/+ (g/* 2 qx qy vx)     (g/* qy qy vy)   (g/* 2 qz qy vz)     (g/* 2 qw qz vx)
+          (g/- (g/* qz qz vy)) (g/* qw qw vy)   (g/* -2 qx qw vz)    (g/- (g/* qx qx vy)))
+     (g/+ (g/* 2 qx qz vx)     (g/* 2 qy qz vy) (g/* qz qz vz)       (g/* -2 qw qy vx)
+          (g/- (g/* qy qy vz)) (g/* 2 qw qx vy) (g/- (g/* qx qx vz)) (g/* qw qw vz))]))
 
 (defn rotate [q]
   {:pre [(quaternion? q)]}
@@ -1490,8 +1489,6 @@
    (meta q)))
 
 ;; ### Arithmetic
-;;
-;; TODO implement `g/infinite?` and see if any of the coefficient are infinite
 
 (defmethod g/add [::quaternion ::quaternion] [a b] (add a b))
 (defmethod g/add [::v/scalar ::quaternion] [a b] (scalar+quaternion a b))
@@ -1539,6 +1536,13 @@
 (defmethod g/sinh [::quaternion] [q] (sinh q))
 (defmethod g/tanh [::quaternion] [q] (tanh q))
 
+;; TODO test!
+(defmethod g/infinite? [::quaternion] [q]
+  (or (g/infinite? (get-r q))
+      (g/infinite? (get-i q))
+      (g/infinite? (get-j q))
+      (g/infinite? (get-k q))))
+
 (defmethod g/abs [::quaternion] [q] (magnitude q))
 (defmethod g/magnitude [::quaternion] [q] (magnitude q))
 (defmethod g/conjugate [::quaternion] [q] (conjugate q))
@@ -1568,7 +1572,6 @@
 (defmethod g/solve-linear [::sc/complex ::quaternion] [a b] (div b (make a)))
 (defmethod g/solve-linear [::quaternion ::sc/complex] [a b] (div (make b) a))
 
-
 ;; ## Implementation Notes
 ;;
 ;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
@@ -1590,6 +1593,3 @@
 ;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
 ;;
 ;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
-
-;; TODO see remaining interfaces here, and PICK the functions below:
-;; https://github.com/weavejester/euclidean/blob/master/src/euclidean/math/quaternion.clj
