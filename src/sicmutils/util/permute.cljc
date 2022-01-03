@@ -19,7 +19,8 @@
 
 (ns sicmutils.util.permute
   "Utilities for generating permutations of sequences."
-  (:require [sicmutils.special.factorial :as sf])
+  (:require [sicmutils.special.factorial :as sf]
+            #?(:cljs [sicmutils.generic :as g]))
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
