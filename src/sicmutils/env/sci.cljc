@@ -73,6 +73,7 @@
    'sicmutils.expression                     (ns-publics 'sicmutils.expression)
    'sicmutils.function                       (ns-publics 'sicmutils.function)
    'sicmutils.generic                        (ns-publics 'sicmutils.generic)
+   'sicmutils.quaternion                     (ns-publics 'sicmutils.quaternion)
    'sicmutils.matrix                         (ns-publics 'sicmutils.matrix)
    'sicmutils.modint                         (ns-publics 'sicmutils.modint)
    'sicmutils.numsymb                        (ns-publics 'sicmutils.numsymb)
@@ -124,10 +125,12 @@
    'sicmutils.numerical.unimin.bracket       (ns-publics 'sicmutils.numerical.unimin.bracket)
    'sicmutils.numerical.unimin.brent         (ns-publics 'sicmutils.numerical.unimin.brent)
    'sicmutils.numerical.unimin.golden        (ns-publics 'sicmutils.numerical.unimin.golden)
+   'sicmutils.special.factorial              (ns-publics 'sicmutils.special.factorial)
    'sicmutils.sr.boost                       (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                      (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                 (ns-publics 'sicmutils.util.aggregate)
    'sicmutils.util.logic                     (ns-publics 'sicmutils.util.logic)
+   'sicmutils.util.permute                   (ns-publics 'sicmutils.util.permute)
    'sicmutils.util.stream                    (ns-publics 'sicmutils.util.stream)})
 
 (def ^{:doc "SCI namespace map generated from `ns->publics`. Consumers wishing

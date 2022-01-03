@@ -470,13 +470,6 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(comment
-  ;; TODO: this: (g/simplify (g/dot-product 'x 'y))
-  ;;
-  ;; write a test declaring that this simplifies to:
-  (+ (* #sicm/complex [0.5 0.0] x (conjugate y))
-     (* #sicm/complex [0.5 0.0] y (conjugate x))))
-
 (defn dot-product
   "TODO docs!"
   [z1 z2]
