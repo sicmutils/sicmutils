@@ -1555,12 +1555,12 @@
 (defmethod g/dot-product [::v/scalar ::quaternion] [a b] (g/* a (get-r b)))
 (defmethod g/dot-product [::quaternion ::v/scalar] [a b] (g/* (get-r a) b))
 (defmethod g/dot-product [::sc/complex ::quaternion] [a b]
-  (g/* (g/+ (sc/real a) (get-r b))
-       (g/+ (sc/imaginary a) (get-i b))))
+  (g/+ (g/* (sc/real a) (get-r b))
+       (g/* (sc/imaginary a) (get-i b))))
 
 (defmethod g/dot-product [::quaternion ::sc/complex] [a b]
-  (g/* (g/+ (get-r a) (sc/real b))
-       (g/+ (get-i a) (sc/imaginary b))))
+  (g/+ (g/* (get-r a) (sc/real b))
+       (g/* (get-i a) (sc/imaginary b))))
 
 (defmethod g/solve-linear-right [::quaternion ::scalar] [q s] (q-div-scalar q s))
 (defmethod g/solve-linear-right [::quaternion ::quaternion] [a b] (div a b))

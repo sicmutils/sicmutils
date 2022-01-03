@@ -214,13 +214,6 @@
             (div (sf/falling-factorial n k)
                  (sf/factorial k))))))
 
-;; TODO move somewhere else, close that ticket!
-
-(defn binomial-coefficient
-  [n m]
-  {:pre [(<= 0 n m)]}
-  (number-of-combinations n m))
-
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence
   of objects (which are considered distinct) in church-bell-changes order - that

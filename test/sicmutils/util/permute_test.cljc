@@ -169,10 +169,12 @@
   (letfn [(n-choose-k [n k]
             ;; simple but inefficient implementation for comparison with the
             ;; more efficient method in the library.
-            (g/quotient
-             (sf/factorial n)
-             (g/* (sf/factorial (- n k))
-                  (sf/factorial k))))
+            (if (or (< k 0) (> k n))
+              0
+              (g/quotient
+               (sf/factorial n)
+               (g/* (sf/factorial (- n k))
+                    (sf/factorial k)))))
           (check [n k expected explanation]
             (is (= expected
                    (n-choose-k n k)

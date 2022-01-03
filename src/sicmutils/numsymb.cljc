@@ -395,7 +395,7 @@
   "Attempts to preserve exact precision if either argument is exact; else,
   evaluates symbolically or numerically."
   [b e]
-  (cond (and (v/number? b) (v/number? e)) (g/expt b e)
+  (cond (and (v/real? b) (v/number? e)) (g/expt b e)
         (v/number? b) (cond (v/one? b) 1
                             :else `(~'expt ~b ~e))
         (v/number? e) (cond (v/zero? e) 1

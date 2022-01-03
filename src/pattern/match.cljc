@@ -126,8 +126,8 @@
   "Takes a predicate function `pred` and returns a matcher that succeeds (with no
   new bindings) if its data input passes the predicate, fails otherwise."
   [pred]
-  (fn predicate-match [frame xs succeed]
-    (core:and (pred xs)
+  (fn predicate-match [frame data succeed]
+    (core:and (pred data)
               (succeed frame))))
 
 (defn frame-predicate

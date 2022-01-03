@@ -410,22 +410,14 @@
 
             (let [x-complex (q/->complex x)
                   x-real    (q/real-part x)]
-              (is (= (g/dot-product x x-complex)
-                     (g/dot-product x-complex x)
+              (is (v/= (g/dot-product x x-complex)
+                       (g/dot-product x-complex x))
+                  "quaternion dots with complex")
 
-                     ;; TODO gotta implement dot product for complex numbers??
-                     ;; what the hell, not sure if that is normal. Have I goofed
-                     ;; that?
-                     ;;
-                     ;; TODO inner-product and dot-product of complex numbers...
-                     ;; TODO and inner product of quaternions too would probably
-                     ;; conjugate each side.
-                     ;;
-                     ;; also broken in scmutils, tell GJS
-                     ;; 1 ]=> (dot-product 1+2i 2+3i)
-                     ;; #| -4+7i |#
+              (is (= (g/dot-product x x-complex)
                      (g/dot-product x-complex x-complex))
                   "quaternion dots with complex")
+
 
               (is (= (g/dot-product x x-real)
                      (g/dot-product x-real x)

@@ -115,9 +115,10 @@
     (is (= '(* (expt (sin a) 2) (expt (sin b) 2)) (simplify-expression X)))))
 
 (deftest complex-units
-  (is (= '(1 (complex 0.0 1.0) -1 (complex 0 -1) 1 (complex 0 1) -1 (complex 0 -1))
+  (is (= (take 8 (cycle [1 c/I -1 (g/- c/I)]))
          (for [n (range 8)]
-           (simplify-expression `(~'expt (~'complex 0.0 1.0) ~n))))))
+           (simplify-expression
+            (list 'expt c/I n))))))
 
 (deftest more-trig
   (is (= '(tan x) (g/simplify (g/tan 'x))))

@@ -58,7 +58,7 @@
   part `im`. `im` defaults to 0."
   ([re]
    #?(:clj (if (string? re)
-             (.parse complex-format re)
+             (.parse ^ComplexFormat complex-format re)
              (Complex. (u/double re)))
       :cljs (Complex.
              (if (string? re)
@@ -120,7 +120,7 @@
   [x]
   (cond (string? x)
         #?(:clj
-           (let [v (.parse complex-format x)]
+           (let [v (.parse ^ComplexFormat complex-format x)]
              `(complex ~(real v) ~(imaginary v)))
            :cljs `(complex ~x))
 
@@ -213,7 +213,14 @@
   (.add a ^double (u/double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a ^double (u/double n)))
+
+(let [choices [1 I -1 #?(:clj (.negate ^Complex I)
+                         :cljs (.neg ^Complex I))]]
+  (defmethod g/expt [::complex ::v/real] [^Complex a n]
+    (if (= a I)
+      (choices (mod n 4))
+      (.pow a ^double (u/double n)))))
+
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))
@@ -245,6 +252,7 @@
       re
       (complex re im))))
 
+(defmethod g/negative? [::complex] [a] false)
 (defmethod g/infinite? [::complex] [a]
   (or (g/infinite? (real a))
       (g/infinite? (imaginary a))))
