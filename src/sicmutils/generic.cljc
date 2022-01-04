@@ -495,16 +495,25 @@
 
 ;; TODO add defaults for these too!
 ;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/
+;;
+(declare atan)
+
 (defgeneric asin 1
   {:dfdx (fn [x]
            (invert
             (sqrt (sub 1 (square x)))))})
+
+(defmethod asin :default [x]
+  (atan (div x (sqrt (sub 1 (square x))))))
 
 (defgeneric acos 1
   {:dfdx (fn [x]
            (negate
             (invert
              (sqrt (sub 1 (square x))))))})
+
+(defmethod acos :default [x]
+  (atan (div (sqrt (sub 1 (square x))) x)))
 
 (defgeneric atan [1 2]
   {:dfdx (fn
@@ -518,20 +527,45 @@
                 (add (square x)
                      (square y))))})
 
-;; TODO add asec, acsc, acot
+;; NOTE thanks to this post for good ideas!
+;;
 ;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ with
 ;; defaults. Also look up derivatives?
 
+;; TODO check that these can't be implemented easier.
+;; All: https://mathworld.wolfram.com/InverseTrigonometricFunctions.html
+;;
+;; asec: https://mathworld.wolfram.com/InverseSecant.html
+
+;; acsc: https://mathworld.wolfram.com/InverseCosecant.html
+
+;; acot https://mathworld.wolfram.com/InverseCotangent.html
+
+;; ### Trig functions with default implementations provided.
 
 (declare sinh)
 
 (defgeneric cosh 1
   {:dfdx sinh})
 
+(defmethod cosh :default [x]
+  (div (add (exp x)
+            (exp (negate x)))
+       2))
+
 (defgeneric sinh 1
   {:dfdx cosh})
 
-;; Trig functions with default implementations provided.
+(defmethod sinh :default [x]
+  (div (sub (exp x)
+            (exp (negate x)))
+       2))
+
+(defgeneric tanh 1
+  {:dfdx (fn [x]
+           (sub 1 (square (tanh x))))})
+
+(defmethod tanh :default [x] (div (sinh x) (cosh x)))
 
 (defgeneric tan 1
   {:dfdx (fn [x]
@@ -548,12 +582,6 @@
 
 (defgeneric csc 1)
 (defmethod csc :default [x] (invert (sin x)))
-
-(defgeneric tanh 1
-  {:dfdx (fn [x]
-           (sub 1 (square (tanh x))))})
-
-(defmethod tanh :default [x] (div (sinh x) (cosh x)))
 
 (defgeneric sech 1)
 (defmethod sech :default [x] (invert (cosh x)))
@@ -581,6 +609,17 @@
 ;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ and see
 ;; if I am missing anything! Definitely missing default implementations for
 ;; sinh, cosh and friends, asinh, arcosh
+
+;; TODO acoth https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Inverse_hyperbolic_cotangent
+;;
+;; TODO asech
+;; https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Inverse_hyperbolic_secant
+;;
+;; TODO acsch https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Inverse_hyperbolic_cosecant
+;;
+;; NOTE that if I get those, that will give me ALL of the hyperbolic inverse
+;; functions... and their derivatives?? make tickets and tackle these a couple
+;; at a time, I bet, is the right way to go about it.
 
 ;; TODO peruse ;;
 ;; http://web.mit.edu/julia_v0.6.2/julia/share/doc/julia/html/en/stdlib/math.html
