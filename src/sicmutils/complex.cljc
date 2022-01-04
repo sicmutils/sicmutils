@@ -178,13 +178,11 @@
   (numerical? [_] true)
 
   v/Value
-  ;; TODO test that 0, -0 gives true here and for identity
   (zero? [c]
     #?(:clj (and (zero? (real c))
                  (zero? (imaginary c)))
        :cljs (.isZero c)))
 
-  ;; TODO test that 1, -0 gives true here and for identity
   (one? [c]
     (and (v/one? (real c))
          (zero? (imaginary c))))

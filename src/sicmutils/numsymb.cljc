@@ -471,7 +471,12 @@
             (real-part z)))))
 
 (defn dot-product
-  "TODO docs!"
+  "Returns the symbolic dot product of the two supplied numbers `z1` and `z2`.
+
+  If both are numbers, defers to [[sicmutils.generic/dot-product]]. Else,
+  returns
+
+  $$\Re(z_1)\Re(z_2) + \Im(z_1)\Im(z_2)$$"
   [z1 z2]
   (cond (and (v/number? z1) (v/number? z2))
         (g/dot-product z1 z2)

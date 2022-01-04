@@ -765,7 +765,11 @@
                (* 0.5 y (conjugate x)))
            (v/freeze
             (g/simplify
-             (g/dot-product 'x 'y)))))))
+             (g/dot-product 'x 'y)))))
+
+    (is (= (g/dot-product 'x 'y)
+           (g/inner-product 'x 'y))
+        "identical for abstract complex numbers")))
 
 (deftest symbolic-trig-tests
   (testing "trig shortcuts - sin"

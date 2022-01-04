@@ -2,16 +2,20 @@
 
 ## [unreleased]
 
+- #447 contains a grab-bag of fixes and additions, many related to complex
+  numbers:
+
   - Use `Math/E` instead of `(Math/exp 1)` for euler's constant in
     `sicmutils.env`.
+
+  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+    missing an `up` or `down`index type.
 
   - symbolic `dot-product` and `inner-product`
 
   - `inner-product` now defaults to `dot-product` for scalar instances. This is
     correct for all numeric types we currently have, since `complex` is the only
     tough case, and it has real coefficients.
-
-  - complex implementations for `dot-product` between complex and real types
 
   - simplify now does NOT freeze expressions before simplifying. This allows
     complex numbers to survive simplification, since they freeze to `(complex
@@ -24,17 +28,20 @@
     - more rules in `complex-trig`, it can now handle bigger products inside of
       `sin` and `cos` multiplied by `I`.
 
-  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
-    missing an `up` or `down`index type.
+  - Various improvements to `sicmutils.complex`:
 
-  - Fixed a couple of reflection warnings with `ComplexFormat`in complex parsing
-    code
+    - complex implementations for `dot-product` between complex and real types
 
-  - complex `zero?` now returns true for `(complex -0.0 -0.0)`, which it did not
-    before!
+    - Fixed reflection warnings with `ComplexFormat`in complex parsing code
 
-  - new `-I` (TODO make this happen), also `g/expt` for complex numbers now does
-    the right thing with `I` input, a bit of a hedge.
+    - complex `zero?` now returns true for inputs like `(complex -0.0 -0.0)`,
+      where a negative zero lives in the real or imaginary slots
+
+    - new `sicmutils.complex/-I` binding, set to `(g/negate c/I)`
+
+    - `g/expt` for complex numbers optimizes the inputs equal to `I` by
+      returning exact 1, -1, `I` or `-I` depending on the input. This applies to
+      `g/square` and `g/cube` as well.
 
 - #443:
 

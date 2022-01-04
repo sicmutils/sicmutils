@@ -74,17 +74,34 @@
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"
-    (is (v/zero? c/ZERO))
-    (is (v/zero? #sicm/complex "0"))
+    (is (every?
+         v/zero?
+         [(c/complex -0.0 -0.0)
+          (c/complex 0.0 -0.0)
+          (c/complex -0.0 0.0)
+          (c/complex 0.0 0.0)
+          (v/zero-like c/ONE)
+          (v/zero-like (c/complex 100))
+          c/ZERO
+          #sicm/complex "0"])
+        "negative zero doesn't affect zero")
+
     (is (not (v/zero? c/ONE)))
     (is (not (v/zero? (c/complex 1.0))))
-    (is (v/zero? (v/zero-like (c/complex 100))))
     (is (= c/ZERO (v/zero-like (c/complex 2))))
     (is (= c/ZERO (v/zero-like #sicm/complex "0 + 3.14i")))
 
-    (is (v/one? c/ONE))
-    (is (v/one? (c/complex 1.0)))
-    (is (v/one? (v/one-like c/ZERO)))
+    (let [ones [c/ONE
+                (c/complex 1.0)
+                (v/one-like c/ZERO)
+                (c/complex 1.0 0.0)
+                (c/complex 1.0 -0.0)]]
+      (is (every? v/one? ones)
+          "-0 in imaginary does not affect one?")
+
+      (is (every? v/identity? ones)
+          "-0 in imaginary does not affect identity?"))
+
     (is (not (v/one? (c/complex 2))))
     (is (not (v/one? (c/complex 0.0))))
 
