@@ -135,7 +135,8 @@
 
           logexp? (rules/occurs-in? #{'log 'exp} syms)
           trig? (rules/occurs-in? #{'sin 'cos 'tan 'cot 'sec 'csc} syms)
-          partials? (rules/occurs-in? #{'partial} syms) simple
+          partials? (rules/occurs-in? #{'partial} syms)
+          simple
           (comp (only-if rules/*divide-numbers-through-simplify?*
                          rules/divide-numbers-through)
 

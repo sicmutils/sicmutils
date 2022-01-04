@@ -23,6 +23,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
+            [pattern.match :as pm]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
@@ -186,6 +187,21 @@
   (arity-check s/down* "s/down"))
 
 (deftest structure-interfaces
+  (testing "pattern matching"
+    (testing "non-seq sequential? things like structures are treated as eq
+              matchers, not automatically converted to sequence matchers."
+      (let [expr (pm/sequence
+                  ;; structures are `sequential?` but not `seq`s.
+                  (s/down '?a 10)
+                  '(* ?a ?c))]
+        (is (= '{?a x ?c 12}
+               (pm/match expr [(s/down '?a 10) '(* x 12)]))
+            "structure matcher matches a LITERAL ?a, and does not bind.")
+
+        (is (pm/failed?
+             (pm/match expr [(s/up '?a 10) '(* x 12)]))
+            "fails here since down != up"))))
+
   (testing "count"
     (is (= 3 (count (s/up 1 2 3))))
     (is (= 3 (count (s/up 4 5 6))))
