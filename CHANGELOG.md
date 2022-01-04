@@ -8,6 +8,11 @@
     complex numbers, `differential` instances. Defaults to `false` for all other
     types. (Also aliased into `sicmutils.env/infinite?`).
 
+  - The infix, TeX and JavaScript renderers (`->infix`, `->TeX` and
+    `->JavaScript`) all properly render `##Inf` and `##-Inf`. Infix uses the
+    Unicode symbol ∞, while `->TeX` uses the LaTeX command `\infty`.
+    Javascript's `Infinity` stands in for `##Inf` in generated JS code.
+
   - Complex numbers now respond `true` to `g/negative?` if their imaginary
     component is zero and real component is negative, false otherwise.
 
