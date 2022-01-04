@@ -493,6 +493,8 @@
 
 (defgeneric sin 1 {:dfdx cos})
 
+;; TODO add defaults for these too!
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/
 (defgeneric asin 1
   {:dfdx (fn [x]
            (invert
@@ -516,6 +518,11 @@
                 (add (square x)
                      (square y))))})
 
+;; TODO add asec, acsc, acot
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ with
+;; defaults. Also look up derivatives?
+
+
 (declare sinh)
 
 (defgeneric cosh 1
@@ -525,6 +532,7 @@
   {:dfdx cosh})
 
 ;; Trig functions with default implementations provided.
+
 (defgeneric tan 1
   {:dfdx (fn [x]
            (invert
@@ -568,6 +576,92 @@
   (div (sub (log (add 1 x))
             (log (sub 1 x)))
        2))
+
+;; TODO look at
+;; https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/ and see
+;; if I am missing anything! Definitely missing default implementations for
+;; sinh, cosh and friends, asinh, arcosh
+
+;; TODO peruse ;;
+;; http://web.mit.edu/julia_v0.6.2/julia/share/doc/julia/html/en/stdlib/math.html
+;; for various functions, see what the deal is with the pi here?? Convert to the
+;; normalized forms here, at least for sinc and friends.
+
+;; ## Sinc and friends (TODO move up?)
+;;
+;; https://mathworld.wolfram.com/TancFunction.html
+;;
+;; julia has it, derivative of the sinc function
+;;
+;; TODO when we do complex sinc, define a weird case the way julia does, finite
+;; real! if it's infinite.
+
+(defgeneric sinc 1
+  ;; https://en.wikipedia.org/wiki/Sinc_function, note that this is the
+  ;; unnormalized version.
+  ;;
+  ;; NOTE make sure we evaluate to 0 at infinity in the real implementation.
+  ;;
+  ;; Boost notes on `sinc` and `sinch`:
+  ;; https://www.boost.org/doc/libs/1_65_0/libs/math/doc/html/math_toolkit/sinc/sinc_overview.html
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (sub (div (cos x) x)
+                  (div (sin x) (* x x)))))})
+
+(defmethod sinc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sin x) x)))
+
+(defgeneric sinhc 1
+  ;; https://en.wikipedia.org/wiki/Sinhc_function
+  ;; https://mathworld.wolfram.com/SinhcFunction.html
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (sub (div (cosh x) x)
+                  (div (sinh x) (* x x)))))})
+
+(defmethod sinhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sinh x) x)))
+
+;; NOTE there is no `cosc`... [julia has
+;; this](http://www.jlhub.com/julia/manual/en/function/cosc), but it is simply
+;; the derivative of `sinc`. Wikipedia has [a page on
+;; `coshc`](https://en.wikipedia.org/wiki/Coshc_function). [This
+;; link](https://math.stackexchange.com/a/2137104) states: "The motivation for
+;; functions such as $\sinc x$, $\sinch x$, $\tanc x$, $\tanch x$ is to consider
+;; the behaviour of a ratio with limit 1 as $𝑥 \to 0$. There is no such
+;; motivation for $\frac{\cos x}{x}$, since $\cos 0 = 1 \neq 0$."
+
+;; NOTE this is one at infinity
+(defgeneric tanc 1
+  {:dfdx (fn [x]
+           (let [sx (sec x)]
+             (sub (div (* sx sx) x)
+                  (div (tan x) (* x x)))))})
+
+(defmethod tanc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tan x) x)))
+
+;; DONE implemented: https://mathworld.wolfram.com/TanhcFunction.html
+
+(defgeneric tanhc 1
+  {:dfdx (fn [x]
+           (let [sx (sech x)]
+             (sub (div (* sx sx) x)
+                  (div (tanh x) (* x x)))))})
+
+(defmethod tanhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tanh x) x)))
 
 ;; ## Complex Operators
 

@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+  - new `sinc`, `tanc`, `sinhc`, `tanhc` functions! These work generically and
+    have specialized implementations for... TODO fill in. We can differentiate
+    through these too.
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,

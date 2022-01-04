@@ -1304,3 +1304,8 @@
 (defunary g/sinh (lift-1 g/sinh))
 (defunary g/cosh (lift-1 g/cosh))
 (defunary g/tanh (lift-1 g/tanh))
+
+(defunary g/sinc (lift-1 g/sinc))
+(defunary g/sinhc (lift-1 g/sinhc))
+(defunary g/tanc (lift-1 g/tanc))
+(defunary g/tanhc (lift-1 g/tanhc))
