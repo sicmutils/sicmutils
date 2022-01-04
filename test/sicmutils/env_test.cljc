@@ -20,6 +20,7 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [ish?] #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
             [sicmutils.env :as e :refer [+ - * / zero? partial ref
                                          complex
@@ -34,6 +35,10 @@
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
             [sicmutils.value :as v]))
+
+(deftest constant-tests
+  (is (ish? e/euler (e/exp 1))
+      "not quite equal, but close."))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"

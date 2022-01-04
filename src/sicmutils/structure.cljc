@@ -886,7 +886,7 @@
                   struct2))]
     (mapr xform struct1)))
 
-(defn- cross-product
+(defn ^:no-doc cross-product
   "Returns the cross product of structures of length 3. Input orientations are
   ignored; result is an up-tuple."
   [s t]

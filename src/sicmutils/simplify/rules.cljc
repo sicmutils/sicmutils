@@ -486,8 +486,8 @@ For example:
       (expt ?x 1) => ?x
 
       ;; e^{ni} == 0,i,-1 or -i.
-      (expt (complex 0.0 1.0) (? ?n v/integral?))
-      => (? #([1 '(complex 0.0 1.0) -1 '(complex 0.0 -1.0)]
+      (expt ~c/I (? ?n v/integral?))
+      => (? #([1 c/I -1 (g/- c/I)]
               (mod (% '?n) 4)))
 
       (expt (expt ?x ?a) ?b)
@@ -728,30 +728,31 @@ For example:
 ;; ## Log / Exp
 
 (def specfun->logexp
-  (rule-simplifier
-   (ruleset
-    (sqrt ?x) => (exp (* (/ 1 2) (log ?x)))
+  (let [two-i (c/complex 0.0 2.0)]
+    (rule-simplifier
+     (ruleset
+      (sqrt ?x) => (exp (* (/ 1 2) (log ?x)))
 
-    (atan ?z)
-    => (/ (- (log (+ 1 (* (complex 0.0 1.0) ?z)))
-             (log (- 1 (* (complex 0.0 1.0) ?z))))
-          (complex 0.0 2.0))
+      (atan ?z)
+      => (/ (- (log (+ 1 (* ~c/I ?z)))
+               (log (- 1 (* ~c/I ?z))))
+            ~two-i)
 
-    (asin ?z)
-    => (* (complex 0.0 -1.0)
-          (log (+ (* (complex 0.0 1.0) ?z)
-                  (sqrt (- 1 (expt ?z 2))))))
+      (asin ?z)
+      => (* ~(g/- c/I)
+            (log (+ (* ~c/I ?z)
+                    (sqrt (- 1 (expt ?z 2))))))
 
-    (acos ?z)
-    => (* (complex 0.0 -1.0)
-          (log (+ ?z (* (complex 0.0 1.0)
-                        (sqrt (- 1 (expt ?z 2)))))))
+      (acos ?z)
+      => (* ~(g/- c/I)
+            (log
+             (+ ?z (* ~c/I (sqrt (- 1 (expt ?z 2)))))))
 
-    (sinh ?u) => (/ (- (exp ?u) (exp (* -1 ?u))) 2)
+      (sinh ?u) => (/ (- (exp ?u) (exp (* -1 ?u))) 2)
 
-    (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
+      (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
 
-    (expt ?x (? ?y not-integral?)) => (exp (* ?y (log ?x))))))
+      (expt ?x (? ?y not-integral?)) => (exp (* ?y (log ?x)))))))
 
 (def logexp->specfun
   (rule-simplifier
@@ -1353,94 +1354,90 @@ out of the first term of the argument."}
 ;; we can eliminate sin and cos in favor of complex exponentials.
 
 (def sincos->exp1
-  (let [i  '(complex 0.0 1.0)
-        -i '(complex 0.0 -1.0)]
+  (let [-I (g/- c/I)]
     (rule-simplifier
      (ruleset
       (sin ?x)
-      => (/ (- (exp (* ~i ?x)) (exp (* ~-i ?x)))
-            (complex 0.0 2.0))
+      => (/ (- (exp (* ~c/I ?x)) (exp (* ~-I ?x)))
+            ~(c/complex 0.0 2.0))
 
       (cos ?x)
-      => (/ (+ (exp (* ~i ?x)) (exp (* ~-i ?x)))
+      => (/ (+ (exp (* ~c/I ?x)) (exp (* ~-I ?x)))
             2)))))
 
 (def sincos->exp2
-  (let [i '(complex 0.0 1.0)]
-    (rule-simplifier
-     (ruleset
-      (sin ?x)
-      => (/ (- (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
-            (complex 0.0 2.0))
+  (rule-simplifier
+   (ruleset
+    (sin ?x)
+    => (/ (- (exp (* ~c/I ?x)) (/ 1 (exp (* ~c/I ?x))))
+          ~(g/* 2 c/I))
 
-      (cos ?x)
-      => (/ (+ (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
-            2)))))
+    (cos ?x)
+    => (/ (+ (exp (* ~c/I ?x)) (/ 1 (exp (* ~c/I ?x))))
+          2))))
 
 ;; under favorable conditions, we can replace the trig functions.
 
 (def exp->sincos
-  (let [i  '(complex 0.0 1.0)
-        -i '(complex 0.0 -1.0)]
-    (letfn [(positive? [x]
-              (not (or (g/negative? x)
-                       (v/zero? x))))
+  (letfn [(positive? [x]
+            (not (or (g/negative? x)
+                     (v/zero? x))))
 
-            (pos-pred [m]
-              (let [im (g/imag-part (m '?c1))]
-                (when (positive? im)
-                  {'?im im})))
+          (pos-pred [m]
+            (let [im (g/imag-part (m '?c1))]
+              (when (positive? im)
+                {'?im im})))
 
-            (neg-pred [m]
-              (let [im (g/imag-part (m '?c1))]
-                (when (g/negative? im)
-                  {'?im im})))]
-      (rule-simplifier
-       (ruleset
-        (exp (? ?c1 imaginary-number?))
-        pos-pred
-        (+ (cos ?im)
-           (* ~i (sin ?im)))
+          (neg-pred [m]
+            (let [im (g/imag-part (m '?c1))]
+              (when (g/negative? im)
+                {'?im im})))]
+    (rule-simplifier
+     (ruleset
+      (exp (? ?c1 imaginary-number?))
+      pos-pred
+      (+ (cos ?im)
+         (* ~c/I (sin ?im)))
 
-        (exp (? ?c1 imaginary-number?))
-        neg-pred
-        (+ (cos (? #(- (% '?im))))
-           (* ~-i (sin (? #(- (% '?im))))))
+      (exp (? ?c1 imaginary-number?))
+      neg-pred
+      (+ (cos (? #(- (% '?im))))
+         (* ~(g/- c/I) (sin (? #(- (% '?im))))))
 
-        (exp (* (? ?c1 imaginary-number?) ??f))
-        pos-pred
-        (+ (cos (* ?im ??f))
-           (* ~i (sin (* ?im ??f))))
+      (exp (* (? ?c1 imaginary-number?) ??f))
+      pos-pred
+      (+ (cos (* ?im ??f))
+         (* ~c/I (sin (* ?im ??f))))
 
-        (exp (* (? ?c1 imaginary-number?) ??f))
-        neg-pred
-        (* (exp (? #(g/real-part (% '?c1))))
-           (+ (cos (* (? #(- (% '?im))) ??f))
-              (* ~-i (sin (* (? #(- (% '?im))) ??f)))))
+      (exp (* (? ?c1 imaginary-number?) ??f))
+      neg-pred
+      (* (exp (? #(g/real-part (% '?c1))))
+         (+ (cos (* (? #(- (% '?im))) ??f))
+            (* ~(g/- c/I) (sin (* (? #(- (% '?im))) ??f)))))
 
-        (exp (? ?c1 complex-number?))
-        pos-pred
-        (* (exp (? #(g/real-part (% '?c1))))
-           (+ (cos ?im)
-              (* ~i (sin ?im))))
+      (exp (? ?c1 complex-number?))
+      pos-pred
+      (* (exp (? #(g/real-part (% '?c1))))
+         (+ (cos ?im)
+            (* ~c/I (sin ?im))))
 
-        (exp (? ?c1 complex-number?))
-        neg-pred
-        (* (exp (? #(g/real-part (% '?c1))))
-           (+ (cos (? #(- (% '?im))))
-              (* ~-i (sin (? #(- (% '?im)))))))
+      (exp (? ?c1 complex-number?))
+      neg-pred
+      (* (exp (? #(g/real-part (% '?c1))))
+         (+ (cos (? #(- (% '?im))))
+            (* ~(g/- c/I) (sin (? #(- (% '?im)))))))
 
-        (exp (* (? ?c1 complex-number?) ??f))
-        pos-pred
-        (* (exp (? #(g/real-part (% '?c1))))
-           (+ (cos (* ?im ??f))
-              (* ~i (sin (* ?im ??f)))))
+      (exp (* (? ?c1 complex-number?) ??f))
+      pos-pred
+      (* (exp (? #(g/real-part (% '?c1))))
+         (+ (cos (* ?im ??f))
+            (* ~c/I (sin (* ?im ??f)))))
 
-        (exp (* (? ?c1 complex-number?) ??f))
-        neg-pred
-        (* (exp (? #(g/real-part (% '?c1))))
-           (+ (cos (* (? #(- (% '?im))) ??f))
-              (* ~-i (sin (* (? #(- (% '?im))) ??f))))))))))
+      (exp (* (? ?c1 complex-number?) ??f))
+      neg-pred
+      (* (exp (? #(g/real-part (% '?c1))))
+         (+ (cos (* (? #(- (% '?im))) ??f))
+            (* ~(g/- c/I) (sin (* (? #(- (% '?im))) ??f)))))))))
 
 (def exp-contract
   (rule-simplifier
@@ -1468,9 +1465,7 @@ out of the first term of the argument."}
        (* ??y1 ??y2)))))
 
 (def exp-expand
-  (let [i  '(complex 0.0 1.0)
-        -i '(complex 0.0 -1.0)
-        exact-integer? (fn [x]
+  (let [exact-integer? (fn [x]
                          (and (v/integral? x)
                               (v/exact? x)))]
     (rule-simplifier
@@ -1486,13 +1481,13 @@ out of the first term of the argument."}
       (exp (* (? ?x imaginary-integer? #(> (g/imag-part %) 1))
               ??factors))
       =>
-      (expt (exp (* ~i ??factors))
+      (expt (exp (* ~c/I ??factors))
             (? #(g/imag-part (% '?x))))
 
       (exp (* (? ?x imaginary-integer? #(< (g/imag-part %) -1))
               ??factors))
       =>
-      (expt (exp (* ~-i ??factors))
+      (expt (exp (* ~(g/- c/I) ??factors))
             (? #(g/- (g/imag-part (% '?x)))))
 
       (exp (* (? ?n exact-integer? #(> % 1))
@@ -1509,31 +1504,35 @@ out of the first term of the argument."}
       (exp (? ?x complex-number?))
       =>
       (* (exp (? #(g/real-part (% '?x))))
-         (exp (? #(g/* (g/imag-part (% '?x)) ~i))))
+         (exp (? #(g/* (g/imag-part (% '?x)) ~c/I))))
 
       (exp (* (? ?x complex-number?)
               ??factors))
       =>
       (* (exp (* (? #(g/real-part (% '?x)))
                  ??factors))
-         (exp (* (? #(g/* (g/imag-part (% '?x)) ~i))
+         (exp (* (? #(g/* (g/imag-part (% '?x)) ~c/I))
                  ??factors)))))))
 
 (def complex-trig
   (rule-simplifier
    (ruleset
-    (cos (* ?z (complex 0.0 1.0)))
-    => (cosh ?z)
+    (cos ~c/I) => (cosh 1)
+    (cos (* ?z ~c/I)) => (cosh ?z)
+    (cos (* ~c/I ?z)) => (cosh ?z)
+    (cos (* ??xs ~c/I ??ys)) => (cosh (* ??xs ??ys))
 
-    (sin (* ?z (complex 0.0 1.0)))
-    => (* (complex 0.0 1.0) (sinh ?z)))))
+    (sin ~c/I) => (* ~c/I (sinh 1))
+    (sin (* ?z ~c/I)) => (* ~c/I (sinh ?z))
+    (sin (* ~c/I ?z)) => (* ~c/I (sinh ?z))
+    (sin (* ??xs ~c/I ??ys)) => (* ~c/I (sinh (* ??xs ??ys))))))
 
 (def complex-rules
   (let [ctor '(? ?op #{complex make-rectangular})]
     (rule-simplifier
      (ruleset
       (~ctor (cos ?theta) (sin ?theta))
-      => (exp (* (complex 0.0 1.0) ?theta))
+      => (exp (* ~c/I ?theta))
 
       (real-part (~ctor ?re _)) => ?re
       (imag-part (~ctor _ ?im)) => ?im

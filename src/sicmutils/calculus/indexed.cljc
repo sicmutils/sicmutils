@@ -258,8 +258,8 @@
     (assert (seq i2) "No index types registered for T2!")
     (let [{nu1 'up nd1 'down} (frequencies i1)
           {nu2 'up nd2 'down} (frequencies i2)
-          nup (+ nu1 nu2)
-          ndp (+ nd1 nd2)
+          nup (+ (or nu1 0) (or nu2 0))
+          ndp (+ (or nd1 0) (or nd2 0))
           np  (+ nup ndp)
           n1  (+ nup nd1)]
       (letfn [(product [args]

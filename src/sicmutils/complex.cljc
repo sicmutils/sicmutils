@@ -41,10 +41,19 @@
   ONE #?(:clj Complex/ONE
          :cljs (obj/get Complex "ONE")))
 
-(def  ^{:doc "A [[Complex]] value equal to `i`."}
+(def ^{:doc "A [[Complex]] value equal to `i`."}
   I
   #?(:clj Complex/I
      :cljs (obj/get Complex "I")))
+
+;; NOTE that on the JVM this obnoxiously negates the (zero-valued) real
+;; component too. So `(complex 0 -1)` does not equal `-I`... but `(complex -0.0
+;; -1.0)` does. Once we get a native complex implementation in this issue will
+;; disappear.
+(def ^{:doc "A [[Complex]] value equal to `-i`."}
+  -I
+  #?(:clj (.negate ^Complex I)
+     :cljs (.neg ^Complex I)))
 
 (def ^:no-doc complextype Complex)
 
@@ -58,7 +67,7 @@
   part `im`. `im` defaults to 0."
   ([re]
    #?(:clj (if (string? re)
-             (.parse complex-format re)
+             (.parse ^ComplexFormat complex-format re)
              (Complex. (u/double re)))
       :cljs (Complex.
              (if (string? re)
@@ -102,7 +111,13 @@
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
-(defn parse-complex [x]
+(defmethod g/dot-product [::complex ::complex] [a b]
+  (+ (* (real a) (real b))
+     (* (imaginary a) (imaginary b))))
+(defmethod g/dot-product [::complex ::v/real] [a b] (* (real a) b))
+(defmethod g/dot-product [::v/real ::complex] [a b] (* a (real b)))
+
+(defn ^:no-doc parse-complex
   "Parser that converts a string, vector or numeric representation of a complex
    number, like
 
@@ -111,9 +126,10 @@
   - 1
 
   into a [[Complex]] number object in clj or cljs."
+  [x]
   (cond (string? x)
         #?(:clj
-           (let [v (.parse complex-format x)]
+           (let [v (.parse ^ComplexFormat complex-format x)]
              `(complex ~(real v) ~(imaginary v)))
            :cljs `(complex ~x))
 
@@ -162,9 +178,15 @@
   (numerical? [_] true)
 
   v/Value
-  (zero? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
-  (one? [c] (= ONE c))
-  (identity? [c] (= ONE c))
+  (zero? [c]
+    #?(:clj (and (zero? (real c))
+                 (zero? (imaginary c)))
+       :cljs (.isZero c)))
+
+  (one? [c]
+    (and (v/one? (real c))
+         (zero? (imaginary c))))
+  (identity? [c] (v/one? c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
   (identity-like [_] ONE)
@@ -198,8 +220,17 @@
   (.add a ^double (u/double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a ^double (u/double n)))
+
+(let [choices [1 I -1 -I]]
+  (defmethod g/expt [::complex ::v/real] [^Complex a n]
+    (if (= a I)
+      (choices (mod n 4))
+      (.pow a ^double (u/double n)))))
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+
+;; Take advantage of the `expt` optimizations above for `I`.
+(defmethod g/square [::complex] [z] (g/expt z 2))
+(defmethod g/cube [::complex] [z] (g/expt z 3))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))
 (defmethod g/exp [::complex] [^Complex a] (.exp a))
@@ -229,6 +260,8 @@
     (if (v/zero? im)
       re
       (complex re im))))
+
+(defmethod g/negative? [::complex] [a] false)
 
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.
@@ -274,9 +307,7 @@
      (defmethod g/div [::v/real ::complex] [n ^Complex a] (.multiply (.reciprocal a) (double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.negate a))
-     (defmethod g/invert [::complex] [^Complex a] (.reciprocal a))
-     (defmethod g/square [::complex] [^Complex a] (.multiply a a))
-     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0)))
+     (defmethod g/invert [::complex] [^Complex a] (.reciprocal a)))
 
    :cljs
    (do
@@ -295,6 +326,4 @@
      (defmethod g/div [::v/real ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (u/double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.neg a))
-     (defmethod g/invert [::complex] [^Complex a] (.inverse a))
-     (defmethod g/square [::complex] [^Complex a] (.mul a a))
-     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0))))
+     (defmethod g/invert [::complex] [^Complex a] (.inverse a))))
