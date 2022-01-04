@@ -19,13 +19,8 @@
 
 (ns sicmutils.util.permute
   "Utilities for generating permutations of sequences."
-  #?(:cljs
-     ;; these are currently only required for `:cljs` because [[factorial]]
-     ;; needs to use these to prevent overflow when the result required a
-     ;; `js/BigInt`.
-     (:require [sicmutils.generic :as g]
-               [sicmutils.numbers]
-               [sicmutils.util :as u]))
+  (:require [sicmutils.special.factorial :as sf]
+            #?(:cljs [sicmutils.generic :as g]))
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
@@ -190,29 +185,17 @@
              xs
              m))
 
-(defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive).
-
-  [[factorial]] will return a platform-specific [[sicmutils.util/bigint]] given
-  some `n` that causes integer overflow."
-  [n]
-  #?(:clj
-     (apply *' (range 1 (inc n)))
-     :cljs
-     (if (<= n 20)
-       (apply * (range 1 (inc n)))
-       (transduce (map u/bigint) g/* (range 1 (inc n))))))
-
 (defn number-of-permutations
   "Returns the number of possible ways of permuting a collection of `n` distinct
   elements."
   [n]
-  (factorial n))
+  (sf/factorial n))
 
 ;; The algorithm used below comes from the [Wikipedia page on binomial
 ;; coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient#Factorial_formula).
-;; The section on the "factorial formula" gives this more efficient method of
-;; computation.
+;; The section on the "multiplicative formula" gives this more efficient method
+;; of computation. TODO add a note on how we just divide out the common terms in
+;; the n-choose-k expression, using the falling factorial notation.
 ;;
 ;; The tests compare this implementation to the more obvious relationship with
 ;; factorials.
@@ -223,11 +206,14 @@
     "Returns 'n choose k', the number of possible ways of choosing `k` distinct
   elements from a collection of `n` total items."
     [n k]
-    (if (> (* 2 k) n)
-      (number-of-combinations n (- n k))
-      (transduce (map (fn [i] (div (- (inc n) i) i)))
-                 *
-                 (range 1 (inc k))))))
+    {:pre [(>= n 0)]}
+    (cond (or (> k n)
+              (< k 0))  0
+          (< k 1)       1
+          :else
+          (let [k (min k (- n k))]
+            (div (sf/falling-factorial n k)
+                 (sf/factorial k))))))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence

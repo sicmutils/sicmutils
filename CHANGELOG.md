@@ -2,6 +2,21 @@
 
 ## [unreleased]
 
+  - moved `sicmutils.numerical.elliptic` to `sicmutils.special.elliptic`.
+
+  - new `sicmutils.special.factorial` with `factorial` and list other friends
+    too. Removed duplicate `g/factorial`.
+
+    - `falling-factorial`, `rising-factorial`, `double-factorial`,
+      `multi-factorial`, `subfactorial`, `binomial-coefficient`,
+      `stirling-first-kind`, `stirling-second-kind`. These last two perhaps
+      belong somewhere else, but they're related...
+
+  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
+    `falling-factorial`
+
+  - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,

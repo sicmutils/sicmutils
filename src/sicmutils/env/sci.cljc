@@ -116,7 +116,7 @@
    'sicmutils.mechanics.rigid                (ns-publics 'sicmutils.mechanics.rigid)
    'sicmutils.mechanics.rotation             (ns-publics 'sicmutils.mechanics.rotation)
    'sicmutils.numerical.derivative           (ns-publics 'sicmutils.numerical.derivative)
-   'sicmutils.numerical.elliptic             (ns-publics 'sicmutils.numerical.elliptic)
+
    'sicmutils.numerical.minimize             (ns-publics 'sicmutils.numerical.minimize)
    'sicmutils.numerical.ode                  (ns-publics 'sicmutils.numerical.ode)
    'sicmutils.numerical.quadrature           (ns-publics 'sicmutils.numerical.quadrature)
@@ -124,10 +124,13 @@
    'sicmutils.numerical.unimin.bracket       (ns-publics 'sicmutils.numerical.unimin.bracket)
    'sicmutils.numerical.unimin.brent         (ns-publics 'sicmutils.numerical.unimin.brent)
    'sicmutils.numerical.unimin.golden        (ns-publics 'sicmutils.numerical.unimin.golden)
+   'sicmutils.special.elliptic               (ns-publics 'sicmutils.special.elliptic)
+   'sicmutils.special.factorial              (ns-publics 'sicmutils.special.factorial)
    'sicmutils.sr.boost                       (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                      (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                 (ns-publics 'sicmutils.util.aggregate)
    'sicmutils.util.logic                     (ns-publics 'sicmutils.util.logic)
+   'sicmutils.util.permute                   (ns-publics 'sicmutils.util.permute)
    'sicmutils.util.stream                    (ns-publics 'sicmutils.util.stream)})
 
 (def ^{:doc "SCI namespace map generated from `ns->publics`. Consumers wishing
