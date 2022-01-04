@@ -60,3 +60,18 @@
     (is (= 9 (sf/subfactorial 4)))
     (is (= 44 (sf/subfactorial 5)))
     (is (= 265 (sf/subfactorial 6)))))
+
+(deftest stirling-tests
+  (testing "Stirling numbers of the first kind, from numeric.scm"
+    (is (= 1 (sf/stirling-first-kind 1 1)))
+    (is (= -1 (sf/stirling-first-kind 2 1)))
+    (is (= 1 (sf/stirling-first-kind 2 2)))
+    (is (= 2 (sf/stirling-first-kind 3 1)))
+    (is (= -3 (sf/stirling-first-kind 3 2)))
+    (is (= -50 (sf/stirling-first-kind 5 2)))
+    (is (= 1624 (sf/stirling-first-kind 7 3)))
+    (is (= #sicm/bigint "-62262192842035613491057459200000"
+           (sf/stirling-first-kind 30 3))))
+
+  (testing "Stirling, second kind"
+    (is (= 25 (sf/stirling-second-kind 5 3)))))

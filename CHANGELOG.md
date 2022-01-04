@@ -2,12 +2,89 @@
 
 ## [unreleased]
 
-- #361 - quaternions!
+- #361
 
-  - support reversible? and reduce-kv for structures
+  - back off matcher to just do seq? and vector? so we can match quaternions
+    etc. TODO make a ticket for matchers for quaternions, structure etc that
+    want something other than equality matching internally.
 
-  - quaternions are implemented like vectors of length 4, and implement all
-    appropriate Clojure protocols.
+  - symbolic `dot-product` and `inner-product`
+
+  - new `kahan-babushka-neumaier-sum` in `sicmutils.util.aggregate` (TODO
+    finish!)
+
+  - simplify now does NOT freeze expressions before simplifying. This allows
+    complex numbers to survive simplification, since they freeze to `(complex
+    <re> <im>)`.
+
+    - big rewrite in `sicmutils.simplify.rules`, to convert all of the frozen
+      matchers like `(complex 1 2)` into matchers that actually bind to a
+      complex number.
+
+    - more rules in `complex-trig`, it can now handle bigger products inside of
+      `sin` and `cos` multiplied by `I`.
+
+  - new `sicmutils.special.factorial` with `factorial` and list other friends
+    too. Removed duplicate `g/factorial`.
+
+    - `falling-factorial`, `rising-factorial`, `double-factorial`,
+      `multi-factorial`, `subfactorial`, `binomial-coefficient`,
+      `stirling-first-kind`, `stirling-second-kind`. These last two perhaps
+      belong somewhere else, but they're related...
+
+  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
+    `falling-factorial`
+
+  - New `excluded-lower` and `excluded-upper` options in
+    `sicmutils.generators/reasonable-double`. This was hardcoded before.
+
+  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+    missing an `up` or `down`index type.
+
+  - complex implementations for `dot-product` between complex and real types
+
+  - Fixed a couple of reflection warnings with `ComplexFormat`in complex parsing
+    code
+
+  - complex `zero?` now returns true for `(complex -0.0 -0.0)`, which it did not
+    before!
+
+  - new `-I` (TODO make this happen), also `g/expt` for complex numbers now does
+    the right thing with `I` input, a bit of a hedge.
+
+  - new `g/infinite?` generic with implementations for all numeric types,
+    complex numbers, quaternions, `differential` instances. Defaults to `false`
+    for all other types.
+
+  - new `sinc`, `tanc`, `sinhc`, `tanhc` functions! These work generically and
+    have specialized implementations for... TODO fill in. We can differentiate
+    through these too.
+
+  - `inner-product` now defaults to `dot-product` for scalar instances. This is
+    correct for all numeric types we currently have, since `complex` is the only
+    tough case, and it has real coefficients. Maybe this would be sketchy for a
+    bicomplex number (TODO link!)
+
+  - sci bindings for `sicmutils.quaternion`, `sicmutils.special.factorial`,
+    `sicmutils.util.permute`.
+
+  - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
+    side. This was causing bugs in cases where we allow, say, a scalar to be
+    added to a quaternion, and auto-convert the scalar right there (so it adds
+    only to the real part). OR in cases, like in the matrix PR, where we convert
+    the scalar in addition to `<scalar>*I*`.
+
+    - This caused some problems with `sicmutils.matrix` tests that were not well
+      typed, it turns out.
+
+  - The default `expt` implementation, `sicmutils.generic/default-expt` is now
+    available as a function to call directly without going through the dispatch
+    system.
+
+  - quaternions!
+
+    - quaternions are implemented like vectors of length 4, and implement all
+      appropriate Clojure protocols.
 
 - #443:
 

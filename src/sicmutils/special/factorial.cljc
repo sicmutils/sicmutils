@@ -189,3 +189,50 @@
   ;; TODO move the good code over to here, and call it from
   ;; number-of-combinations!
   #_(number-of-combinations n m))
+
+
+;; TODO handle the cljs case where we need bigint!
+;;
+;; TODO tell GJS, signed vs unsigned, get a -n in there:
+;; https://en.wikipedia.org/wiki/Stirling_numbers_of_the_first_kind
+
+;; TODO tell GJS assert is wrong, k can be zero:
+;;
+;; TODO figure out asserts, we can totally have a 0 k, and have to figure out
+;; the rules for when we return a 0.
+
+(defn stirling-first-kind
+  "TODO calculated using recurrence relation here:
+  https://en.wikipedia.org/wiki/Stirling_numbers_of_the_first_kind
+
+  This is the SIGNED."
+  [n k]
+  {:pre [(<= 0 k)
+         (<= k n)]}
+  (let [rec  (atom nil)
+        rec* (fn [n k]
+               (if (zero? n)
+                 (if (zero? k) 1 0)
+                 (let [n-1 (dec n)]
+                   (+' (@rec n-1 (dec k))
+                       (*' (- n-1) (@rec n-1 k))))))]
+    (reset! rec (memoize rec*))
+    (@rec n k)))
+
+;; stack overflows, weird guards here?
+;;
+;; recurrence works if k>0... do StirlingS2 to figure out what is up:
+;; https://www.wolframalpha.com/input/?i=StirlingS1%5B1%2C4%5D
+(defn stirling-second-kind [n k]
+  {:pre [(<= 1 k)
+         (<= k n)]}
+  (let [rec  (atom nil)
+        rec* (fn [n k]
+               (cond (= k 1) 1
+	                   (= n k) 1
+	                   :else
+	                   (let [n-1 (dec n)]
+		                   (+' (*' k (@rec n-1 k))
+		                       (@rec n-1 (dec k))))))]
+    (reset! rec (memoize rec*))
+    (@rec n k)))
