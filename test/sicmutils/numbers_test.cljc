@@ -393,8 +393,8 @@
 
     (letfn [(nonzero [g]
               (gen/fmap (fn [x]
-                          (-> (if (v/zero? x) 1 x)
-                              (g/remainder 10000)))
+                          (let [small (g/remainder x 10000)]
+                            (if (v/zero? small) 1 small)))
                         g))]
       (checking "gcd" 100 [x (nonzero sg/small-integral)
                            y (nonzero sg/small-integral)
