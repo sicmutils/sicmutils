@@ -65,6 +65,12 @@
   #?(:clj (long a)
      :cljs (Math/trunc a)))
 
+(defmethod g/infinite? [::v/integral] [a] false)
+(defmethod g/infinite? [::v/real] [a]
+  #?(:clj (or (= a ##Inf)
+              (= a ##-Inf))
+     :cljs (infinite? a)))
+
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
 (defmethod g/imag-part [::v/real] [a] 0)

@@ -125,14 +125,18 @@
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")
+
   (checking "g/+" 100 [x gen/any-equatable]
             (is (= x (g/+ x)) "single arg should return itself, for any type.")
-            (is (= (if (v/zero? x) 0 x)
+
+            (is (= (if (v/numeric-zero? x) 0 x)
                    (g/+ x 0))
                 "adding a 0 works for any input. The first zero element gets
                 returned.")
+
             (is (= x (g/+ 0 x)) "adding a leading 0 acts as identity.")
-            (is (= (if (v/zero? x) 0 x)
+
+            (is (= (if (v/numeric-zero? x) 0 x)
                    (g/+ 0 x 0.0 0 0)) "multi-arg works as long as zeros
             appear.")))
 

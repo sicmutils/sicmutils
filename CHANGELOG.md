@@ -2,6 +2,23 @@
 
 ## [unreleased]
 
+  - new `g/infinite?` generic with implementations for all numeric types,
+    complex numbers, quaternions, `differential` instances. Defaults to `false`
+    for all other types. (Also aliased into `sicmutils.env/infinite?`).
+
+  - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
+    side. This was causing bugs in cases where we allow, say, a scalar to be
+    added to a quaternion, and auto-convert the scalar right there (so it adds
+    only to the real part). OR in cases, like in the matrix PR, where we convert
+    the scalar in addition to `<scalar>*I*`.
+
+    - This caused some problems with `sicmutils.matrix` tests that were not well
+      typed, it turns out.
+
+  - The default `expt` implementation is now available as a function to call
+    directly (`sicmutils.generic/default-expt`) without going through the
+    dispatch system.
+
 - #447 contains a grab-bag of fixes and additions, many related to complex
   numbers:
 
@@ -309,7 +326,8 @@ into shape.
 > at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
 > page!)
 
-This release focused on improving the expressiveness and performance of the three simplification engines in SICMUtils:
+This release focused on improving the expressiveness and performance of the
+three simplification engines in SICMUtils:
 
   - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
     fleshed out, with full polynomial and rational function APIs and many

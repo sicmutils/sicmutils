@@ -701,26 +701,28 @@
        (gen/tuple <l| inner |r>)))))
 
 (deftest combining-tests
-  (checking "<l|:inner:|r> == <r|:inner^t:|l> for collapsing structures" 100
+  (checking "<l|:inner:|r>^t == <r|:inner^t:|l> for collapsing structures" 100
             [[l inner r] (gen/let [rows (gen/choose 1 5)
                                    cols (gen/choose 1 5)]
                            (<l|:inner:|r> rows cols))]
             (is (v/zero?
                  (g/simplify
-                  (g/- (g/* l (g/* inner r))
+                  (g/- (g/transpose
+                        (g/* l (g/* inner r)))
                        (g/* (g/* (g/transpose r)
                                  (s/transpose inner))
                             (g/transpose l)))))))
 
-  (checking "<l|:inner:|r> == <r|:inner^t:|l> with empty r" 100
+  (checking "<l|:inner:|r>^t == <r|:inner^t:|l> with empty r" 100
             [[l inner r] (gen/let [n (gen/choose 1 5)]
                            (<l|:inner:|r> n 0))]
 
-            (is (= (v/zero-like l)
-                   (g/- (g/* l (g/* inner r))
-                        (g/* (g/transpose r)
-                             (g/* (s/transpose inner)
-                                  (g/transpose l)))))
+            (is (v/zero?
+                 (g/- (g/transpose
+                       (g/* l (g/* inner r)))
+                      (g/* (g/transpose r)
+                           (g/* (s/transpose inner)
+                                (g/transpose l)))))
                 "unlike the previous law, this produces an uncollapsed,
                 fully-zero structure."))
 
@@ -738,14 +740,17 @@
                   (g/- (g/* l (g/* inner r))
                        (g/* (g/* (s/transpose-outer inner) l) r))))))
 
-  (checking "cols=0 transpose-outer law produces (zero-like l)" 100
+  (checking "cols=0 transpose-outer law produces incompatible sides" 100
             [[rows [l inner r]] (gen/let [rows (gen/choose 1 5)]
                                   (gen/tuple (gen/return rows)
                                              (<l|:inner:|r> rows 0)))]
-            (is (= (v/zero-like l)
-                   (g/- (g/* l (g/* inner r))
-                        (g/* (g/* (s/transpose-outer inner) l) r)))
-                "`r` has no structure to collapse the first result."))
+            (is (v/zero?
+                 (g/* l (g/* inner r)))
+                "the left side is a structure of zeros")
+
+            (is (empty?
+                 (g/* (g/* (s/transpose-outer inner) l) r))
+                "the right side is an empty structure"))
 
   (testing "transpose-outer unit"
     (let [foo (s/down (s/down (s/up 'x 'y)
@@ -917,7 +922,7 @@
                 "conjugate the left arg!")))
 
 (deftest structure-generics
-  (testing "g/* returns a proper zero"
+  (testing "generic arithmetic handles zero"
     (is (= (s/up 0 0 0)
            (g/* 0 0 0 (s/up 0 0 0) 0 0))
         "make sure that leading zeros don't stop the reduction and `g/*`

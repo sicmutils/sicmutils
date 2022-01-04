@@ -262,6 +262,9 @@
       (complex re im))))
 
 (defmethod g/negative? [::complex] [a] false)
+(defmethod g/infinite? [::complex] [a]
+  (or (g/infinite? (real a))
+      (g/infinite? (imaginary a))))
 
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.

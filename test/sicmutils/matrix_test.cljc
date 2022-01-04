@@ -424,11 +424,18 @@
   (binding [m/*careful-conversion* false]
     (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner) with
               either side empty returns an empty structure"
-              100 [[l inner r] (gen/let [rows (gen/choose 0 5) cols (gen/choose 0 5)]
+              100 [[l inner r] (gen/let [rows (gen/choose 0 5)
+                                         cols (gen/choose 0 5)]
                                  (<l|:inner:|r> rows cols))]
-              (is (v/zero?
-                   (g/- (m/s:transpose l inner r)
-                        (s/transpose-outer inner))))))
+              (if (empty? r)
+                (testing "in this case, the right side is fully collapsed and
+                empty and the left side contains a single empty structure."
+                  (do (is (v/zero? (m/s:transpose l inner r)))
+                      (is (empty? (s/transpose-outer inner)))))
+                (is (v/zero?
+                     (g/- (m/s:transpose l inner r)
+                          (s/transpose-outer inner)))
+                    "left side empty generates a compatible, zero entry"))))
 
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
         M (m/by-rows [1 2 3]
