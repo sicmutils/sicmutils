@@ -34,6 +34,72 @@
          t (+ sum y)]
      [t (- (- t sum) y)])))
 
+(defn kahan-babushka-neumaier-sum
+  ([] [0.0 0.0])
+  ([[sum c] x]
+   (let [y (- x c)
+         t (+ sum y)]
+     [t (- (- t sum) y)])
+
+   #_(let lp ((i low) (sum 0) (c 0))
+          (if (fix:> i high)
+	          (+ sum c)
+            (let ((fv (f i)))
+              (let ((t (+ sum fv)))
+                (lp (+ i 1)
+                    t
+                    (+ (if (>= (abs sum) (abs fv))
+                         (+ (- sum t) fv)
+                         (+ (- fv t) sum))
+                       c))))))))
+
+;;; I adopt skbn:
+
+;;; When adding up 1/n large-to-small we
+;;; get a different answer than when adding
+;;; them up small-to-large, which is more
+;;; accurate.
+
+(comment
+  (let lp ((i 1) (sum 0.0))
+       (if (> i 10000000)
+         sum
+         (lp (+ i 1) (+ sum (/ 1.0 i))))))
+;; Value: 16.695311365857272
+
+(comment
+  (let lp ((i 10000000) (sum 0.0))
+       (if (= i 0)
+         sum
+         (lp (- i 1) (+ sum (/ 1.0 i))))))
+;; Value: 16.695311365859965
+
+-(- 16.695311365859965 16.695311365857272)
+;; Value: 2.6929569685307797e-12
+
+;;; Traditional sigma is the inaccurate way.
+(comment
+  (sigma (lambda (x) (/ 1.0 x)) 1 10000000))
+;; Value: 16.695311365857272
+
+;;; Kahan's compensated summation formula is
+;;; much better, but slower...
+(comment
+  (defn (sigma-kahan f low high)
+    (let lp ((i low) (sum 0) (c 0))
+         (if (fix:> i high)
+	         sum
+	         (let* ((y (- (f i) c)) (t (+ sum y)))
+	           (lp (fix:+ i 1) t (- (- t sum) y)))))))
+;; Value: sigma-kahan
+
+(comment
+  (sigma-kahan (lambda (x) (/ 1.0 x)) 1 10000000))
+;; Value: 16.69531136585985
+
+'(- 16.695311365859965 16.69531136585985)
+;; Value: 1.1368683772161603e-13
+
 (defn sum
   "Sums either:
 
