@@ -43,6 +43,15 @@
       returning exact 1, -1, `I` or `-I` depending on the input. This applies to
       `g/square` and `g/cube` as well.
 
+- #445 fixes a bug where structures and other seq-able types were interpreted as
+  sequence matchers.
+
+  In `pattern.match` and all rules, things that respond true to `sequential?`
+  but not `seq?` or `vector?` (many of the sicmutils types, like structures and
+  the upcoming Quaternion type) were being converted to `seq` and treated as
+  sequence matchers vs literal matchers. This no longer happens, and structures
+  etc are treated as literal matchers.
+
 - #443:
 
   - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`
