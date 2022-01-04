@@ -110,7 +110,18 @@
             (is (= x (g/trace x))))
 
   (checking "dimension always returns 1" 100 [x sg/real]
-            (is (= 1 (g/dimension x)))))
+            (is (= 1 (g/dimension x))))
+
+  (checking "dot-product, inner-product" 100
+            [x sg/real y sg/real]
+            (is (v/= (g/* x y)
+                     (g/dot-product x y))
+                "dot-product == mul for 1-d scalars.")
+
+            (is (= (g/dot-product x y)
+                   (g/inner-product x y))
+                "dot-product == inner-product for scalars, where conjugate acts
+                as identity")))
 
 (deftest integer-generics
   (gt/integral-tests u/int)

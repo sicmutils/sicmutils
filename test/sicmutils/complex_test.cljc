@@ -144,7 +144,7 @@
         (gt/floating-point-tests c/complex :eq near)))
 
     (checking "g/negative?, g/infinite?" 100 [x sg/real]
-              (let [z (g/make-rectangular x 0)]
+              (let [z (c/complex x 0)]
                 (is (= (g/negative? x)
                        (g/negative? z))
                     "A complex number is negative if its imaginary component is

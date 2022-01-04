@@ -56,6 +56,7 @@
     (is (= "quxquxqux" (s* "qux" 3)))
     (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (s* "colin" "erin")))
     (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (s* "erin" "colin"))))
+
   (testing "add"
     (is (= "foobar" (s+ "foo" "bar")))
     (is (= "zzz" (s+ "" "zzz")))))
@@ -104,7 +105,11 @@
 
     (testing "div comes for free from mul and invert"
       (is (= (->Wrap "1/l") (g/invert l)))
-      (is (= (->Wrap "l*1/r") (g/div l r))))))
+      (is (= (->Wrap "l*1/r") (g/div l r))))
+
+    (testing "unimplemented predicate behavior"
+      (is (not (g/infinite? l))
+          "instead of an error, infinite? returns false for random types."))))
 
 (deftest generic-freeze-behavior
   (testing "freeze should return symbols"
