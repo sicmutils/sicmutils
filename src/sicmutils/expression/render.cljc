@@ -336,6 +336,12 @@
   (merge non-TeX-greek
          sym->unicode))
 
+(defn- infinity->infix [x]
+  (case x
+    ##Inf "∞"
+    ##-Inf "-∞"
+    nil))
+
 (def ^{:doc "Converts an S-expression to printable infix form. Numeric exponents
   are written as superscripts. Partial derivatives get subscripts."}
   ->infix
@@ -371,21 +377,22 @@
     '/ render-infix-ratio}
    :render-primitive
    (fn r [v]
-     (let [s (str v)]
-       (or (infix-sym->unicode s)
-           (condp re-find s
-             superscript-pattern
-             :>> (fn [[_ stem superscript]]
-                   (if-let [n (re-matches #"[0-9]+" superscript)]
-                     (str (r stem) (n->superscript n))
-                     (str (r stem) "↑" (r superscript))))
+     (or (infinity->infix v)
+         (let [s (str v)]
+           (or (infix-sym->unicode s)
+               (condp re-find s
+                 superscript-pattern
+                 :>> (fn [[_ stem superscript]]
+                       (if-let [n (re-matches #"[0-9]+" superscript)]
+                         (str (r stem) (n->superscript n))
+                         (str (r stem) "↑" (r superscript))))
 
-             subscript-pattern
-             :>> (fn [[_ stem subscript]]
-                   (if-let [n (re-matches #"[0-9]+" subscript)]
-                     (str (r stem) (n->subscript n))
-                     (str (r stem) "_" (r subscript))))
-             v))))))
+                 subscript-pattern
+                 :>> (fn [[_ stem subscript]]
+                       (if-let [n (re-matches #"[0-9]+" subscript)]
+                         (str (r stem) (n->subscript n))
+                         (str (r stem) "_" (r subscript))))
+                 v)))))))
 
 (defn ^:private brace
   "Wrap the argument, as a string, in braces"
@@ -398,6 +405,12 @@
   (if (and (string? s) (= (count s) 1))
     s
     (brace s)))
+
+(defn infinity->tex [x]
+  (case x
+    ##Inf "\\infty"
+    ##-Inf "-\\infty"
+    nil))
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
@@ -515,10 +528,9 @@
       '>= #(s/join " \\geq " %)}
      :render-primitive
      (fn r [v]
-       (cond (r/ratio? v)
-             (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
-
-             :else
+       (if (r/ratio? v)
+         (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
+         (or (infinity->tex v)
              (let [s (str v)]
                (or (TeX-map s)
                    (condp re-find s
@@ -549,7 +561,7 @@
                        (if *TeX-sans-serif-symbols*
                          (str "\\mathsf" (brace s))
                          (brace s))
-                       v)))))))))
+                       v))))))))))
 
 (defn ->TeX
   "Convert the given expression to TeX format, as a string.
