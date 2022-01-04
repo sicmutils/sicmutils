@@ -359,9 +359,9 @@
   (< a (v/zero-like a)))
 
 (defgeneric infinite? 1
-  "TODO docs, TODO make the renderer aware!!
-
-  \\infty for latex, -\\infty for negative.")
+  "Returns true if `a` is either numerically infinite (ie, equal to `##Inf`) or
+  a compound number (complex or quaterion, for example) with some infinite
+  component.")
 
 (defmethod infinite? :default [a] false)
 
