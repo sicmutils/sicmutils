@@ -2,7 +2,10 @@
 
 ## [unreleased]
 
-- In `pattern.match` and all rules, things that respond true to `sequential?`
+- #445 fixes a bug where structures and other seq-able types were interpreted as
+  sequence matchers.
+
+  In `pattern.match` and all rules, things that respond true to `sequential?`
   but not `seq?` or `vector?` (many of the sicmutils types, like structures and
   the upcoming Quaternion type) were being converted to `seq` and treated as
   sequence matchers vs literal matchers. This no longer happens, and structures
