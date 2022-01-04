@@ -245,7 +245,13 @@
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))
       (is (near (c/complex 16) (g/expt 2 (c/complex 4))))
-      (is (near (c/complex 16) (g/expt (c/complex 2) (c/complex 4)))))
+      (is (near (c/complex 16) (g/expt (c/complex 2) (c/complex 4))))
+
+      (is (= -1 (g/square c/I))
+          "squaring I produces an exact result.")
+
+      (is (= c/-I (g/cube c/I))
+          "cubing has an exact shortcut"))
 
     (testing "negate"
       (is (= (c/complex -10 2)
@@ -258,8 +264,8 @@
       (is (= 5.0 (g/abs (c/complex 3 4)))))
 
     (testing "exp"
-      ;; Euler identity
-      (is (near (c/complex -1) (g/exp (g/mul c/I pi)))))
+      (is (near (c/complex -1) (g/exp (g/mul c/I pi)))
+          "Euler's identity"))
 
     (testing "log"
       (is (= (g/mul c/I pi) (g/log (g/exp (g/mul c/I pi))))))

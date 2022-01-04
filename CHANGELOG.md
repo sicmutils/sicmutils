@@ -2,12 +2,14 @@
 
 ## [unreleased]
 
+  - Use `Math/E` instead of `(Math/exp 1)` for euler's constant in
+    `sicmutils.env`.
+
   - symbolic `dot-product` and `inner-product`
 
   - `inner-product` now defaults to `dot-product` for scalar instances. This is
     correct for all numeric types we currently have, since `complex` is the only
-    tough case, and it has real coefficients. Maybe this would be sketchy for a
-    bicomplex number (TODO link!)
+    tough case, and it has real coefficients.
 
   - complex implementations for `dot-product` between complex and real types
 

@@ -41,10 +41,19 @@
   ONE #?(:clj Complex/ONE
          :cljs (obj/get Complex "ONE")))
 
-(def  ^{:doc "A [[Complex]] value equal to `i`."}
+(def ^{:doc "A [[Complex]] value equal to `i`."}
   I
   #?(:clj Complex/I
      :cljs (obj/get Complex "I")))
+
+;; NOTE that on the JVM this obnoxiously negates the (zero-valued) real
+;; component too. So `(complex 0 -1)` does not equal `-I`... but `(complex -0.0
+;; -1.0)` does. Once we get a native complex implementation in this issue will
+;; disappear.
+(def ^{:doc "A [[Complex]] value equal to `-i`."}
+  -I
+  #?(:clj (.negate ^Complex I)
+     :cljs (.neg ^Complex I)))
 
 (def ^:no-doc complextype Complex)
 
@@ -214,14 +223,16 @@
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
 
-(let [choices [1 I -1 #?(:clj (.negate ^Complex I)
-                         :cljs (.neg ^Complex I))]]
+(let [choices [1 I -1 -I]]
   (defmethod g/expt [::complex ::v/real] [^Complex a n]
     (if (= a I)
       (choices (mod n 4))
       (.pow a ^double (u/double n)))))
-
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+
+;; Take advantage of the `expt` optimizations above for `I`.
+(defmethod g/square [::complex] [z] (g/expt z 2))
+(defmethod g/cube [::complex] [z] (g/expt z 3))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))
 (defmethod g/exp [::complex] [^Complex a] (.exp a))
@@ -298,9 +309,7 @@
      (defmethod g/div [::v/real ::complex] [n ^Complex a] (.multiply (.reciprocal a) (double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.negate a))
-     (defmethod g/invert [::complex] [^Complex a] (.reciprocal a))
-     (defmethod g/square [::complex] [^Complex a] (.multiply a a))
-     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0)))
+     (defmethod g/invert [::complex] [^Complex a] (.reciprocal a)))
 
    :cljs
    (do
@@ -319,6 +328,4 @@
      (defmethod g/div [::v/real ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (u/double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.neg a))
-     (defmethod g/invert [::complex] [^Complex a] (.inverse a))
-     (defmethod g/square [::complex] [^Complex a] (.mul a a))
-     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0))))
+     (defmethod g/invert [::complex] [^Complex a] (.inverse a))))
