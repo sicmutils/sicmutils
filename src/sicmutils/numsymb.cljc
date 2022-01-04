@@ -470,6 +470,20 @@
       (atan (imag-part z)
             (real-part z)))))
 
+(defn dot-product
+  "TODO docs!"
+  [z1 z2]
+  (cond (and (v/number? z1) (v/number? z2))
+        (g/dot-product z1 z2)
+
+        (v/real? z1) (mul z1 (real-part z2))
+        (v/real? z2) (mul (real-part z1) z2)
+        :else (add
+               (mul (real-part z1)
+                    (real-part z2))
+               (mul (imag-part z1)
+                    (imag-part z2)))))
+
 (defn ^:no-doc derivative
   "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
@@ -601,6 +615,8 @@
    'imag-part imag-part
    'conjugate conjugate
    'magnitude magnitude
+   'dot-product dot-product
+   'inner-product dot-product
    'angle angle
    'derivative derivative})
 

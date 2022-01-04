@@ -2,6 +2,38 @@
 
 ## [unreleased]
 
+  - symbolic `dot-product` and `inner-product`
+
+  - `inner-product` now defaults to `dot-product` for scalar instances. This is
+    correct for all numeric types we currently have, since `complex` is the only
+    tough case, and it has real coefficients. Maybe this would be sketchy for a
+    bicomplex number (TODO link!)
+
+  - complex implementations for `dot-product` between complex and real types
+
+  - simplify now does NOT freeze expressions before simplifying. This allows
+    complex numbers to survive simplification, since they freeze to `(complex
+    <re> <im>)`.
+
+    - big rewrite in `sicmutils.simplify.rules`, to convert all of the frozen
+      matchers like `(complex 1 2)` into matchers that actually bind to a
+      complex number.
+
+    - more rules in `complex-trig`, it can now handle bigger products inside of
+      `sin` and `cos` multiplied by `I`.
+
+  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+    missing an `up` or `down`index type.
+
+  - Fixed a couple of reflection warnings with `ComplexFormat`in complex parsing
+    code
+
+  - complex `zero?` now returns true for `(complex -0.0 -0.0)`, which it did not
+    before!
+
+  - new `-I` (TODO make this happen), also `g/expt` for complex numbers now does
+    the right thing with `I` input, a bit of a hedge.
+
 - #443:
 
   - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`

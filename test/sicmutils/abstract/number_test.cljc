@@ -227,7 +227,7 @@
                    (g/expt (an/literal-number x) e))))
 
   (checking "abs" 100 [x (sg/inexact-double)]
-            (is (= (an/literal-number (Math/abs x))
+            (is (= (an/literal-number (Math/abs ^double x))
                    (g/abs (an/literal-number x)))))
 
   (checking "sqrt" 100 [x (sg/inexact-double)]
@@ -758,7 +758,14 @@
 
   (checking "magnitude" 100 [z gen/symbol]
             (is (= (g/sqrt (g/mul (g/conjugate z) z))
-                   (g/magnitude z)))))
+                   (g/magnitude z))))
+
+  (testing "dot-product"
+    (is (= '(+ (* 0.5 x (conjugate y))
+               (* 0.5 y (conjugate x)))
+           (v/freeze
+            (g/simplify
+             (g/dot-product 'x 'y)))))))
 
 (deftest symbolic-trig-tests
   (testing "trig shortcuts - sin"
