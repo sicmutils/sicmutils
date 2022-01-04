@@ -30,7 +30,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn ^:private make-symbol-generator [p]
+(defn- make-symbol-generator [p]
   (let [i (atom 0)]
     (fn [] (symbol
            #?(:clj
@@ -75,7 +75,7 @@
                (v/integral? denom))
           (str num "/" denom))))
 
-(defn ^:private make-infix-renderer
+(defn- make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
   options for the treatment desired. Returns a rendering function. The options are:
 
@@ -316,12 +316,12 @@
             "csc" "\\csc"
             "_" "\\_"})))
 
-(defn ^:private digit->int
+(defn- digit->int
   [^Character d]
   #?(:clj (Character/digit d 10)
      :cljs (js/parseInt d)))
 
-(defn ^:private n->script
+(defn- n->script
   "Given an integer, returns a string where each digit of the
   integer is used as the index into the replacement map scripts,
   which is expected to be indexable by integers in the range [0..9]."
@@ -335,6 +335,15 @@
 (def infix-sym->unicode
   (merge non-TeX-greek
          sym->unicode))
+
+(defn- infinity->infix
+  "Given some infinite value, returns a string representation of ##Inf or ##-Inf
+  appropriate for infix rendering, else returns `nil`."
+  [x]
+  (case x
+    ##Inf "∞"
+    ##-Inf "-∞"
+    nil))
 
 (def ^{:doc "Converts an S-expression to printable infix form. Numeric exponents
   are written as superscripts. Partial derivatives get subscripts."}
@@ -371,33 +380,45 @@
     '/ render-infix-ratio}
    :render-primitive
    (fn r [v]
-     (let [s (str v)]
-       (or (infix-sym->unicode s)
-           (condp re-find s
-             superscript-pattern
-             :>> (fn [[_ stem superscript]]
-                   (if-let [n (re-matches #"[0-9]+" superscript)]
-                     (str (r stem) (n->superscript n))
-                     (str (r stem) "↑" (r superscript))))
+     (or (infinity->infix v)
+         (let [s (str v)]
+           (or (infix-sym->unicode s)
+               (condp re-find s
+                 superscript-pattern
+                 :>> (fn [[_ stem superscript]]
+                       (if-let [n (re-matches #"[0-9]+" superscript)]
+                         (str (r stem) (n->superscript n))
+                         (str (r stem) "↑" (r superscript))))
 
-             subscript-pattern
-             :>> (fn [[_ stem subscript]]
-                   (if-let [n (re-matches #"[0-9]+" subscript)]
-                     (str (r stem) (n->subscript n))
-                     (str (r stem) "_" (r subscript))))
-             v))))))
+                 subscript-pattern
+                 :>> (fn [[_ stem subscript]]
+                       (if-let [n (re-matches #"[0-9]+" subscript)]
+                         (str (r stem) (n->subscript n))
+                         (str (r stem) "_" (r subscript))))
+                 v)))))))
 
-(defn ^:private brace
+(defn- brace
   "Wrap the argument, as a string, in braces"
   [s]
   (str "{" s "}"))
 
-(defn ^:private maybe-brace
+(defn- maybe-brace
   "Wrap the argument in braces, as a string, unless it's just a single character"
   [s]
   (if (and (string? s) (= (count s) 1))
     s
     (brace s)))
+
+(defn- infinity->tex
+  "Given some infinite value, returns a (string) representation of the LaTeX
+  commands required to render ##Inf or ##-Inf.
+
+  Returns `nil` for all other inputs."
+  [x]
+  (case x
+    ##Inf "\\infty"
+    ##-Inf "-\\infty"
+    nil))
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
@@ -515,10 +536,9 @@
       '>= #(s/join " \\geq " %)}
      :render-primitive
      (fn r [v]
-       (cond (r/ratio? v)
-             (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
-
-             :else
+       (if (r/ratio? v)
+         (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
+         (or (infinity->tex v)
              (let [s (str v)]
                (or (TeX-map s)
                    (condp re-find s
@@ -549,7 +569,7 @@
                        (if *TeX-sans-serif-symbols*
                          (str "\\mathsf" (brace s))
                          (brace s))
-                       v)))))))))
+                       v))))))))))
 
 (defn ->TeX
   "Convert the given expression to TeX format, as a string.

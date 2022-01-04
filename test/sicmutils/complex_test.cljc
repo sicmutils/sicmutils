@@ -143,6 +143,37 @@
         (gt/integral-tests c/complex :exclusions skip :eq near)
         (gt/floating-point-tests c/complex :eq near)))
 
+    (checking "g/negative?, g/infinite?" 100 [x sg/real]
+              (let [z (c/complex x 0)]
+                (is (= (g/negative? x)
+                       (g/negative? z))
+                    "A complex number is negative if its imaginary component is
+                    zero and real is negative, false otherwise."))
+
+              (is (not
+                   (g/negative?
+                    (g/make-rectangular x 1)))
+                  "Never negative if imaginary component is nonzero.")
+
+              (is (not
+                   (g/infinite?
+                    (g/make-rectangular x x)))
+                  "infinite? is never true for non-infinite inputs."))
+
+    (testing "g/infinite?"
+      (is (every?
+           g/infinite?
+           [(c/complex ##Inf ##Inf)
+            (c/complex ##-Inf ##Inf)
+            (c/complex ##Inf ##-Inf)
+            (c/complex ##-Inf ##-Inf)
+            (c/complex ##Inf 1)
+            (c/complex 1 ##Inf)
+            (c/complex ##-Inf 1)
+            (c/complex 1 ##-Inf)])
+          "an infinite or negative infinite value in either slot makes the
+          complex number `g/infinite?`"))
+
     (testing "add"
       (is (= #sicm/complex "4 + 6i"
              (g/add #sicm/complex "1 + 2i"

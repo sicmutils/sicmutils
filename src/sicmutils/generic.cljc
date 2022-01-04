@@ -25,7 +25,7 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :exclude [/ + - * divide])
+  (:refer-clojure :exclude [/ + - * divide #?@(:cljs [infinite?])])
   (:require [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.def :refer [defgeneric]
@@ -88,8 +88,8 @@
   ([] 0)
   ([x] x)
   ([x y]
-   (cond (v/zero? x) y
-         (v/zero? y) x
+   (cond (v/numeric-zero? x) y
+         (v/numeric-zero? y) x
          :else (add x y)))
   ([x y & more]
    (reduce + (+ x y) more)))
@@ -137,8 +137,8 @@
   ([] 0)
   ([x] (negate x))
   ([x y]
-   (cond (v/zero? y) x
-         (v/zero? x) (negate y)
+   (cond (v/numeric-zero? y) x
+         (v/numeric-zero? x) (negate y)
          :else (sub x y)))
   ([x y & more]
    (- x (apply + y more))))
@@ -244,7 +244,7 @@
   ([] 1)
   ([x] (invert x))
   ([x y]
-   (if (v/one? y)
+   (if (and (v/number? y) (v/one? y))
      x
      (div x y)))
   ([x y & more]
@@ -276,7 +276,16 @@
                0)
              (mul (log x) (expt x y))))})
 
-(defmethod expt :default [s e]
+(defn ^:no-doc default-expt
+  "Default implementation of exponentiation for integral exponents `e`.
+
+  This implementation uses ['Exponentation by
+  Squaring'](https://en.wikipedia.org/wiki/Exponentiation_by_squaring), and will
+  work for any type that implements `g/mul`.
+
+  The multiplication operation is looked up once and cached at the beginning of
+  computation."
+  [s e]
   {:pre [(v/native-integral? e)]}
   (let [kind (v/kind s)]
     (if-let [mul' (get-method mul [kind kind])]
@@ -294,6 +303,8 @@
               (zero? e) (v/one-like e)
               :else (invert (expt' s (negate e)))))
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
+(defmethod expt :default [s e] (default-expt s e))
 
 (defgeneric square 1)
 (defmethod square :default [x] (expt x 2))
@@ -346,6 +357,13 @@
 
 (defmethod negative? :default [a]
   (< a (v/zero-like a)))
+
+(defgeneric infinite? 1
+  "Returns true if `a` is either numerically infinite (ie, equal to `##Inf`) or
+  a compound number (complex or quaterion, for example) with some infinite
+  component.")
+
+(defmethod infinite? :default [a] false)
 
 (defgeneric abs 1)
 
@@ -579,7 +597,12 @@
 (defmethod determinant [::v/scalar] [a] a)
 (defmethod dimension [::v/scalar] [a] 1)
 (defmethod dot-product [::v/scalar ::v/scalar] [l r] (mul l r))
-(defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
+
+;; Scalars include complex numbers, but for the purposes of dot/inner-products
+;; these are interpreted as pairs of real numbers, where conjugate is identity.
+;; So this seems to be a sane default.
+(defmethod inner-product [::v/scalar ::v/scalar] [l r]
+  (dot-product l r))
 
 ;; ## Solvers
 
@@ -621,11 +644,6 @@
 (defgeneric simplify 1)
 (defmethod simplify :default [a] a)
 
-(defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
-  [n]
-  (apply * (range 1 (inc n))))
-
 ;; This call registers a symbol for any non-multimethod we care about. These
 ;; will be returned instead of the actual function body when the user
 ;; calls `(v/freeze fn)`, for example.
@@ -643,6 +661,7 @@
   clojure.core/quot 'quotient
   clojure.core/rem 'remainder
   clojure.core/neg? 'negative?
+  #?@(:cljs [cljs.core/infinite? 'infinite?])
   clojure.core/< '<
   clojure.core/<= '<=
   clojure.core/> '>

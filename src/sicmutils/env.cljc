@@ -43,7 +43,7 @@
                            = core=}
                   :exclude [+ - * / zero? compare divide
                             numerator denominator
-                            #?@(:cljs [= partial])])
+                            #?@(:cljs [= partial infinite?])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
@@ -252,7 +252,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.generic
   * + - / divide
   negate
-  negative?
+  negative? infinite?
   invert
   abs
   sqrt
