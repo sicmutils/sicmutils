@@ -169,6 +169,28 @@
                 (is (v/identity? (v/identity-like diff))))
 
       (testing "equality, comparison"
+        (checking "g/negative?, g/infinite?" 100 [x sg/real]
+                  (let [elem (d/bundle-element x 1 0)]
+                    (= (g/negative? x)
+                       (g/negative? elem)
+                       "negative? operates on finite-part only.")
+
+                    (is (not (g/infinite? elem))
+                        "infinite? is always false for real finite parts.")))
+
+        (testing "g/infinite?"
+          (is (not (g/infinite? (d/bundle-element 10 ##Inf 0)))
+              "g/infinite? only looks at the finite part right now. Not sure how
+              we would get into an infinite derivative with non-infinite finite
+              part, but marking this test here as documentation.")
+
+          (is (every?
+               g/infinite?
+               [(d/bundle-element ##-Inf 1 0)
+                (d/bundle-element ##Inf 1 0)])
+              "an infinite or negative infinite value in the finite part slot
+               makes the differential `g/infinite?`"))
+
         (checking "=, equiv ignore tangent parts" 100
                   [n sg/real-without-ratio]
                   (is (= (d/bundle-element n 1 0) n)

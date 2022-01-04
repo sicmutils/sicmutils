@@ -3,8 +3,11 @@
 ## [unreleased]
 
   - new `g/infinite?` generic with implementations for all numeric types,
-    complex numbers, quaternions, `differential` instances. Defaults to `false`
-    for all other types. (Also aliased into `sicmutils.env/infinite?`).
+    complex numbers, `differential` instances. Defaults to `false` for all other
+    types. (Also aliased into `sicmutils.env/infinite?`).
+
+  - Complex numbers now respond `true` to `g/negative?` if their imaginary
+    component is zero and real component is negative, false otherwise.
 
   - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
     side. This was causing bugs in cases where we allow, say, a scalar to be
@@ -13,7 +16,7 @@
     the scalar in addition to `<scalar>*I*`.
 
     - This caused some problems with `sicmutils.matrix` tests that were not well
-      typed, it turns out.
+      typed.
 
   - The default `expt` implementation is now available as a function to call
     directly (`sicmutils.generic/default-expt`) without going through the
