@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- #448:
+
   - new `g/infinite?` generic with implementations for all numeric types,
     complex numbers, `differential` instances. Defaults to `false` for all other
     types. (Also aliased into `sicmutils.env/infinite?`).
