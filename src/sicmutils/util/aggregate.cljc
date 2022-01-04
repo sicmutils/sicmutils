@@ -24,81 +24,63 @@
 ;; I learned about "Kahan's summation trick" from `rational.scm` in the
 ;; `scmutils` package, where it shows up in the `sigma` function.
 
-(defn kahan-sum
+(defn naive-fold
+  ([] 0.0)
+  ([x] x)
+  ([acc x]
+   (+ acc x)))
+
+(defn kahan-fold
   "Implements a fold that tracks the summation of a sequence of floating point
   numbers, using Kahan's trick for maintaining stability in the face of
-  accumulating floating point errors."
+  accumulating floating point errors.
+
+  - the 0-arity returns an initial accumulator
+  - the 1-arity version takes an accumulator and returns a final value
+  - the 2-arity version takes an accumulator and a new value and folds the value
+    into the accumulator, returning a new accumulator.
+
+  Because of this implementation, [[kahan-fold]] is suitable for use
+  with [[clojure.core/transduce]]."
   ([] [0.0 0.0])
-  ([[sum c] x]
+  ([[acc _]] acc)
+  ([[acc c] x]
    (let [y (- x c)
-         t (+ sum y)]
-     [t (- (- t sum) y)])))
+         t (+ acc y)]
+     [t (- (- t acc) y)])))
 
-(defn kahan-babushka-neumaier-sum
+(defn kahan-babushka-neumaier-fold
+  "Implements a fold that tracks the summation of a sequence of floating point
+  numbers, using TODO update docs!!
+
+  - the 0-arity returns an initial accumulator
+  - the 1-arity version takes an accumulator and returns a final value
+  - the 2-arity version takes an accumulator and a new value and folds the value
+    into the accumulator, returning a new accumulator.
+
+  Because of this implementation, [[kbn-fold]] is suitable for use
+  with [[clojure.core/transduce]]."
   ([] [0.0 0.0])
-  ([[sum c] x]
-   (let [y (- x c)
-         t (+ sum y)]
-     [t (- (- t sum) y)])
+  ([[acc c]] (+ acc c))
+  ([[acc c] x]
+   (let [acc+x (+ acc x)
+         new-c (+ (if (>= (Math/abs ^double acc)
+                          (Math/abs ^double x))
+                    (+ (- x acc+x) acc)
+                    (+ (- x acc+x) acc))
+                  c)]
+     [acc+x new-c])))
 
-   #_(let lp ((i low) (sum 0) (c 0))
-          (if (fix:> i high)
-	          (+ sum c)
-            (let ((fv (f i)))
-              (let ((t (+ sum fv)))
-                (lp (+ i 1)
-                    t
-                    (+ (if (>= (abs sum) (abs fv))
-                         (+ (- sum t) fv)
-                         (+ (- fv t) sum))
-                       c))))))))
+(def ^{:doc "Shorter alias for [[kahan-babushka-neumaier-fold]]."}
+  kbn-fold
+  kahan-babushka-neumaier-fold)
 
-;;; I adopt skbn:
-
-;;; When adding up 1/n large-to-small we
-;;; get a different answer than when adding
-;;; them up small-to-large, which is more
-;;; accurate.
-
-(comment
-  (let lp ((i 1) (sum 0.0))
-       (if (> i 10000000)
-         sum
-         (lp (+ i 1) (+ sum (/ 1.0 i))))))
-;; Value: 16.695311365857272
-
-(comment
-  (let lp ((i 10000000) (sum 0.0))
-       (if (= i 0)
-         sum
-         (lp (- i 1) (+ sum (/ 1.0 i))))))
-;; Value: 16.695311365859965
-
--(- 16.695311365859965 16.695311365857272)
-;; Value: 2.6929569685307797e-12
-
-;;; Traditional sigma is the inaccurate way.
-(comment
-  (sigma (lambda (x) (/ 1.0 x)) 1 10000000))
-;; Value: 16.695311365857272
-
-;;; Kahan's compensated summation formula is
-;;; much better, but slower...
-(comment
-  (defn (sigma-kahan f low high)
-    (let lp ((i low) (sum 0) (c 0))
-         (if (fix:> i high)
-	         sum
-	         (let* ((y (- (f i) c)) (t (+ sum y)))
-	           (lp (fix:+ i 1) t (- (- t sum) y)))))))
-;; Value: sigma-kahan
-
-(comment
-  (sigma-kahan (lambda (x) (/ 1.0 x)) 1 10000000))
-;; Value: 16.69531136585985
-
-'(- 16.695311365859965 16.69531136585985)
-;; Value: 1.1368683772161603e-13
+(def ^{:dynamic true
+       :doc "boom, defaults to [[kahan-fold]]."}
+  *fold*
+  ;; TODO investigate riemann-test, what was up here?? was it not converging?
+  ;; tolerance too high?
+  kahan-fold)
 
 (defn sum
   "Sums either:
@@ -107,12 +89,15 @@
   - the result of mapping function `f` to `(range low high)`
 
   Using Kahan's summation trick behind the scenes to keep floating point errors
-  under control."
+  under control.
+
+  TODO update the docs, say that we use whatever is bound to `*fold*`."
   ([xs]
-   (first
-    (reduce kahan-sum [0.0 0.0] xs)))
+   (*fold*
+    (reduce *fold* (*fold*) xs)))
   ([f low high]
-   (sum (map f (range low high)))))
+   (let [xs (range low high)]
+     (transduce (map f) *fold* xs))))
 
 (defn scanning-sum
   "Returns every intermediate summation from summing either:
@@ -123,8 +108,8 @@
   Using Kahan's summation trick behind the scenes to keep floating point errors
   under control."
   ([xs]
-   (->> (reductions kahan-sum [0.0 0.0] xs)
-        (map first)
+   (->> (reductions *fold* (*fold*) xs)
+        (map *fold*)
         (rest)))
   ([f low high]
    (scanning-sum

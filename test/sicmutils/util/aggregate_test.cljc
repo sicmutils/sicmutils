@@ -28,19 +28,71 @@
             [sicmutils.util.stream :as us]))
 
 (deftest sum-tests
+  (testing "Naive summation"
+    (binding [ua/*fold* ua/naive-fold]
+      (is (not= 1 (ua/sum [1.0 1e-8 -1e-8]))
+          "Without the summation trick, errors build up.")))
+
   (testing "Kahan summation"
-    (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
-        "Kahan's summation trick allows us to keep precision.")
+    (binding [ua/*fold* ua/kahan-fold]
+      (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
+          "Kahan's summation trick allows us to keep precision.")
 
-    (is (not= 1 (reduce + 0.0 [1.0 1e-8 -1e-8]))
-        "Without the summation trick, errors build up.")
+      (let [xs [1.0 1e-8 -1e-8]]
+        (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
 
-    (let [xs [1.0 1e-8 -1e-8]]
-      (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
+        (is (= (ua/scanning-sum xs)
+               ((us/scan ua/kahan-fold :present ua/kahan-fold) xs))
+            "scanning-sum acts just like an actual `scan` call."))))
 
-      (is (= (ua/scanning-sum xs)
-             ((us/scan ua/kahan-sum :present first) xs))
-          "scanning-sum acts just like an actual `scan` call."))))
+  (testing "KBN Summation"
+    (binding [ua/*fold* ua/kbn-fold]
+      (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
+          "KBN's summation trick also allows us to keep precision.")
+
+      (let [xs [1.0 1e-8 -1e-8]]
+        (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
+
+        (is (= (ua/scanning-sum xs)
+               ((us/scan ua/kbn-fold :present ua/kbn-fold) xs))
+            "scanning-sum acts just like an actual `scan` call."))))
+
+  (testing "investigation from scmutils"
+    ;; When adding up 1/n large-to-small we get a different answer than when
+    ;; adding them up small-to-large, which is more accurate.
+    (let [n    10000000
+          z->n (into [] (range n))
+          n->z (reverse z->n)
+          f    #(/ 1.0 (inc %))
+          sum-inverse (fn [xs]
+                        (binding [ua/*fold* ua/naive-fold]
+                          (ua/sum (map f xs))))
+          large->small (sum-inverse z->n)
+          small->large (sum-inverse n->z)]
+      (is (= 16.695311365857272
+             large->small)
+          "Naive summation ")
+
+      (is (= 16.695311365859965
+             small->large)
+          "second example...")
+
+      (is (= 2.6929569685307797e-12
+             (- small->large large->small))
+          "error!")
+
+      (binding [ua/*fold* ua/kahan-fold]
+        (is (= 1.1368683772161603e-13
+               (- small->large
+                  (ua/sum f 0 n)))
+            "From GJS: Kahan's compensated summation formula is much better, but
+      slower..."))
+
+      (binding [ua/*fold* ua/kbn-fold]
+        (is (= 2.6929569685307797E-12
+               (- small->large
+                  (ua/sum f 0 n)))
+            "kbn sum, seemingly just as bad??")))))
 
 (deftest monoid-group-tests
   (let [plus (ua/monoid (fn [a b] (+ a b)) 0)]

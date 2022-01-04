@@ -2,6 +2,17 @@
 
 ## [unreleased]
 
+  - `kahan-sum` is now `kahan-fold` and has a single arity version that is nice
+
+  - ua/sum, ua/scanning-sum can now have custom folds
+
+  - new naive-fold, `kahan-babushka-neumaier-fold` aliased as `kbn-fold`
+
+  - new `ua/*fold*` that can configure behavior for
+    `sicmutils.aggregate/{scanning-sum, sum}`.
+
+  - three-arity version of `ua/sum` is more efficient, now uses transducers.
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,
