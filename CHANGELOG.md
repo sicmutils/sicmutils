@@ -6,7 +6,8 @@
 
   - ua/sum, ua/scanning-sum can now have custom folds
 
-  - new naive-fold, `kahan-babushka-neumaier-fold` aliased as `kbn-fold`
+  - new `naive-fold`, `kahan-babushka-neumaier-fold` aliased as `kbn-fold`...
+    also `kahan-babushka-klein-fold`.
 
   - new `ua/*fold*` that can configure behavior for
     `sicmutils.aggregate/{scanning-sum, sum}`.

@@ -80,16 +80,6 @@
 ;; reference from wiki pointed here:
 ;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
 
-(defn boink [acc x]
-  (let [acc+x (gensym)
-        delta (gensym)]
-    `[[~acc+x (+ ~acc ~x)
-       ~delta (if (>= (Math/abs ^double ~acc)
-                      (Math/abs ^double ~x))
-                (+ (- ~acc ~acc+x) ~x)
-                (+ (- ~x ~acc+x) ~acc))]
-      [acc+x delta]]))
-
 (comment
   ;; Some implementations for tests.
   (defn boink [acc x]
@@ -153,22 +143,7 @@
           (let [[~'acc ~delta] ~(boink* 'acc x)
                 [~'c1 ~delta]  ~(boink* 'c1 delta)
                 ~'c2          (+ ~'c2 ~delta)]
-            [~'acc ~'c1 ~'c2])))))
-
-  (defmacro kahan-babushka-klein-fold-macro
-    "Right now this is hardcoded at 3."
-    [n]
-    (let [syms ['acc 'c1 'c2 'c3] #_(repeatedly (inc n) (gensym))
-          x     (gensym)
-          delta (gensym)]
-      `(fn ([] ~(into [] (repeat (inc n) 0.0)))
-         ([acc#] (reduce + acc#))
-         ([~syms ~x]
-          (let [[~'acc ~delta] ~(boink* 'acc x)
-                [~'c1 ~delta]  ~(boink* 'c1 delta)
-                [~'c2 ~delta]  ~(boink* 'c2 delta)
-                ~'c3          (+ ~'c3 ~delta)]
-            [~'acc ~'c1 ~'c2 ~'c3]))))))
+            [~'acc ~'c1 ~'c2]))))))
 
 (defn kahan-babushka-klein-fold
   "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
