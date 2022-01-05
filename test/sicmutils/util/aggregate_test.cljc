@@ -57,42 +57,54 @@
                ((us/scan ua/kbn-fold :present ua/kbn-fold) xs))
             "scanning-sum acts just like an actual `scan` call."))))
 
-  #_(testing "investigation from scmutils"
-      ;; When adding up 1/n large-to-small we get a different answer than when
-      ;; adding them up small-to-large, which is more accurate.
-      (let [n 10000000
-            z->n (into [] (range n))
-            n->z (reverse z->n)
-            f #(/ 1.0 (inc %))
-            sum-inverse (fn [xs]
-                          (binding [ua/*fold* ua/naive-fold]
-                            (ua/sum (map f xs))))
-            large->small (sum-inverse z->n)
-            small->large (sum-inverse n->z)]
-        (is (= 16.695311365857272
-               large->small)
-            "Naive summation ")
+  (testing "kbn vs kahan"
+    ;; This example of a difference in behavior comes from
+    ;; https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements.
+    (let [xs [1.0 10.0E100 1.0 -10E100]]
+      (binding [ua/*fold* ua/kahan-fold]
+        (is (= 0.0 (ua/sum xs))
+            "kahan-fold gets it wrong!"))
 
-        (is (= 16.695311365859965
-               small->large)
-            "second example...")
+      (binding [ua/*fold* ua/kbn-fold]
+        (is (= 2.0 (ua/sum xs))
+            "kbn-fold gets the correct answer."))))
 
-        (is (= 2.6929569685307797e-12
-               (- small->large large->small))
-            "error!")
+  (testing "investigation from scmutils"
+    ;; When adding up 1/n large-to-small we get a different answer than when
+    ;; adding them up small-to-large, which is more accurate.
+    (let [n 10000000
+          z->n (into [] (range n))
+          n->z (reverse z->n)
+          f #(/ 1.0 (inc %))
+          sum-inverse (fn [xs]
+                        (binding [ua/*fold* ua/naive-fold]
+                          (ua/sum (map f xs))))
+          large->small (sum-inverse z->n)
+          small->large (sum-inverse n->z)]
+      (is (= 16.695311365857272
+             large->small)
+          "Naive summation ")
 
-        (binding [ua/*fold* ua/kahan-fold]
-          (is (= 1.1368683772161603e-13
-                 (- small->large
-                    (ua/sum f 0 n)))
-              "From GJS: Kahan's compensated summation formula is much better, but
+      (is (= 16.695311365859965
+             small->large)
+          "second example...")
+
+      (is (= 2.6929569685307797e-12
+             (- small->large large->small))
+          "error!")
+
+      (binding [ua/*fold* ua/kahan-fold]
+        (is (= 1.1368683772161603e-13
+               (- small->large
+                  (ua/sum f 0 n)))
+            "From GJS: Kahan's compensated summation formula is much better, but
       slower..."))
 
-        (binding [ua/*fold* ua/kbn-fold]
-          (is (= 1.1368683772161603E-13
-                 (- small->large
-                    (ua/sum f 0 n)))
-              "kbn sum, good, faster by 2x."))))
+      (binding [ua/*fold* ua/kbn-fold]
+        (is (= 1.1368683772161603E-13
+               (- small->large
+                  (ua/sum f 0 n)))
+            "kbn sum, good, faster by 2x."))))
 
   ;; TODO!
   #_(testing "any monoid works"

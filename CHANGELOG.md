@@ -13,6 +13,8 @@
 
   - three-arity version of `ua/sum` is more efficient, now uses transducers.
 
+  - remove `halt-at` in favor of `halt-when` in core!
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,

@@ -77,19 +77,110 @@
   kbn-fold
   kahan-babushka-neumaier-fold)
 
+;; reference from wiki pointed here:
+;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
+
+(defn boink [acc x]
+  (let [acc+x (gensym)
+        delta (gensym)]
+    `[[~acc+x (+ ~acc ~x)
+       ~delta (if (>= (Math/abs ^double ~acc)
+                      (Math/abs ^double ~x))
+                (+ (- ~acc ~acc+x) ~x)
+                (+ (- ~x ~acc+x) ~acc))]
+      [acc+x delta]]))
+
+(comment
+  ;; Some implementations for tests.
+  (defn boink [acc x]
+    (let [acc+x (+ acc x)
+          delta (if (>= (Math/abs ^double acc)
+                        (Math/abs ^double x))
+                  (+ (- acc acc+x) x)
+                  (+ (- x acc+x) acc))]
+      [acc+x delta]))
+
+  (defn kahan-babushka-klein-fold
+    "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
+    ([] [0.0 0.0 0.0])
+    ([acc] (apply + acc))
+    ([[acc c1 c2] x]
+     (let [[acc delta] (boink acc x)
+           [c1 delta]  (boink c1 delta)
+           c2          (+ c2 delta)]
+       [acc c1 c2])))
+
+  ;; Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements
+
+  (defn kahan-babushka-klein-fold-n
+    "NOTE that this is the more general thing, probably not great to use it."
+    [i]
+    (fn
+      ([] (into [] (repeat (inc i) 0.0)))
+      ([acc] (apply + acc))
+      ([acc x]
+       (let [[ret delta]
+             (reduce
+              (fn [[acc' x] elem]
+                (let [[elem+x delta] (boink elem x)]
+                  [(conj acc' elem+x) delta]))
+              [[] x]
+              (pop acc))]
+         (conj ret (+ (peek acc) delta)))))))
+
+(comment
+  ;; potential macro version!
+  ;;
+  ;; TODO think about WHAT I actually want to generate. How to do the crazy-ass
+  ;; let binding?
+  (defn boink* [acc x]
+    `(let [acc+x# (+ ~acc ~x)
+           delta# (if (>= (Math/abs ~(with-meta acc {:tag 'double}))
+                          (Math/abs ~(with-meta x {:tag 'double})))
+                    (+ (- ~acc acc+x#) ~x)
+                    (+ (- ~x acc+x#) ~acc))]
+       [acc+x# delta#]))
+
+  (defmacro kahan-babushka-klein-fold-macro
+    "Right now this is hardcoded at 2."
+    [n]
+    (let [syms ['acc 'c1 'c2] #_(repeatedly (inc n) (gensym))
+          x     (gensym)
+          delta (gensym)]
+      `(fn ([] ~(into [] (repeat (inc n) 0.0)))
+         ([acc#] (reduce + acc#))
+         ([~syms ~x]
+          (let [[~'acc ~delta] ~(boink* 'acc x)
+                [~'c1 ~delta]  ~(boink* 'c1 delta)
+                ~'c2          (+ ~'c2 ~delta)]
+            [~'acc ~'c1 ~'c2])))))
+
+  (defmacro kahan-babushka-klein-fold-macro
+    "Right now this is hardcoded at 3."
+    [n]
+    (let [syms ['acc 'c1 'c2 'c3] #_(repeatedly (inc n) (gensym))
+          x     (gensym)
+          delta (gensym)]
+      `(fn ([] ~(into [] (repeat (inc n) 0.0)))
+         ([acc#] (reduce + acc#))
+         ([~syms ~x]
+          (let [[~'acc ~delta] ~(boink* 'acc x)
+                [~'c1 ~delta]  ~(boink* 'c1 delta)
+                [~'c2 ~delta]  ~(boink* 'c2 delta)
+                ~'c3          (+ ~'c3 ~delta)]
+            [~'acc ~'c1 ~'c2 ~'c3]))))))
+
 (defn kahan-babushka-klein-fold
   "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
   ([] [0.0 0.0 0.0])
   ([[acc cs ccs]]  (+ acc cs ccs))
   ([[acc cs ccs] x]
-   ;; TODO see if I can reuse the fold above! TWO calls to fold above.
    (let [acc+x (+ acc x)
          ;; called `c` in the algo...
          delta (if (>= (Math/abs ^double acc)
                        (Math/abs ^double x))
                  (+ (- acc acc+x) x)
                  (+ (- x acc+x) acc))
-         sum' acc+x ;; recur with this?
          cs+delta (+ cs delta)
          cc (if (>= (Math/abs ^double cs)
                     (Math/abs ^double delta))
@@ -98,7 +189,7 @@
      [acc+x cs+delta (+ ccs cc)])))
 
 (def ^{:dynamic true
-       :doc "boom, defaults to [[kahan-fold]]."}
+       :doc "boom, defaults to [[kahan-babushka-neumaier-fold]]."}
   *fold*
   kahan-babushka-neumaier-fold)
 
@@ -148,24 +239,6 @@
    (apply g/+ xs))
   ([f low high]
    (transduce (map f) g/+ (range low high))))
-
-(defn halt-at
-  "Returns a transducer that ends transduction when `pred` (applied to the
-  aggregation in progress) returns true for an aggregation step.
-
-  NOTE: This transducer should come first in a chain of transducers; it only
-  inspects the aggregate, never the value, so putting it first will prevent
-  unnecessary transformations of values if the aggregate signals completion."
-  [pred]
-  (fn [rf]
-    (fn
-      ([] (rf))
-      ([result]
-       (rf result))
-      ([result input]
-       (if (pred result)
-         (reduced result)
-         (rf result input))))))
 
 (defn- combiner
   "If `stop?` is false, returns `f`. Else, returns a binary reducing function that

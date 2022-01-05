@@ -531,7 +531,7 @@
   If a non-[[p/Polynomial]] is supplied, returns 1."
   [p]
   (if (p/polynomial? p)
-    (transduce (ua/halt-at v/one?)
+    (transduce (halt-when v/one?)
                gcd
                (p/partial-derivatives p))
     1))
