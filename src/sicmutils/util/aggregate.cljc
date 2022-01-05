@@ -61,7 +61,7 @@
   Because of this implementation, [[kbn-fold]] is suitable for use
   with [[clojure.core/transduce]]."
   ([] [0.0 0.0])
-  ([[acc c]] (+ acc c))
+  ([acc] (reduce + acc))
   ([[acc c] x]
    (let [acc+x (+ acc x)
          delta (if (>= (Math/abs ^double acc)
@@ -77,78 +77,10 @@
   kbn-fold
   kahan-babushka-neumaier-fold)
 
-;; reference from wiki pointed here:
-;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
-
-(comment
-  ;; Some implementations for tests.
-  (defn boink [acc x]
-    (let [acc+x (+ acc x)
-          delta (if (>= (Math/abs ^double acc)
-                        (Math/abs ^double x))
-                  (+ (- acc acc+x) x)
-                  (+ (- x acc+x) acc))]
-      [acc+x delta]))
-
-  (defn kahan-babushka-klein-fold
-    "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
-    ([] [0.0 0.0 0.0])
-    ([acc] (apply + acc))
-    ([[acc c1 c2] x]
-     (let [[acc delta] (boink acc x)
-           [c1 delta]  (boink c1 delta)
-           c2          (+ c2 delta)]
-       [acc c1 c2])))
-
-  ;; Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements
-
-  (defn kahan-babushka-klein-fold-n
-    "NOTE that this is the more general thing, probably not great to use it."
-    [i]
-    (fn
-      ([] (into [] (repeat (inc i) 0.0)))
-      ([acc] (apply + acc))
-      ([acc x]
-       (let [[ret delta]
-             (reduce
-              (fn [[acc' x] elem]
-                (let [[elem+x delta] (boink elem x)]
-                  [(conj acc' elem+x) delta]))
-              [[] x]
-              (pop acc))]
-         (conj ret (+ (peek acc) delta)))))))
-
-(comment
-  ;; potential macro version!
-  ;;
-  ;; TODO think about WHAT I actually want to generate. How to do the crazy-ass
-  ;; let binding?
-  (defn boink* [acc x]
-    `(let [acc+x# (+ ~acc ~x)
-           delta# (if (>= (Math/abs ~(with-meta acc {:tag 'double}))
-                          (Math/abs ~(with-meta x {:tag 'double})))
-                    (+ (- ~acc acc+x#) ~x)
-                    (+ (- ~x acc+x#) ~acc))]
-       [acc+x# delta#]))
-
-  (defmacro kahan-babushka-klein-fold-macro
-    "Right now this is hardcoded at 2."
-    [n]
-    (let [syms ['acc 'c1 'c2] #_(repeatedly (inc n) (gensym))
-          x     (gensym)
-          delta (gensym)]
-      `(fn ([] ~(into [] (repeat (inc n) 0.0)))
-         ([acc#] (reduce + acc#))
-         ([~syms ~x]
-          (let [[~'acc ~delta] ~(boink* 'acc x)
-                [~'c1 ~delta]  ~(boink* 'c1 delta)
-                ~'c2          (+ ~'c2 ~delta)]
-            [~'acc ~'c1 ~'c2]))))))
-
 (defn kahan-babushka-klein-fold
   "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
   ([] [0.0 0.0 0.0])
-  ([[acc cs ccs]]  (+ acc cs ccs))
+  ([acc] (reduce + acc))
   ([[acc cs ccs] x]
    (let [acc+x (+ acc x)
          ;; called `c` in the algo...
@@ -167,6 +99,39 @@
        :doc "boom, defaults to [[kahan-babushka-neumaier-fold]]."}
   *fold*
   kahan-babushka-neumaier-fold)
+
+;; ## Note that this is a pattern...
+
+;; reference from wiki pointed here:
+;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
+
+;; ## Macro Version
+
+(defn- klein-term [acc delta]
+  `[sum# (+ ~acc ~delta)
+    ~delta (if (>= (Math/abs ~(with-meta acc {:tag 'double}))
+                   (Math/abs ~(with-meta delta {:tag 'double})))
+             (+ (- ~acc sum#) ~delta)
+             (+ (- ~delta sum#) ~acc))
+    ~acc sum#])
+
+(defn- kbk-foldn-body
+  "Split out from the macro so we can use it to build SCI macros."
+  [n]
+  (let [syms   (into [] (repeatedly (inc n) gensym))
+        prefix (pop syms)
+        final  (peek syms)
+        delta  (gensym)]
+    `[([] [~@(repeat (inc n) 0.0)])
+      ([accs#] (reduce + accs#))
+      ([~syms ~delta]
+       (let [~@(mapcat #(klein-term % delta) prefix)]
+         [~@prefix (+ ~final ~delta)]))]))
+
+;; TODO docs, implement in SCI.
+
+(defmacro kbk-foldn [n]
+  `(fn ~@(kbk-foldn-body n)))
 
 ;; TODO note that any monoid works!
 
