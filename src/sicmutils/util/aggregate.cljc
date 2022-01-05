@@ -64,23 +64,45 @@
   ([[acc c]] (+ acc c))
   ([[acc c] x]
    (let [acc+x (+ acc x)
-         new-c (+ (if (>= (Math/abs ^double acc)
-                          (Math/abs ^double x))
-                    (+ (- x acc+x) acc)
-                    (+ (- x acc+x) acc))
-                  c)]
-     [acc+x new-c])))
+         delta (if (>= (Math/abs ^double acc)
+                       (Math/abs ^double x))
+                 ;; If sum is bigger, low-order digits of `x` are lost.
+                 (+ (- acc acc+x) x)
+
+                 ;; else, low-order digits of `sum` are lost.
+                 (+ (- x acc+x) acc))]
+     [acc+x (+ c delta)])))
 
 (def ^{:doc "Shorter alias for [[kahan-babushka-neumaier-fold]]."}
   kbn-fold
   kahan-babushka-neumaier-fold)
 
+(defn kahan-babushka-klein-fold
+  "Klein: https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements"
+  ([] [0.0 0.0 0.0])
+  ([[acc cs ccs]]  (+ acc cs ccs))
+  ([[acc cs ccs] x]
+   ;; TODO see if I can reuse the fold above! TWO calls to fold above.
+   (let [acc+x (+ acc x)
+         ;; called `c` in the algo...
+         delta (if (>= (Math/abs ^double acc)
+                       (Math/abs ^double x))
+                 (+ (- acc acc+x) x)
+                 (+ (- x acc+x) acc))
+         sum' acc+x ;; recur with this?
+         cs+delta (+ cs delta)
+         cc (if (>= (Math/abs ^double cs)
+                    (Math/abs ^double delta))
+              (+ (- cs cs+delta) delta)
+              (+ (- delta cs+delta) cs))]
+     [acc+x cs+delta (+ ccs cc)])))
+
 (def ^{:dynamic true
        :doc "boom, defaults to [[kahan-fold]]."}
   *fold*
-  ;; TODO investigate riemann-test, what was up here?? was it not converging?
-  ;; tolerance too high?
-  kahan-fold)
+  kahan-babushka-neumaier-fold)
+
+;; TODO note that any monoid works!
 
 (defn sum
   "Sums either:
