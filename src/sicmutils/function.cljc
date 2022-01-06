@@ -25,15 +25,16 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
   for a discussion of generic function arithmetic."
   (:refer-clojure :rename {get core-get
-                           get-in core-get-in}
-                  #?@(:cljs [:exclude [get get-in]]))
+                           get-in core-get-in
+                           memoize core-memoize}
+                  #?@(:cljs [:exclude [get get-in memoize]]))
   (:require [clojure.core.match :refer [match]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang RestFn Fn MultiFn Keyword Symbol Var)
+     (:import (clojure.lang AFunction RestFn MultiFn Keyword Symbol Var)
               (java.lang.reflect Method))))
 
 ;; ## Function Algebra
@@ -93,6 +94,20 @@
   (let [a (arity (or (last fns)
                      identity))]
     (with-meta (apply comp fns) {:arity a})))
+
+(defn memoize
+  "meta-preserving version of `clojure.core/memoize`.
+
+  The returned function will have a new `:arity` entry in its metadata with the
+  `arity` of the original `f`; this is because the process used to figure out a
+  function's arity will not work across the memoization boundary."
+  [f]
+  (let [m (meta f)
+        m (if (:arity m)
+            m
+            (assoc m :arity (arity f)))]
+    (with-meta (core-memoize f)
+      m)))
 
 (defn get
   "For non-functions, acts like [[clojure.core/get]]. For function
@@ -200,7 +215,7 @@
       (core-get @v/object-name-map f f)))
   (kind [o] ::v/function)
 
-  #?(:clj Fn :cljs function)
+  #?(:clj AFunction :cljs function)
   (zero? [_] false)
   (one? [_] false)
   (identity? [_] false)
@@ -353,7 +368,7 @@
   functions is a bit complicated. It involves reflection, so the results are
   definitely worth memoizing."}
   reflect-on-arity
-  (memoize
+  (core-memoize
    #?(:cljs js-arity :clj jvm-arity)))
 
 (def ^{:dynamic true
@@ -365,7 +380,7 @@
 
 #?(:clj
    (extend-protocol IArity
-     Fn
+     AFunction
      (arity [f] (:arity (meta f) (reflect-on-arity f))))
 
    :cljs
@@ -384,34 +399,34 @@
   ([] [:at-least 0])
   ([a] a)
   ([a b]
-   (let [fail (fn []
-                (if *strict-arity-checks*
-                  (u/illegal (str "Incompatible arities: " a " " b))
-                  [:at-least 0]))]
+   (letfn [(fail []
+             (if *strict-arity-checks*
+               (u/illegal (str "Incompatible arities: " a " " b))
+               [:at-least 0]))]
      ;; since the combination operation is symmetric, sort the arguments
      ;; so that we only have to implement the upper triangle of the
      ;; relation.
-     (if (< 0 (compare (first a) (first b)))
+     (if (pos? (compare (first a) (first b)))
        (combine-arities b a)
        (match [a b]
-         [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
-         [[:at-least k] [:between m n]] (let [m (max k m)]
-                                          (cond (= m n) [:exactly m]
-                                                (< m n) [:between m n]
-                                                :else (fail)))
-         [[:at-least k] [:exactly l]] (if (>= l k)
-                                        [:exactly l]
-                                        (fail))
-         [[:between m n] [:between m2 n2]] (let [m (max m m2)
-                                                 n (min n n2)]
-                                             (cond (= m n) [:exactly m]
-                                                   (< m n) [:between m n]
-                                                   :else (fail)))
-         [[:between m n] [:exactly k]] (if (and (<= m k)
-                                                (<= k n))
-                                         [:exactly k]
-                                         (fail))
-         [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
+              [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+              [[:at-least k] [:between m n]] (let [m (max k m)]
+                                               (cond (= m n) [:exactly m]
+                                                     (< m n) [:between m n]
+                                                     :else (fail)))
+              [[:at-least k] [:exactly l]] (if (>= l k)
+                                             [:exactly l]
+                                             (fail))
+              [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                      n (min n n2)]
+                                                  (cond (= m n) [:exactly m]
+                                                        (< m n) [:between m n]
+                                                        :else (fail)))
+              [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                     (<= k n))
+                                              [:exactly k]
+                                              (fail))
+              [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
 
 (defn joint-arity
   "Find the most relaxed possible statement of the joint arity of the given sequence of `arities`.

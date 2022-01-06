@@ -23,6 +23,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
+            [pattern.match :as pm]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
@@ -37,54 +38,85 @@
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
-(deftest value-protocol-tests
-  (testing "zero?"
-    (is (v/zero? (s/up)))
-    (is (v/zero? (s/down)))
-    (is (v/zero? (s/down 0)))
-    (is (v/zero? (s/up 0 0)))
-    (is (v/zero? (s/up 0)))
-    (is (v/zero? (s/down 0 0)))
-    (is (v/zero? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
-    (is (v/zero? (s/up 0 (u/long 0) (u/int 0)))))
+(deftest interface-tests
+  (checking "Clojure interface definitions" 100
+            [q (sg/structure1 (sg/reasonable-double))]
+            (let [v (vec q)]
+              (is (coll? q))
+              (is (seqable? q))
+              (is (sequential? q))
 
-  (testing "zero-like"
-    (is (v/zero? (v/zero-like (s/up 1 2 3))))
-    (is (= (s/up 0 0 0) (v/zero-like (s/up 1 2 3))))
-    (is (= (s/up) (v/zero-like (s/up))))
-    (is (= (s/down 0 0 0) (v/zero-like (s/down 1 2 3))))
-    (is (= (s/down) (v/zero-like (s/down))))
-    (is (= (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))
-           (v/zero-like (s/up 1 (s/down (s/up 2 3) (s/up 4 5))))))
-    (is (= (s/up (u/long 0) (u/int 0) 0)
-           (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
+              (is (reversible? q))
+              (is (= (rseq v) (rseq q))
+                  "rseq matches vector impl")
 
-  (testing "one-like"
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/one-like (s/up 1 2 3)))))
+              (is (counted? q))
+              (is (= (count v) (count q))
+                  "count matches vector impl")
 
-  (testing "identity-like"
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/identity-like (s/up 1 2 3)))))
+              (is (associative? q))
+              (is (indexed? q))
+              (is (ifn? q))
 
-  (testing "exact?"
-    (is (v/exact? (s/up 1 2 3 4)))
-    (is (not (v/exact? (s/up 1.2 3 4))))
-    (is (v/exact? (s/up 0 1 #sicm/ratio 3/2)))
-    (is (not (v/exact? (s/up 0 0 0.00001)))))
+              (is (= (reduce-kv + 0 v)
+                     (reduce-kv + 0 q))
+                  "reduce-kv matches vector impl")
 
-  (testing "numerical?"
-    (is (not (v/numerical? (s/up 1 2 3 4)))
-        "no structure is numerical."))
+              (is (= (reduce + 0 v)
+                     (reduce + v)
+                     (reduce + 0 q)
+                     (reduce + q))
+                  "reduce matches vector impl")))
 
-  (testing "freeze"
-    (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
+  (testing "value protocol"
+    (testing "zero?"
+      (is (v/zero? (s/up)))
+      (is (v/zero? (s/down)))
+      (is (v/zero? (s/down 0)))
+      (is (v/zero? (s/up 0 0)))
+      (is (v/zero? (s/up 0)))
+      (is (v/zero? (s/down 0 0)))
+      (is (v/zero? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
+      (is (v/zero? (s/up 0 (u/long 0) (u/int 0)))))
 
-  (testing "kind"
-    (is (= ::s/up (v/kind (s/up 1 2))))
-    (is (= ::s/down (v/kind (s/down (s/up 1 2)
-                                    (s/up 2 3))))
-        "Kind only depends on the outer wrapper, not on the contents."))
+    (testing "zero-like"
+      (is (v/zero? (v/zero-like (s/up 1 2 3))))
+      (is (= (s/up 0 0 0) (v/zero-like (s/up 1 2 3))))
+      (is (= (s/up) (v/zero-like (s/up))))
+      (is (= (s/down 0 0 0) (v/zero-like (s/down 1 2 3))))
+      (is (= (s/down) (v/zero-like (s/down))))
+      (is (= (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))
+             (v/zero-like (s/up 1 (s/down (s/up 2 3) (s/up 4 5))))))
+      (is (= (s/up (u/long 0) (u/int 0) 0)
+             (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
+
+    (testing "one-like"
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   (v/one-like (s/up 1 2 3)))))
+
+    (testing "identity-like"
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   (v/identity-like (s/up 1 2 3)))))
+
+    (testing "exact?"
+      (is (v/exact? (s/up 1 2 3 4)))
+      (is (not (v/exact? (s/up 1.2 3 4))))
+      (is (v/exact? (s/up 0 1 #sicm/ratio 3/2)))
+      (is (not (v/exact? (s/up 0 0 0.00001)))))
+
+    (testing "numerical?"
+      (checking "no structure is numerical." 100
+                [s (sg/structure sg/real)]
+                (is (not (v/numerical? s)))))
+
+    (testing "freeze"
+      (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
+
+    (testing "kind"
+      (is (= ::s/up (v/kind (s/up 1 2))))
+      (is (= ::s/down (v/kind (s/down (s/up 1 2)
+                                      (s/up 2 3))))
+          "Kind only depends on the outer wrapper, not on the contents.")))
 
   (testing "string rep"
     (is (= "(up sin cos tan)" (x/expression->string
@@ -155,6 +187,21 @@
   (arity-check s/down* "s/down"))
 
 (deftest structure-interfaces
+  (testing "pattern matching"
+    (testing "non-seq sequential? things like structures are treated as eq
+              matchers, not automatically converted to sequence matchers."
+      (let [expr (pm/sequence
+                  ;; structures are `sequential?` but not `seq`s.
+                  (s/down '?a 10)
+                  '(* ?a ?c))]
+        (is (= '{?a x ?c 12}
+               (pm/match expr [(s/down '?a 10) '(* x 12)]))
+            "structure matcher matches a LITERAL ?a, and does not bind.")
+
+        (is (pm/failed?
+             (pm/match expr [(s/up '?a 10) '(* x 12)]))
+            "fails here since down != up"))))
+
   (testing "count"
     (is (= 3 (count (s/up 1 2 3))))
     (is (= 3 (count (s/up 4 5 6))))
@@ -323,18 +370,16 @@
   (checking "s/component" 100
             [s (sg/structure1
                 (sg/structure1 sg/real 5) 5)]
-            (doall
-             (for [i (range 0 5)
-                   j (range 0 5)]
-               (is (= (get-in s [i j])
-                      ((s/component i j) s))))))
+            (doseq [i (range 0 5)
+                    j (range 0 5)]
+              (is (= (get-in s [i j])
+                     ((s/component i j) s)))))
 
   (testing "same-orientation?"
     (testing "up and vector same"
-      (doall
-       (for [l [(s/up 1 2) [1 2]]
-             r [(s/up 1 2) [1 2]]]
-         (is (s/same-orientation? l r)))))
+      (doseq [l [(s/up 1 2) [1 2]]
+              r [(s/up 1 2) [1 2]]]
+        (is (s/same-orientation? l r))))
 
     (testing "down is unique"
       (is (s/same-orientation? (s/down 1 2) (s/down 1 2)))
@@ -656,26 +701,28 @@
        (gen/tuple <l| inner |r>)))))
 
 (deftest combining-tests
-  (checking "<l|:inner:|r> == <r|:inner^t:|l> for collapsing structures" 100
+  (checking "<l|:inner:|r>^t == <r|:inner^t:|l> for collapsing structures" 100
             [[l inner r] (gen/let [rows (gen/choose 1 5)
                                    cols (gen/choose 1 5)]
                            (<l|:inner:|r> rows cols))]
             (is (v/zero?
                  (g/simplify
-                  (g/- (g/* l (g/* inner r))
+                  (g/- (g/transpose
+                        (g/* l (g/* inner r)))
                        (g/* (g/* (g/transpose r)
                                  (s/transpose inner))
                             (g/transpose l)))))))
 
-  (checking "<l|:inner:|r> == <r|:inner^t:|l> with empty r" 100
+  (checking "<l|:inner:|r>^t == <r|:inner^t:|l> with empty r" 100
             [[l inner r] (gen/let [n (gen/choose 1 5)]
                            (<l|:inner:|r> n 0))]
 
-            (is (= (v/zero-like l)
-                   (g/- (g/* l (g/* inner r))
-                        (g/* (g/transpose r)
-                             (g/* (s/transpose inner)
-                                  (g/transpose l)))))
+            (is (v/zero?
+                 (g/- (g/transpose
+                       (g/* l (g/* inner r)))
+                      (g/* (g/transpose r)
+                           (g/* (s/transpose inner)
+                                (g/transpose l)))))
                 "unlike the previous law, this produces an uncollapsed,
                 fully-zero structure."))
 
@@ -693,14 +740,17 @@
                   (g/- (g/* l (g/* inner r))
                        (g/* (g/* (s/transpose-outer inner) l) r))))))
 
-  (checking "cols=0 transpose-outer law produces (zero-like l)" 100
+  (checking "cols=0 transpose-outer law produces incompatible sides" 100
             [[rows [l inner r]] (gen/let [rows (gen/choose 1 5)]
                                   (gen/tuple (gen/return rows)
                                              (<l|:inner:|r> rows 0)))]
-            (is (= (v/zero-like l)
-                   (g/- (g/* l (g/* inner r))
-                        (g/* (g/* (s/transpose-outer inner) l) r)))
-                "`r` has no structure to collapse the first result."))
+            (is (v/zero?
+                 (g/* l (g/* inner r)))
+                "the left side is a structure of zeros")
+
+            (is (empty?
+                 (g/* (g/* (s/transpose-outer inner) l) r))
+                "the right side is an empty structure"))
 
   (testing "transpose-outer unit"
     (let [foo (s/down (s/down (s/up 'x 'y)
@@ -872,6 +922,12 @@
                 "conjugate the left arg!")))
 
 (deftest structure-generics
+  (testing "generic arithmetic handles zero"
+    (is (= (s/up 0 0 0)
+           (g/* 0 0 0 (s/up 0 0 0) 0 0))
+        "make sure that leading zeros don't stop the reduction and `g/*`
+        discovers it needs to return a proper structure."))
+
   (testing "up/down +, same kind"
     (is (= (+ (s/up 1 2) (s/up 2 3))
            (s/up 3 5)))

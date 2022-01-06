@@ -2,6 +2,255 @@
 
 ## [unreleased]
 
+- #448:
+
+  - new `g/infinite?` generic with implementations for all numeric types,
+    complex numbers, `differential` instances. Defaults to `false` for all other
+    types. (Also aliased into `sicmutils.env/infinite?`).
+
+  - The infix, TeX and JavaScript renderers (`->infix`, `->TeX` and
+    `->JavaScript`) all properly render `##Inf` and `##-Inf`. Infix uses the
+    Unicode symbol ∞, while `->TeX` uses the LaTeX command `\infty`.
+    Javascript's `Infinity` stands in for `##Inf` in generated JS code.
+
+  - Complex numbers now respond `true` to `g/negative?` if their imaginary
+    component is zero and real component is negative, false otherwise.
+
+  - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
+    side. This was causing bugs in cases where we allow, say, a scalar to be
+    added to a quaternion, and auto-convert the scalar right there (so it adds
+    only to the real part). OR in cases, like in the matrix PR, where we convert
+    the scalar in addition to `<scalar>*I*`.
+
+    - This caused some problems with `sicmutils.matrix` tests that were not well
+      typed.
+
+  - The default `expt` implementation is now available as a function to call
+    directly (`sicmutils.generic/default-expt`) without going through the
+    dispatch system.
+
+- #447 contains a grab-bag of fixes and additions, many related to complex
+  numbers:
+
+  - Use `Math/E` instead of `(Math/exp 1)` for euler's constant in
+    `sicmutils.env`.
+
+  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+    missing an `up` or `down`index type.
+
+  - symbolic `dot-product` and `inner-product`
+
+  - `inner-product` now defaults to `dot-product` for scalar instances. This is
+    correct for all numeric types we currently have, since `complex` is the only
+    tough case, and it has real coefficients.
+
+  - simplify now does NOT freeze expressions before simplifying. This allows
+    complex numbers to survive simplification, since they freeze to `(complex
+    <re> <im>)`.
+
+    - big rewrite in `sicmutils.simplify.rules`, to convert all of the frozen
+      matchers like `(complex 1 2)` into matchers that actually bind to a
+      complex number.
+
+    - more rules in `complex-trig`, it can now handle bigger products inside of
+      `sin` and `cos` multiplied by `I`.
+
+  - Various improvements to `sicmutils.complex`:
+
+    - complex implementations for `dot-product` between complex and real types
+
+    - Fixed reflection warnings with `ComplexFormat`in complex parsing code
+
+    - complex `zero?` now returns true for inputs like `(complex -0.0 -0.0)`,
+      where a negative zero lives in the real or imaginary slots
+
+    - new `sicmutils.complex/-I` binding, set to `(g/negate c/I)`
+
+    - `g/expt` for complex numbers optimizes the inputs equal to `I` by
+      returning exact 1, -1, `I` or `-I` depending on the input. This applies to
+      `g/square` and `g/cube` as well.
+
+- #445 fixes a bug where structures and other seq-able types were interpreted as
+  sequence matchers.
+
+  In `pattern.match` and all rules, things that respond true to `sequential?`
+  but not `seq?` or `vector?` (many of the sicmutils types, like structures and
+  the upcoming Quaternion type) were being converted to `seq` and treated as
+  sequence matchers vs literal matchers. This no longer happens, and structures
+  etc are treated as literal matchers.
+
+- #443:
+
+  - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`
+    and `reduce-kv` to work with structures.
+
+  - Removes a `reduced` shortcut condition in `sicmutils.generic/*` that was
+    causing multiplications of the form `(* 0 0 (up 0 0))` to shortcut and
+    return `0` instead of the appropriate structural form.
+
+  - the `atan` implementation for symbolic numbers is now careful not to return
+    a floating point number in the case of a 0 argument in the second position.
+    Additionally, it now returns symbolic `pi` or 0 in the case of `0` in the y
+    argument for positive and negative `x` argument, respectively, and symbolic
+    `(/ pi 2)` or `(- (/ pi 2))` for a 0 `x` argument and respective positive or
+    negative `y` argument.
+
+- #442 fixes #441 by upgrading the implementations of
+  `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
+  handle large inputs. Thanks to @swapneils for the report.
+
+- #440:
+
+  - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.
+
+  - Fixes a bug in `sicmutils.rules/exp-contract` leftover from the port from
+    Scheme. Thanks to @adamhaber for pointing this out!
+
+- #438:
+
+  - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
+    applicable. In cases where we were trying to force side effects (mostly in
+    the tests), this change prevents the environment from retaining the full
+    sequence. This will save memory!
+
+  - adds missing tests from `connection.scm` to
+    `sicmutils.calculus.connection-test`, stressing pages 205 - 213 from MTW,
+    Gravitation.
+
+- #434: allow pattern matching forms to successfully bind to `nil` or `false`.
+
+- #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
+  coordinate symbols that start with the same symbol as the coordinate system's
+  prototype, like:
+
+```clj
+(typical-coords R2-polar)
+;;=> (up x065308 x165309)
+
+(typical-coords
+ (with-coordinate-prototype R2-polar (up 'r 'theta)))
+;;=> (up r65312 theta65313)
+```
+
+## 0.20.1
+
+- #396:
+
+  - fixes a bug in the SCI version of `define-coordinates` which didn't allow
+    any rebinding of manifolds.
+
+  - Removes the `bindings` key from `sicmutils.env.sci/context-opts`.
+    https://github.com/babashka/sci/issues/637 is a bug with variable rebinding
+    that occurs when `:bindings` is in play. Instead of relying on this key,
+    evaluate `(require '[sicmutils.env :refer :all])` against your SCI
+    environment to get all bindings.
+
+  - bumps the default version of SCI to 0.2.7.
+
+## 0.20.0
+
+- #348:
+
+  - Adds a new single arity version of
+    `sicmutils.util.permute/permutation-parity`, which returns the parity of a
+    permutation relative to its sorted version.
+
+  - `sicmutils.complex/complex` can now take a single string argument in both
+    Clojure and Clojurescript.
+
+  - Expands the complex number literal parser to take these forms, in addition
+    to the previously-supported string argument:
+
+```clj
+#sicm/complex [1.2 3.6]    ;; 1.2+3.6i
+#sicm/complex [1.2]        ;; 1.2
+#sicm/complex 1.4          ;; 1.4
+#sicm/complex "1.2 + 3.6i" ;; 1.2+3.6i
+```
+
+- #394 fixes a bug with derivatives of functions that returned a map... but
+  where the map was actually meant to represent some other type, by holding a
+  `:type` key. We do this for manifold families and manifold points, as two
+  examples. Now, instead of recursing into the values, the system will correctly
+  throw an error. (You can fix this by using a `defrecord` instead of a map and
+  implementing `sicmutils.differential/IPerturbed`.)
+
+- #393:
+
+  - Forms like `(let-coordinates [(up x y) R2-rect] ...)` will now work even if
+    `up` is not present in the environment. Previously this syntax was valid,
+    but only if `up` had been imported.
+
+  - Adds the `sicmutils.calculus.coordinate/define-coordinates` macro, also
+    aliased into `sicmutils.env`. This macro allows you to write forms like
+
+```clj
+(define-coordinates (up t x y z) spacetime-rect)
+(define-coordinates [r theta] R2-polar)
+```
+
+  and install set of bindings for a manifold's coordinate functions, basis
+  vector fields and basis form fields into a namespace. This is used liberally
+  in Functional Differential Geometry. (You might still prefer `let-coordinates`
+  for temporary binding installation.)
+
+  - Converts many of the `sicmutils.fdg` test namespaces to use the new
+    `define-coordinates` macro, making for a presentation closer to the book's.
+
+  - Fixes a Clojurescript warning in `sicmutils.util` warning due to
+    redefinition of `clojure.core/uuid`
+
+- #386:
+
+  - Aliases `sicmutils.mechanics.hamilton/phase-space-derivative` into
+    `sicmutils.env`, and adds `sicmutils.sr.frames/base-frame-maker`. The latter
+    function makes it easier to write reference frames like `the-ether`, as with
+    the `home` variable in chapter 11 of FDG.
+
+  - Adds all code listings from chapters 10 and 11 of FDG as
+    `sicmutils.fdg.{ch9,ch10}-test`.
+
+- #384:
+
+  - Adds `sicmutils.fdg.ch9-test`, with tests for all forms from FDG's 9th
+    chapter.
+
+  - Tests from `sicmutils.fdg.einstein-test` now all work, and quite fast. The
+    functions in this namespace comprise some of the exercises from FDG chapter
+    9. (Einstein's Field Equations hung until this PR... getting these working
+    is a huge achievement for me, and, in some sense, the final milestone of the
+    Big Port from scmutils.)
+
+  - Adds `sicmutils.function/memoize`, a metadata-and-function-arity preserving
+    version of `clojure.core/memoize`.
+
+  - in `sicmutils.calculus.indexed`, `with-argument-types` and
+    `with-index-types` now both correctly set the arity of the returned
+    function, in addition to the argument types or indices.
+    `sicmutils.function/arity` will now work correctly with indexed or typed
+    functions.
+
+  - Adds new `manifold?` and `manifold-family?` functions in `sicmutils.env` and
+    `sicmutils.calculus.manifold`. These are enabled by new `:type
+    :sicmutils.calculus.manifold/{manifold,manifold-family}` keys in the
+    appropriate structures in the manifold namespace. Manifolds and manifold
+    families will now respond with these keywords to `sicmutils.value/kind`.
+
+  - The `sicmutils.calculus.manifold/ICoordinateSystem` now has a `uuid`
+    function, for internal comparison of coordinate systems. This is here so
+    that points can cache coordinate system representations by UUID. Before this
+    change, changing the coordinate prototype, or attaching metadata to a
+    coordinate system would break its cache entry in manifold points. (This was
+    the killer for the Einstein Field Equations!)
+
+  - `sicmutils.calculus.manifold/{coordinate-prototype,with-coordinate-prototype}`
+     now store and retrieve the coordinate prototype from metadata. This plus
+     the previous change allows manifold points to correctly cache their
+     coordinate representations.
+
+  - `sicmutils.calculus.manifold/manifold` acts as identity on manifolds now.
+    Previously it only worked on coordinate systems.
+
 - #382:
 
   - Makes the `name` argument to `sicmutils.operator/make-operator` optional.
@@ -87,7 +336,8 @@ into shape.
 > at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
 > page!)
 
-This release focused on improving the expressiveness and performance of the three simplification engines in SICMUtils:
+This release focused on improving the expressiveness and performance of the
+three simplification engines in SICMUtils:
 
   - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
     fleshed out, with full polynomial and rational function APIs and many

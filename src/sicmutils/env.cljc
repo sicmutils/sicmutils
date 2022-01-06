@@ -43,7 +43,7 @@
                            = core=}
                   :exclude [+ - * / zero? compare divide
                             numerator denominator
-                            #?@(:cljs [= partial])])
+                            #?@(:cljs [= partial infinite?])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
@@ -125,6 +125,9 @@
 (defmacro using-coordinates [& args]
   `(cc/using-coordinates ~@args))
 
+(defmacro define-coordinates [& args]
+  `(cc/define-coordinates ~@args))
+
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
   elsewhere."
@@ -174,7 +177,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
   sometimes known as Euler's Number."}
   euler
-  (Math/exp 1))
+  Math/E)
 
 (def ^{:doc "The mathematical constant known as the [Euler–Mascheroni
   constant](https://en.wikipedia.org/wiki/Euler%E2%80%93Mascheroni_constant) and
@@ -249,7 +252,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.generic
   * + - / divide
   negate
-  negative?
+  negative? infinite?
   invert
   abs
   sqrt
@@ -374,6 +377,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   make-manifold coordinate-system-at
   manifold-type
   patch-names coordinate-system-names
+  manifold?
+  manifold-family?
   manifold-point?
   chart point
   typical-coords typical-point transfer-point
@@ -444,6 +449,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
  [sicmutils.sr.frames
   make-SR-coordinates SR-coordinates? SR-name make-SR-frame
+  base-frame-maker
   the-ether boost-direction v:c coordinate-origin
   add-v:cs add-velocities]
 
@@ -486,6 +492,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Hamilton-equations
   Hamiltonian
   Hamiltonian->state-derivative
+  phase-space-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
   Lie-transform

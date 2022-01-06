@@ -107,7 +107,7 @@
     `(let [[~@c-systems :as c-systems#]
            (mapv m/with-coordinate-prototype
                  ~(into [] c-systems)
-                 ~(mapv #(cc/quotify-coordinate-prototype identity %) prototypes))
+                 ~(mapv cc/quotify-coordinate-prototype prototypes))
 
            ~(into [] coordinate-names)
            (flatten
@@ -130,6 +130,32 @@
          [coordinate-prototype coordinate-system]
          body))
 
+(defn define-coordinates
+  "Originally defined in `sicmutils.calculus.coordinate`."
+  [_ _ coordinate-prototype coordinate-system]
+  (let [sys-name           (symbol (name coordinate-system))
+        coord-names        (cc/symbols-from-prototype coordinate-prototype)
+        vector-field-names (map vf/coordinate-name->vf-name coord-names)
+        form-field-names   (map ff/coordinate-name->ff-name coord-names)
+        sys-sym            (gensym)
+        value-sym          (gensym)
+        bind               (fn [sym form]
+                             `(do (clojure.core/ns-unmap *ns* '~sym)
+                                  (clojure.core/intern *ns* '~sym ~form)))]
+    `(let [~sys-sym (m/with-coordinate-prototype
+                      ~coordinate-system
+                      ~(cc/quotify-coordinate-prototype coordinate-prototype))]
+       ~(bind sys-name sys-sym)
+       (let [~value-sym
+             (into [] (flatten
+                       [(cc/coordinate-functions ~sys-sym)
+                        (vf/coordinate-system->vector-basis ~sys-sym)
+                        (ff/coordinate-system->oneform-basis ~sys-sym)]))]
+         ~@(map-indexed
+            (fn [i sym]
+              (bind sym `(nth ~value-sym ~i)))
+            (concat coord-names vector-field-names form-field-names))))))
+
 (defn- tag-as-macro [f]
   (vary-meta f assoc :sci/macro true))
 
@@ -137,7 +163,8 @@
   {'literal-function       (tag-as-macro literal-function)
    'with-literal-functions (tag-as-macro with-literal-functions)
    'let-coordinates        (tag-as-macro let-coordinates)
-   'using-coordinates      (tag-as-macro using-coordinates)})
+   'using-coordinates      (tag-as-macro using-coordinates)
+   'define-coordinates     (tag-as-macro define-coordinates)})
 
 (def pattern-macros
   {'pattern     (tag-as-macro pattern)
@@ -155,4 +182,5 @@
    (select-keys all ['with-literal-functions])
 
    'sicmutils.calculus.coordinate
-   (select-keys all ['let-coordinates 'using-coordinates])})
+   (select-keys all ['let-coordinates 'using-coordinates
+                     'define-coordinates])})

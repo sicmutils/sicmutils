@@ -1086,7 +1086,7 @@
            (A '(- (up (+ (/ d a)
                          (/ (- b) a)))
                   (up (/ (- y) (+ a b))))))
-        "This test exploded without the doall that forces add-symbol! calls in
+        "This test exploded without the `doall` that forces add-symbol! calls in
         analyze.clj.")
 
     (is (= 'x (A '(* (/ 1 2) (+ x x)))))

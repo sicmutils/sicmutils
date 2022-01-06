@@ -135,36 +135,32 @@
         (e/typical-point coordsys))))))
 
 (deftest bianchi-identities
-  ;; The default test suite comments out the second Bianchi identity for both
-  ;; cases, since it runs slow (even in the R2 case!). Feel free to run it
-  ;; yourself below.
-  ;;
   ;; Feel free to run these with different coordinate systems! The chart below
   ;; contains timing information for R2-rect, R3-rect and R4-rect.
   ;;
   ;;
   ;; With a (torsion-free) symmetric connection:
   ;;
-  ;; +----------+--------------+---------------+
-  ;; |          | Bianchi 1    | Bianchi 2     |
-  ;; +----------+--------------+---------------+
-  ;; |R2        | 52ms, 120ms  | 1.29s, 1.7s   |
-  ;; +----------+--------------+---------------+
-  ;; |R3        | 426ms, 800ms | 1.02m, 88s    |
-  ;; +----------+--------------+---------------+
-  ;; |R4        | 2.17s, 3.5s  | 17.44m, 41.2m |
-  ;; +----------+--------------+---------------+
+  ;; +----------+--------------+--------------+
+  ;; |          | Bianchi 1    | Bianchi 2    |
+  ;; +----------+--------------+--------------+
+  ;; |R2        | 52ms, 120ms  | 900ms, 1.4s  |
+  ;; +----------+--------------+--------------+
+  ;; |R3        | 230ms, 700ms | 42s, 75s     |
+  ;; +----------+--------------+--------------+
+  ;; |R4        | 1.2s, 2.7s   | 12m, 32.7m   |
+  ;; +----------+--------------+--------------+
   ;;
   ;; With a general connection (with torsion):
   ;;
   ;; +----------+--------------+--------------+
   ;; |          | Bianchi 1    | Bianchi 2    |
   ;; +----------+--------------+--------------+
-  ;; |R2        | 199ms, 400ms | 1.38s, 2.5s  |
+  ;; |R2        | 100ms, 350ms | 1.38s, 2.5s  |
   ;; +----------+--------------+--------------+
-  ;; |R3        | 1.33s, 2.2s  | 26.74s, 36s  |
+  ;; |R3        | 700ms, 1.9s  | 9s, 22s      |
   ;; +----------+--------------+--------------+
-  ;; |R4        | 6.96s, 10.1s | 4.82m, 6.6m  |
+  ;; |R4        | 3.7s, 9s     | ~2m,  4m     |
   ;; +----------+--------------+--------------+
 
   (testing "A system with a symmetric connection is torsion-free."

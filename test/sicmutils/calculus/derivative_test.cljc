@@ -151,7 +151,18 @@
               :cube '(* 3 (expt x 2))}
              (simplify ((D f) 'x)))
           "derivative of a fn returning a map returns the derivative for each
-          value")))
+          value"))
+
+    (letfn [(f [x]
+              {:type ::my-custom-type
+               :square (g/square x)
+               :cube   (g/cube x)})]
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                   ((D f) 'x))
+          "If the function returns a map with a `:type` key, the system will NOT
+          attempt to recurse into the values, and will instead error. (If you
+          want to take derivatives of some object represented with a map, either
+          use a `defrecord` or `deftype` or file an issue to discuss!.)")))
 
   (testing "Operator"
     (letfn [(f [x]
@@ -377,8 +388,9 @@
 
 (deftest complex-derivatives
   (let [f (fn [z] (* c/I (sin (* c/I z))))]
-    (is (= '(* -1 (cosh z))
-           (simplify ((D f) 'z))))))
+    (is (= '(* -1.0 (cosh z))
+           (simplify
+            ((D f) 'z))))))
 
 (deftest operator-tests
   (testing "operator multiplication by fn == "

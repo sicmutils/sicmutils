@@ -108,8 +108,10 @@
      (components->vector-field
       components coordinate-system name)))
   ([components coordinate-system name]
-   (-> (vector-field-procedure components coordinate-system)
-       (procedure->vector-field name))))
+   (let [vfp (vector-field-procedure components coordinate-system)]
+     (-> (f/memoize
+          (comp f/memoize vfp))
+         (procedure->vector-field name)))))
 
 ;; We can extract the components function for a vector field, given a coordinate
 ;; system.
@@ -201,9 +203,11 @@
 
   To compute the full Jacobian, pass no indices."
   [coordinate-system name & indices]
-  (-> (apply coordinate-basis-vector-field-procedure
-             coordinate-system indices)
-      (procedure->vector-field name)))
+  (let [vfp (apply coordinate-basis-vector-field-procedure
+                   coordinate-system indices)]
+    (-> (f/memoize
+         (comp f/memoize vfp))
+        (procedure->vector-field name))))
 
 (defn ^:no-doc coordinate-name->vf-name
   "From the name `n` of a coordinate, produce the name of the coordinate basis

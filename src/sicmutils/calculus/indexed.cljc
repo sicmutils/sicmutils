@@ -49,13 +49,13 @@
      (k (o/context f) default)
      (k (meta f) default))))
 
-(defn- with-kv
+(defn- with-kvs
   "Returns a copy of `f` with the `k`, `v` pair added to its metadata (if a
   function) or context (if an operator)."
-  [f k v]
+  [f & kvs]
   (if (o/operator? f)
-    (o/with-context f (assoc (o/context f) k v))
-    (vary-meta f assoc k v)))
+    (o/with-context f (apply assoc (o/context f) kvs))
+    (apply vary-meta f assoc kvs)))
 
 (defn argument-types
   "Given an operator or function `f`, returns its registered vector of argument
@@ -84,7 +84,10 @@
 
   Retrieve these types with [[argument-types]]."
   [f types]
-  (with-kv f :arguments (into [] types)))
+  (let [args (into [] types)]
+    (with-kvs f
+      :arguments args
+      :arity [:exactly (count args)])))
 
 (defn index-types
   "Given an operator or function `f`, returns its registered vector of index
@@ -113,7 +116,10 @@
 
   Retrieve these types with [[index-types]]."
   [f types]
-  (with-kv f :index-types (into [] types)))
+  (let [v (into [] types)]
+    (with-kvs f
+      :index-types v
+      :arity [:exactly (count v)])))
 
 ;; An argument-typed function of type (n . m) takes n oneform fields and m
 ;; vector-fields, in that order, and produces a function on a manifold point.
@@ -252,8 +258,8 @@
     (assert (seq i2) "No index types registered for T2!")
     (let [{nu1 'up nd1 'down} (frequencies i1)
           {nu2 'up nd2 'down} (frequencies i2)
-          nup (+ nu1 nu2)
-          ndp (+ nd1 nd2)
+          nup (+ (or nu1 0) (or nu2 0))
+          ndp (+ (or nd1 0) (or nd2 0))
           np  (+ nup ndp)
           n1  (+ nup nd1)]
       (letfn [(product [args]

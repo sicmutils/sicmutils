@@ -101,6 +101,17 @@
              parities)
           "parity cycles between 1 and -1.")))
 
+  (checking "permutation-parity laws" 100 [xs (gen/shuffle (range 6))]
+            (let [sorted (sort xs)]
+              (is (= 1 (p/permutation-parity sorted))
+                  "sorted lists have parity == 1")
+
+              (let [changes (p/permutation-interchanges xs)]
+                (is (= (if (odd? changes) -1 1)
+                       (p/permutation-parity xs))
+                    "given odd interchanges, permutation-parity returns -1, else
+                    1. Never 0 in the single-arg case."))))
+
   (checking "permutation-interchanges" 100
             [xs (gen/vector gen/nat 6)]
             (is (= (p/list-interchanges xs (sort xs))
@@ -141,7 +152,11 @@
 
   (testing "factorial"
     (is (= (apply g/* (range 1 8))
-           (p/factorial 7))))
+           (p/factorial 7)))
+
+    (is (= #sicm/bigint "15511210043330985984000000"
+           (p/factorial 25))
+        "factorial can handle `n` that triggers overflow in cljs and clj."))
 
   (checking "number-of-permutations" 100
             [xs (gen/let [n (gen/choose 0 6)]
@@ -156,7 +171,22 @@
                        (gen/choose 0 n)))]
             (is (= (p/number-of-combinations (count xs) k)
                    (count
-                    (p/combinations xs k))))))
+                    (p/combinations xs k)))))
+
+  (letfn [(n-choose-k [n k]
+            ;; simple but inefficient implementation for comparison with the
+            ;; more efficient method in the library.
+            (g/quotient
+             (p/factorial n)
+             (g/* (p/factorial (- n k))
+                  (p/factorial k))))]
+    (is (= (n-choose-k 1000 290)
+           (p/number-of-combinations 1000 290))
+        "n choose k with large values")
+
+    (is (= (n-choose-k 1000 800)
+           (p/number-of-combinations 1000 800))
+        "k > n/2")))
 
 (deftest permutation-test
   (testing "permutation-sequence"

@@ -43,9 +43,28 @@
   Clojure. The fork in the test here captures the different behavior that will
   appear in evaluated Clojure, vs self-hosted Clojurescript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
-              :cljs '(sicmutils.complex/complex "1 + 2i"))
+              :cljs '(sicmutils.complex/complex 1 2))
+
+           ;; string input:
            (read-string {:readers {'sicm/complex c/parse-complex}}
-                        (pr-str #sicm/complex "1 + 2i"))))))
+                        (pr-str #sicm/complex "1 + 2i"))
+
+           ;; vector input:
+           (read-string {:readers {'sicm/complex c/parse-complex}}
+                        (pr-str #sicm/complex [1 2]))))
+
+    (checking "complex constructor can handle strings OR direct inputs" 100
+              [re (sg/reasonable-double)
+               im (sg/reasonable-double)]
+              (is (= (c/complex re im)
+                     (c/complex (str re " + " im "i")))))
+
+    (testing "complex inputs"
+      (is (= (c/complex 1 2) #sicm/complex [1 2]))
+      (is (= (c/complex 1) #sicm/complex [1]))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex 1.2) #sicm/complex 1.2))
+      (is (= (c/complex "1.2+3.4i") #sicm/complex "1.2+3.4i")))))
 
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some
@@ -55,17 +74,34 @@
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"
-    (is (v/zero? c/ZERO))
-    (is (v/zero? #sicm/complex "0"))
+    (is (every?
+         v/zero?
+         [(c/complex -0.0 -0.0)
+          (c/complex 0.0 -0.0)
+          (c/complex -0.0 0.0)
+          (c/complex 0.0 0.0)
+          (v/zero-like c/ONE)
+          (v/zero-like (c/complex 100))
+          c/ZERO
+          #sicm/complex "0"])
+        "negative zero doesn't affect zero")
+
     (is (not (v/zero? c/ONE)))
     (is (not (v/zero? (c/complex 1.0))))
-    (is (v/zero? (v/zero-like (c/complex 100))))
     (is (= c/ZERO (v/zero-like (c/complex 2))))
     (is (= c/ZERO (v/zero-like #sicm/complex "0 + 3.14i")))
 
-    (is (v/one? c/ONE))
-    (is (v/one? (c/complex 1.0)))
-    (is (v/one? (v/one-like c/ZERO)))
+    (let [ones [c/ONE
+                (c/complex 1.0)
+                (v/one-like c/ZERO)
+                (c/complex 1.0 0.0)
+                (c/complex 1.0 -0.0)]]
+      (is (every? v/one? ones)
+          "-0 in imaginary does not affect one?")
+
+      (is (every? v/identity? ones)
+          "-0 in imaginary does not affect identity?"))
+
     (is (not (v/one? (c/complex 2))))
     (is (not (v/one? (c/complex 0.0))))
 
@@ -87,6 +123,15 @@
 
 (let [pi Math/PI]
   (deftest complex-numbers
+    (testing "v/="
+      (is (v/= #sicm/complex "1+0i" #sicm/bigint 1))
+      (is (not (v/= #sicm/complex "1+2i" #sicm/ratio "1/2")))
+
+      #?(:cljs
+         (testing "CLJS can compare complex with non-complex using clojure.core/="
+           (is (= #sicm/complex "1+0i" #sicm/bigint 1))
+           (is (not= #sicm/complex "1+2i" #sicm/ratio "1/2")))))
+
     (testing "complex constructor and predicate"
       (is (c/complex? c/ONE))
       (is (c/complex? c/I))
@@ -97,6 +142,37 @@
       (let [skip #{:quotient :gcd :remainder :modulo :negative? :exact-divide}]
         (gt/integral-tests c/complex :exclusions skip :eq near)
         (gt/floating-point-tests c/complex :eq near)))
+
+    (checking "g/negative?, g/infinite?" 100 [x sg/real]
+              (let [z (c/complex x 0)]
+                (is (= (g/negative? x)
+                       (g/negative? z))
+                    "A complex number is negative if its imaginary component is
+                    zero and real is negative, false otherwise."))
+
+              (is (not
+                   (g/negative?
+                    (g/make-rectangular x 1)))
+                  "Never negative if imaginary component is nonzero.")
+
+              (is (not
+                   (g/infinite?
+                    (g/make-rectangular x x)))
+                  "infinite? is never true for non-infinite inputs."))
+
+    (testing "g/infinite?"
+      (is (every?
+           g/infinite?
+           [(c/complex ##Inf ##Inf)
+            (c/complex ##-Inf ##Inf)
+            (c/complex ##Inf ##-Inf)
+            (c/complex ##-Inf ##-Inf)
+            (c/complex ##Inf 1)
+            (c/complex 1 ##Inf)
+            (c/complex ##-Inf 1)
+            (c/complex 1 ##-Inf)])
+          "an infinite or negative infinite value in either slot makes the
+          complex number `g/infinite?`"))
 
     (testing "add"
       (is (= #sicm/complex "4 + 6i"
@@ -217,7 +293,13 @@
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))
       (is (near (c/complex 16) (g/expt 2 (c/complex 4))))
-      (is (near (c/complex 16) (g/expt (c/complex 2) (c/complex 4)))))
+      (is (near (c/complex 16) (g/expt (c/complex 2) (c/complex 4))))
+
+      (is (= -1 (g/square c/I))
+          "squaring I produces an exact result.")
+
+      (is (= c/-I (g/cube c/I))
+          "cubing has an exact shortcut"))
 
     (testing "negate"
       (is (= (c/complex -10 2)
@@ -230,8 +312,8 @@
       (is (= 5.0 (g/abs (c/complex 3 4)))))
 
     (testing "exp"
-      ;; Euler identity
-      (is (near (c/complex -1) (g/exp (g/mul c/I pi)))))
+      (is (near (c/complex -1) (g/exp (g/mul c/I pi)))
+          "Euler's identity"))
 
     (testing "log"
       (is (= (g/mul c/I pi) (g/log (g/exp (g/mul c/I pi))))))
