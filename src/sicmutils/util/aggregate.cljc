@@ -100,6 +100,22 @@
   *fold*
   kahan-babushka-neumaier-fold)
 
+;; TODO these are the monoid impls...
+
+(defn naive-add [l r]
+  (+ l r))
+
+(defn kahan-add [l [acc _]]
+  (kahan-fold l acc))
+
+(defn add-fold
+  "this will do whichever one is bound. Works for all the neumaier or klein
+  variations. Janky?"
+  [l r]
+  (reduce *fold* l r))
+
+(def ^:dynamic *monoid* kbn-add)
+
 ;; ## Note that this is a pattern...
 
 ;; reference from wiki pointed here:
@@ -168,6 +184,40 @@
    (scanning-sum
     (map f (range low high)))))
 
+;; TODO https://hackage.haskell.org/package/math-functions-0.3.4.2/docs/src/Numeric.Sum.html#pairwiseSum
+
+(def ^:dynamic *cutoff* 256)
+
+;; from that haskell code:
+
+;; -- This approach is perhaps 10% faster than 'KBNSum', but has poorer
+;; -- bounds on its error growth.  Instead of having roughly constant
+;; -- error regardless of the size of the input vector, in the worst case
+;; -- its accumulated error grows with /O(log n)/.
+
+;; TODO add notes that we can combine this idea with the fold idea if someone
+;; can figure out page 7 here
+;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
+;;
+;; add notes from wiki about pairwise sum error bounds.
+
+(defn pairwise-sum
+  ([xs]
+   {:pre [(vector? xs)]}
+   (letfn [(f [v]
+             (let [n (count v)]
+               (if (<= n *cutoff*)
+                 (reduce + v)
+                 (let [split-idx (bit-shift-right n 1)
+                       l (subvec v 0 split-idx)
+                       r (subvec v split-idx)]
+                   (+ (f l)
+                      (f r))))))]
+     (f xs)))
+  ([f low high]
+   (pairwise-sum
+    (mapv f (range low high)))))
+
 (defn generic-sum
   "Sums either:
 
@@ -223,9 +273,8 @@
   - optionally, an `annihilate?` function that should return true for any `x`
     such that `(plus x <any>) == x`.
 
-  Accepts a binary aggregation function `plus` and an identity element `id` and
-  returns a multi-arity function that will reduce its arguments via `plus`. A
-  0-arity call returns `id`.
+  ;; TODO fill in actual docs about how this returns a function that will do
+  subtraction.
 
   If the `annihilate?` function is supplied, then if the aggregation produces a
   value that returns `(annihilate? true)` at any point, the reduction will
