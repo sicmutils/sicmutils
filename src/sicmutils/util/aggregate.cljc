@@ -114,8 +114,6 @@
   [l r]
   (reduce *fold* l r))
 
-(def ^:dynamic *monoid* kbn-add)
-
 ;; ## Note that this is a pattern...
 
 ;; reference from wiki pointed here:
@@ -186,7 +184,8 @@
 
 ;; TODO https://hackage.haskell.org/package/math-functions-0.3.4.2/docs/src/Numeric.Sum.html#pairwiseSum
 
-(def ^:dynamic *cutoff* 256)
+;; matches Julia's
+(def ^:dynamic *cutoff* 128)
 
 ;; from that haskell code:
 
@@ -202,8 +201,11 @@
 ;; add notes from wiki about pairwise sum error bounds.
 
 (defn pairwise-sum
+  "https://en.wikipedia.org/wiki/Pairwise_summation
+
+  this works because we are not adding a progressively bigger sum to deltas, but
+  adding numbers of same size."
   ([xs]
-   {:pre [(vector? xs)]}
    (letfn [(f [v]
              (let [n (count v)]
                (if (<= n *cutoff*)
@@ -213,7 +215,9 @@
                        r (subvec v split-idx)]
                    (+ (f l)
                       (f r))))))]
-     (f xs)))
+     (f (if (vector? xs)
+          xs
+          (into [] xs)))))
   ([f low high]
    (pairwise-sum
     (mapv f (range low high)))))
