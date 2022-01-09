@@ -100,8 +100,8 @@
                     gaussian-r (e/round-complex r)
                     z (e/gcd-complex gaussian-l gaussian-r)]
                 (is (fourth-power-is-one? (e/gcd-complex
-                                          (g// gaussian-l z)
-                                          (g// gaussian-r z)))))))
+                                           (g// gaussian-l z)
+                                           (g// gaussian-r z)))))))
   (testing "lcm"
     (is (= 21 (g/lcm 3 7)))
     (is (= 6 (g/lcm 2 6)))

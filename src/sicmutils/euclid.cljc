@@ -74,10 +74,10 @@
         (v/zero? b) a
         (not (and (is-gaussian-integer a) (is-gaussian-integer b))) 1
         :else (let [[a b] (if (< (g/magnitude a) (g/magnitude b)) [a b] [b a])]
-                (loop [a a 
-                       b b]
-                (if (v/zero? b) a
-                  (recur b (g/- a (g/* (round-complex (g// a b)) b))))))))
+                (loop [a (round-complex a)
+                       b (round-complex b)]
+                  (if (v/zero? b) a
+                      (recur b (g/- a (g/* (round-complex (g// a b)) b))))))))
 
 ;; multimethod implementation for basic numeric types.
 (defmethod g/gcd :default [a b]
