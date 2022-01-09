@@ -72,7 +72,9 @@
    Note that the GCD of two complex numbers is determinet up to a factor of ±1 and ±i."
   (cond (v/zero? a) b
         (v/zero? b) a
-        (not (and (is-gaussian-integer a) (is-gaussian-integer b))) 1
+        (not (or (is-gaussian-integer a) (is-gaussian-integer b))) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but both arguments were not."))
+        (not (is-gaussian-integer a)) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but first argument was not."))
+        (not (is-gaussian-integer b)) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but second argument was not."))
         :else (let [[a b] (if (< (g/magnitude a) (g/magnitude b)) [a b] [b a])]
                 (loop [a (round-complex a)
                        b (round-complex b)]
