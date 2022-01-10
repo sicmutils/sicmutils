@@ -248,7 +248,7 @@
   a sequence of successive approximations of `x` using rational functions fitted
   to the points in reverse order."
   [x]
-  (pi/tableau-fold
+  (ua/fold->sum-fn
    (modified-bulirsch-stoer-fold-fn x)
    pi/mn-present))
 
@@ -266,6 +266,6 @@
    ...]
   ```"
   [x]
-  (pi/tableau-scan
+  (ua/fold->scan-fn
    (modified-bulirsch-stoer-fold-fn x)
    pi/mn-present))

@@ -78,7 +78,7 @@
           "Lagrange only returns the final value.")
 
       (is (ish? (last expected) (pi/neville-recursive points 1.2))
-          "Lagrange only returns the final value.")
+          "Non-incremental neville.")
 
       (is (ish? expected (pi/neville-incremental* points 1.2))
           "This is the initial, unabstracted version.")

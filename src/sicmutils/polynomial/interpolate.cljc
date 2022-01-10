@@ -624,6 +624,9 @@
 ;;
 ;; Now that we've identified this new pattern, redefine `generate-new-row` with
 ;; a new name:
+;;
+;; TODO note that there is a new arity here too, where we return an empty
+;; accumulator. Note what the hell the accumulator means.
 
 (defn tableau-fold-fn
   "Transforms the supplied `prepare` and `merge` functions into a new function
@@ -646,8 +649,10 @@
   the inputs are of the same form returned by `prepare`. `merge` should return a
   new structure of the same form."
   [prepare merge]
-  (fn [prev-row point]
-    (reductions merge (prepare point) prev-row)))
+  (fn
+    ([] [])
+    ([prev-row point]
+     (reductions merge (prepare point) prev-row))))
 
 ;; Next, we can use this to generate specialized fold functions for our two
 ;; incremental algorithms above - `neville` and `modified-neville`:
@@ -679,19 +684,8 @@
 ;; This final function brings back in the notion of `present`. It returns a
 ;; function that consumes an entire sequence of points, and then passes the
 ;; final row into the exact `present-fn` we used above:
-
-(defn tableau-fold
-  "Returns a function that accepts a sequence of points and processes them into a
-  tableau by generating successive rows, one at a time.
-
-  The final row is passed into `present-fn`, which generates the final return
-  value.
-
-  This is NOT appropriate for lazy sequences! Fully consumes the input."
-  [fold-fn present-fn]
-  (fn [points]
-    (present-fn
-     (reduce fold-fn [] points))))
+;;
+;; TODO change notes to mention fold->sum-fn.
 
 ;; Note that these folds process points in the OPPOSITE order as the column-wise
 ;; tableau functions! Because you build up one row at a time, each new point is
@@ -713,24 +707,14 @@
 ;;
 ;; ## Fold Utilities
 ;;
-;; `tableau-scan` below will return a function that acts identically to the
-;; non-fold, column-wise version of the interpolators. It does this by folding
-;; in one point at a time, but processing EVERY intermediate value through the
+;; `ua/fold->scan` will return a function that acts identically to the non-fold,
+;; column-wise version of the interpolators. It does this by folding in one
+;; point at a time, but processing EVERY intermediate value through the
 ;; presentation function.
 
-(defn tableau-scan
-  "Takes a folding function and a final presentation function (of accumulator type
-  => return value) and returns a NEW function that:
-
-  - accepts a sequence of incoming points
-  - returns the result of calling `present` on each successive row."
-  [fold-fn present-fn]
-  (fn [xs]
-    (->> (reductions fold-fn [] xs)
-         (map present-fn)
-         (rest))))
-
-;; And finally, we specialize to our two incremental methods.
+;; Using this function, we specialize to our two incremental methods.
+;;
+;; TODO rename this to `neville-sum`??
 
 (defn neville-fold
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -739,8 +723,8 @@
 
   This function uses the [[neville]] algorithm internally."
   [x]
-  (tableau-fold (neville-fold-fn x)
-                neville-present))
+  (ua/fold->sum-fn (neville-fold-fn x)
+                   neville-present))
 
 (defn neville-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -756,8 +740,8 @@
    ...]
   ```"
   [x]
-  (tableau-scan (neville-fold-fn x)
-                neville-present))
+  (ua/fold->scan-fn (neville-fold-fn x)
+                    neville-present))
 
 (defn modified-neville-fold
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -766,8 +750,8 @@
 
   This function uses the [[modified-neville]] algorithm internally."
   [x]
-  (tableau-fold (modified-neville-fold-fn x)
-                mn-present))
+  (ua/fold->sum-fn (modified-neville-fold-fn x)
+                   mn-present))
 
 (defn modified-neville-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -783,8 +767,8 @@
    ...]
   ```"
   [x]
-  (tableau-scan (modified-neville-fold-fn x)
-                mn-present))
+  (ua/fold->scan-fn (modified-neville-fold-fn x)
+                    mn-present))
 
 ;; Next, check out:
 ;;

@@ -111,13 +111,6 @@
                 (ua/pairwise-sum f 0 n)))
           "pairwise summation matches that error in this example, and is
           slightly faster (including the time to generate the vector of
-          inputs).")
-
-      (is (= 1.1368683772161603E-13
-             (- small->large
-                (time (ua/pairwise-sum 0 n))))
-          "pairwise summation matches that error in this example, and is
-          slightly faster (including the time to generate the vector of
           inputs).")))
 
   ;; TODO!

@@ -18,8 +18,60 @@
 ;;
 
 (ns sicmutils.util.aggregate
-  "Utilities for aggregating sequences."
+  "Namespace with algorithms for aggregating sequences in various ways.
+
+  Contains a number of algorithms for [compensated
+  summation](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) of
+  floating-point numbers."
   (:require [sicmutils.generic :as g]))
+
+;; ## Summing Sequences of Numbers
+;;
+;; This is a fascinating topic, and my explorations have not yet done it
+;; justice. This namespace starts with a number of functions designed to sum up
+;; sequences of numbers in an extensible way.
+;;
+;; Much of the numerical physics simulation code in the library (everything
+;; in [[sicmutils.numerical.quadrature]]) depends on the ability to sum up lists
+;; of floating point numbers without the accumulation of error due to the
+;; machine representation of the number.
+;;
+;; Here is the naive way to add up a list of numbers:
+
+#_
+(defn naive-sum [xs]
+  (apply g/+ xs))
+
+;; Simple! But watch it break:
+
+(comment
+  ;; This should be 1.0...
+  (= 0.9999999999999999
+     (naive-sum [1.0 1e-8 -1e-8])))
+
+;; Algorithms called ['compensated
+;; summation'](https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
+;; algorithms are the way around this problem. Instead of simply accumulating
+;; the numbers as they come, compensated summation keeps track of the piece of
+;; the sum that would get erased from the sum due to lack of precision.
+;;
+;; Because there are a few ways to do this, I chose to make the implementation
+;; pluggable by following the `Aggregator` pattern
+;; from [Algebird](https://github.com/twitter/algebird/blob/develop/algebird-core/src/main/scala/com/twitter/algebird/Aggregator.scala),
+;;
+;; In sicmutils I've decided to call this abstraction a "fold". I am here
+;;
+;; A fold is a combination of:
+;;
+;; - some initial value into which you want to aggregate
+;; - a combining function of (accumulator, x) => accumulator
+;; - a "present" function that converts the accumulator into a final value
+;;
+;; TODO continue from here... TODO this IS a fold in Algebird, not aggregator!
+;;
+;; TODO also note that I did the same thing for polynomial and rational function
+;; interpolation, same style!! And rewrite those namespaces to use the same
+;; thing? Benchmark?
 
 ;; I learned about "Kahan's summation trick" from `rational.scm` in the
 ;; `scmutils` package, where it shows up in the `sigma` function.
@@ -29,6 +81,58 @@
   ([x] x)
   ([acc x]
    (+ acc x)))
+
+;; TODO note that any monoid works!
+;;
+;; TODO
+;;
+;; - make a thing that can generate these.
+;; - Dynamically bind it with nice metadata
+;; - see if we can make
+;;
+;; TODO move these down after.
+
+(defn fold->sum-fn
+  ([fold]
+   (fold->sum-fn fold fold fold))
+  ([fold present]
+   (fold->sum-fn fold fold present))
+  ([init fold present]
+   (fn ([xs]
+       (present
+        (reduce fold (init) xs)))
+     ([f low high]
+      (let [xs (range low high)]
+        (transduce (map f) fold xs))))))
+
+;; TODO is this good? check arities...
+
+(defn fold->scan-fn
+  ([fold]
+   (fold->scan-fn fold fold fold))
+  ([fold present]
+   (fold->scan-fn fold fold present))
+  ([init fold present]
+   (fn scan
+     ([xs]
+      (->> (reductions fold (init) xs)
+           (map present)
+           (rest)))
+     ([f low high]
+      (scan
+       (map f (range low high)))))))
+
+(def ^{:doc "Sums either:
+
+  - a series `xs` of numbers, or
+  - the result of mapping function `f` to `(range low high)`
+
+  Using the generic [[sicmutils.generic/+]] function."
+       :arglists '([xs], [f low high])}
+  generic-sum
+  (fold->sum-fn g/+))
+
+;; ## Compensated Summation Folds
 
 (defn kahan-fold
   "Implements a fold that tracks the summation of a sequence of floating point
@@ -95,31 +199,12 @@
               (+ (- delta cs+delta) cs))]
      [acc+x cs+delta (+ ccs cc)])))
 
-(def ^{:dynamic true
-       :doc "boom, defaults to [[kahan-babushka-neumaier-fold]]."}
-  *fold*
-  kahan-babushka-neumaier-fold)
-
-;; TODO these are the monoid impls...
-
-(defn naive-add [l r]
-  (+ l r))
-
-(defn kahan-add [l [acc _]]
-  (kahan-fold l acc))
-
-(defn add-fold
-  "this will do whichever one is bound. Works for all the neumaier or klein
-  variations. Janky?"
-  [l r]
-  (reduce *fold* l r))
-
 ;; ## Note that this is a pattern...
 
 ;; reference from wiki pointed here:
 ;; https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.582.288&rep=rep1&type=pdf
 
-;; ## Macro Version
+;; ### Macro Version, turbo
 
 (defn- klein-term [acc delta]
   `[sum# (+ ~acc ~delta)
@@ -147,13 +232,21 @@
 (defmacro kbk-foldn [n]
   `(fn ~@(kbk-foldn-body n)))
 
-;; TODO note that any monoid works!
+;; ## Dynamically Bindable Summing
+
+(def ^{:dynamic true
+       :doc "boom, defaults to [[kahan-babushka-neumaier-fold]]."}
+  *fold*
+  kahan-babushka-neumaier-fold)
 
 (defn sum
   "Sums either:
 
   - a series `xs` of numbers, or
   - the result of mapping function `f` to `(range low high)`
+
+  TODO fix, no longer necessarily using Kahan, note that this is using the
+  dynamically bound `*fold*`.
 
   Using Kahan's summation trick behind the scenes to keep floating point errors
   under control.
@@ -179,13 +272,15 @@
         (map *fold*)
         (rest)))
   ([f low high]
-   (scanning-sum
+   (sum
     (map f (range low high)))))
 
-;; TODO https://hackage.haskell.org/package/math-functions-0.3.4.2/docs/src/Numeric.Sum.html#pairwiseSum
+;; ## Pairwise Summation
 
 ;; matches Julia's
 (def ^:dynamic *cutoff* 128)
+
+;; TODO https://hackage.haskell.org/package/math-functions-0.3.4.2/docs/src/Numeric.Sum.html#pairwiseSum
 
 ;; from that haskell code:
 
@@ -222,17 +317,7 @@
    (pairwise-sum
     (mapv f (range low high)))))
 
-(defn generic-sum
-  "Sums either:
-
-  - a series `xs` of numbers, or
-  - the result of mapping function `f` to `(range low high)`
-
-  Using the generic [[sicmutils.generic/+]] function."
-  ([xs]
-   (apply g/+ xs))
-  ([f low high]
-   (transduce (map f) g/+ (range low high))))
+;; ## Monoids
 
 (defn- combiner
   "If `stop?` is false, returns `f`. Else, returns a binary reducing function that
@@ -293,6 +378,8 @@
        ([x y] (minus x y))
        ([x y & more]
         (minus x (reduce acc y more)))))))
+
+;; ## TODO Describe
 
 (defn merge-fn
   "NOTE that the returned function recurs on increasing indices internally instead
