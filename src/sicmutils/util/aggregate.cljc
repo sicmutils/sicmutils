@@ -175,7 +175,7 @@
   with [[sicmutils.algebra.fold/kbn]] bound to [[*fold*]], but has poorer bounds
   on its error growth. Instead of having roughly constant error regardless of
   the size of the input, in the worst case its accumulated error grows with
-  $O(\log n)$.
+  $O(\\log n)$.
 
   This improvement is due to the fact that [[pairwise-sum]] tends to add up
   numbers of similar magnitude, instead of adding deltas into a progressively

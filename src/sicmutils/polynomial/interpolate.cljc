@@ -22,9 +22,8 @@
   methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
   that polynomial at some different `x`."
   (:require [sicmutils.generic :as g]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.fold :as uf]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.algebra.fold :as af]
+            [sicmutils.util.aggregate :as ua]))
 
 (defn lagrange
   "Generates a lagrange interpolating polynomial that fits every point in the
@@ -655,11 +654,14 @@
    /
   r
 
+  ;; TODO add present docs
+
   the inputs are of the same form returned by `prepare`. `merge` should return a
   new structure of the same form."
-  [prepare merge]
+  [prepare merge present]
   (fn
     ([] [])
+    ([row] (present row))
     ([prev-row point]
      (reductions merge (prepare point) prev-row))))
 
@@ -676,7 +678,8 @@
   `neville`."
   [x]
   (tableau-fold-fn neville-prepare
-                   (neville-merge x)))
+                   (neville-merge x)
+                   neville-present))
 
 (defn- modified-neville-fold-fn
   "Returns a function that accepts:
@@ -688,7 +691,8 @@
   `modified-neville`."
   [x]
   (tableau-fold-fn mn-prepare
-                   (mn-merge x)))
+                   (mn-merge x)
+                   mn-present))
 
 ;; This final function brings back in the notion of `present`. It returns a
 ;; function that consumes an entire sequence of points, and then passes the
@@ -716,7 +720,7 @@
 ;;
 ;; ## Fold Utilities
 ;;
-;; `uf/fold->scan` will return a function that acts identically to the non-fold,
+;; `af/fold->scan` will return a function that acts identically to the non-fold,
 ;; column-wise version of the interpolators. It does this by folding in one
 ;; point at a time, but processing EVERY intermediate value through the
 ;; presentation function.
@@ -732,8 +736,8 @@
 
   This function uses the [[neville]] algorithm internally."
   [x]
-  (uf/fold->sum-fn (neville-fold-fn x)
-                   neville-present))
+  (af/fold->sum-fn
+   (neville-fold-fn x)))
 
 (defn neville-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -749,8 +753,8 @@
    ...]
   ```"
   [x]
-  (uf/fold->scan-fn (neville-fold-fn x)
-                    neville-present))
+  (af/fold->scan-fn
+   (neville-fold-fn x)))
 
 (defn modified-neville-fold
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -759,8 +763,8 @@
 
   This function uses the [[modified-neville]] algorithm internally."
   [x]
-  (uf/fold->sum-fn (modified-neville-fold-fn x)
-                   ))
+  (af/fold->sum-fn
+   (modified-neville-fold-fn x)))
 
 (defn modified-neville-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -776,8 +780,8 @@
    ...]
   ```"
   [x]
-  (uf/fold->scan-fn (modified-neville-fold-fn x)
-                    mn-present))
+  (af/fold->scan-fn
+   (modified-neville-fold-fn x)))
 
 ;; Next, check out:
 ;;

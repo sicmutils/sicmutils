@@ -24,7 +24,7 @@
             [pattern.rule :as r]
             [pattern.syntax :as ps]
             [sicmutils.abstract.function :as af]
-            [sicmutils.algebra.fold :as af]
+            [sicmutils.algebra.fold :as fold]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
@@ -78,7 +78,7 @@
 (defn kbk-n
   "Originally defined in `sicmutils.algebra.fold`."
   [_ _ n]
-  `(fn ~@(af/kbk-n-body n)))
+  `(fn ~@(fold/kbk-n-body n)))
 
 ;; ## SICMUtils Macros
 

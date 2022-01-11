@@ -22,9 +22,8 @@
   different methods for fitting rational functions to `N` points and evaluating
   them at some value `x`."
   (:require [sicmutils.generic :as g]
+            [sicmutils.algebra.fold :as af]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.util.fold :as uf]
-            [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 
 ;; ## Rational Function Interpolation
@@ -239,18 +238,17 @@
   and returns the next row of the tableau using the algorithm described in
   [[modified-bulirsch-stoer]]."
   [x]
-  (pi/tableau-fold-fn
-   bs-prepare
-   (bs-merge x)))
+  (pi/tableau-fold-fn bs-prepare
+                      (bs-merge x)
+                      pi/mn-present))
 
 (defn modified-bulirsch-stoer-fold
   "Returns a function that consumes an entire sequence `xs` of points, and returns
   a sequence of successive approximations of `x` using rational functions fitted
   to the points in reverse order."
   [x]
-  (uf/fold->sum-fn
-   (modified-bulirsch-stoer-fold-fn x)
-   pi/mn-present))
+  (af/fold->sum-fn
+   (modified-bulirsch-stoer-fold-fn x)))
 
 (defn modified-bulirsch-stoer-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -266,6 +264,5 @@
    ...]
   ```"
   [x]
-  (uf/fold->scan-fn
-   (modified-bulirsch-stoer-fold-fn x)
-   pi/mn-present))
+  (af/fold->scan-fn
+   (modified-bulirsch-stoer-fold-fn x)))
