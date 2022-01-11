@@ -154,7 +154,10 @@
   ([pred]
    (fn ([] 0)
      ([acc] acc)
-     ([acc _] (inc acc)))))
+     ([acc x]
+      (if (pred x)
+        (inc acc)
+        acc)))))
 
 (defn min
   "Fold that stores its minimum encountered value in its accumulator, and returns
@@ -357,6 +360,11 @@
          t (+ acc y)]
      [t (- (- t acc) y)])))
 
+;; Voila, using [[kahan]], our example from before now correctly sums to 1.0:
+
+#_
+(= 1.0 ((fold->sum-fn kahan) [1.0 1e-8 -1e-8]))
+
 ;; From the [wiki
 ;; page](https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements),
 ;; "Neumaier introduced an improved version of Kahan algorithm, which he calls
@@ -364,7 +372,13 @@
 ;; next term to be added is larger in absolute value than the running sum,
 ;; effectively swapping the role of what is large and what is small."
 ;;
-;; This fold is implemented here:
+;; Here is an example of where Kahan fails. The following should be 2.0, but
+;; Kahan returns 0.0:
+
+#_
+(= 0.0 ((fold->sum-fn kahan) [1.0 1e100 1.0 -1e100]))
+
+;; This improved fold is implemented here:
 
 (defn kahan-babushka-neumaier
   "Implements a fold that tracks the summation of a sequence of floating point
@@ -389,6 +403,11 @@
 (def ^{:doc "Alias for [[kahan-babushka-neumaier]]."}
   kbn
   kahan-babushka-neumaier)
+
+;; [[kbn]] returns the correct result for the example above:
+
+#_
+(= 2.0 ((fold->sum-fn kbn) [1.0 1e100 1.0 -1e100]))
 
 ;; The [wiki
 ;; page](https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements)
