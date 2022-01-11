@@ -23,6 +23,7 @@
   that polynomial at some different `x`."
   (:require [sicmutils.generic :as g]
             [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.fold :as uf]
             [sicmutils.util.stream :as us]))
 
 (defn lagrange
@@ -505,7 +506,7 @@
   first entry of each tableau column. Each C value is the delta from the
   previous estimate."
   [row]
-  (ua/scanning-sum
+  (ua/scan
    (map (fn [[_ _ c _]] c) row)))
 
 ;; `tableau-fn` allows us to assemble these pieces into a final function that
@@ -575,7 +576,7 @@
     ;; From there, we can treat the previous row as a sequence of "r" values.
     (reduce merge (prepare point) prev-row)))
 
-;; there's a problem here. `reduce` only returns the FINAL value of the
+;; There's a problem here. `reduce` only returns the FINAL value of the
 ;; aggregation:
 ;;
 ;;   (let [f (generate-new-row* prepare present)]
@@ -596,6 +597,10 @@
 ;; Quick aside here, as we've stumbled across a familiar pattern. The discussion
 ;; above suggests the idea of a "fold" from functional programming:
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
+;;
+;; Folds are explored (and implemented!) in detail in
+;; the [[sicmutils.algebra.fold]] namespace. See that namespace for an
+;; introduction, but I'll add a reminder here.
 ;;
 ;; A fold consists of:
 ;;
@@ -623,10 +628,14 @@
 ;;   `mn-present`)
 ;;
 ;; Now that we've identified this new pattern, redefine `generate-new-row` with
-;; a new name:
+;; a new name, [[tableau-fold-fn]]. This new function has a 0-arity that returns
+;; `init`...
 ;;
 ;; TODO note that there is a new arity here too, where we return an empty
 ;; accumulator. Note what the hell the accumulator means.
+;;
+;; TODO get all of this working and then ALSO take present here and remove some
+;; function stacking!
 
 (defn tableau-fold-fn
   "Transforms the supplied `prepare` and `merge` functions into a new function
@@ -707,7 +716,7 @@
 ;;
 ;; ## Fold Utilities
 ;;
-;; `ua/fold->scan` will return a function that acts identically to the non-fold,
+;; `uf/fold->scan` will return a function that acts identically to the non-fold,
 ;; column-wise version of the interpolators. It does this by folding in one
 ;; point at a time, but processing EVERY intermediate value through the
 ;; presentation function.
@@ -723,7 +732,7 @@
 
   This function uses the [[neville]] algorithm internally."
   [x]
-  (ua/fold->sum-fn (neville-fold-fn x)
+  (uf/fold->sum-fn (neville-fold-fn x)
                    neville-present))
 
 (defn neville-scan
@@ -740,7 +749,7 @@
    ...]
   ```"
   [x]
-  (ua/fold->scan-fn (neville-fold-fn x)
+  (uf/fold->scan-fn (neville-fold-fn x)
                     neville-present))
 
 (defn modified-neville-fold
@@ -750,8 +759,8 @@
 
   This function uses the [[modified-neville]] algorithm internally."
   [x]
-  (ua/fold->sum-fn (modified-neville-fold-fn x)
-                   mn-present))
+  (uf/fold->sum-fn (modified-neville-fold-fn x)
+                   ))
 
 (defn modified-neville-scan
   "Returns a function that consumes an entire sequence `xs` of points, and returns
@@ -767,7 +776,7 @@
    ...]
   ```"
   [x]
-  (ua/fold->scan-fn (modified-neville-fold-fn x)
+  (uf/fold->scan-fn (modified-neville-fold-fn x)
                     mn-present))
 
 ;; Next, check out:

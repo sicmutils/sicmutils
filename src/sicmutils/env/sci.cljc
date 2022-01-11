@@ -127,6 +127,7 @@
    'sicmutils.sr.boost                       (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                      (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                 (ns-publics 'sicmutils.util.aggregate)
+   'sicmutils.util.fold                      (ns-publics 'sicmutils.util.fold)
    'sicmutils.util.logic                     (ns-publics 'sicmutils.util.logic)
    'sicmutils.util.stream                    (ns-publics 'sicmutils.util.stream)})
 

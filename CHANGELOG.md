@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+  - TODO note the new `sicmutils.algebra.fold`!
+
   - `kahan-sum` is now `kahan-fold` and has a single arity version that is nice
 
   - ua/sum, ua/scanning-sum can now have custom folds

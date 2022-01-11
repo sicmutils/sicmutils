@@ -23,7 +23,7 @@
   them at some value `x`."
   (:require [sicmutils.generic :as g]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.fold :as uf]
             [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 
@@ -248,7 +248,7 @@
   a sequence of successive approximations of `x` using rational functions fitted
   to the points in reverse order."
   [x]
-  (ua/fold->sum-fn
+  (uf/fold->sum-fn
    (modified-bulirsch-stoer-fold-fn x)
    pi/mn-present))
 
@@ -266,6 +266,6 @@
    ...]
   ```"
   [x]
-  (ua/fold->scan-fn
+  (uf/fold->scan-fn
    (modified-bulirsch-stoer-fold-fn x)
    pi/mn-present))

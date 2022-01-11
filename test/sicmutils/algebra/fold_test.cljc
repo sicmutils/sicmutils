@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2022 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -17,15 +17,14 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.util.aggregate-test
+(ns sicmutils.algebra.fold-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.numbers]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.algebra.fold :as af]))
 
 (deftest sum-tests
   (testing "Naive summation"
@@ -39,11 +38,11 @@
           "Kahan's summation trick allows us to keep precision.")
 
       (let [xs [1.0 1e-8 -1e-8]]
-        (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+        (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
 
-        (is (= (ua/scan xs)
+        (is (= (ua/scanning-sum xs)
                ((us/scan ua/kahan-fold :present ua/kahan-fold) xs))
-            "scan acts just like an actual `scan` call."))))
+            "scanning-sum acts just like an actual `scan` call."))))
 
   (testing "KBN Summation"
     (binding [ua/*fold* ua/kbn-fold]
@@ -51,11 +50,11 @@
           "KBN's summation trick also allows us to keep precision.")
 
       (let [xs [1.0 1e-8 -1e-8]]
-        (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+        (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
 
-        (is (= (ua/scan xs)
+        (is (= (ua/scanning-sum xs)
                ((us/scan ua/kbn-fold :present ua/kbn-fold) xs))
-            "scan acts just like an actual `scan` call."))))
+            "scanning-sum acts just like an actual `scan` call."))))
 
   (testing "kbn vs kahan"
     ;; This example of a difference in behavior comes from
@@ -113,6 +112,10 @@
           slightly faster (including the time to generate the vector of
           inputs).")))
 
+  ;; TODO anything works with transduce!
+  #_
+  (transduce identity (join min max) [1 2 3])
+
   ;; TODO!
   #_(testing "any monoid works"
       (is (= [1 2]
@@ -120,27 +123,3 @@
 
       (is (= []
              (binding [*fold* (monoid into [])] (sum []))))))
-
-(deftest monoid-group-tests
-  (let [plus (ua/monoid (fn [a b] (+ a b)) 0)]
-    (checking "monoid" 100 [xs (gen/vector gen/nat)]
-              (is (= (apply + xs)
-                     (apply plus xs))
-                  "monoid version built out of binary `+` matches built-in `+`"))
-
-    (testing "* monoid bails early"
-      (let [mul (ua/monoid (fn [a b] (* a b)) 1 zero?)]
-        (is (= 6 (mul 1 2 3)))
-        (is (= 0 (mul 1 2 0 :keyword))))))
-
-  (let [minus (ua/group (fn [a b] (- a b))
-                        (fn [a b] (+ a b))
-                        (fn [b] (- b))
-                        0)]
-    (checking "group" 100 [xs (gen/vector gen/nat)]
-              (if (seq xs)
-                (is (= (apply - xs)
-                       (apply minus xs))
-                    "group version built out of binary `-` matches built-in `-`")
-                (is (= 0 (apply minus xs))
-                    "group version built out of binary `-` matches built-in `-`")))))
