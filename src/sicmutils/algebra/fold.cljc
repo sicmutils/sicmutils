@@ -79,8 +79,10 @@
   "Given
 
   - a 0-argument fn `init` that returns some \"empty\" accumulating value
-  - a 2-argument fn `fold` of `(accumulator, x) => x` responsible for merging
-    some value `x` into the ongoing accumulation
+
+  - a 2-argument fn `fold` of `(accumulator, x) => accumulator` responsible for
+    merging some value `x` into the ongoing accumulation
+
   - a 1-argument fn `present` from `accumulator => final-result`
 
   Returns a function with two arities. The first arity takes a sequence `xs` and
@@ -244,8 +246,10 @@
   "Given
 
   - a 0-argument fn `init` that returns some \"empty\" accumulating value
-  - a 2-argument fn `fold` of `(accumulator, x) => x` responsible for merging
-    some value `x` into the ongoing accumulation
+
+  - a 2-argument fn `fold` of `(accumulator, x) => accumulator` responsible for
+    merging some value `x` into the ongoing accumulation
+
   - a 1-argument fn `present` from `accumulator => final-result`
 
   Returns a function with two arities. The first arity takes a sequence `xs` and

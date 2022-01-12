@@ -229,8 +229,17 @@
 ;; Just like in `polynomial.cljc`, we can write rational interpolation in the
 ;; style of a functional fold:
 
-(defn modified-bulirsch-stoer-fold-fn
-  "Returns a function that accepts:
+(defn modified-bulirsch-stoer-fold
+  "Given some point `x`, returns a fold that accumulates rows of a rational
+  function interpolation tableau providing successively better estimates (at the
+  value `x`) of a rational function interpolated to all seen points.
+
+  The 2-arity aggregation step takes:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x_new (f x_new)]`
+
+  Returns a function that accepts:
 
   - `previous-row`: previous row of an interpolation tableau
   - a new point of the form `[x (f x)]`
@@ -240,29 +249,27 @@
   [x]
   (pi/tableau-fold-fn bs-prepare
                       (bs-merge x)
-                      pi/mn-present))
+                      pi/mn-present-final))
 
-(defn modified-bulirsch-stoer-fold
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of successive approximations of `x` using rational functions fitted
-  to the points in reverse order."
+(defn modified-bulirsch-stoer-sum
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns the best approximation of `x` using a rational
+  function fitted to all points in `xs` using the algorithm described
+  in [[modified-bulirsch-stoer]].
+
+  Faster than, but equivalent to, `(last ([[modified-bulirsch-stoer]] xs x))`"
   [x]
   (af/fold->sum-fn
-   (modified-bulirsch-stoer-fold-fn x)))
+   (modified-bulirsch-stoer-fold x)))
 
 (defn modified-bulirsch-stoer-scan
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of SEQUENCES of successive rational function approximations of `x`;
-  one for each of the supplied points.
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns a lazy sequence of successive approximations of
+  `x` using rational functions fitted to the first point, then the first and
+  second points, etc. using the algorithm described
+  in [[modified-bulirsch-stoer]].
 
-  For a sequence `a, b, c...` you'll see:
-
-  ```clojure
-  [([[modified-bulirsch-stoer]] [a] x)
-   ([[modified-bulirsch-stoer]] [b a] x)
-   ([[modified-bulirsch-stoer]] [c b a] x)
-   ...]
-  ```"
+  Equivalent to `([[modified-bulirsch-stoer]] xs x)`."
   [x]
   (af/fold->scan-fn
-   (modified-bulirsch-stoer-fold-fn x)))
+   (modified-bulirsch-stoer-fold x)))
