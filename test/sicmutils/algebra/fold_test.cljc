@@ -26,100 +26,71 @@
             [sicmutils.numbers]
             [sicmutils.algebra.fold :as af]))
 
-#_(deftest sum-tests
-    (testing "Naive summation"
-      (binding [ua/*fold* ua/naive-fold]
-        (is (not= 1 (ua/sum [1.0 1e-8 -1e-8]))
-            "Without the summation trick, errors build up.")))
+(deftest fold-tests
+  (is (= 45 (af/generic-sum-fold
+             (reduce af/generic-sum-fold (af/generic-sum-fold)
+                     (range 10))))
+      "example of using a fold in the raw.")
 
-    (testing "Kahan summation"
-      (binding [ua/*fold* ua/kahan-fold]
-        (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
-            "Kahan's summation trick allows us to keep precision.")
+  (let [sum (af/fold->sum-fn af/generic-sum-fold)
+        scan (af/fold->scan-fn af/generic-sum-fold)]
+    (is (= 45 (sum (range 10)))
+        "summing via fold->sum-fn.")
 
-        (let [xs [1.0 1e-8 -1e-8]]
-          (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
+    (is (= [0 1 3 6 10 15 21 28 36 45]
+           (scan (range 10)))
+        "scanning via fold->scan-fn."))
 
-          (is (= (ua/scanning-sum xs)
-                 ((us/scan ua/kahan-fold :present ua/kahan-fold) xs))
-              "scanning-sum acts just like an actual `scan` call."))))
+  (letfn [(average
+            ([] [0.0 0])
+            ([[sum n]] (/ sum n))
+            ([[sum n] x]
+             [(+ sum x) (inc n)]))]
+    (let [sum (af/fold->sum-fn average)
+          scan (af/fold->scan-fn average)
+          xs (range 1 10)]
+      (is (= 4.5 (sum (range 10)))
+          "the average fold does the right thing, with intermediate state built
+          up.")))
 
-    (testing "KBN Summation"
-      (binding [ua/*fold* ua/kbn-fold]
-        (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
-            "KBN's summation trick also allows us to keep precision.")
+  (testing "join and primitive tests"
+    (let [fold (af/join af/min af/max (af/constant "face") af/generic-sum-fold)
+          sum (af/fold->sum-fn fold)
+          scan (af/fold->scan-fn fold)]
+      (is (= [0 9 "face" 45]
+             (sum (range 10)))
+          "join runs folds in parallel.")
 
-        (let [xs [1.0 1e-8 -1e-8]]
-          (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
+      (is (= [[0 0 "face" 0]
+              [0 1 "face" 1]
+              [0 2 "face" 3]
+              [0 3 "face" 6]
+              [0 4 "face" 10]]
+             (scan (range 5)))
+          "join runs folds in parallel."))))
 
-          (is (= (ua/scanning-sum xs)
-                 ((us/scan ua/kbn-fold :present ua/kbn-fold) xs))
-              "scanning-sum acts just like an actual `scan` call."))))
+(deftest compensated-summation-tests
+  (let [xs  [1.0 1e-8 -1e-8]
+        xs2 [1.0 1e100 1.0 -1e100]]
+    (is (not= 1 ((af/fold->sum-fn af/generic-sum-fold) xs))
+        "Without the summation trick, errors build up.")
 
-    (testing "kbn vs kahan"
-      ;; This example of a difference in behavior comes from
-      ;; https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements.
-      (let [xs [1.0 10.0E100 1.0 -10E100]]
-        (binding [ua/*fold* ua/kahan-fold]
-          (is (= 0.0 (ua/sum xs))
-              "kahan-fold gets it wrong!"))
+    (is (= 1.0 ((af/fold->sum-fn af/kahan) xs))
+        "kahan resolves this.")
 
-        (binding [ua/*fold* ua/kbn-fold]
-          (is (= 2.0 (ua/sum xs))
-              "kbn-fold gets the correct answer."))))
+    (is (= 0.0 ((af/fold->sum-fn af/kahan) xs2))
+        "kahan breaks when new numbers are much bigger than the accumulated
+        total so far!")
 
-    (testing "investigation from scmutils"
-      ;; When adding up 1/n large-to-small we get a different answer than when
-      ;; adding them up small-to-large, which is more accurate.
-      (let [n 10000000
-            z->n (into [] (range n))
-            n->z (reverse z->n)
-            f #(/ 1.0 (inc %))
-            sum-inverse (fn [xs]
-                          (binding [ua/*fold* ua/naive-fold]
-                            (ua/sum (map f xs))))
-            large->small (sum-inverse z->n)
-            small->large (sum-inverse n->z)]
-        (is (= 16.695311365857272
-               large->small)
-            "Naive summation ")
+    (is (= 2.0 ((af/fold->sum-fn af/kbn) xs2))
+        "kahan-babushka-neumaier fixes this.")
 
-        (is (= 16.695311365859965
-               small->large)
-            "second example...")
+    (is (= ((af/fold->sum-fn af/kahan-babushka-klein) xs2)
+           ((af/fold->sum-fn af/kbn) xs2))
+        "kahan-babushka-neumaier matches the klein variant on this.")
 
-        (is (= 2.6929569685307797e-12
-               (- small->large large->small))
-            "error!")
-
-        (binding [ua/*fold* ua/kahan-fold]
-          (is (= 1.1368683772161603e-13
-                 (- small->large
-                    (ua/sum f 0 n)))
-              "From GJS: Kahan's compensated summation formula is much better, but
-      slower..."))
-
-        (binding [ua/*fold* ua/kbn-fold]
-          (is (= 1.1368683772161603E-13
-                 (- small->large
-                    (ua/sum f 0 n)))
-              "kbn sum, good, faster by 2x."))
-
-        (is (= 1.1368683772161603E-13
-               (- small->large
-                  (ua/pairwise-sum f 0 n)))
-            "pairwise summation matches that error in this example, and is
-          slightly faster (including the time to generate the vector of
-          inputs).")))
-
-    ;; TODO anything works with transduce!
-    #_
-    (transduce identity (join min max) [1 2 3])
-
-    ;; TODO!
-    #_(testing "any monoid works"
-        (is (= [1 2]
-               (binding [*fold* (monoid into [])] (sum [[1] [2]]))))
-
-        (is (= []
-               (binding [*fold* (monoid into [])] (sum []))))))
+    (let [kbk10 (af/kbk-n 10)
+          sum (af/fold->sum-fn kbk10)]
+      (is (= 2.0 (sum xs2))
+          "the special, macro-generated 10th order klein algorithm works
+          too :)"))))

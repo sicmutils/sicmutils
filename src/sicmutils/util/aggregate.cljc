@@ -135,7 +135,8 @@
 ;; summation.
 
 (def ^{:dynamic true
-       :doc "Dynamically bindable value "}
+       :doc "Dynamically bindable size below which [[pairwise-sum]] will defer
+  to [[sum]] to aggregate values."}
   *cutoff*
   128)
 
