@@ -42,12 +42,21 @@
       (is (ish? expected (ri/modified-bulirsch-stoer points 1.2))
           "The incremental, modified version works the same way."))
 
-    (testing "folding points in reverse should match column-wise processing."
+    (testing "folding points should match the final estimate received through
+              column-wise processing."
       (is (ish? (last expected) ((ri/modified-bulirsch-stoer-sum 1.2) points))))
 
     (testing "scan should process successive rows of the tableau; the diagonal
     of the tableau processed with a fold should match the first row of
     column-wise processing."
+      (is (ish? expected ((ri/modified-bulirsch-stoer-scan 1.2) points))))
+
+    (testing "both folds should get the correct value"
+      (is (ish? (last expected) ((ri/bulirsch-stoer-sum 1.2) points)))
+      (is (ish? (last expected) ((ri/modified-bulirsch-stoer-sum 1.2) points))))
+
+    (testing "both scans should generate the correct sequence of values."
+      (is (ish? expected ((ri/bulirsch-stoer-scan 1.2) points)))
       (is (ish? expected ((ri/modified-bulirsch-stoer-scan 1.2) points))))
 
     (testing "the tableau processed with a fold should match the first row of

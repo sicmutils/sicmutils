@@ -128,6 +128,7 @@
    'sicmutils.sr.boost                       (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                      (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                 (ns-publics 'sicmutils.util.aggregate)
+   'sicmutils.util.def                       (ns-publics 'sicmutils.util.def)
    'sicmutils.util.logic                     (ns-publics 'sicmutils.util.logic)
    'sicmutils.util.stream                    (ns-publics 'sicmutils.util.stream)})
 
@@ -145,7 +146,13 @@
   bindings) required to evaluate SICMUtils forms from inside of an SCI
   context. Pass these to `sci/init` to generate an sci context."}
   context-opts
-  {:namespaces namespaces})
+  {:namespaces namespaces
+
+   ;; NOTE that these entries are required if you'd like to call the
+   ;; `sicmutils.algebra.fold/kbk-n` macro, which generates code using
+   ;; `Math/abs`. JVM and js forms are shown.
+   :classes #?(:clj  {'java.lang.Math java.lang.Math}
+               :cljs {'js goog/global :allow :all})})
 
 (def ^{:doc "sci context (currently only `:namespace` bindings) required to
   evaluate SICMUtils forms via SCI"}

@@ -80,6 +80,15 @@
   [_ _ n]
   `(fn ~@(fold/kbk-n-body n)))
 
+(defn fork
+  "Originally defined in `sicmutils.util.def`."
+  [_ _&env & {:keys [cljs clj]}]
+  (if (contains? _&env '&env)
+    `(if (:ns ~'&env) ~cljs ~clj)
+    (if #?(:clj (:ns _&env) :cljs true)
+      cljs
+      clj)))
+
 ;; ## SICMUtils Macros
 
 (defn literal-function
@@ -173,7 +182,8 @@
    'with-literal-functions (tag-as-macro with-literal-functions)
    'let-coordinates        (tag-as-macro let-coordinates)
    'using-coordinates      (tag-as-macro using-coordinates)
-   'define-coordinates     (tag-as-macro define-coordinates)})
+   'define-coordinates     (tag-as-macro define-coordinates)
+   'fork                   (tag-as-macro fork)})
 
 (def pattern-macros
   {'pattern     (tag-as-macro pattern)
@@ -195,4 +205,7 @@
 
    'sicmutils.calculus.coordinate
    (select-keys all ['let-coordinates 'using-coordinates
-                     'define-coordinates])})
+                     'define-coordinates])
+
+   'sicmutils.util.def
+   (select-keys all ['fork])})

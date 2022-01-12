@@ -268,7 +268,7 @@
 ;; row of $[x_l, x_r, p]$ vectors:
 
 (defn- neville-present [row]
-  (map (fn [[_ _ p]] p) row))
+  (map peek row))
 
 ;; Putting it all together:
 
@@ -540,6 +540,12 @@
 
 ;; ## Folds and Tableaus by Row
 ;;
+;; NOTE: These folds and scans seem to be higher performance than the functions
+;; above. Prefer `*-sum` functions when you want to consume a full sequence of
+;; points and get the full input, and `*-scan` functions when you want to
+;; observe all intermediate estimates. If you want a /column/ of the tableau,
+;; stick with the versions above.
+;;
 ;; The advantage of the method described above, where we generate an entire
 ;; tableau and lazily pull the first entry off of each column, is that we can
 ;; pass a lazy sequence in as `points` and get a lazy sequence of successive
@@ -547,9 +553,12 @@
 ;; will occur.
 ;;
 ;; One problem with that structure is that we have to have our full sequence of
-;; points available when we call a function like `neville`. Even if the sequence
-;; is lazy, this is limiting. What if we want to pause, save the current
-;; estimate and pick up later where we left off?
+;; points available when we call a function like `neville`. As you pull an
+;; element off of the returned sequence, it just-in-time generates a new
+;; diagonal of the tableau required to realize that number.
+;;
+;; Even if the sequence is lazy, this is limiting. What if we want to pause,
+;; save the current estimate and pick up later where we left off?
 ;;
 ;; Look at the tableau again:
 ;;
@@ -568,6 +577,18 @@
 ;;
 ;; (f [p1 p12 p123 p1234] [x0 fx0]) => [p0 p01 p012 p0123 p01234]
 ;;
+;; This method reverses the order of the points, since rows are built from the
+;; bottom up:
+;;
+;; p4 p34 p234 p1234 p01234
+;; p3 p23 p123 p0123 .
+;; p2 p12 p012 .     .
+;; p1 p01 .    .     .
+;; p0 .   .    .     .
+;;
+;; Notice that the /diagonal/ of this tableau is identical to the top row of the
+;; tableau before the points were reversed.
+;;
 ;; Here's something close, using our previous `merge` and `prepare` definitions:
 
 (defn- generate-new-row* [prepare merge]
@@ -583,8 +604,9 @@
 ;;     (f [p1 p12 p123 p1234] [x0 fx0]))
 ;;   ;; => p01234
 ;;
-;; We want the entire new row! Lucky for us, Clojure has a version of `reduce`,
-;; called `reductions`, that returns each intermediate aggregation result:
+;; If we want to continue building rows, we need the entire new row! Lucky for
+;; us, Clojure has a version of `reduce`, called `reductions`, that returns each
+;; intermediate aggregation result:
 
 (defn- generate-new-row [prepare merge]
   (fn [prev-row point]
@@ -604,16 +626,18 @@
 ;;
 ;; A fold consists of:
 ;;
-;; - `init`, an initial piece of state called an "accumulator"
+;; - `init`, an function that returns an initial piece of state called
+;;   an "accumulator"
 ;;
 ;; - a binary `merge` function that combines ("folds") a new element `x` into
-;;   the accumulator, and returns a value of the same shape / type as `init`.
+;;   the accumulator, and returns a value of the same shape / type as the
+;;   accumulator returned by `init`.
 ;;
 ;; - a `present` function that transforms the accumulator into a final value.
 ;;
 ;; In Clojure, you perform a fold on a sequence with the `reduce` function:
 ;;
-;;     (reduce merge init xs)
+;;     (reduce merge (init) xs)
 ;;
 ;; For example:
 ;;
@@ -623,17 +647,19 @@
 ;; Our `generate-new-row` function from above is exactly the `merge` function of
 ;; a fold. The accumulator is the latest tableau row:
 
-;; `init`    == [], the initial empty row.
+;; `init`    == a function that returns [], the initial empty row.
 ;;
 ;; `present` == a function similar to `neville-present` or `mn-present` that
 ;;              simply sums up the estimate deltas for the entire row, instead
 ;;              of returning the running tally.
 ;;
-;; NOTE: One big difference between a fold and our previous implementation is
-;; that folds completely consume their inputs. That's why `present` here returns
-;; only `p01234` instead of the full row. The "scan" pattern of
-;; `sicmutils.util.aggregate/scan` allows you to observe intermediate values as
-;; they're generated.
+;; `present` only needs to return the final value in each row because that is
+;; the best current estimate given all points supplied so far.
+;;
+;; If you want to recover the previous behavior of a lazy sequence of all
+;; estimates, the lazy "scan" pattern of `sicmutils.util.aggregate/scan` allows
+;; you to observe each element of the diagonal of the tableau as it's generated.
+;; This is identical to the "first row" of the non-fold tableau.
 ;;
 ;; Now that we've identified this new pattern, we can rewrite `generate-new-row`
 ;; to return a new function matching the fold interface described
@@ -733,10 +759,7 @@
   [x]
   (tableau-fold-fn mn-prepare
                    (mn-merge x)
-                   (fn [row]
-                     (transduce (map (fn [[_ _ c _]] c))
-                                ua/*fold*
-                                row))))
+                   mn-present-final))
 
 ;; ## Fold Utilities
 ;;
@@ -796,3 +819,6 @@
 ;; - `richardson.cljc` for a specialized implementation of polynomial
 ;;   interpolation, when you know something about the ratios between successive
 ;;   `x` elements in the point sequence.
+;;
+;; NOTE: For bonus points, see if you can figure out how to write Richardson
+;; extrapolation as a functional fold!

@@ -22,7 +22,6 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
             [sicmutils.numbers]
             [sicmutils.algebra.fold :as af
              #?@(:cljs [:include-macros true])]))
@@ -42,6 +41,18 @@
            (scan (range 10)))
         "scanning via fold->scan-fn."))
 
+  (checking "2- and 3-arity versions of fold->sum-fn and fold->scan-fn" 100
+            [xs (gen/vector gen/small-integer)]
+            (is (= (inc ((af/fold->sum-fn +) xs))
+                   ((af/fold->sum-fn + inc) xs)
+                   ((af/fold->sum-fn (constantly 0) + inc) xs))
+                "explicit present function passed to fold->sum-fn")
+
+            (is (= (map inc ((af/fold->scan-fn +) xs))
+                   ((af/fold->scan-fn + inc) xs)
+                   ((af/fold->scan-fn (constantly 0) + inc) xs))
+                "explicit present function passed to fold->scan-fn"))
+
   (letfn [(average
             ([] [0.0 0])
             ([[sum n]] (/ sum n))
@@ -55,6 +66,24 @@
           up.")))
 
   (testing "join and primitive tests"
+    (let [fold (af/join af/generic-sum-fold
+                        (af/count even?))
+          sum (af/fold->sum-fn fold)]
+      (is (= [45 5] (sum (range 10)))
+          "total sum and the number of even elements."))
+
+    (checking "join with no args returns empty vector" 100
+              [xs (gen/vector gen/small-integer)]
+              (let [sum (af/fold->sum-fn (af/join))]
+                (is (= [] (sum xs)))))
+
+    (checking "join with 1 arg acts as identity" 100
+              [xs (gen/vector gen/small-integer)]
+              (let [join-sum (af/fold->sum-fn (af/join af/kahan))
+                    kahan-sum (af/fold->sum-fn af/kahan)]
+                (is (= (kahan-sum xs)
+                       (join-sum xs)))))
+
     (let [fold (af/join af/min af/max (af/constant "face") af/generic-sum-fold)
           sum (af/fold->sum-fn fold)
           scan (af/fold->scan-fn fold)]

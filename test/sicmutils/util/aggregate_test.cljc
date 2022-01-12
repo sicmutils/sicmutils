@@ -29,37 +29,46 @@
             [sicmutils.util.stream :as us]))
 
 (deftest sum-tests
-  (let [xs [1.0 1e-8 -1e-8]]
-    (testing "Naive summation"
-      (binding [ua/*fold* af/generic-sum-fold]
-        (is (not= 1 (ua/sum xs))
-            "Without the summation trick, errors build up.")
+  (is (= [0.0 1.0 5.0 14.0 30.0]
+         (ua/scan #(* % %) 0 5))
+      "scan the running sum of squares using the three-arity version of
+      ua/scan.")
 
-        (is (= (ua/generic-sum xs)
-               (ua/sum xs))
-            "generic-sum matches sum when the binding is generic-sum-fold.")))
+  (is (= 499500 (ua/pairwise-sum (range 0 1000)))
+      "pairwise-sum with a non-vector still works.")
 
-    (testing "Kahan summation"
-      (binding [ua/*fold* af/kahan]
-        (is (= 1.0 (ua/sum xs))
-            "Kahan's summation trick allows us to keep precision.")
+  (testing "compensated summation examples"
+    (let [xs [1.0 1e-8 -1e-8]]
+      (testing "Naive summation"
+        (binding [ua/*fold* af/generic-sum-fold]
+          (is (not= 1 (ua/sum xs))
+              "Without the summation trick, errors build up.")
 
-        (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+          (is (= (ua/generic-sum xs)
+                 (ua/sum xs))
+              "generic-sum matches sum when the binding is generic-sum-fold.")))
 
-        (is (= (ua/scan xs)
-               ((af/fold->scan-fn af/kahan) xs))
-            "scan acts just like an actual `scan` call.")))
+      (testing "Kahan summation"
+        (binding [ua/*fold* af/kahan]
+          (is (= 1.0 (ua/sum xs))
+              "Kahan's summation trick allows us to keep precision.")
 
-    (testing "KBN Summation"
-      (binding [ua/*fold* af/kbn]
-        (is (= 1.0 (ua/sum xs))
-            "KBN's summation trick also allows us to keep precision.")
+          (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
 
-        (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+          (is (= (ua/scan xs)
+                 ((af/fold->scan-fn af/kahan) xs))
+              "scan acts just like an actual `scan` call.")))
 
-        (is (= (ua/scan xs)
-               ((af/fold->scan-fn af/kbn) xs))
-            "scan acts just like an actual `scan` call."))))
+      (testing "KBN Summation"
+        (binding [ua/*fold* af/kbn]
+          (is (= 1.0 (ua/sum xs))
+              "KBN's summation trick also allows us to keep precision.")
+
+          (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+
+          (is (= (ua/scan xs)
+                 ((af/fold->scan-fn af/kbn) xs))
+              "scan acts just like an actual `scan` call.")))))
 
   (testing "investigation from scmutils"
     ;; When adding up 1/n large-to-small we get a different answer than when

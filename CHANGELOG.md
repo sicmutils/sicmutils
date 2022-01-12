@@ -4,6 +4,11 @@
 
   - TODO note the new `sicmutils.algebra.fold`!
 
+  - add new fold, scan to bulirsch-stoer rational
+
+  - sci supports the `fork` macro in `sicmutils.util.def`... and the rest of
+    that namespace, though there is not much going on.
+
   - `kahan-sum` is now `kahan-fold` and has a single arity version that is nice
 
   - ua/sum, ua/scanning-sum can now have custom folds
