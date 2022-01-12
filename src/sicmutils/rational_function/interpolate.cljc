@@ -82,8 +82,8 @@
                         rr (evaluate r-branch x)
                         rc (evaluate center x)
                         p  (g/- rr rl)
-                        q  (-> (/ (g/- x xl)
-                                  (g/- x xr))
+                        q  (-> (g// (g/- x xl)
+                                    (g/- x xr))
                                (g/* (g/- 1 (g// p (g/- rr rc))))
                                (g/- 1))]
                     (g/+ rr (g// p q)))))]

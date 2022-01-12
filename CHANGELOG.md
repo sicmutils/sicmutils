@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+- #453:
+
+  - Adds `sicmutils.polynomial/from-points` and
+    `sicmutils.rational-function/from-points` for generating `Polynomial` and
+    `RationalFunction` instances from sequences of points.
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,

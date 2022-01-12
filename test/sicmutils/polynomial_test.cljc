@@ -1078,13 +1078,23 @@
              fx sg/any-integral]
             (is (= fx (p/from-points [[x fx]]))))
 
-  (is (= (g/- (g/* 3 (p/identity)) 2)
-         (p/from-points [[1 1] [2 4]]))
-      "matching polynomial == 3x-2")
+  (let [poly (p/from-points [[1 1] [2 4]])]
+    (is (p/polynomial? poly))
+    (is (= (g/- (g/* 3 (p/identity)) 2)
+           poly)
+        "matching polynomial == 3x-2")
+    (is (= 1 (poly 1)))
+    (is (= 4 (poly 2))))
 
-  (is (= (g/square (p/identity))
-         (p/from-points [[1 1] [2 4] [3 9]]))
-      "matching polynomial == x^2"))
+  (let [poly (p/from-points [[1 1] [2 4] [3 9]])]
+    (is (= (g/square (p/identity))
+           poly)
+        "matching polynomial == x^2")
+    (is (= 1 (poly 1)))
+    (is (= 4 (poly 2)))
+    (is (= 9 (poly 3)))
+    (is (= 16 (poly 4))
+        "just for fun...")))
 
 (deftest analyzer-tests
   (let [new-analyzer (fn [] (a/make-analyzer
