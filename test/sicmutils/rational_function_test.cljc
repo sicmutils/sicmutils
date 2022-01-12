@@ -237,6 +237,27 @@
             (rf/->expression a b))]
     (rf/expression-> expr cont)))
 
+(deftest from-points-tests
+  (is (zero? (rf/from-points []))
+      "no points returns a 0")
+
+  (checking "single point rational function is a constant" 100
+            [x  sg/any-integral
+             fx sg/any-integral]
+            (is (= fx (rf/from-points [[x fx]]))))
+
+  (testing "from-points with two points"
+    (let [f (rf/from-points [[1 1] [2 4]])]
+      (is (rf/rational-function? f))
+      (is (= 1 (f 1)))
+      (is (= 4 (f 2)))))
+
+  (testing "from-points with three points"
+    (let [f (p/from-points [[1 1] [2 4] [3 9]])]
+      (is (= 1 (f 1)))
+      (is (= 4 (f 2)))
+      (is (= 9 (f 3))))))
+
 (deftest rf-as-simplifier
   (let [arity 20]
     (checking "evaluate matches ->expression" test-limit

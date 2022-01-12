@@ -1069,7 +1069,34 @@
                     (p/evaluate q xs))
              (p/evaluate (g/mul p q) xs))))))
 
-(deftest analyzer-test
+(deftest from-points-tests
+  (is (zero? (p/from-points []))
+      "no points returns a 0")
+
+  (checking "single point polynomial is a constant" 100
+            [x  sg/any-integral
+             fx sg/any-integral]
+            (is (= fx (p/from-points [[x fx]]))))
+
+  (let [poly (p/from-points [[1 1] [2 4]])]
+    (is (p/polynomial? poly))
+    (is (= (g/- (g/* 3 (p/identity)) 2)
+           poly)
+        "matching polynomial == 3x-2")
+    (is (= 1 (poly 1)))
+    (is (= 4 (poly 2))))
+
+  (let [poly (p/from-points [[1 1] [2 4] [3 9]])]
+    (is (= (g/square (p/identity))
+           poly)
+        "matching polynomial == x^2")
+    (is (= 1 (poly 1)))
+    (is (= 4 (poly 2)))
+    (is (= 9 (poly 3)))
+    (is (= 16 (poly 4))
+        "just for fun...")))
+
+(deftest analyzer-tests
   (let [new-analyzer (fn [] (a/make-analyzer
                             p/analyzer
                             (a/monotonic-symbol-generator "k%08d")))

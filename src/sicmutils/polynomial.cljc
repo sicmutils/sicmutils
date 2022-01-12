@@ -31,6 +31,7 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as i]
+            [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.series :as series]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
@@ -1431,26 +1432,26 @@
                                     (drop-leading-term a))
                               (cont np nq (* 2 nr)
                                     (* v/machine-epsilon
-                                       (+ (- ne (Math/abs np)) ne)))))]
+                                       (+ (- ne (Math/abs ^double np)) ne)))))]
                (cond (= n 1)
                      (let [np (+ (* z p) (leading-coefficient a))
                            nq (+ (* z q) p)
                            nr (+ (* z r) q)
-                           ne (+ (* (Math/abs z) e) (Math/abs np))]
+                           ne (+ (* (Math/abs ^double z) e) (Math/abs ^double np))]
                        (finish np nq nr ne))
                      (= n 2)
                      (let [z-n (* z z)
-                           az-n (Math/abs z-n)
+                           az-n (Math/abs ^double z-n)
                            np (+ (* z-n p) (leading-coefficient a))
                            nq (+ (* z-n q) (* 2 (* z p)))
                            nr (+ (* z-n r) (* 2 z q) p)
-                           ne (+ (* az-n (+ e p)) (Math/abs np))]
+                           ne (+ (* az-n (+ e p)) (Math/abs ^double np))]
                        (finish np nq nr ne))
                      :else
                      (let [z-n-2 (expt z (- n 2))
                            z-n-1 (* z-n-2 z)
                            z-n (* z-n-1 z)
-                           az-n (Math/abs z-n)
+                           az-n (Math/abs ^double z-n)
                            np (+ (* z-n p)
                                  (leading-coefficient a))
                            nq (+ (* z-n q)
@@ -1459,14 +1460,14 @@
                                  (* n z-n-1 q)
                                  (* (/ 1 2) n (- n 1) z-n-2 p))
                            ne (+ (* az-n (+ e (* (- n 1) p)))
-                                 (Math/abs np))]
+                                 (Math/abs ^double np))]
                        (finish np nq nr ne)))))]
      (let [lc (leading-coefficient a)]
        (call (degree a)
              lc
              0
              0
-             (* (/ 1 2) (Math/abs lc))
+             (* (/ 1 2) (Math/abs ^double lc))
              (drop-leading-term a))))))
 
 ;; ## Scale and Shift
@@ -1597,6 +1598,17 @@
          sym->var (zipmap sorted (new-variables arity))
          poly     (x/evaluate expr sym->var operator-table)]
      (cont poly sorted))))
+
+(defn from-points
+  "Given a sequence of points of the form `[x, f(x)]`, returns a univariate
+  polynomial that passes through each input point.
+
+  The degree of the returned polynomial is equal to `(dec (count xs))`."
+  [xs]
+  (expression->
+   (g/simplify
+    (pi/lagrange xs 'x))
+   (fn [p _] p)))
 
 (let [* (sym/symbolic-operator '*)
       + (sym/symbolic-operator '+)
