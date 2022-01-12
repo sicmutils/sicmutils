@@ -26,8 +26,11 @@
   floating-point numbers."
   (:refer-clojure :rename {count core-count
                            min core-min
-                           max core-max})
-  (:require [sicmutils.generic :as g]))
+                           max core-max}
+                  #?@(:cljs [:exclude [min max count]]))
+  (:require [sicmutils.generic :as g]
+            [sicmutils.util.def :as ud
+             #?@(:cljs [:include-macros true])]))
 
 ;; ## Folds and Scans
 ;;
@@ -475,8 +478,11 @@
   `delta` to the new compensation amount in `(+ acc delta)`."
   [acc delta]
   `[sum# (+ ~acc ~delta)
-    ~delta (if (>= (Math/abs ~(with-meta acc {:tag 'double}))
-                   (Math/abs ~(with-meta delta {:tag 'double})))
+    ~delta (if (ud/fork
+                :clj (>= (Math/abs ~(with-meta acc {:tag 'double}))
+                         (Math/abs ~(with-meta delta {:tag 'double})))
+                :cljs (>= (.abs js/Math ~acc)
+                          (.abs js/Math ~delta)))
              (+ (- ~acc sum#) ~delta)
              (+ (- ~delta sum#) ~acc))
     ~acc sum#])

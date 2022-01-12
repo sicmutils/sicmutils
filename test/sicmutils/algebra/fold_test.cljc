@@ -24,7 +24,8 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.numbers]
-            [sicmutils.algebra.fold :as af]))
+            [sicmutils.algebra.fold :as af
+             #?@(:cljs [:include-macros true])]))
 
 (deftest fold-tests
   (is (= 45 (af/generic-sum-fold
