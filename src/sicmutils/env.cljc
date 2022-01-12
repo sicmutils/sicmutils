@@ -47,6 +47,7 @@
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
+            [sicmutils.algebra.fold]
             [sicmutils.complex]
             [sicmutils.expression :as x]
             [sicmutils.expression.render :as render]

@@ -22,9 +22,8 @@
   different methods for fitting rational functions to `N` points and evaluating
   them at some value `x`."
   (:require [sicmutils.generic :as g]
+            [sicmutils.algebra.fold :as af]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 
 ;; ## Rational Function Interpolation
@@ -93,6 +92,21 @@
 ;; We can be a bit more clever, if we reuse the idea of the "tableau" described
 ;; in the polynomial namespace.
 
+(defn bs-prepare [[x fx]]
+  [x x 0 fx])
+
+(defn bs-merge [x]
+  (fn [[xl _ _ rl] [_ xr rc rr]]
+    (let [p  (- rr rl)
+          q  (-> (/ (- x xl)
+                    (- x xr))
+                 (* (- 1 (/ p (- rr rc))))
+                 (- 1))]
+      [xl xr rl (+ rr (/ p q))])))
+
+(defn- bs-present [row]
+  (map peek row))
+
 (defn bulirsch-stoer
   "Takes
 
@@ -144,17 +158,9 @@
     - Press's Numerical Recipes (p105), [Section 3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf)"
   ([points x] (bulirsch-stoer points x nil))
   ([points x column]
-   (let [prepare (fn [[x fx]] [x x 0 fx])
-         merge   (fn [[xl _ _ rl] [_ xr rc rr]]
-                   (let [p  (- rr rl)
-                         q  (-> (/ (- x xl)
-                                   (- x xr))
-                                (* (- 1 (/ p (- rr rc))))
-                                (- 1))]
-                     [xl xr rl (+ rr (/ p q))]))
-         present (fn [row] (map (fn [[_ _ _ r]] r) row))
-         tableau (pi/tableau-fn prepare merge points)]
-     (present
+   (let [merge   (bs-merge x)
+         tableau (pi/tableau-fn bs-prepare merge points)]
+     (bs-present
       (if column
         (nth tableau column)
         (pi/first-terms tableau))))))
@@ -167,7 +173,7 @@
 ;; the left and left-up entries in the tableau, just like the modified Neville
 ;; method in `polynomial.cljc`. the algorithm is implemented below.
 
-(defn- bs-prepare
+(defn- mbs-prepare
   "Processes an initial point `[x (f x)]` into the required state:
 
   ```
@@ -177,7 +183,7 @@
   The recursion starts with $C = D = f(x)$."
   [[x fx]] [x x fx fx])
 
-(defn- bs-merge
+(defn- mbs-merge
   "Implements the recursion rules described in Press's Numerical Recipes, [section
   3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf) to generate x_l, x_r,
   C and D for a tableau node, given the usual left and left-up tableau entries.
@@ -221,8 +227,8 @@
   [points x]
   (pi/mn-present
    (pi/first-terms
-    (pi/tableau-fn bs-prepare
-                   (bs-merge x)
+    (pi/tableau-fn mbs-prepare
+                   (mbs-merge x)
                    points))))
 
 ;; ## Rational Interpolation as a Fold
@@ -230,8 +236,40 @@
 ;; Just like in `polynomial.cljc`, we can write rational interpolation in the
 ;; style of a functional fold:
 
-(defn modified-bulirsch-stoer-fold-fn
-  "Returns a function that accepts:
+(defn bulirsch-stoer-fold
+  "Given some point `x`, returns a fold that accumulates rows of a rational
+  function interpolation tableau providing successively better estimates (at the
+  value `x`) of a rational function interpolated to all seen points.
+
+  The 2-arity aggregation step takes:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x_new (f x_new)]`
+
+  Returns a function that accepts:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x (f x)]`
+
+  and returns the next row of the tableau using the algorithm described in
+  [[bulirsch-stoer]]."
+  [x]
+  (pi/tableau-fold-fn bs-prepare
+                      (bs-merge x)
+                      (fn [row]
+                        (peek (last row)))))
+
+(defn modified-bulirsch-stoer-fold
+  "Given some point `x`, returns a fold that accumulates rows of a rational
+  function interpolation tableau providing successively better estimates (at the
+  value `x`) of a rational function interpolated to all seen points.
+
+  The 2-arity aggregation step takes:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x_new (f x_new)]`
+
+  Returns a function that accepts:
 
   - `previous-row`: previous row of an interpolation tableau
   - a new point of the form `[x (f x)]`
@@ -239,33 +277,52 @@
   and returns the next row of the tableau using the algorithm described in
   [[modified-bulirsch-stoer]]."
   [x]
-  (pi/tableau-fold-fn
-   bs-prepare
-   (bs-merge x)))
+  (pi/tableau-fold-fn mbs-prepare
+                      (mbs-merge x)
+                      pi/mn-present-final))
 
-(defn modified-bulirsch-stoer-fold
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of successive approximations of `x` using rational functions fitted
-  to the points in reverse order."
+(defn bulirsch-stoer-sum
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns the best approximation of `x` using a rational
+  function fitted to all points in `xs` using the algorithm described
+  in [[modified-bulirsch-stoer]].
+
+  Faster than, but equivalent to, `(last ([[bulirsch-stoer]] xs x))`"
   [x]
-  (pi/tableau-fold
-   (modified-bulirsch-stoer-fold-fn x)
-   pi/mn-present))
+  (af/fold->sum-fn
+   (bulirsch-stoer-fold x)))
+
+(defn bulirsch-stoer-scan
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns a lazy sequence of successive approximations of
+  `x` using rational functions fitted to the first point, then the first and
+  second points, etc. using the algorithm described
+  in [[modified-bulirsch-stoer]].
+
+  Equivalent to `([[bulirsch-stoer]] xs x)`."
+  [x]
+  (af/fold->scan-fn
+   (bulirsch-stoer-fold x)))
+
+(defn modified-bulirsch-stoer-sum
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns the best approximation of `x` using a rational
+  function fitted to all points in `xs` using the algorithm described
+  in [[modified-bulirsch-stoer]].
+
+  Faster than, but equivalent to, `(last ([[modified-bulirsch-stoer]] xs x))`"
+  [x]
+  (af/fold->sum-fn
+   (modified-bulirsch-stoer-fold x)))
 
 (defn modified-bulirsch-stoer-scan
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of SEQUENCES of successive rational function approximations of `x`;
-  one for each of the supplied points.
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns a lazy sequence of successive approximations of
+  `x` using rational functions fitted to the first point, then the first and
+  second points, etc. using the algorithm described
+  in [[modified-bulirsch-stoer]].
 
-  For a sequence `a, b, c...` you'll see:
-
-  ```clojure
-  [([[modified-bulirsch-stoer]] [a] x)
-   ([[modified-bulirsch-stoer]] [b a] x)
-   ([[modified-bulirsch-stoer]] [c b a] x)
-   ...]
-  ```"
+  Equivalent to `([[modified-bulirsch-stoer]] xs x)`."
   [x]
-  (pi/tableau-scan
-   (modified-bulirsch-stoer-fold-fn x)
-   pi/mn-present))
+  (af/fold->scan-fn
+   (modified-bulirsch-stoer-fold x)))

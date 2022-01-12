@@ -205,7 +205,9 @@
   "TODO calculated using recurrence relation here:
   https://en.wikipedia.org/wiki/Stirling_numbers_of_the_first_kind
 
-  This is the SIGNED."
+  This is the SIGNED.
+
+  TODO take a keyword arg for signed"
   [n k]
   {:pre [(<= 0 k)
          (<= k n)]}
