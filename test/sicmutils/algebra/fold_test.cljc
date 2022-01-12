@@ -67,9 +67,10 @@
 
   (testing "join and primitive tests"
     (let [fold (af/join af/generic-sum-fold
+                        (af/count)
                         (af/count even?))
           sum (af/fold->sum-fn fold)]
-      (is (= [45 5] (sum (range 10)))
+      (is (= [45 10 5] (sum (range 10)))
           "total sum and the number of even elements."))
 
     (checking "join with no args returns empty vector" 100

@@ -155,7 +155,7 @@
 (defn count
   "Given some predicate `pred`, returns a fold that counts the number of items it
   encounters that return true when passed to `pred`, false otherwise."
-  ([] (count (fn [] true)))
+  ([] (count (fn [_] true)))
   ([pred]
    (fn ([] 0)
      ([acc] acc)
