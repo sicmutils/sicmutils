@@ -24,6 +24,7 @@
             [pattern.rule :as r]
             [pattern.syntax :as ps]
             [sicmutils.abstract.function :as af]
+            [sicmutils.algebra.fold :as fold]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
@@ -71,6 +72,22 @@
   (let [inputs (partition 3 patterns-and-consequences)
         rules  (map #(apply r/compile-rule %) inputs)]
     `(r/ruleset* ~@rules)))
+
+;; ## Fold Macros
+
+(defn kbk-n
+  "Originally defined in `sicmutils.algebra.fold`."
+  [_ _ n]
+  `(fn ~@(fold/kbk-n-body n)))
+
+(defn fork
+  "Originally defined in `sicmutils.util.def`."
+  [_ _&env & {:keys [cljs clj]}]
+  (if (contains? _&env '&env)
+    `(if (:ns ~'&env) ~cljs ~clj)
+    (if #?(:clj (:ns _&env) :cljs true)
+      cljs
+      clj)))
 
 ;; ## SICMUtils Macros
 
@@ -160,11 +177,13 @@
   (vary-meta f assoc :sci/macro true))
 
 (def all
-  {'literal-function       (tag-as-macro literal-function)
+  {'kbk-n                  (tag-as-macro kbk-n)
+   'literal-function       (tag-as-macro literal-function)
    'with-literal-functions (tag-as-macro with-literal-functions)
    'let-coordinates        (tag-as-macro let-coordinates)
    'using-coordinates      (tag-as-macro using-coordinates)
-   'define-coordinates     (tag-as-macro define-coordinates)})
+   'define-coordinates     (tag-as-macro define-coordinates)
+   'fork                   (tag-as-macro fork)})
 
 (def pattern-macros
   {'pattern     (tag-as-macro pattern)
@@ -181,6 +200,12 @@
    'sicmutils.abstract.function
    (select-keys all ['with-literal-functions])
 
+   'sicmutils.algebra.fold
+   (select-keys all ['kbk-n])
+
    'sicmutils.calculus.coordinate
    (select-keys all ['let-coordinates 'using-coordinates
-                     'define-coordinates])})
+                     'define-coordinates])
+
+   'sicmutils.util.def
+   (select-keys all ['fork])})
