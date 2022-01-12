@@ -140,18 +140,18 @@
                           (closed-integrator f l r opts)
                           (open-integrator f l r opts)))]
         (loop [stack [[a b (:interval opts)]]
-               sum   (ua/kahan-sum)
+               sum   (ua/*fold*)
                iteration 0]
           (if (empty? stack)
             {:converged? true
              :iterations iteration
-             :result (first sum)}
+             :result (ua/*fold* sum)}
             (let [[l r interval] (peek stack)
                   remaining      (pop stack)
                   {:keys [converged? result]} (integrate l r interval)]
               (if converged?
                 (recur remaining
-                       (ua/kahan-sum sum result)
+                       (ua/*fold* sum result)
                        (inc iteration))
                 (let [midpoint (split-point l r (:adaptive-neighborhood-width opts))]
                   (recur (conj remaining

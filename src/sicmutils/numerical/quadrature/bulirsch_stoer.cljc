@@ -127,8 +127,8 @@
   the `:bs-extrapolator` option."
   [opts]
   (if (= :polynomial (:bs-extrapolator opts))
-    poly/modified-neville
-    rat/modified-bulirsch-stoer))
+    (poly/modified-neville-scan 0)
+    (rat/modified-bulirsch-stoer-scan 0)))
 
 ;; This function exists because we wanted to provide an `open-sequence` and
 ;; `closed-sequence` option below. The logic for both is the same, other than
@@ -157,8 +157,8 @@
            square      (fn [x] (* x x))
            xs          (map square (h-sequence a b n))
            ys          (integrator-seq-fn f a b opts)]
-       (-> (map vector xs ys)
-           (extrapolate 0))))))
+       (extrapolate
+        (map vector xs ys))))))
 
 (def ^{:doc "Returns a (lazy) sequence of successively refined estimates of the
   integral of `f` over the closed interval $[a, b]$ by applying rational

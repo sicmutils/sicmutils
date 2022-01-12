@@ -348,11 +348,11 @@
 ;; - $P_l(x)$ is the estimate with all points but the first, ie, $P_{bc}(x)$
 ;; - $P_l(x)$ is the estimate with all points but the LAST, ie, $P_{ab}(x)$
 ;;
-;; Fill in $x = 0 and rearrange$:
+;; Fill in $x = 0$ and rearrange:
 ;;
 ;; $$P(0) = [(x_l P_r(0)) - (x_r P_l(x))] \over [x_l - x_r]$$
 ;;
-;; In the richardson extrapolation scheme, one of our parameters was `t`, the
+;; In the Richardson extrapolation scheme, one of our parameters was `t`, the
 ;; ratio between successive elements in the sequence. Now multiply through by $1
 ;; = {1 \over x_r} \over {1 \over x_r}$ so that our formula contains ratios:
 ;;
@@ -363,7 +363,8 @@
 ;;
 ;; $${x_l \over x_r} = {x \over {x \over t^n}} = t^n$$
 ;;
-;; Where $n$ is the difference between the positions of $x_l$ and $x_r$. So the formula simplifies further to:
+;; Where $n$ is the difference between the positions of $x_l$ and $x_r$. So the
+;; formula simplifies further to:
 ;;
 ;; $$P(0) = [({t^n} P_r(0)) - P_l(x)] \over [{t^n} - 1]$$
 ;;
