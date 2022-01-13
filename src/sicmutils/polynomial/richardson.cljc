@@ -22,9 +22,8 @@
   the ratios of successive `x` coordinates in the point sequence allows a more
   efficient calculation."
   (:require [sicmutils.generic :as g]
+            [sicmutils.algebra.fold :as af]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
 

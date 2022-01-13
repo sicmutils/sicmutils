@@ -52,7 +52,7 @@
                                     (get-in points [j 0]))
                            p (apply g/* (map #(g/- x %) others))
                            q (apply g/* (map #(g/- a %) others))]
-                       (g// (g/* fa p) q)))]
+                       (g/* (g/invert q) fa p)))]
     (transduce (map-indexed build-term)
                g/+
                points)))

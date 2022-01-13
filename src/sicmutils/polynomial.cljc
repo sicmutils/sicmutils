@@ -460,6 +460,14 @@
   (map #(identity n %)
        (range 0 n)))
 
+(defn from-points
+  "Given a sequence of points of the form `[x, f(x)]`, returns a univariate
+  polynomial that passes through each input point.
+
+  The degree of the returned polynomial is equal to `(dec (count xs))`."
+  [xs]
+  (pi/lagrange xs (identity)))
+
 (declare add)
 
 (defn linear
@@ -1598,17 +1606,6 @@
          sym->var (zipmap sorted (new-variables arity))
          poly     (x/evaluate expr sym->var operator-table)]
      (cont poly sorted))))
-
-(defn from-points
-  "Given a sequence of points of the form `[x, f(x)]`, returns a univariate
-  polynomial that passes through each input point.
-
-  The degree of the returned polynomial is equal to `(dec (count xs))`."
-  [xs]
-  (expression->
-   (g/simplify
-    (pi/lagrange xs 'x))
-   (fn [p _] p)))
 
 (let [* (sym/symbolic-operator '*)
       + (sym/symbolic-operator '+)
