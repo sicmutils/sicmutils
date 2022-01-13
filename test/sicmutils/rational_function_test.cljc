@@ -253,7 +253,7 @@
       (is (= 4 (f 2)))))
 
   (testing "from-points with three points"
-    (let [f (p/from-points [[1 1] [2 4] [3 9]])]
+    (let [f (rf/from-points [[1 1] [2 4] [3 9]])]
       (is (= 1 (f 1)))
       (is (= 4 (f 2)))
       (is (= 9 (f 3))))))
