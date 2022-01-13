@@ -2,6 +2,21 @@
 
 ## [unreleased]
 
+- #456:
+
+  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
+    gone as well.
+
+  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+    an actual polynomial instance. Because polynomials support `IFn` and respond
+    to the derivative operator `D`, this makes the `find-path` example on pages
+    22/23 of SICM run about 5x faster.
+
+  - Richardson extrapolation is now implemented as a functional fold. The
+    exposition in `sicmutils.polynomial.richardson` discusses this; the
+    namespaces gains `richardson-fold`, `richardson-sum` and `richardson-scan`.
+
 - #455 makes `sicmutils.util.aggregate/scan` and
   `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
   first element of the returned sequence before mapping the `present` function.
