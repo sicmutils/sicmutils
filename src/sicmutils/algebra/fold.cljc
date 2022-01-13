@@ -287,8 +287,8 @@
    (fn scan
      ([xs]
       (->> (reductions fold (init) xs)
-           (map present)
-           (rest)))
+           (rest)
+           (map present)))
      ([f low high]
       (scan
        (map f (range low high)))))))
