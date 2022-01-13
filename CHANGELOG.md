@@ -2,6 +2,14 @@
 
 ## [unreleased]
 
+- new:
+
+  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions.
+
+  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+    an actual polynomial!
+
 - #455 makes `sicmutils.util.aggregate/scan` and
   `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
   first element of the returned sequence before mapping the `present` function.

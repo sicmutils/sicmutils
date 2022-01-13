@@ -27,7 +27,7 @@
             [sicmutils.value :as v]))
 
 (deftest richardson-limit-tests
-  (let [pi-seq @#'pr/archimedean-pi-sequence]
+  (let [pi-seq pr/archimedean-pi-sequence]
 
     (testing "without richardson extrapolation, the sequence takes a long time."
       (is (ish? {:converged? true
@@ -68,3 +68,29 @@
                            (pr/richardson-sequence pi-seq 4 1 1)))
                   (take 7 (us/seq-limit
                            (pi/modified-neville xs 0.0)))))))))
+
+(deftest fold-tests
+  (let [pi-seq pr/archimedean-pi-sequence]
+    (let [sum  (pr/richardson-sum 2 2 #(+ % 2))
+          scan (pr/richardson-scan 2 2 #(+ % 2))]
+      (is (= (take 10 (scan pi-seq))
+             (take 10 (pr/richardson-sequence pi-seq 2 2 2)))
+          "Scanning via richardson-fold is equivalent to richardson-sequence")
+
+      (is (= (sum (take 10 pi-seq))
+             (last (pr/richardson-sequence (take 10 pi-seq) 2 2 2)))
+          "Summing via richardson-fold is equivalent to taking the final estimate
+         from richardson-sequence"))
+
+    (testing "fold's error terms start at expt == 1 and increase by 1 each time
+              by default"
+      (let [sum  (pr/richardson-sum 2)
+            scan (pr/richardson-scan 2)]
+        (is (= (take 10 (scan pi-seq))
+               (take 10 (pr/richardson-sequence pi-seq 2 1 1)))
+            "Scanning via richardson-fold is equivalent to richardson-sequence")
+
+        (is (= (sum (take 10 pi-seq))
+               (last (pr/richardson-sequence (take 10 pi-seq) 2 1 1)))
+            "Summing via richardson-fold is equivalent to taking the final estimate
+         from richardson-sequence")))))
