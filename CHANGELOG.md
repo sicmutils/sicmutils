@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- #455 makes `sicmutils.util.aggregate/scan` and
+  `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
+  first element of the returned sequence before mapping the `present` function.
+
 - #453:
 
   - Adds `sicmutils.polynomial/from-points` and
