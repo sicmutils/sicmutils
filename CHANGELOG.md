@@ -2,7 +2,7 @@
 
 ## [unreleased]
 
-- new:
+- #456:
 
   - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
     existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
