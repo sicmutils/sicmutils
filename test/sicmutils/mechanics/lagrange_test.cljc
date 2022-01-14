@@ -53,7 +53,7 @@
                (* t1 ((D q) t))
                (q t))
            (v/freeze
-            (simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1)))))
+            (simplify ((L/osculating-path ((L/Gamma q 4) 't)) 't1)))))
 
     (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
            (simplify

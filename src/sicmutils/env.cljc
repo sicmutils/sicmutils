@@ -462,8 +462,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   ->local
   Euler-Lagrange-operator
   F->C
-  Gamma Γ
-  Gamma-bar Γ-bar
+  Gamma
+  Gamma-bar
   Lagrange-equations
   Lagrange-equations-first-order
   Lagrange-interpolation-function

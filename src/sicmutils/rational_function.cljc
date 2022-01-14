@@ -29,6 +29,7 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.polynomial.impl :as pi]
+            [sicmutils.rational-function.interpolate :as ri]
             [sicmutils.ratio :as r]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
@@ -765,6 +766,15 @@
          sym->var (zipmap sorted (p/new-variables arity))
          rf       (x/evaluate expr sym->var operator-table)]
      (cont rf sorted))))
+
+(defn from-points
+  "Given a sequence of points of the form `[x, f(x)]`, returns a rational function
+  that passes through each input point."
+  [xs]
+  (expression->
+   (g/simplify
+    (ri/bulirsch-stoer-recursive xs 'x))
+   (fn [rf _] rf)))
 
 (defn ->expression
   "Accepts a [[RationalFunction]] `r` and a sequence of symbols for each indeterminate,
