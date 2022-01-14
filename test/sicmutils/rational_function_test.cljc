@@ -256,7 +256,12 @@
     (let [f (rf/from-points [[1 1] [2 4] [3 9]])]
       (is (= 1 (f 1)))
       (is (= 4 (f 2)))
-      (is (= 9 (f 3))))))
+      (is (= 9 (f 3)))))
+
+  (testing "symbolic from-points. Only works with two entries so far!"
+    (let [f (rf/from-points '[[x1 y1] [x2 y2]])]
+      (is (v/= 'y1 (g/simplify (f 'x1))))
+      (is (v/= 'y2 (g/simplify (f 'x2)))))))
 
 (deftest rf-as-simplifier
   (let [arity 20]
@@ -291,6 +296,15 @@
                    (g/simplify
                     (g/- (r (g/+ 'x factor))
                          (rf/evaluate shifted ['x])))))))
+
+  (testing "expression-> unwraps internal literals"
+    (is (every?
+         (complement x/literal?)
+         (tree-seq coll? seq
+                   (-> (rf/from-points '[[x y] [x2 y2]])
+                       (rf/->expression ['z]))))
+        "EVEN if the original rf has symbolic coefficients, these are unwrapped
+         in the process of generating the bare expression."))
 
   (testing "expr"
     (let [exp1 (x/expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))

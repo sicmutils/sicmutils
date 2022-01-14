@@ -27,7 +27,7 @@
             [sicmutils.abstract.number :as an]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.differential :as sd]
-            [sicmutils.expression :refer [variables-in expression-of]]
+            [sicmutils.expression :as x :refer [variables-in expression-of]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
@@ -808,7 +808,6 @@
                    (p/evaluate P [1 2 3 4]))
           "Too many arguments supplied.")))
 
-
   (let [pos (gen/fmap inc gen/nat)]
     (checking "arg-scale, shift" 30
               [term-count (gen/choose 2 10)
@@ -1094,9 +1093,24 @@
     (is (= 4 (poly 2)))
     (is (= 9 (poly 3)))
     (is (= 16 (poly 4))
-        "just for fun...")))
+        "just for fun..."))
+
+  (testing "symbolic from-points"
+    (let [poly (p/from-points '[[x1 y1] [x2 y2] [x3 y3]])]
+      (is (v/= 'y1 (g/simplify (poly 'x1))))
+      (is (v/= 'y2 (g/simplify (poly 'x2))))
+      (is (v/= 'y3 (g/simplify (poly 'x3)))))))
 
 (deftest analyzer-tests
+  (testing "expression-> unwraps internal literals"
+    (is (every?
+         (complement x/literal?)
+         (tree-seq coll? seq
+                   (-> (p/from-points '[[x y] [x2 y2]])
+                       (p/->expression ['z]))))
+        "EVEN if the original rf has symbolic coefficients, these are unwrapped
+         in the process of generating the bare expression."))
+
   (let [new-analyzer (fn [] (a/make-analyzer
                             p/analyzer
                             (a/monotonic-symbol-generator "k%08d")))
