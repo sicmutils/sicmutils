@@ -117,7 +117,6 @@
    'sicmutils.mechanics.rigid                (ns-publics 'sicmutils.mechanics.rigid)
    'sicmutils.mechanics.rotation             (ns-publics 'sicmutils.mechanics.rotation)
    'sicmutils.numerical.derivative           (ns-publics 'sicmutils.numerical.derivative)
-
    'sicmutils.numerical.minimize             (ns-publics 'sicmutils.numerical.minimize)
    'sicmutils.numerical.ode                  (ns-publics 'sicmutils.numerical.ode)
    'sicmutils.numerical.quadrature           (ns-publics 'sicmutils.numerical.quadrature)
