@@ -221,6 +221,9 @@
 (defbinary g/gcd 'gcd)
 (defbinary g/lcm 'lcm)
 
+;; We currently default to `false` here; once literals gain metadata saying
+;; whether or not they are negative, we return /something/. Maybe this is
+;; ill-founded, but it was required for some polynomial code.
 (defmethod g/negative? [::x/numeric] [_] false)
 
 (defmethod g/simplify [Symbol] [a] a)

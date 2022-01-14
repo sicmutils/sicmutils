@@ -2,6 +2,23 @@
 
 ## [unreleased]
 
+- #458:
+
+  - Default implementation of `g/negative?` returning `false` for literal
+    numbers and symbols. This was required to get `g/abs` working for
+    polynomials and rational functions with symbolic coefficients.
+
+  - Polynomials and rational functions now correctly unwrap `Literal`
+    coefficients in `->expression`. Without this, the resulting expressions
+    would not correctly respond to `simplify` calls.
+
+  - Slight efficiency improvement in
+    `sicmutils.polynomial.gcd/->content+primitive`.
+
+  - `sicmutils.rational-function/from-points` now correctly builds its function.
+    Before, it was unhygienic; if `'x` appeared in the coefficients the results
+    would be incorrect.
+
 - #456:
 
   - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
