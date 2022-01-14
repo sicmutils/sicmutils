@@ -221,6 +221,8 @@
 (defbinary g/gcd 'gcd)
 (defbinary g/lcm 'lcm)
 
+(defmethod g/negative? [::x/numeric] [_] false)
+
 (defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
   (literal-number

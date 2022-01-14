@@ -20,14 +20,12 @@
 (ns sicmutils.rational-function
   (:require [clojure.set :as set]
             [sicmutils.complex :refer [complex?]]
-            [sicmutils.differential :as sd]
             [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as p]
-            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.polynomial.impl :as pi]
             [sicmutils.rational-function.interpolate :as ri]
             [sicmutils.ratio :as r]
@@ -348,9 +346,9 @@
   (let [a (check-same-arity u v)
         xform (comp (distinct)
                     (map r/denominator))
-        coefs  (concat
-                (p/coefficients u)
-                (p/coefficients v))
+        coefs (concat
+               (p/coefficients u)
+               (p/coefficients v))
         factor (transduce xform (completing g/lcm) 1 coefs)
         factor (if (= 1 (coef-sgn
                          (p/leading-coefficient v)))
@@ -771,10 +769,8 @@
   "Given a sequence of points of the form `[x, f(x)]`, returns a rational function
   that passes through each input point."
   [xs]
-  (expression->
-   (g/simplify
-    (ri/bulirsch-stoer-recursive xs 'x))
-   (fn [rf _] rf)))
+  (g/simplify
+   (ri/bulirsch-stoer-recursive xs (p/identity))))
 
 (defn ->expression
   "Accepts a [[RationalFunction]] `r` and a sequence of symbols for each indeterminate,

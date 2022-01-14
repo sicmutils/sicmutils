@@ -466,7 +466,8 @@
 
   The degree of the returned polynomial is equal to `(dec (count xs))`."
   [xs]
-  (pi/lagrange xs (identity)))
+  (g/simplify
+   (pi/lagrange xs (identity))))
 
 (declare add)
 
@@ -1187,9 +1188,11 @@
             #?@(:cljs [c (->big c)])]
         (if (< m n)
           [remainder d]
-          (recur (sub (*vn remainder)
-                      (mul (c*xn 1 c (- m n))
-                           v))
+          ;; this handles symbolic coefficients.
+          (recur (g/simplify
+                  (sub (*vn remainder)
+                       (mul (c*xn 1 c (- m n))
+                            v)))
                  (inc d)))))))
 
 ;; ## Polynomial Contraction and Expansion
@@ -1634,7 +1637,9 @@
                            (fn [i v]
                              (let [pow (xpt/monomial-degree expts i)]
                                (expt v pow))))
-                          * c vars)))
+                          *
+                          (x/expression-of c)
+                          vars)))
             high->low (rseq (bare-terms p))]
         (transduce xform + high->low)))))
 
