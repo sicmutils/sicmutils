@@ -56,9 +56,9 @@
             (p/make 2 {[4 3] 15})))))
 
   (testing "inexact coefficients"
-    (is (= 1.0 (g/gcd
-                (p/make [0.2 0.4 0.6])
-                (p/make [0.4 0.6 0.8]))))
+    (is (= 1 (g/gcd
+              (p/make [0.2 0.4 0.6])
+              (p/make [0.4 0.6 0.8]))))
     (is (= (p/make [0 1])
            (g/gcd
             (p/make [0 1])

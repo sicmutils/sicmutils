@@ -1630,7 +1630,7 @@
   by [[sicmutils.expression.analyze/make-analyzer]]."
     [p vars]
     (if-not (polynomial? p)
-      p
+      (x/expression-of p)
       (let [xform (map (fn [[expts c]]
                          (transduce
                           (map-indexed
