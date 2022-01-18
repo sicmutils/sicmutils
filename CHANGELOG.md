@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+  - added `sicmutils.series/harmonic-series`
+
   - moved `sicmutils.numerical.elliptic` to `sicmutils.special.elliptic`.
 
   - new `sicmutils.special.factorial` with `factorial` and list other friends

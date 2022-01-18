@@ -133,8 +133,8 @@
             (is (= 1 (sf/stirling-first-kind n n)))
 
             (when (> n 2)
-              (is (= (* (/ (dec (* 3 n)) 4)
-                        (sf/binomial-coefficient n 3))
+              (is (= (g/* (/ (dec (* 3 n)) 4)
+                          (sf/binomial-coefficient n 3))
                      (sf/stirling-first-kind n (- n 2))))))
 
   (testing "Stirling numbers of the first kind, from numeric.scm"

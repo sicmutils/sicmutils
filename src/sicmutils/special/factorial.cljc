@@ -96,14 +96,14 @@
   {:pre [(v/native-integral? n)]}
   (cond (zero? n) 1
         (neg? n)
-        (let [denom (rising-factorial (g/add x 1) (- n))]
+        (let [denom (rising-factorial (g/add x 1) (g/- n))]
           (if (v/zero? denom)
             ##Inf
             (g/invert denom)))
 
         :else
         (transduce (comp
-                    (map #(g/add x (- %)))
+                    (map #(g/add x (g/- %)))
                     #?(:cljs (map ->bigint)))
                    g/*
                    (range n))))
@@ -118,16 +118,16 @@
   (cond (zero? n) 1
         (neg? n)
         (let [denom (rising-factorial (inc x) (- n))]
-          (if (zero? denom)
+          (if (v/zero? denom)
             ##Inf
-            (/ 1 denom)))
+            (g// 1 denom)))
 
         :else
         (let [elems (range x (- x n) -1)]
           #?(:clj
              (apply *' elems)
              :cljs
-             (transduce (map u/bigint) * elems)))))
+             (transduce (map u/bigint) g/* elems)))))
 
 (defgeneric rising-factorial 2
   "Returns the [rising
@@ -173,7 +173,7 @@
           #?(:clj
              (apply *' elems)
              :cljs
-             (transduce (map u/bigint) * elems)))))
+             (transduce (map u/bigint) g/* elems)))))
 
 ;; I learned about the next group of functions from John D Cook's [Variations on
 ;; Factorial](https://www.johndcook.com/blog/2010/09/21/variations-on-factorial/)
@@ -352,15 +352,16 @@
     {:pre [(v/native-integral? n)
            (v/native-integral? k)
            (<= 0 k) (<= 0 n)]}
-    (let [rec  (atom nil)
+    (let [rec (atom nil)
           rec* (fn [n k]
                  (cond (= k 1) 1
 	                     (= n k) 1
 	                     :else
 	                     (let [n-1 (dec n)]
-		                     (add (mul k #?(:cljs (u/bigint (@rec n-1 k))
-                                        :clj  (@rec n-1 k)))
-		                          (@rec n-1 (dec k))))))]
+		                     (add
+                          (mul k #?(:cljs (u/bigint (@rec n-1 k))
+                                    :clj  (@rec n-1 k)))
+		                      (@rec n-1 (dec k))))))]
       (reset! rec (memoize rec*))
       (cond (zero? k) (if (zero? n) 1 0)
             (> k n) 0
