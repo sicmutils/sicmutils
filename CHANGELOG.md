@@ -15,6 +15,8 @@
   - better `number-of-combinations` impl in `sicmutils.util.permute`, using
     `falling-factorial`
 
+  - `sicmutils.util.permute/multichoose`
+
   - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
 
 - #458:

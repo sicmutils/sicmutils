@@ -335,7 +335,7 @@
                        (@rec n-1 (dec k))
                        (add (@rec n-1 (dec k))
                             (mul factor
-                                 #?(:cljs (->big (@rec n-1 k))
+                                 #?(:cljs (u/bigint (@rec n-1 k))
                                     :clj  (@rec n-1 k))))))))]
       (reset! rec (memoize rec*))
       (cond (zero? k) (if (zero? n) 1 0)
@@ -358,7 +358,7 @@
 	                     (= n k) 1
 	                     :else
 	                     (let [n-1 (dec n)]
-		                     (add (mul k #?(:cljs (->big (@rec n-1 k))
+		                     (add (mul k #?(:cljs (u/bigint (@rec n-1 k))
                                         :clj  (@rec n-1 k)))
 		                          (@rec n-1 (dec k))))))]
       (reset! rec (memoize rec*))
