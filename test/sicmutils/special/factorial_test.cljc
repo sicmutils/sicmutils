@@ -25,34 +25,10 @@
             [same :refer [ish?]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.special.factorial :as sf]))
-
-;; TODO see https://proofwiki.org/wiki/Properties_of_Falling_Factorial tests for
-;; falling
-
-;; TEST: coefficients of expansions are stirling numbers of the first kind, see
-;; https://en.wikipedia.org/wiki/Falling_and_rising_factorials#cite_note-10
-
-;; Test this implementation for falling factorial with negative expts:
-#_(comment
-    ;; here is another impl for negative that we can test against.
-    (g/invert
-     (transduce (comp
-                 (map #(g/add x (inc %)))
-                 #?(:cljs (map u/bigint)))
-                g/*
-                (range (- n)))))
-
-;; TODO make tests checking these!! Check that these three cases work.
-
-;; NOTE from wiki: The rising and falling factorials are well defined in any
-;; unital ring, and therefore x can be taken to be, for example, a complex
-;; number, including negative integers, or a polynomial with complex
-;; coefficients, or any complex-valued function.
-
-;; TODO close the stirling ticket after we get this in.
-
-
+            [sicmutils.polynomial :as poly]
+            [sicmutils.series :as series]
+            [sicmutils.special.factorial :as sf]
+            [sicmutils.value :as v]))
 
 (deftest factorial-tests
   (testing "factorial"
@@ -68,7 +44,122 @@
          (sf/falling-factorial -10 -10)))
     (is (= -1320 (sf/falling-factorial -10 3)))
     (is (= #sicm/ratio -1/504 (sf/falling-factorial -10 -3)))
-    (is (= #sicm/ratio 1/1716 (sf/falling-factorial 10 -3))))
+    (is (= #sicm/ratio 1/1716 (sf/falling-factorial 10 -3)))
+
+    (testing "falling factorial works on unital rings, functions are game!"
+      (is (= '(/ 1 (+ (expt x 3) (* 6 (expt x 2)) (* 11 x) 6))
+             (v/freeze
+              (g/simplify
+               ((sf/falling-factorial g/+ -3) 'x))))
+          "negative second arg")
+
+      (is (= '(+ (expt x 3) (* -3 (expt x 2)) (* 2 x))
+             (v/freeze
+              (g/simplify
+               ((sf/falling-factorial g/+ 3) 'x))))
+          "positive second arg"))
+
+    (letfn [(check-against-stirling [n]
+              (let [coeffs (poly/coefficients
+                            (sf/falling-factorial (poly/identity) n))]
+                (is (v/= coeffs
+                         (map #(sf/stirling-first-kind n %)
+                              (range 1 (inc n))))
+                    "algebraic definition of stirling numbers; they are the
+                    coefficients of the polynomial expansion of the falling
+                    factorial.")))]
+      (check-against-stirling 4)
+      (check-against-stirling 8))
+
+    (checking "small input falling-factorial laws" 10
+              [x (gen/choose 1 40)
+               m (gen/choose 1 40)
+               n (gen/choose 1 40)]
+              (is (= (sf/falling-factorial x n)
+                     (sf/factorial-power x n))
+                  "checking alias")
+
+              (is (= (sf/factorial x)
+                     (sf/falling-factorial x x)
+                     (sf/falling-factorial x (dec x)))
+                  "integer to power of itself (falling), or itself-1 falling, ==
+                  factorial")
+
+              (is (= (sf/rising-factorial x n)
+                     (sf/falling-factorial (+ x n -1) n))
+                  "rising in terms of falling")
+
+              (is (= (sf/falling-factorial x (+ m n))
+                     (g/* (sf/falling-factorial x m)
+                          (sf/falling-factorial (- x m) n)))
+                  "x^(m+n) falling == x^m falling (x-m)^n falling"))
+
+    (checking "falling-factorial laws" 100 [x gen/small-integer]
+              (is (= x (sf/falling-factorial x 1))
+                  "x^1 falling == x")
+
+              (is (= 1 (sf/falling-factorial x 0))
+                  "x^0 falling == 1")))
+
+  (testing "rising-factorial"
+    (is (g/infinite?
+         (sf/rising-factorial 3 -5)))
+    (is (= -720 (sf/rising-factorial -10 3)))
+    (is (= #sicm/ratio -1/1716 (sf/rising-factorial -10 -3)))
+    (is (= #sicm/ratio 1/504 (sf/rising-factorial 10 -3)))
+
+    (testing "rising factorial works on unital rings, functions are game!"
+      (is (= '(/ 1 (+ (expt x 3) (* -6 (expt x 2)) (* 11 x) -6))
+             (v/freeze
+              (g/simplify
+               ((sf/rising-factorial g/+ -3) 'x))))
+          "negative second arg")
+
+      (is (= '(+ (expt x 3) (* 3 (expt x 2)) (* 2 x))
+             (v/freeze
+              (g/simplify
+               ((sf/rising-factorial g/+ 3) 'x))))
+          "positive second arg"))
+
+    (checking "small input rising-factorial laws" 10
+              [x (gen/choose 1 40)
+               m (gen/choose 1 40)
+               n (gen/choose 1 40)]
+              (is (= (sf/rising-factorial x n)
+                     (sf/pochhammer x n))
+                  "checking alias")
+
+              (is (= (sf/factorial x)
+                     (sf/rising-factorial 1 x))
+                  "1^x rising == factorial")
+
+              (is (= (sf/rising-factorial x (+ m n))
+                     (g/* (sf/rising-factorial x m)
+                          (sf/rising-factorial (+ x m) n)))
+                  "x^(m+n) rising == x^m rising (x+m)^n rising"))
+
+    (checking "rising-factorial laws" 100 [x gen/small-integer]
+              (is (= x (sf/rising-factorial x 1))
+                  "x^1 falling == x")
+
+              (is (= 1 (sf/falling-factorial x 0))
+                  "x^0 falling == 1")))
+
+  (testing "multi-factorial"
+    (is (= 162 (sf/multi-factorial 9 3)))
+
+    (checking "multi-factorial laws" 100 [x (gen/choose 1 40)]
+              (is (= (sf/factorial x)
+                     (sf/multi-factorial x 1)))
+
+              (is (= 1 (sf/multi-factorial 0 x)))
+              (is (= 1 (sf/multi-factorial 1 x)))
+
+              (when (> x 1)
+                (is (= (sf/factorial x)
+                       (g/* (sf/multi-factorial x 3)
+                            (sf/multi-factorial (- x 1) 3)
+                            (sf/multi-factorial (- x 2) 3)))))))
 
   (testing "double-factorial"
     ;; confirmed via wolfram
@@ -115,6 +206,17 @@
     (check 100 200 0 "k > n")))
 
 (deftest stirling-tests
+  (testing "harmonic numbers defined via stirling"
+    (letfn [(harmonic [n]
+              (g// (sf/stirling-first-kind
+                    (inc n) 2 :unsigned? true)
+                   (sf/factorial n)))]
+      (is (every? true?
+                  (map =
+                       (map harmonic (range 1 50))
+                       series/harmonic-series))
+          "Check the first 50 harmonic numbers against the harmonic series.")))
+
   (checking "stirling first kind identities" 100
             [n (gen/choose 1 40)
              k (gen/choose 1 40)]

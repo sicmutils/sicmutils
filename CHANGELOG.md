@@ -2,22 +2,27 @@
 
 ## [unreleased]
 
-  - added `sicmutils.series/harmonic-series`
+- #450:
 
-  - moved `sicmutils.numerical.elliptic` to `sicmutils.special.elliptic`.
+  - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
+    numbers](https://en.wikipedia.org/wiki/Harmonic_number)
 
-  - new `sicmutils.special.factorial` with `factorial` and list other friends
-    too. Removed duplicate `g/factorial`.
+  - moves `sicmutils.numerical.elliptic` to the `sicmutils.special` package, as
+    `sicmutils.special.elliptic`.
 
-    - `falling-factorial`, `rising-factorial`, `double-factorial`,
-      `multi-factorial`, `subfactorial`, `binomial-coefficient`,
-      `stirling-first-kind`, `stirling-second-kind`. These last two perhaps
-      belong somewhere else, but they're related...
+  - New `sicmutils.special.factorial` namespace!
+    `sicmutils.util.permute/factorial` moves here, and the forgotten duplicate
+    `sicmutils.generic/factorial` is now gone.
+
+    - New functions: `falling-factorial`, `rising-factorial`,
+      `double-factorial`, `multi-factorial`, `subfactorial`,
+      `binomial-coefficient`, `stirling-first-kind`, `stirling-second-kind`.
+
+  - New `sicmutils.util.permute/multichoose` function, implementing the
+    definition [described here](https://mathworld.wolfram.com/Multichoose.html).
 
   - better `number-of-combinations` impl in `sicmutils.util.permute`, using
-    `falling-factorial`
-
-  - `sicmutils.util.permute/multichoose`
+    `sicmutils.special.factorial/falling-factorial`
 
   - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
 

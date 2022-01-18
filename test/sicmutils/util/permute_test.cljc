@@ -164,7 +164,14 @@
                        (gen/choose 0 n)))]
             (is (= (p/number-of-combinations (count xs) k)
                    (count
-                    (p/combinations xs k))))))
+                    (p/combinations xs k)))))
+
+  (checking "multichoose" 100
+            [n gen/nat k (gen/fmap inc gen/nat)]
+            (is (= (p/multichoose n k)
+                   (p/number-of-combinations
+                    (+ n k -1) k))
+                "Definition from https://mathworld.wolfram.com/Multichoose.html")))
 
 (deftest permutation-test
   (testing "permutation-sequence"
