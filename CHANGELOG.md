@@ -2,6 +2,72 @@
 
 ## [unreleased]
 
+- #450:
+
+  - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
+    numbers](https://en.wikipedia.org/wiki/Harmonic_number)
+
+  - moves `sicmutils.numerical.elliptic` to the `sicmutils.special` package, as
+    `sicmutils.special.elliptic`.
+
+  - New `sicmutils.special.factorial` namespace!
+    `sicmutils.util.permute/factorial` moves here, and the forgotten duplicate
+    `sicmutils.generic/factorial` is now gone.
+
+    - New functions: `falling-factorial`, `rising-factorial`,
+      `double-factorial`, `multi-factorial`, `subfactorial`,
+      `binomial-coefficient`, `stirling-first-kind`, `stirling-second-kind`.
+
+  - New `sicmutils.util.permute/multichoose` function, implementing the
+    definition [described here](https://mathworld.wolfram.com/Multichoose.html).
+
+  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
+    `sicmutils.special.factorial/falling-factorial`
+
+  - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
+
+- #458:
+
+  - Default implementation of `g/negative?` returning `false` for literal
+    numbers and symbols. This was required to get `g/abs` working for
+    polynomials and rational functions with symbolic coefficients.
+
+  - Polynomials and rational functions now correctly unwrap `Literal`
+    coefficients in `->expression`. Without this, the resulting expressions
+    would not correctly respond to `simplify` calls.
+
+  - Slight efficiency improvement in
+    `sicmutils.polynomial.gcd/->content+primitive`.
+
+  - `sicmutils.rational-function/from-points` now correctly builds its function.
+    Before, it was unhygienic; if `'x` appeared in the coefficients the results
+    would be incorrect.
+
+- #456:
+
+  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
+    gone as well.
+
+  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+    an actual polynomial instance. Because polynomials support `IFn` and respond
+    to the derivative operator `D`, this makes the `find-path` example on pages
+    22/23 of SICM run about 5x faster.
+
+  - Richardson extrapolation is now implemented as a functional fold. The
+    exposition in `sicmutils.polynomial.richardson` discusses this; the
+    namespaces gains `richardson-fold`, `richardson-sum` and `richardson-scan`.
+
+- #455 makes `sicmutils.util.aggregate/scan` and
+  `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
+  first element of the returned sequence before mapping the `present` function.
+
+- #453:
+
+  - Adds `sicmutils.polynomial/from-points` and
+    `sicmutils.rational-function/from-points` for generating `Polynomial` and
+    `RationalFunction` instances from sequences of points.
+
 - #451:
 
   - new `sicmutils.algebra.fold` namespace:

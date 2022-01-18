@@ -21,6 +21,7 @@
   "Backing implementation for the types defined in [[sicmutils.series]], written
   against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
+            [sicmutils.numbers]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -702,3 +703,9 @@
   "The coefficients of (1+x)^n"
   [n]
   (->series (binomial* n)))
+
+;; [Harmonic numbers](https://en.wikipedia.org/wiki/Harmonic_number):
+
+(def harmonic
+  (reductions
+   g/+ (map g// (iterate inc 1))))

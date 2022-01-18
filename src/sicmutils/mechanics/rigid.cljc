@@ -55,11 +55,11 @@
 
 (defn M->omega
   [M-of-q]
-  (-> M-of-q M-of-q->omega-of-t L/Γ-bar))
+  (-> M-of-q M-of-q->omega-of-t L/Gamma-bar))
 
 (defn M->omega-body
   [M-of-q]
-  (-> M-of-q M-of-q->omega-body-of-t L/Γ-bar))
+  (-> M-of-q M-of-q->omega-body-of-t L/Gamma-bar))
 
 (defn Euler-state->omega-body
   [[_ [θ _ ψ] [θdot φdot ψdot]]]

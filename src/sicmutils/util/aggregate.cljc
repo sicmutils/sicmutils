@@ -109,8 +109,8 @@
   ```"
   ([xs]
    (->> (reductions *fold* (*fold*) xs)
-        (map *fold*)
-        (rest)))
+        (rest)
+        (map *fold*)))
   ([f low high]
    (scan
     (map f (range low high)))))

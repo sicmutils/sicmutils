@@ -52,7 +52,7 @@
                                     (get-in points [j 0]))
                            p (apply g/* (map #(g/- x %) others))
                            q (apply g/* (map #(g/- a %) others))]
-                       (g// (g/* fa p) q)))]
+                       (g/* (g/invert q) fa p)))]
     (transduce (map-indexed build-term)
                g/+
                points)))
@@ -580,11 +580,16 @@
 ;; This method reverses the order of the points, since rows are built from the
 ;; bottom up:
 ;;
-;; p4 p34 p234 p1234 p01234
-;; p3 p23 p123 p0123 .
-;; p2 p12 p012 .     .
-;; p1 p01 .    .     .
+;; p4 p43 p432 p4321 p43210
+;; p3 p32 p321 p3210 .
+;; p2 p21 p210 .     .
+;; p1 p10 .    .     .
 ;; p0 .   .    .     .
+;;
+;; The order of the points is reversed, but this is fine; polynomial
+;; interpolation doesn't care about the order of points. (NOTE that this WILL be
+;; something we have to consider in the fold version of Richardson
+;; extrapolation, in `sicmutils.polynomial.richardson`!)
 ;;
 ;; Notice that the /diagonal/ of this tableau is identical to the top row of the
 ;; tableau before the points were reversed.
@@ -819,6 +824,3 @@
 ;; - `richardson.cljc` for a specialized implementation of polynomial
 ;;   interpolation, when you know something about the ratios between successive
 ;;   `x` elements in the point sequence.
-;;
-;; NOTE: For bonus points, see if you can figure out how to write Richardson
-;; extrapolation as a functional fold!
