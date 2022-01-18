@@ -34,9 +34,10 @@
             [sicmutils.structure :as s]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.special.factorial :refer [factorial]]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.permute :as permute :refer [factorial]]
+            [sicmutils.util.permute :as permute]
             [sicmutils.value :as v]))
 
 ;; ## Form fields

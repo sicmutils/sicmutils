@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2021 Sam Richie.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
