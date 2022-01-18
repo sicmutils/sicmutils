@@ -182,6 +182,7 @@
 (deftest binomial-tests
   (is (= -9 (sf/binomial-coefficient -9 -10)))
   (is (= 0 (sf/binomial-coefficient -11 -10)))
+  (is (= 1001 (sf/binomial-coefficient -11 4)))
 
   (letfn [(n-choose-k [n k]
             ;; simple but inefficient implementation for comparison with the
