@@ -164,29 +164,7 @@
                        (gen/choose 0 n)))]
             (is (= (p/number-of-combinations (count xs) k)
                    (count
-                    (p/combinations xs k)))))
-
-  (letfn [(n-choose-k [n k]
-            ;; simple but inefficient implementation for comparison with the
-            ;; more efficient method in the library.
-            (if (or (< k 0) (> k n))
-              0
-              (g/quotient
-               (sf/factorial n)
-               (g/* (sf/factorial (- n k))
-                    (sf/factorial k)))))
-          (check [n k expected explanation]
-            (is (= expected
-                   (n-choose-k n k)
-                   (p/number-of-combinations n k))
-                explanation))]
-    (is (= (n-choose-k 1000 290)
-           (p/number-of-combinations 1000 290))
-        "n choose k with large values")
-
-    (check 100 -2  0 "k < 0")
-    (check 100 0   1 "k == 0")
-    (check 100 200 0 "k > n")))
+                    (p/combinations xs k))))))
 
 (deftest permutation-test
   (testing "permutation-sequence"
