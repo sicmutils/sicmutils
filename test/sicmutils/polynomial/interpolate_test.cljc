@@ -78,7 +78,7 @@
           "Lagrange only returns the final value.")
 
       (is (ish? (last expected) (pi/neville-recursive points 1.2))
-          "Lagrange only returns the final value.")
+          "Non-incremental neville.")
 
       (is (ish? expected (pi/neville-incremental* points 1.2))
           "This is the initial, unabstracted version.")
@@ -89,20 +89,21 @@
       (is (ish? expected (pi/modified-neville points 1.2))
           "incremental calculation via modified Neville"))
 
-    (testing "folding points in reverse should match column-wise processing."
-      (is (ish? expected ((pi/neville-fold 1.2) (reverse points))))
-      (is (ish? expected ((pi/modified-neville-fold 1.2) (reverse points)))))
-
-    (testing "scan should process successive rows of the tableau; the diagonal
-    of the tableau processed with a fold should match the first row of
+    (testing "folding points should match the best estimate received through
     column-wise processing."
-      (is (ish? expected (map last ((pi/neville-scan 1.2) points))))
-      (is (ish? expected (map last ((pi/modified-neville-scan 1.2) points)))))
+      (is (ish? (last expected) ((pi/neville-sum 1.2) points)))
+      (is (ish? (last expected) ((pi/modified-neville-sum 1.2) points))))
+
+    (testing "the diagonal of the tableau processed with a fold should match the
+    first row of column-wise processing. (Scan produces the diagonal by
+    returning a sequence of the final values in each row.)"
+      (is (ish? expected ((pi/neville-scan 1.2) points)))
+      (is (ish? expected ((pi/modified-neville-scan 1.2) points))))
 
     (testing "the tableau processed with a fold should match the first row of
     column-wise processing."
-      (is (ish? ((pi/neville-fold 1.2) points)
+      (is (ish? ((pi/neville-sum 1.2) points)
                 (last ((pi/neville-scan 1.2) points))))
 
-      (is (ish?  ((pi/modified-neville-fold 1.2) points)
+      (is (ish?  ((pi/modified-neville-sum 1.2) points)
                  (last ((pi/modified-neville-scan 1.2) points)))))))

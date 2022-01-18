@@ -240,12 +240,17 @@
   Content'](https://en.wikipedia.org/wiki/Primitive_part_and_content) page for
   more details. "
   [p gcd]
-  (let [content (apply gcd (p/coefficients p))
-        primitive (if (v/one? content)
-                    p
-                    (p/map-coefficients
-                     #(g/exact-divide % content) p))]
-    [content primitive]))
+  (let [coeffs (p/coefficients p)]
+    (if (= 1 (count coeffs))
+      (let [content   (first coeffs)
+            primitive (p/map-coefficients (fn [_] 1) p)]
+        [content primitive])
+      (let [content   (apply gcd coeffs)
+            primitive (if (v/one? content)
+                        p
+                        (p/map-coefficients
+                         #(g/exact-divide % content) p))]
+        [content primitive]))))
 
 (defn- with-content-removed
   "Given a multi-arity `gcd` routine, returns a function of polynomials `u` and
@@ -531,7 +536,7 @@
   If a non-[[p/Polynomial]] is supplied, returns 1."
   [p]
   (if (p/polynomial? p)
-    (transduce (ua/halt-at v/one?)
+    (transduce (halt-when v/one?)
                gcd
                (p/partial-derivatives p))
     1))

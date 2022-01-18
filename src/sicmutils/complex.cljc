@@ -52,8 +52,8 @@
 ;; disappear.
 (def ^{:doc "A [[Complex]] value equal to `-i`."}
   -I
-  #?(:clj (.negate ^Complex I)
-     :cljs (.neg ^Complex I)))
+  #?(:clj (.negate Complex/I)
+     :cljs (.neg ^js (obj/get Complex "I"))))
 
 (def ^:no-doc complextype Complex)
 

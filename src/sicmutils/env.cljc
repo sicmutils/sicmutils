@@ -47,6 +47,7 @@
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
+            [sicmutils.algebra.fold]
             [sicmutils.complex]
             [sicmutils.expression :as x]
             [sicmutils.expression.render :as render]
@@ -68,7 +69,6 @@
             [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
-            [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
             [sicmutils.numerical.quadrature]
@@ -91,6 +91,8 @@
             [sicmutils.calculus.map]
             [sicmutils.calculus.vector-calculus]
             [sicmutils.calculus.vector-field]
+            [sicmutils.special.elliptic]
+            [sicmutils.special.factorial]
             [sicmutils.sr.boost]
             [sicmutils.sr.frames]))
 
@@ -461,8 +463,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   ->local
   Euler-Lagrange-operator
   F->C
-  Gamma Γ
-  Gamma-bar Γ-bar
+  Gamma
+  Gamma-bar
   Lagrange-equations
   Lagrange-equations-first-order
   Lagrange-interpolation-function
@@ -518,7 +520,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.elliptic elliptic-f]
  [sicmutils.numerical.derivative D-numeric]
  [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.unimin.brent
@@ -528,8 +529,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
- [sicmutils.util.permute factorial]
  [sicmutils.util.stream vector:generate]
+ [sicmutils.special.elliptic elliptic-f]
+ [sicmutils.special.factorial factorial]
  [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

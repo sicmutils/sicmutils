@@ -25,7 +25,8 @@
             [same :refer [ish?]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.util.permute :as p]))
+            [sicmutils.util.permute :as p]
+            [sicmutils.special.factorial :as sf]))
 
 (deftest misc-tests
   (testing "permutations"
@@ -150,14 +151,6 @@
            (p/subpermute {1 4, 4 2, 2 3, 3 1}
                          '[a b c d e]))))
 
-  (testing "factorial"
-    (is (= (apply g/* (range 1 8))
-           (p/factorial 7)))
-
-    (is (= #sicm/bigint "15511210043330985984000000"
-           (p/factorial 25))
-        "factorial can handle `n` that triggers overflow in cljs and clj."))
-
   (checking "number-of-permutations" 100
             [xs (gen/let [n (gen/choose 0 6)]
                   (gen/vector gen/nat n))]
@@ -173,20 +166,12 @@
                    (count
                     (p/combinations xs k)))))
 
-  (letfn [(n-choose-k [n k]
-            ;; simple but inefficient implementation for comparison with the
-            ;; more efficient method in the library.
-            (g/quotient
-             (p/factorial n)
-             (g/* (p/factorial (- n k))
-                  (p/factorial k))))]
-    (is (= (n-choose-k 1000 290)
-           (p/number-of-combinations 1000 290))
-        "n choose k with large values")
-
-    (is (= (n-choose-k 1000 800)
-           (p/number-of-combinations 1000 800))
-        "k > n/2")))
+  (checking "multichoose" 100
+            [n gen/nat k (gen/fmap inc gen/nat)]
+            (is (= (p/multichoose n k)
+                   (p/number-of-combinations
+                    (+ n k -1) k))
+                "Definition from https://mathworld.wolfram.com/Multichoose.html")))
 
 (deftest permutation-test
   (testing "permutation-sequence"

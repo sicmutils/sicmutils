@@ -67,6 +67,7 @@
    'pattern.match                            (ns-publics 'pattern.match)
    'pattern.rule                             (ns-publics 'pattern.rule)
    'pattern.syntax                           (ns-publics 'pattern.syntax)
+   'sicmutils.algebra.fold                   (ns-publics 'sicmutils.algebra.fold)
    'sicmutils.complex                        (ns-publics 'sicmutils.complex)
    'sicmutils.differential                   (ns-publics 'sicmutils.differential)
    'sicmutils.env                            (ns-publics 'sicmutils.env)
@@ -116,7 +117,6 @@
    'sicmutils.mechanics.rigid                (ns-publics 'sicmutils.mechanics.rigid)
    'sicmutils.mechanics.rotation             (ns-publics 'sicmutils.mechanics.rotation)
    'sicmutils.numerical.derivative           (ns-publics 'sicmutils.numerical.derivative)
-   'sicmutils.numerical.elliptic             (ns-publics 'sicmutils.numerical.elliptic)
    'sicmutils.numerical.minimize             (ns-publics 'sicmutils.numerical.minimize)
    'sicmutils.numerical.ode                  (ns-publics 'sicmutils.numerical.ode)
    'sicmutils.numerical.quadrature           (ns-publics 'sicmutils.numerical.quadrature)
@@ -124,10 +124,14 @@
    'sicmutils.numerical.unimin.bracket       (ns-publics 'sicmutils.numerical.unimin.bracket)
    'sicmutils.numerical.unimin.brent         (ns-publics 'sicmutils.numerical.unimin.brent)
    'sicmutils.numerical.unimin.golden        (ns-publics 'sicmutils.numerical.unimin.golden)
+   'sicmutils.special.elliptic               (ns-publics 'sicmutils.special.elliptic)
+   'sicmutils.special.factorial              (ns-publics 'sicmutils.special.factorial)
    'sicmutils.sr.boost                       (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                      (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                 (ns-publics 'sicmutils.util.aggregate)
+   'sicmutils.util.def                       (ns-publics 'sicmutils.util.def)
    'sicmutils.util.logic                     (ns-publics 'sicmutils.util.logic)
+   'sicmutils.util.permute                   (ns-publics 'sicmutils.util.permute)
    'sicmutils.util.stream                    (ns-publics 'sicmutils.util.stream)})
 
 (def ^{:doc "SCI namespace map generated from `ns->publics`. Consumers wishing
@@ -144,7 +148,13 @@
   bindings) required to evaluate SICMUtils forms from inside of an SCI
   context. Pass these to `sci/init` to generate an sci context."}
   context-opts
-  {:namespaces namespaces})
+  {:namespaces namespaces
+
+   ;; NOTE that these entries are required if you'd like to call the
+   ;; `sicmutils.algebra.fold/kbk-n` macro, which generates code using
+   ;; `Math/abs`. JVM and js forms are shown.
+   :classes #?(:clj  {'java.lang.Math java.lang.Math}
+               :cljs {'js goog/global :allow :all})})
 
 (def ^{:doc "sci context (currently only `:namespace` bindings) required to
   evaluate SICMUtils forms via SCI"}

@@ -6,6 +6,161 @@
     have specialized implementations for... TODO fill in. We can differentiate
     through these too.
 
+- #450:
+
+  - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
+    numbers](https://en.wikipedia.org/wiki/Harmonic_number)
+
+  - moves `sicmutils.numerical.elliptic` to the `sicmutils.special` package, as
+    `sicmutils.special.elliptic`.
+
+  - New `sicmutils.special.factorial` namespace!
+    `sicmutils.util.permute/factorial` moves here, and the forgotten duplicate
+    `sicmutils.generic/factorial` is now gone.
+
+    - New functions: `falling-factorial`, `rising-factorial`,
+      `double-factorial`, `multi-factorial`, `subfactorial`,
+      `binomial-coefficient`, `stirling-first-kind`, `stirling-second-kind`.
+
+  - New `sicmutils.util.permute/multichoose` function, implementing the
+    definition [described here](https://mathworld.wolfram.com/Multichoose.html).
+
+  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
+    `sicmutils.special.factorial/falling-factorial`
+
+  - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
+
+- #458:
+
+  - Default implementation of `g/negative?` returning `false` for literal
+    numbers and symbols. This was required to get `g/abs` working for
+    polynomials and rational functions with symbolic coefficients.
+
+  - Polynomials and rational functions now correctly unwrap `Literal`
+    coefficients in `->expression`. Without this, the resulting expressions
+    would not correctly respond to `simplify` calls.
+
+  - Slight efficiency improvement in
+    `sicmutils.polynomial.gcd/->content+primitive`.
+
+  - `sicmutils.rational-function/from-points` now correctly builds its function.
+    Before, it was unhygienic; if `'x` appeared in the coefficients the results
+    would be incorrect.
+
+- #456:
+
+  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
+    gone as well.
+
+  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+    an actual polynomial instance. Because polynomials support `IFn` and respond
+    to the derivative operator `D`, this makes the `find-path` example on pages
+    22/23 of SICM run about 5x faster.
+
+  - Richardson extrapolation is now implemented as a functional fold. The
+    exposition in `sicmutils.polynomial.richardson` discusses this; the
+    namespaces gains `richardson-fold`, `richardson-sum` and `richardson-scan`.
+
+- #455 makes `sicmutils.util.aggregate/scan` and
+  `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
+  first element of the returned sequence before mapping the `present` function.
+
+- #453:
+
+  - Adds `sicmutils.polynomial/from-points` and
+    `sicmutils.rational-function/from-points` for generating `Polynomial` and
+    `RationalFunction` instances from sequences of points.
+
+- #451:
+
+  - new `sicmutils.algebra.fold` namespace:
+
+    - New folds: `kahan-babushka-neumaier` (aliased as `kbn`),
+      `kahan-babushka-klein` and and `kbk-n` macro for generating higher-order
+      `kahan-babushka-klein` variants. `generic-sum-fold` folds using
+      `sicmutils.generic/+`.
+
+    - `sicmutils.util.aggregate/kahan-fold` now lives here, named `kahan`.
+
+    - `fold->sum-fn` and `fold->scan-fn` generate functions like
+      `sicmutils.util.aggregate.{sum,scan}` specialized to the supplied fold.
+      See the docstrings for the multiple arities supported
+
+    - fold primitives: `count`, `constant`, `min`, `max`.
+
+    - fold combinator `join` allows compound folds to be built out of primitive
+      folds.
+
+  - Upgrades to `sicmutils.util.aggregate`:
+
+    - `scanning-sum` renamed to `scan`
+
+    - `halt-at` deleted in favor of the built-in `halt-when` that I didn't know
+      about!
+
+    - `scan` and `sum` now both use a dynamic binding, `*fold*`, to set the fold
+      they use for aggregation. By default, this is set to the new
+      `kahan-babushka-neumaier-fold`.
+
+    - The three-arity version of `sum` now uses transducers, saving a pass over
+      the input range.
+
+    - `pairwise-sum` implements pairwise summation, an error-limiting technique
+      for summing vectors. Use the dynamic binding `*cutoff*` to set where
+      `pairwise-sum` bails out to normal summation.
+
+  - Upgrades to `sicmutils.rational-function.polynomial`:
+
+    - The folds in this namespace now follow the fold contract laid out in
+      `sicmutils.algebra.fold`, implementing all three arities correctly.
+
+    - I realized that the fold implementation here should /not/ return a full
+      row every time it processes a previous row; a far better `present`
+      implementation would return the best estimate so far. Then you could build
+      a `scan` from that fold to see the estimates evolve lazily as new points
+      are added. This has better performance, it turns out, than the original
+      method!
+
+    - added a bunch to the exposition to make the advantages clear.
+
+  - Upgrades to `sicmutils.rational-function.interpolate`:
+
+    - `fold` interface upgraded, similar to the polynomial interpolation notes.
+
+    - New `bulirsch-stoer-fold`, `bulirsch-stoer-sum` and `bulirsch-stoer-scan`
+      functions. These are similar to the `modified-**` versions but use the
+      `bulirsch-stoer` algorithm, instead of `modified-bulirsch-stoer`.
+
+    - `modified-bulirsch-stoer-fold-fn` renamed to
+      `modified-bulirsch-stoer-fold`, to match the naming scheme of other
+      "folds" in the library.
+
+    - `modified-bulirsch-stoer-fold` renamed to `modified-bulirsch-stoer-sum`,
+      to match the convention that "reducing a sequence with a fold" is called
+      "summing" the sequence. I can see this changing down the road...
+
+    See `context-opts` for instructions on how to enable
+    `sicmutils.algebra.fold/kbk-n` in the SCI environment (you'll need to turn
+    on access to `js/Math` or `java.lang.Math`).
+
+  - Fixed a type inference warning in Clojurescript in `sicmutils.complex`.
+
+  - Added support for `sicmutils.util.def` and its `fork` macro to the default
+    SCI environment provided by SICMUtils. Helpful for macro-writing!
+
+  - `sicmutils.numerical.quadrature.adaptive` now uses the dynamically bound
+    `sicmutils.util.aggregate/*fold*` to accumulate its numerical integral
+    pieces, instead of a hardcoded `kahan-sum`.
+
+  - `sicmutils.numerical.quadrature.bulirsch-stoer` now uses the functional scan
+    versions of polynomial and rational function interpolation, as these are a
+    bit faster than the originals!
+
+  - `sicmutils.util.stream/scan` deleted in favor of
+    `sicmutils.util.aggregate/scan` with a dynamic binding for `*fold*` to
+    customize.
+
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,
