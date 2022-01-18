@@ -148,7 +148,7 @@
   {:pre [(v/native-integral? n)]}
   (cond (zero? n) 1
         (neg? n)
-        (let [denom (falling-factorial (g/sub x 1) (- n))]
+        (let [denom (falling-factorial (g/sub x 1) (g/- n))]
           (if (v/zero? denom)
             ##Inf
             (g/invert denom)))
@@ -164,9 +164,9 @@
   (cond (zero? n) 1
         (neg? n)
         (let [denom (falling-factorial (dec x) (- n))]
-          (if (zero? denom)
+          (if (v/zero? denom)
             ##Inf
-            (/ 1 denom)))
+            (g// 1 denom)))
 
         :else
         (let [elems (range x (+ x n))]
