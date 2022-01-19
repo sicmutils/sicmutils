@@ -603,3 +603,35 @@
                   (is (ish? (Df-numeric n)
                             (Df n))
                       "Does numeric match autodiff?"))))))
+
+(deftest sinc-etc-tests
+  (is (zero? ((derivative g/sinc) 0)))
+  (is (zero? ((derivative g/tanc) 0)))
+  (is (zero? ((derivative g/sinhc) 0)))
+  (is (zero? ((derivative g/tanhc) 0)))
+
+  (letfn [(gen-double [min max]
+            (gen/double*
+             {:infinite? false
+              :NaN? false
+              :min min
+              :max max}))]
+    (with-comparator (v/within 1e-4)
+      (checking "sinc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/sinc) n)
+                          ((derivative g/sinc) n))))
+
+      ;; attempting to limit to a region where we avoid the infinities at
+      ;; multiples of pi/2 (other than 0).
+      (checking "tanc" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/tanc) n)
+                          ((derivative g/tanc) n))))
+
+      (checking "tanhc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/tanhc) n)
+                          ((derivative g/tanhc) n)))))
+
+    (with-comparator (v/within 1e-4)
+      (checking "sinhc" 100 [n (gen-double 1 10)]
+                (is (ish? ((D-numeric g/sinhc) n)
+                          ((derivative g/sinhc) n)))))))

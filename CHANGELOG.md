@@ -6,6 +6,8 @@
     have specialized implementations for... TODO fill in. We can differentiate
     through these too.
 
+  - `acot`, `asec`, `acsc`, series implementation for which ones?
+
 - #450:
 
   - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
