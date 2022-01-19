@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+  - quaternions!
+
+  - quaternions are implemented like vectors of length 4, and implement all
+    appropriate Clojure protocols.
+
 - #449:
 
   - All missing trigonometric functions have been filled in `sicmutils.generic`
