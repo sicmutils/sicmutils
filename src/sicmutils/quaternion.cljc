@@ -1010,13 +1010,10 @@
         v-mag (g/abs v)]
     (if (v/zero? v-mag)
       (make exp-r 0 0 0)
-      (make (g/* exp-r
-                 (g/cos v-mag))
-            (g/* exp-r
-                 (g/sin v-mag)
-                 (g/div v v-mag))))))
+      (make (g/* exp-r (g/cos v-mag))
+            (g/* exp-r (g/sinc v-mag) v)))))
 
-;; TODO add more transcendental functions to be totally complete
+;; DONE add more transcendental functions to be totally complete
 ;; https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html
 
 (defn cos [q]
