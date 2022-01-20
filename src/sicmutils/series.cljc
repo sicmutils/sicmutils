@@ -812,6 +812,10 @@
   (->PowerSeries (i/compose i/atanx (seq s))
                  (meta s)))
 
+(defmethod g/acot [::power-series] [s]
+  (->PowerSeries (i/compose i/acotx (seq s))
+                 (meta s)))
+
 (defmethod g/cosh [::power-series] [s]
   (->PowerSeries (i/compose i/coshx (seq s))
                  (meta s)))

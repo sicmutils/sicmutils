@@ -347,6 +347,23 @@
         (list 'sinh x)))
     (list 'sinh x)))
 
+(defn- tanh [x]
+  (div (sinh x)
+       (cosh x)))
+
+(defn- coth [x]
+  (div (cosh x)
+       (sinh x)))
+
+(defn- sech [x]
+  (div 1 (cosh x)))
+
+(defn- csch [x]
+  (div 1 (sinh x)))
+
+(defn- acot [x]
+  (sub '(/ pi 2) (atan x)))
+
 (defn- abs
   "Symbolic expression handler for abs."
   [x]
@@ -600,13 +617,18 @@
    'sin sin
    'cos cos
    'tan tan
+   'sec sec
+   'csc csc
    'asin asin
    'acos acos
+   'acot acot
    'atan atan
    'sinh sinh
    'cosh cosh
-   'sec sec
-   'csc csc
+   'tanh tanh
+   'coth coth
+   'sech sech
+   'csch csch
    'cube #(expt % 3)
    'square #(expt % 2)
    'abs abs

@@ -2,6 +2,44 @@
 
 ## [unreleased]
 
+- #449:
+
+  - All missing trigonometric functions have been filled in `sicmutils.generic`
+    and aliased in `sicmutils.env`:
+
+    - Inverse cotangent: `acot`
+    - inverse secant: `asec`
+    - inverse cosecant: `acsc`
+    - hyperbolic (inverse hyperbolic) cotangent: `coth` and `acoth`
+    - hyperbolic (and inverse hyperbolic) secant: `sech` and `asech`
+    - hyperbolic (and inverse hyperbolic) cosecant: `csch` and `acsch`
+
+    All of these have default implementations and derivatives defined. They'll
+    work out of the box for all types with `atan` defined (and potentially
+    `exp`, `sqrt` and `log`.)
+
+    Thanks to John D Cook's ['Bootstrapping a minimal math
+    library'](https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/)
+    for his inspiration on the defaults and implementation order of these new
+    functions.
+
+  - `expt` gains a new default implementation for non-native-integral powers,
+    making `expt` work for any type with `exp`, `log` and `mul` defined.
+
+  - `sqrt` gains a default implementation for all types implementing `exp`,
+    `mul` and `log`.
+
+  - All trig functions now have derivatives and docstrings.
+
+  - New `sinc`, `tanc`, `sinhc`, `tanhc` functions live in `sicmutils.generic`
+    and are aliased into `sicmutils.env`. These are generically defined as `(/
+    (sin x) x)`, `(/ (tan x) x)` (and similar with `sinh` and `tanh`), with
+    correct definitions for 0 and infinite-valued inputs.
+
+    These functions all support derivatives as well.
+
+  - New default `acot` implementation in `sicmutils.series`.
+
 - #450:
 
   - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic

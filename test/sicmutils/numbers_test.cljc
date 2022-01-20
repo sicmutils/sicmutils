@@ -429,6 +429,26 @@
 
 (deftest numeric-trig-tests
   (testing "trig"
+    (testing "sinc"
+      (is (= 0 (g/sinc ##Inf)))
+      (is (= 0 (g/sinc ##-Inf)))
+      (is (= 1 (g/sinc 0)))
+      (is (= 1 (g/sinc #sicm/bigint 0)))
+
+      (checking "sinc nonzero" 100 [n (sg/reasonable-double)]
+                (is (ish? (/ (Math/sin n) n)
+                          (g/sinc n)))))
+
+    (testing "tanc"
+      (is (= 0 (g/sinc ##Inf)))
+      (is (= 0 (g/sinc ##-Inf)))
+      (is (= 1 (g/sinc 0)))
+      (is (= 1 (g/sinc #sicm/bigint 0)))
+
+      (checking "sinc nonzero" 100 [n (sg/reasonable-double)]
+                (is (ish? (/ (Math/sin n) n)
+                          (g/sinc n)))))
+
     (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
     (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
     (is (zero? (g/asin 0)))

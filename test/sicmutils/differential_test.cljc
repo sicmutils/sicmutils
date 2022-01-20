@@ -603,3 +603,72 @@
                   (is (ish? (Df-numeric n)
                             (Df n))
                       "Does numeric match autodiff?"))))))
+
+(deftest sinc-etc-tests
+  (is (zero? ((derivative g/sinc) 0)))
+  (is (zero? ((derivative g/tanc) 0)))
+  (is (zero? ((derivative g/sinhc) 0)))
+  (is (zero? ((derivative g/tanhc) 0)))
+
+  (letfn [(gen-double [min max]
+            (gen/double*
+             {:infinite? false
+              :NaN? false
+              :min min
+              :max max}))]
+    (with-comparator (v/within 1e-4)
+      (checking "sinc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/sinc) n)
+                          ((derivative g/sinc) n))))
+
+      ;; attempting to limit to a region where we avoid the infinities at
+      ;; multiples of pi/2 (other than 0).
+      (checking "tanc" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/tanc) n)
+                          ((derivative g/tanc) n))))
+
+      (checking "tanhc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/tanhc) n)
+                          ((derivative g/tanhc) n)))))
+
+    (with-comparator (v/within 1e-4)
+      (checking "sinhc" 100 [n (gen-double 1 10)]
+                (is (ish? ((D-numeric g/sinhc) n)
+                          ((derivative g/sinhc) n)))))
+
+    (with-comparator (v/within 1e-8)
+      (checking "acot" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/acot) n)
+                          ((derivative g/acot) n))))
+
+      (checking "asec" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/asec) n)
+                          ((derivative g/asec) n))))
+
+      (checking "acsc" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/acsc) n)
+                          ((derivative g/acsc) n))))
+
+      (checking "sech" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/sech) n)
+                          ((derivative g/sech) n))))
+
+      (checking "coth" 100 [n (gen-double 1 3)]
+                (is (ish? ((D-numeric g/coth) n)
+                          ((derivative g/coth) n))))
+
+      (checking "csch" 100 [n (gen-double 0.5 10)]
+                (is (ish? ((D-numeric g/csch) n)
+                          ((derivative g/csch) n))))
+
+      (checking "acosh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/acosh) n)
+                          ((derivative g/acosh) n))))
+
+      (checking "asinh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/asinh) n)
+                          ((derivative g/asinh) n))))
+
+      (checking "atanh" 100 [n (gen-double 0.1 0.9)]
+                (is (ish? ((D-numeric g/atanh) n)
+                          ((derivative g/atanh) n)))))))
