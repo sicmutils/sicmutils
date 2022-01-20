@@ -215,7 +215,7 @@
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
    :dfdy (fn [x y] (div (negate x)
-                       (mul y y)))})
+                        (mul y y)))})
 
 (defmethod div :default [a b]
   (if *in-default-invert*
@@ -260,9 +260,43 @@
 
 ;; ### Exponentiation, Log, Roots
 ;;
-;; This next batch of generics exponentation and its inverse.
+;; This next batch of generics covers various forms of exponentation and its
+;; inverse.
 
-(declare negative? log)
+(defgeneric exp 1
+  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
+  some properly-defined `e` symbol."
+  {:dfdx exp})
+
+(defgeneric exp2 1
+  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
+
+(declare expt)
+
+(defmethod exp2 :default [x] (expt 2 x))
+
+(defgeneric exp10 1
+  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
+
+(defmethod exp10 :default [x] (expt 10 x))
+
+(defgeneric log 1
+  "Returns the natural logarithm of `x`."
+  {:dfdx invert})
+
+(defgeneric log2 1
+  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
+
+(let [l2 (Math/log 2)]
+  (defmethod log2 :default [x] (div (log x) l2)))
+
+(defgeneric log10 1
+  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
+
+(let [l10 (Math/log 10)]
+  (defmethod log10 :default [x] (div (log x) l10)))
+
+(declare negative?)
 
 (defgeneric expt 2
   {:dfdx (fn [x y]
@@ -304,7 +338,18 @@
               :else (invert (expt' s (negate e)))))
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
 
-(defmethod expt :default [s e] (default-expt s e))
+;; [[expt]] can be defined (as a default) in terms of repeated multiplication,
+;; if the exponent is a (native) integer. The native requirement is simply due
+;; to the [[default-expt]] implementation above, which uses functions like
+;; `quot` and `even?` that are not generic.
+;;
+;; For all other arguments, default [[expt]] requires that [[exp]], [[mul]]
+;; and [[log]] be defined already on the type.
+
+(defmethod expt :default [s e]
+  (if (v/native-integral? e)
+    (default-expt s e)
+    (exp (mul e (log s)))))
 
 (defgeneric square 1)
 (defmethod square :default [x] (expt x 2))
@@ -312,41 +357,14 @@
 (defgeneric cube 1)
 (defmethod cube :default [x] (expt x 3))
 
-(defgeneric exp 1
-  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
-  some properly-defined `e` symbol."
-  {:dfdx exp})
-
-(defgeneric exp2 1
-  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
-
-(defmethod exp2 :default [x] (expt 2 x))
-
-(defgeneric exp10 1
-  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
-
-(defmethod exp10 :default [x] (expt 10 x))
-
-(defgeneric log 1
-  "Returns the natural logarithm of `x`."
-  {:dfdx invert})
-
-(defgeneric log2 1
-  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
-
-(let [l2 (Math/log 2)]
-  (defmethod log2 :default [x] (div (log x) l2)))
-
-(defgeneric log10 1
-  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
-
-(let [l10 (Math/log 10)]
-  (defmethod log10 :default [x] (div (log x) l10)))
-
 (defgeneric sqrt 1
   {:dfdx (fn [x]
            (invert
             (mul (sqrt x) 2)))})
+
+(defmethod sqrt :default [x]
+  (exp (mul (div 1 2)
+            (log x))))
 
 ;; ## More Generics
 
@@ -485,26 +503,83 @@
        (* (exact-divide a g) b)))))
 
 ;; ### Trigonometric functions
+;;
+;; Thanks to John D Cook's post ['Bootstrapping a minimal math
+;; library'](https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/)
+;; for his inspiration on the defaults and order of functions in the following
+;; sections.
 
 (declare sin)
 
 (defgeneric cos 1
+  "Returns the [cosine](https://en.wikipedia.org/wiki/Sine_and_cosine) of the
+  supplied argument `a`."
   {:dfdx (fn [x] (negate (sin x)))})
 
-(defgeneric sin 1 {:dfdx cos})
+(defgeneric sin 1
+  "Returns the [sine](https://en.wikipedia.org/wiki/Sine_and_cosine) of the
+  supplied argument `a`."
+  {:dfdx cos})
 
-(defgeneric asin 1
+;; Given [[sin]] and [[cos]] implementations, it's possible to define the rest
+;; of the trigonometric functions with proper defaults.
+
+(defgeneric tan 1
+  "Computes the trigonometric tangent function of the supplied argument `a`.
+
+Equivalent to `(/ (sin a) (cos a))`."
   {:dfdx (fn [x]
            (invert
-            (sqrt (sub 1 (square x)))))})
+            (square (cos x))))})
 
-(defgeneric acos 1
+(defmethod tan :default [x]
+  (div (sin x) (cos x)))
+
+(declare csc)
+
+(defgeneric cot 1
+  "Computes the trigonometric cotangent function of the supplied argument `a`.
+
+Equivalent to `(invert (tan a))`, or `(/ (cos a) (sin a))`."
   {:dfdx (fn [x]
            (negate
-            (invert
-             (sqrt (sub 1 (square x))))))})
+            (square (csc x))))})
+
+(defmethod cot :default [x]
+  (div (cos x) (sin x)))
+
+(defgeneric sec 1
+  "Computes the secant of the supplied argument `a`.
+
+Equivalent to `(invert (cos a))`."
+  {:dfdx (fn [x]
+           (mul (sec x)
+                (tan x)))})
+
+(defmethod sec :default [x]
+  (invert (cos x)))
+
+(defgeneric csc 1
+  "Computes the cosecant of the supplied argument `a`.
+
+Equivalent to `(invert (sin a))`."
+  {:dfdx (fn [x]
+           (negate
+            (mul (cot x)
+                 (csc x))))})
+
+(defmethod csc :default [x]
+  (invert (sin x)))
+
+;; ### Inverse Trig Functions
 
 (defgeneric atan [1 2]
+  "Computes the inverse tangent of the supplied argument `a`. Given two
+  arguments `a` and `a`, returns the inverse tangent of the angle formed by the
+  point `(a, b)` in a 2-dimensional euclidean plane.
+
+  The two-argument version is sometimes
+  called [Atan2](https://en.wikipedia.org/wiki/Atan2)."
   {:dfdx (fn
            ([x]
             (invert (add 1 (square x))))
@@ -516,58 +591,366 @@
                 (add (square x)
                      (square y))))})
 
+;; Given an [[atan]] implementation, types automatically gain default methods
+;; for the rest of the inverse trig functions.
+
+(defgeneric asin 1
+  "Computes the inverse sine of the supplied argument `a`.
+
+Defaults to `atan(x/sqrt(1-x^2))`."
+  {:dfdx (fn [x]
+           (invert
+            (sqrt (sub 1 (square x)))))})
+
+(defmethod asin :default [x]
+  (atan (div x (sqrt (sub 1 (square x))))))
+
+(defgeneric acos 1
+  "Computes the inverse cosine of the supplied argument `a`.
+
+Defaults to `atan(sqrt(1-x^2)/x)`."
+  {:dfdx (fn [x]
+           (negate
+            (invert
+             (sqrt (sub 1 (square x))))))})
+
+(defmethod acos :default [x]
+  (atan (div (sqrt (sub 1 (square x))) x)))
+
+(defgeneric acot 1
+  "Computes the [inverse
+ cotangent](https://mathworld.wolfram.com/InverseCotangent.html) of the supplied
+ argument `a`.
+
+defaults to `pi/2 - atan(x)`."
+  {:dfdx (fn [x]
+           (negate
+            (invert
+             (add 1 (square x)))))})
+
+(defmethod acot :default [x]
+  (sub (/ Math/PI 2) (atan x)))
+
+(defgeneric asec 1
+  "Computes the [inverse
+ secant](https://mathworld.wolfram.com/InverseSecant.html) of the supplied
+ argument `a`.
+
+defaults to `atan(sqrt(x^2 - 1))`."
+  {:dfdx (fn [x]
+           (invert
+            (mul x (sqrt (sub (square x) 1)))))})
+
+(defmethod asec :default [x]
+  (atan (sqrt (sub (square x) 1))))
+
+(defgeneric acsc 1
+  "Computes the [inverse
+ cosecant](https://mathworld.wolfram.com/InverseCosecant.html) of the supplied
+ argument `a`.
+
+defaults to `atan(1 / sqrt(x^2 - 1))`."
+  {:dfdx (fn [x]
+           (negate
+            (invert
+             (mul x (sqrt (sub (square x) 1))))))})
+
+(defmethod acsc :default [x]
+  (atan (invert
+         (sqrt (sub (square x) 1)))))
+
+;; ### Hyperbolic Trig
+
 (declare sinh)
 
 (defgeneric cosh 1
+  "Computes the [hyperbolic
+ cosine](https://mathworld.wolfram.com/HyperbolicCosine.html) of the supplied
+ argument `a`.
+
+defaults to `(e^x + e^{-x}) / 2`."
   {:dfdx sinh})
 
+(defmethod cosh :default [x]
+  (div (add (exp x)
+            (exp (negate x)))
+       2))
+
 (defgeneric sinh 1
+  "Computes the [hyperbolic
+ sine](https://mathworld.wolfram.com/HyperbolicSine.html) of the supplied
+ argument `a`.
+
+defaults to `(e^x - e^{-x}) / 2`."
   {:dfdx cosh})
 
-;; Trig functions with default implementations provided.
-(defgeneric tan 1
-  {:dfdx (fn [x]
-           (invert
-            (square (cos x))))})
-
-(defmethod tan :default [x] (div (sin x) (cos x)))
-
-(defgeneric cot 1)
-(defmethod cot :default [x] (div (cos x) (sin x)))
-
-(defgeneric sec 1)
-(defmethod sec :default [x] (invert (cos x)))
-
-(defgeneric csc 1)
-(defmethod csc :default [x] (invert (sin x)))
+(defmethod sinh :default [x]
+  (div (sub (exp x)
+            (exp (negate x)))
+       2))
 
 (defgeneric tanh 1
+  "Computes the [hyperbolic
+ tangent](https://mathworld.wolfram.com/HyperbolicTangent.html) of the supplied
+ argument `a`.
+
+defaults to `sinh(x) / cosh(x)`."
   {:dfdx (fn [x]
            (sub 1 (square (tanh x))))})
 
-(defmethod tanh :default [x] (div (sinh x) (cosh x)))
+(defmethod tanh :default [x]
+  (let [exp2x (exp (add x x))]
+    (div (sub exp2x 1)
+         (add exp2x 1))))
 
-(defgeneric sech 1)
-(defmethod sech :default [x] (invert (cosh x)))
+(defgeneric sech 1
+  "Computes the [hyperbolic
+ secant](https://mathworld.wolfram.com/HyperbolicSecant.html) of the supplied
+ argument `a`.
 
-(defgeneric csch 1)
-(defmethod csch :default [x] (invert (sinh x)))
+defaults to `1 / cosh(x)`."
+  {:dfdx (fn [x]
+           (negate
+            (mul (sech x)
+                 (tanh x))))})
 
-(defgeneric acosh 1)
+(defmethod sech :default [x]
+  (div 2 (add (exp x)
+              (exp (negate x)))))
+
+(declare csch)
+
+(defgeneric coth 1
+  "Computes the [hyperbolic
+ cotangent](https://mathworld.wolfram.com/HyperbolicCotangent.html) of the supplied
+ argument `a`.
+
+defaults to `cosh(x) / sinh(x)`."
+  {:dfdx (fn [x]
+           (negate
+            (square (csch x))))})
+
+(defmethod coth :default [x]
+  (let [exp2x (exp (add x x))]
+    (div (add exp2x 1)
+         (sub exp2x 1))))
+
+(defgeneric csch 1
+  "Computes the [hyperbolic
+ cosecant](https://mathworld.wolfram.com/HyperbolicCosecant.html) of the supplied
+ argument `a`.
+
+defaults to `1 / sinh(x)`."
+  {:dfdx (fn [x]
+           (negate
+            (mul (coth x)
+                 (csch x))))})
+
+(defmethod csch :default [x]
+  (div 2 (sub (exp x)
+              (exp (negate x)))))
+
+;; ### Inverse Hyperbolic Functions
+
+(defgeneric acosh 1
+  "Computes the [inverse hyperbolic
+ cosine](https://mathworld.wolfram.com/InverseHyperbolicCosine.html) of the supplied
+ argument `a`.
+
+defaults to `2 ln(sqrt((x+1)/2) + sqrt((x-1)/2))`."
+  {:dfdx (fn [x]
+           (invert
+            (mul (sqrt (sub x 1))
+                 (sqrt (add x 1)))))})
+
 (defmethod acosh :default [x]
   (mul 2 (log (add
                (sqrt (div (add x 1) 2))
                (sqrt (div (sub x 1) 2))))))
 
-(defgeneric asinh 1)
-(defmethod asinh :default [x]
-  (log (add x (sqrt (add 1 (square x))))))
+(defgeneric asinh 1
+  "Computes the [inverse hyperbolic
+ sine](https://mathworld.wolfram.com/InverseHyperbolicSine.html) of the
+ supplied argument `a`.
 
-(defgeneric atanh 1)
+defaults to `ln(x + sqrt(1 + x^2))`."
+  {:dfdx (fn [x]
+           (invert
+            (sqrt
+             (add 1 (square x)))))})
+
+(defmethod asinh :default [x]
+  (log
+   (add x (sqrt (add 1 (square x))))))
+
+(defgeneric atanh 1
+  "Computes the [inverse hyperbolic
+ tangent](https://mathworld.wolfram.com/InverseHyperbolicTangent.html) of the
+ supplied argument `a`.
+
+defaults to `1/2 ln((1+x)/(1-x))`."
+  {:dfdx (fn [x]
+           (invert
+            (sub 1 (square x))))})
+
 (defmethod atanh :default [x]
   (div (sub (log (add 1 x))
             (log (sub 1 x)))
        2))
+
+(defgeneric acoth 1
+  "Computes the [inverse hyperbolic
+ cotangent](https://mathworld.wolfram.com/InverseHyperbolicCotangent.html) of
+ the supplied argument `a`.
+
+defaults to `1/2 ln((x+1)/(x-1))`."
+  {:dfdx (fn [x]
+           (invert
+            (sub 1 (square x))))})
+
+(defmethod acoth :default [x]
+  (div (sub (log (add x 1))
+            (log (sub x 1)))
+       2))
+
+(defgeneric asech 1
+  "Computes the [inverse hyperbolic
+ secant](https://mathworld.wolfram.com/InverseHyperbolicSecant.html) of the
+ supplied argument `a`.
+
+defaults to `ln((1 + sqrt(1-x^2)) / x)`."
+  {:dfdx (fn [x]
+           (let [x+1 (add x 1)]
+             (negate
+              (invert
+               (mul (mul x x+1)
+                    (sqrt (div (sub 1 x)
+                               x+1)))))))})
+
+(defmethod asech :default [x]
+  (log
+   (div (add 1 (sqrt (sub 1 (square x))))
+        x)))
+
+(defgeneric acsch 1
+  "Computes the [inverse hyperbolic
+ cosecant](https://mathworld.wolfram.com/InverseHyperbolicCosecant.html) of the
+ supplied argument `a`.
+
+defaults to `ln((1 + sqrt(1+x^2)) / x)`."
+  {:dfdx (fn [x]
+           (negate
+            (invert
+             (mul x (sqrt (add (square x) 1))))))})
+
+(defmethod acsch :default [x]
+  (log
+   (div (add 1 (sqrt (add 1 (square x))))
+        x)))
+
+;; ## Sinc and friends
+;;
+;; This section defines [[sinc]] and [[tanc]], and the hyperbolic
+;; variants [[sinhc]] and [[tanhc]].
+
+(defgeneric sinc 1
+  "The unnormalized [sinc
+  function](https://en.wikipedia.org/wiki/Sinc_function), equivalent to
+  $\\frac{\\sin x}{x}$ but defined to be equal to 1 at $x = 0$.
+
+  ### References
+
+   - [Wikipedia page](https://en.wikipedia.org/wiki/Sinc_function)
+   - [Mathworld page on Sinc](https://mathworld.wolfram.com/SincFunction.html)
+   - [Boost notes on [[sinc]]
+     and [[sinch]]](https://www.boost.org/doc/libs/1_65_0/libs/math/doc/html/math_toolkit/sinc/sinc_overview.html)"
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (sub (div (cos x) x)
+                  (div (sin x) (* x x)))))})
+
+(defmethod sinc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sin x) x)))
+
+;; NOTE that we don't define `cosc`. [This StackExchange
+;; post](https://math.stackexchange.com/a/2137104) has a nice explanation of why
+;; the analogous `cosc` doesn't belong: "The motivation for functions such as
+;; $\sinc x$, $\sinch x$, $\tanc x$, $\tanch x$ is to consider the behaviour of
+;; a ratio with limit 1 as $x \to 0$. There is no such motivation for
+;; $\frac{\cos x}{x}$, since $\cos 0 = 1 \neq 0$."
+;;
+;; The Julia language does define a `cosc`, but strangely makes it equal to the
+;; derivative of `sinc`, by analogy with `cos` being the derivative of `sin`.
+;; This felt to me to be a step too far. Here's the [Julia manual page for
+;; `cosc`](https://web.mit.edu/julia_v0.6.2/julia/share/doc/julia/html/en/stdlib/math.html#Base.Math.cosc).
+;;
+;; Wikipedia does have [a page on
+;; `coshc`](https://en.wikipedia.org/wiki/Coshc_function), defined as
+;; $\frac{\cosh x}{x}$.
+
+(defgeneric tanc 1
+  "`tanc` is defined, by analogy with [[sinc]], to be equal to $\\frac{\\tan
+  x}{x}$ for nonzero $x$ and equal to 1 at $x = 0$.
+
+  ### References
+
+   - [Wikipedia page](https://en.wikipedia.org/wiki/Tanc_function)
+   - [Mathworld page on Sinc](https://mathworld.wolfram.com/TancFunction.html)"
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (let [sx (sec x)]
+               (sub (div (* sx sx) x)
+                    (div (tan x) (* x x))))))})
+
+(defmethod tanc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tan x) x)))
+
+;; ### Hyperbolic Variants
+
+(defgeneric sinhc 1
+  "The [sinhc function](https://en.wikipedia.org/wiki/Sinhc_function),
+  equivalent to $\\frac{\\sinh x}{x}$ but defined to be equal to 1 at $x = 0$.
+
+  ### References
+
+   - [Wikipedia page](https://en.wikipedia.org/wiki/Sinhc_function)
+   - [Mathworld page on Sinhc](https://mathworld.wolfram.com/SinhcFunction.html)"
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (sub (div (cosh x) x)
+                  (div (sinh x) (* x x)))))})
+
+(defmethod sinhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (sinh x) x)))
+
+(defgeneric tanhc 1
+  "The [tanhc function](https://en.wikipedia.org/wiki/Tanhc_function),
+  equivalent to $\\frac{\\tanh x}{x}$ but defined to be equal to 1 at $x = 0$.
+
+  ### References
+
+   - [Wikipedia page](https://en.wikipedia.org/wiki/Tanhc_function)
+   - [Mathworld page on Tanhc](https://mathworld.wolfram.com/TanhcFunction.html)"
+  {:dfdx (fn [x]
+           (if (v/zero? x)
+             x
+             (let [sx (sech x)]
+               (sub (div (* sx sx) x)
+                    (div (tanh x) (* x x))))))})
+
+(defmethod tanhc :default [x]
+  (if (v/zero? x)
+    (v/one-like x)
+    (div (tanh x) x)))
 
 ;; ## Complex Operators
 

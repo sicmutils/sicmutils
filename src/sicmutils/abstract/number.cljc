@@ -177,16 +177,21 @@
 (defunary g/sin 'sin)
 (defunary g/cos 'cos)
 (defunary g/tan 'tan)
+(defunary g/sec 'sec)
+(defunary g/csc 'csc)
 
 (defunary g/asin 'asin)
 (defunary g/acos 'acos)
 (defunary g/atan 'atan)
 (defbinary g/atan 'atan)
+(defunary g/acot 'acot)
 
 (defunary g/sinh 'sinh)
 (defunary g/cosh 'cosh)
-(defunary g/sec 'sec)
-(defunary g/csc 'csc)
+(defunary g/tanh 'tanh)
+(defunary g/coth 'coth)
+(defunary g/sech 'sech)
+(defunary g/csch 'csch)
 
 (defunary g/abs 'abs)
 (defunary g/sqrt 'sqrt)

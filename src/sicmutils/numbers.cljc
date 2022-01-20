@@ -91,6 +91,11 @@
 
 ;; ## Trig Operations
 
+(defmethod g/sinc [::v/real] [a]
+  (cond (v/zero? a)     1
+        (g/infinite? a) 0
+        :else (g// (g/sin a) a)))
+
 (defmethod g/sin [::v/real] [a] (Math/sin a))
 (defmethod g/cos [::v/real] [a] (Math/cos a))
 (defmethod g/tan [::v/real] [a] (Math/tan a))

@@ -851,8 +851,12 @@
   (testing "cosh"
     (is (= '(cosh x) (v/freeze (g/cosh 'x)))))
 
+  (testing "tan"
+    (is (= '(tan x) (v/freeze (g/tan 'x)))))
+
   (testing "cot"
-    (is (= '(/ (cos x) (sin x)) (v/freeze (g/cot 'x)))))
+    (is (= '(/ (cos x) (sin x))
+           (v/freeze (g/cot 'x)))))
 
   (testing "sec"
     (is (= '(/ 1 (cos x)) (v/freeze (g/sec 'x)))))
@@ -860,9 +864,22 @@
   (testing "csc"
     (is (= '(/ 1 (sin x)) (v/freeze (g/csc 'x)))))
 
+  (testing "acot"
+    (is (= '(- (/ pi 2) (atan x))
+           (v/freeze (g/acot 'x)))))
+
+  (testing "asec"
+    (is (= '(atan (sqrt (- (expt x 2) 1)))
+           (v/freeze
+            (g/asec 'x)))))
+
   (testing "tanh"
     (is (= '(/ (sinh x) (cosh x))
            (v/freeze (g/tanh 'x)))))
+
+  (testing "coth"
+    (is (= '(/ (cosh x) (sinh x))
+           (v/freeze (g/coth 'x)))))
 
   (testing "sech"
     (is (= '(/ 1 (cosh x))

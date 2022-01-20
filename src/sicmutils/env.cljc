@@ -268,11 +268,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   exact-divide
   square cube
   cos sin tan
-  acos asin atan
-  cosh sinh tanh
-  acosh asinh atanh
-  sec csc cot
-  sech csch
+  cot sec csc
+  atan
+  acos asin acot asec acsc
+  cosh sinh tanh coth sech csch
+  acosh asinh atanh acoth asech acsch
+  sinc tanc sinhc tanhc
   make-rectangular make-polar
   real-part imag-part
   magnitude angle conjugate
