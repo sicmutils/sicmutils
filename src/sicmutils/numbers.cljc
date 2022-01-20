@@ -54,7 +54,14 @@
 (defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core-minus) a b))
 (defmethod g/negate [::v/real] [a] (core-minus a))
 (defmethod g/negative? [::v/real] [a] (neg? a))
-(defmethod g/expt [::v/real ::v/real] [a b] (u/compute-expt a b))
+
+(defmethod g/expt [::v/real ::v/real] [b x]
+  (if (and (neg? b)
+           (not (core-zero?
+                 (g/fractional-part x))))
+    (g/exp (g/mul x (g/log b)))
+    (u/compute-expt b x)))
+
 (defmethod g/abs [::v/real] [a] (u/compute-abs a))
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))

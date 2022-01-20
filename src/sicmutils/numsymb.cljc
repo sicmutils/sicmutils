@@ -555,13 +555,27 @@
     (not x)
     (list 'not x)))
 
-(defn- sym:= [l r]
+(defn- sym:bin= [l r]
   (let [num-l? (v/number? l)
         num-r? (v/number? r)]
     (cond (and num-l? num-r?) (v/= l r)
           (or num-l? num-r?)  false
           (= l r)             true
           :else (list '= l r))))
+
+(defn- sym:=
+  ([] true)
+  ([x] true)
+  ([x y] (sym:bin= x y))
+  ([x y & more]
+   (let [xs    (cons x (cons y more))
+         pairs (partition 2 1 xs)]
+     (reduce (fn [acc [x y]]
+               (if-let [eq (sym:bin= x y)]
+                 (sym:and acc eq)
+                 (reduced false)))
+             true
+             pairs))))
 
 (defn- sym:zero? [x]
   (if (v/number? x)
@@ -579,7 +593,7 @@
   {'zero? sym:zero?
    'one? sym:one?
    'identity? sym:one?
-   '= (ua/monoid sym:= true)
+   '= sym:=
    'not sym:not
    'and (ua/monoid sym:and true false?)
    'or (ua/monoid sym:or false true?)

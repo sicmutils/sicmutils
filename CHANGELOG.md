@@ -2,6 +2,17 @@
 
 ## [unreleased]
 
+  - `expt` called with a negative base and non-integral power now properly
+    returns a complex number instead of `##NaN`.
+
+  - symbolic `=` now behaves correctly and accumulates an expression of nested
+    `and`s, vs before. The previous behavior would convert `(= 'a 'b 'c')` to
+    `(= (= 'a 'b) 'c')`, which is NOT correct. (if `(= 'a 'b)` is true, then the
+    expression evaluates to `false`, since `(= true 'c')` is false.)
+
+  - adds `sicmutils.series/function->`, for generating a Maclaurin series from a
+    function.
+
 - #450:
 
   - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic

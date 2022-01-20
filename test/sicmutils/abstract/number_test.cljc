@@ -920,6 +920,9 @@
     (checking "sym:= matches v/= for numbers"
               100 [l sg/number
                    r sg/number]
+              (is (true? (sym:= l))
+                  "sym:= with 1 arg is always true")
+
               (is (= (v/= l r)
                      (sym:= l r)))
 
@@ -928,6 +931,21 @@
 
               (is (false? (sym:= 'x r))
                   "numbers are never equal to symbols, so false comes back"))
+
+    (testing "sym:="
+      (is (true? (sym:=)))
+
+      (is (= '(and (= a b) (= b c))
+             (sym:= 'a 'b 'c)))
+
+      (is (= '(and (= a b) (= b c))
+             (sym:= 'a 'a 'a 'a 'b 'b 'c))
+          "contiguous duplicates get filtered out")
+
+      (is (false?
+           (sym:= 'a 'a 1 2 'a 'b 'b 'c))
+          "If any contiguous elements are obviously not equal, the computation
+          short-circuits. "))
 
     (checking "symbolic `or` behavior with boolean"
               100 [n gen/any-equatable]

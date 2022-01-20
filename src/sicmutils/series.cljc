@@ -240,9 +240,14 @@
   (identity-like [_] identity)
   (exact? [_] false)
   (freeze [_]
-    (let [prefix (map-indexed (fn [n a] `(~'* ~a (~'expt ~'_ ~n)))
-                              (v/freeze
-                               (g/simplify (take 4 xs))))]
+    (let [prefix (->> (g/simplify (take 4 xs))
+                      (v/freeze)
+                      (filter (complement v/zero?))
+                      (map-indexed
+                       (fn [n a]
+                         (if (v/one? a)
+                           `(~'expt ~'_ ~n)
+                           `(~'* ~a (~'expt ~'_ ~n))))))]
       `(~'+ ~@prefix ~'...)))
   (kind [_] ::power-series)
 
@@ -406,6 +411,27 @@
   (cond (power-series? s) s
         (series? s) (->PowerSeries (seq s) (meta s))
         :else (u/illegal "non-series provided to ->function.")))
+
+;; To go the other way we need Taylor's theorem to give us a power series:
+
+(defn function->
+  "Returns a [[PowerSeries]] representing the [Taylor
+  series](https://en.wikipedia.org/wiki/Taylor_series) expansion of `f` at 0.
+
+  The expansion at 0 is also called a 'Maclaurin series'.
+
+  NOTE: this function takes derivatives internally, so if you pass a function
+  make sure you require [[sicmutils.calculus.derivative]] to install the
+  derivative implementation for functions. If you pass some other callable,
+  differentiable function-like thing, like a polynomial, this is not necessary."
+  [f]
+  (letfn [(gen [i f fact-n]
+            (lazy-seq
+             (cons (g// (f 0) fact-n)
+                   (gen (inc i)
+                        (g/partial-derivative f [])
+                        (* fact-n i)))))]
+    (->PowerSeries (gen 1 f 1) nil)))
 
 ;; ## Application
 ;;

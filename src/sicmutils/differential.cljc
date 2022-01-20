@@ -165,7 +165,7 @@
 ;; series expansion of $f$, the $\varepsilon$ multiplication rule will erase all
 ;; higher-order terms, leaving us with:
 ;;
-;; $$f(x+x'\varepsilon, y+y'\varepsilon) = f(x,y) + \partial_1 f(x,y)x' + \partial_2 f(x,y) y'$$
+;; $$f(x+x'\varepsilon, y+y'\varepsilon) = f(x,y) + \[\partial_1 f(x,y)x' + \partial_2 f(x,y)y'\]\varepsilon$$
 ;;
 ;; NOTE: See [[lift-2]] for an implementation of this idea.
 ;;
@@ -420,7 +420,7 @@
 ;; Since the only use of a tag is to distinguish each unnamed $\varepsilon_n$,
 ;; we'll assign a new, unique positive integer for each new tag:
 
-(let [next-tag (atom 0)]
+(let [next-tag (atom -1)]
   (defn fresh-tag
     "Returns a new, unique tag for use inside of a [[Differential]] term list."
     []

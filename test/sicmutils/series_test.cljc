@@ -25,6 +25,7 @@
             [sicmutils.generators :as sg]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.calculus.derivative]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
@@ -315,6 +316,30 @@
         (is (= '(1 (* 2 x) (* 3 x x) 0 0)
                (v/freeze (take 5 (ps 'x))))
             "->function converts a series to a power series."))
+
+      (testing "function->"
+        (is (= '(+ (* (/ 1 120) (expt x 5) (cos a))
+                   (* (/ 1 24) (expt x 4) (sin a))
+                   (* (/ -1 6) (expt x 3) (cos a))
+                   (* (/ -1 2) (expt x 2) (sin a))
+                   (* x (cos a))
+                   (sin a))
+               (-> ((s/function-> g/sin :x0 'a) 'x)
+                   (s/sum 5)
+                   (g/simplify)
+                   (v/freeze)))
+            "power series expansion of g/sin around 'a, evaluated at 'x")
+
+        (letfn [(check [f n]
+                  (is (= (take n (g/simplify
+                                  ((f s/identity) 'x)))
+                         (take n (g/simplify
+                                  ((s/function-> f) 'x))))
+                      "checking generic passed to function-> against an explicit
+                      series constructed for that function."))]
+          (check g/cos 10)
+          (check g/sin 10)
+          (check g/exp 10)))
 
       (let [i*nats (fn [_] nats)
             series (s/generate i*nats ::s/series)

@@ -83,6 +83,23 @@
   (testing "expt goes rational with negative expt"
     (is (= #sicm/ratio 1/4 (g/expt 2 -2))))
 
+  (testing "expt goes imaginary with negative base and non-integral expt"
+    (is (ish? (c/complex 0 (g/sqrt 2))
+              (g/expt -2 #sicm/ratio 1/2))
+        "integer, ratio")
+
+    (is (ish? (c/complex 0 (g/sqrt 2))
+              (g/expt -2 0.5))
+        "integer, float")
+
+    (is (ish? (c/complex 0 (g/sqrt 2.2))
+              (g/expt -2.2 0.5))
+        "both floating point")
+
+    (is (ish? (c/complex 0 (g/sqrt 0.5))
+              (g/expt #sicm/ratio -1/2 0.5))
+        "ratio, float"))
+
   (testing "exp/log round-trip, but coerce to double on the JVM"
     (is (= 0.0 (g/log (g/exp 0))))
     (is (= 10.0 (g/log (g/exp 10)))))
