@@ -329,6 +329,16 @@
                    (v/freeze)))
             "power series expansion of g/sin around 0, evaluated at 'x")
 
+        (is (= '(+ (* (/ 1 6) (expt dx 3) (exp a))
+                   (* (/ 1 2) (expt dx 2) (exp a))
+                   (* dx (exp a))
+                   (exp a))
+               (-> ((s/function-> g/exp :x0 'a) 'dx)
+                   (s/sum 3)
+                   (g/simplify)
+                   (v/freeze)))
+            "power series expansion of g/exp around 'a, evaluated at 'dx")
+
         (letfn [(check [f n]
                   (is (= (take n (g/simplify
                                   ((f s/identity) 'x)))
