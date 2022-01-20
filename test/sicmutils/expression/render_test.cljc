@@ -316,9 +316,9 @@
          (->infix (+ 'k (series/exp-series 1)))))
   (is (= "\\left(k + 1\\right) + 1 + \\frac{1}{2} + \\frac{1}{6} + \\ldots"
          (->TeX (+ 'k (series/exp-series 1)))))
-  (is (= "1 _⁰ + 2 _¹ + 3 _² + 4 _³ + ..."
+  (is (= "_⁰ + 2 _¹ + 3 _² + 4 _³ + ..."
          (->infix (series/power-series 1 2 3 4))))
-  (is (= "1\\,{\\_}^{0} + 2\\,{\\_}^{1} + 3\\,{\\_}^{2} + 4\\,{\\_}^{3} + \\ldots"
+  (is (= "{\\_}^{0} + 2\\,{\\_}^{1} + 3\\,{\\_}^{2} + 4\\,{\\_}^{3} + \\ldots"
          (->TeX (series/power-series 1 2 3 4))))
   (is (= "1 + 2 x + 3 x² + 4 x³ + ..."
          (->infix ((series/power-series 1 2 3 4) 'x))))

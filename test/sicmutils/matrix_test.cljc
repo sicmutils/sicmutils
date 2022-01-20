@@ -881,3 +881,13 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest characteristic-poly-tests
+  (let [M (m/by-rows [1 3 2] [4 5 2] [1 4 5])
+        p (m/characteristic-polynomial M)]
+    (is (= (m/characteristic-polynomial M 12)
+           (p 12))
+        "passing the arg directly has the same result as calling the returned
+        polynomial.")
+
+    (is (= 315 (p 12)))))
