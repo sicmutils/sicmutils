@@ -2794,7 +2794,7 @@ multiplication is composition as before.
 `asin`; these now return taylor series expansions of the operator, where
 multiplication is composition as before.
 
-## [v0.21.1]
+## [v0.12.1]
 
 - Getting Github releases up to parity with the most recent release to Clojars.
 
