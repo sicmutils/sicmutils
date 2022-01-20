@@ -36,6 +36,10 @@
                             IObj
                             Indexed Reversible Sequential))))
 
+;; Structures are primitive tensor-like objects. They are represented as
+;; recursive combinations of down vectors and up vectors, useful for dealing
+;; with derivatives of things with structured inputs and outputs.
+
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
 ;; Type Declarations
