@@ -138,10 +138,12 @@
      (fn [t]
        (->> Dqs (map #(% t)) (cons t) (apply up))))))
 
-(defn Lagrangian-action [L q t1 t2]
-  (q/definite-integral
-    (compose L (Gamma q)) t1 t2
-    {:compile? false}))
+(defn Lagrangian-action
+  ([L q t1 t2]
+   (Lagrangian-action L q t1 t2 {}))
+  ([L q t1 t2 integration-opts]
+   (q/definite-integral
+     (compose L (Gamma q)) t1 t2 integration-opts)))
 
 (defn Lagrange-equations [Lagrangian]
   (fn [q]
@@ -261,7 +263,9 @@
   [Lagrangian t0 q0 t1 q1]
   (fn [qs]
     (let [path (make-path t0 q0 t1 q1 qs)]
-      (Lagrangian-action Lagrangian path t0 t1))))
+      (Lagrangian-action
+       Lagrangian path t0 t1
+       {:compile? false}))))
 
 (defn find-path
   "SICM p. 23. The optional parameter values is a callback which will report

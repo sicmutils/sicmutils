@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- #276 adds an `integration-opts` to
+  `sicmutils.mechanics.lagrange/Lagrangian-action`. All options are passed on to
+  `definite-integral`. By default, `parametric-path-action` passes `:compile?
+  false`, since we do NOT want to compile the polynomial.
+
 - #463 adds a new 1-arity to `sicmutils.matrix/characteristic-polynomial` that
   returns an actual polynomial instance. Creating this polynomial once and
   calling it many times is much more efficient. Closes #209.
