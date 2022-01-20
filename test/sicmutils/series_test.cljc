@@ -318,17 +318,16 @@
             "->function converts a series to a power series."))
 
       (testing "function->"
-        (is (= '(+ (* (/ 1 120) (expt x 5) (cos a))
-                   (* (/ 1 24) (expt x 4) (sin a))
-                   (* (/ -1 6) (expt x 3) (cos a))
-                   (* (/ -1 2) (expt x 2) (sin a))
-                   (* x (cos a))
-                   (sin a))
-               (-> ((s/function-> g/sin :x0 'a) 'x)
-                   (s/sum 5)
+        (is (= '(+ (* (/ 1 362880) (expt x 9))
+                   (* (/ -1 5040) (expt x 7))
+                   (* (/ 1 120) (expt x 5))
+                   (* (/ -1 6) (expt x 3))
+                   x)
+               (-> ((s/function-> g/sin) 'x)
+                   (s/sum 10)
                    (g/simplify)
                    (v/freeze)))
-            "power series expansion of g/sin around 'a, evaluated at 'x")
+            "power series expansion of g/sin around 0, evaluated at 'x")
 
         (letfn [(check [f n]
                   (is (= (take n (g/simplify
