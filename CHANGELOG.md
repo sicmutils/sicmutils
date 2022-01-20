@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- #276 adds an `integration-opts` to
+  `sicmutils.mechanics.lagrange/Lagrangian-action`. All options are passed on to
+  `definite-integral`. By default, `parametric-path-action` passes `:compile?
+  false`, since we do NOT want to compile the polynomial.
+
 - #449:
 
   - All missing trigonometric functions have been filled in `sicmutils.generic`
