@@ -660,6 +660,7 @@
 
 (def fib-series (->Series i/fib nil))
 (def catalan-series (->Series i/catalan nil))
+(def harmonic-series (->Series i/harmonic nil))
 
 ;; ## Generic Implementations
 ;;
@@ -809,6 +810,10 @@
 
 (defmethod g/atan [::power-series] [s]
   (->PowerSeries (i/compose i/atanx (seq s))
+                 (meta s)))
+
+(defmethod g/acot [::power-series] [s]
+  (->PowerSeries (i/compose i/acotx (seq s))
                  (meta s)))
 
 (defmethod g/cosh [::power-series] [s]

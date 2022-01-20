@@ -388,8 +388,9 @@
 
 (deftest complex-derivatives
   (let [f (fn [z] (* c/I (sin (* c/I z))))]
-    (is (= '(* -1 (cosh z))
-           (simplify ((D f) 'z))))))
+    (is (= '(* -1.0 (cosh z))
+           (simplify
+            ((D f) 'z))))))
 
 (deftest operator-tests
   (testing "operator multiplication by fn == "

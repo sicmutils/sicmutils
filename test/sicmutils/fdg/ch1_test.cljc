@@ -110,5 +110,5 @@
                    (* (* 'm (metric-components (gamma ((point R1-rect) 't))))
                       geodesic-equation-residuals))))
             "p10: This establishes that for a 2-dimensional space the
-               Euler-Lagrange equations are equivalent to the geodesic
-               equations.")))))
+             Euler-Lagrange equations are equivalent to the geodesic
+             equations.")))))

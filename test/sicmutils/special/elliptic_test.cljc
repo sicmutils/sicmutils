@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.elliptic-test
+(ns sicmutils.special.elliptic-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
@@ -28,8 +28,8 @@
             [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :refer [D-numeric]]
             [sicmutils.numerical.unimin.golden :refer [phi]]
-            [sicmutils.numerical.elliptic :as e]
             [sicmutils.numerical.quadrature :as q]
+            [sicmutils.special.elliptic :as e]
             [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1e-6))

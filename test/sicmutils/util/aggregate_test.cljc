@@ -24,23 +24,101 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.numbers]
+            [sicmutils.algebra.fold :as af]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
 
 (deftest sum-tests
-  (testing "Kahan summation"
-    (is (= 1.0 (ua/sum [1.0 1e-8 -1e-8]))
-        "Kahan's summation trick allows us to keep precision.")
+  (is (= [0.0 1.0 5.0 14.0 30.0]
+         (ua/scan #(* % %) 0 5))
+      "scan the running sum of squares using the three-arity version of
+      ua/scan.")
 
-    (is (not= 1 (reduce + 0.0 [1.0 1e-8 -1e-8]))
-        "Without the summation trick, errors build up.")
+  (is (= 499500 (ua/pairwise-sum (range 0 1000)))
+      "pairwise-sum with a non-vector still works.")
 
+  (testing "compensated summation examples"
     (let [xs [1.0 1e-8 -1e-8]]
-      (is (= [1.0 1.00000001 1.0] (ua/scanning-sum xs)))
+      (testing "Naive summation"
+        (binding [ua/*fold* af/generic-sum-fold]
+          (is (not= 1 (ua/sum xs))
+              "Without the summation trick, errors build up.")
 
-      (is (= (ua/scanning-sum xs)
-             ((us/scan ua/kahan-sum :present first) xs))
-          "scanning-sum acts just like an actual `scan` call."))))
+          (is (= (ua/generic-sum xs)
+                 (ua/sum xs))
+              "generic-sum matches sum when the binding is generic-sum-fold.")))
+
+      (testing "Kahan summation"
+        (binding [ua/*fold* af/kahan]
+          (is (= 1.0 (ua/sum xs))
+              "Kahan's summation trick allows us to keep precision.")
+
+          (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+
+          (is (= (ua/scan xs)
+                 ((af/fold->scan-fn af/kahan) xs))
+              "scan acts just like an actual `scan` call.")))
+
+      (testing "KBN Summation"
+        (binding [ua/*fold* af/kbn]
+          (is (= 1.0 (ua/sum xs))
+              "KBN's summation trick also allows us to keep precision.")
+
+          (is (= [1.0 1.00000001 1.0] (ua/scan xs)))
+
+          (is (= (ua/scan xs)
+                 ((af/fold->scan-fn af/kbn) xs))
+              "scan acts just like an actual `scan` call.")))))
+
+  (testing "investigation from scmutils"
+    ;; When adding up 1/n large-to-small we get a different answer than when
+    ;; adding them up small-to-large, which is more accurate.
+    (let [n 10000000
+          z->n (into [] (range n))
+          n->z (reverse z->n)
+          f #(/ 1.0 (inc %))
+          sum-inverse (fn [xs]
+                        (binding [ua/*fold* af/generic-sum-fold]
+                          (ua/sum (map f xs))))
+          large->small (sum-inverse z->n)
+          small->large (sum-inverse n->z)]
+      (is (= 16.695311365857272
+             large->small)
+          "Naive summation ")
+
+      (is (= 16.695311365859965
+             small->large)
+          "second example...")
+
+      (is (= 2.6929569685307797e-12
+             (- small->large large->small))
+          "error!")
+
+      (binding [ua/*fold* af/kahan]
+        (is (= 1.1368683772161603e-13
+               (- small->large
+                  (ua/sum f 0 n)))
+            "From GJS: Kahan's compensated summation formula is much better, but
+      slower..."))
+
+      (binding [ua/*fold* af/kbn]
+        (is (= 1.1368683772161603E-13
+               (- small->large
+                  (ua/sum f 0 n)))
+            "kbn sum, good, faster by 2x."))
+
+      (is (= 1.1368683772161603E-13
+             (- small->large
+                (ua/pairwise-sum f 0 n)))
+          "pairwise summation matches that error in this example, and is
+          slightly faster (including the time to generate the vector of
+          inputs).")))
+
+  (testing "any monoid works as a fold binding, if no `present` beyond identity
+            is needed."
+    (is (= [1 2]
+           (binding [ua/*fold* (ua/monoid into [])]
+             (ua/sum [[1] [2]]))))))
 
 (deftest monoid-group-tests
   (let [plus (ua/monoid (fn [a b] (+ a b)) 0)]

@@ -2,6 +2,344 @@
 
 ## [unreleased]
 
+- #449:
+
+  - All missing trigonometric functions have been filled in `sicmutils.generic`
+    and aliased in `sicmutils.env`:
+
+    - Inverse cotangent: `acot`
+    - inverse secant: `asec`
+    - inverse cosecant: `acsc`
+    - hyperbolic (inverse hyperbolic) cotangent: `coth` and `acoth`
+    - hyperbolic (and inverse hyperbolic) secant: `sech` and `asech`
+    - hyperbolic (and inverse hyperbolic) cosecant: `csch` and `acsch`
+
+    All of these have default implementations and derivatives defined. They'll
+    work out of the box for all types with `atan` defined (and potentially
+    `exp`, `sqrt` and `log`.)
+
+    Thanks to John D Cook's ['Bootstrapping a minimal math
+    library'](https://www.johndcook.com/blog/2021/01/05/bootstrapping-math-library/)
+    for his inspiration on the defaults and implementation order of these new
+    functions.
+
+  - `expt` gains a new default implementation for non-native-integral powers,
+    making `expt` work for any type with `exp`, `log` and `mul` defined.
+
+  - `sqrt` gains a default implementation for all types implementing `exp`,
+    `mul` and `log`.
+
+  - All trig functions now have derivatives and docstrings.
+
+  - New `sinc`, `tanc`, `sinhc`, `tanhc` functions live in `sicmutils.generic`
+    and are aliased into `sicmutils.env`. These are generically defined as `(/
+    (sin x) x)`, `(/ (tan x) x)` (and similar with `sinh` and `tanh`), with
+    correct definitions for 0 and infinite-valued inputs.
+
+    These functions all support derivatives as well.
+
+  - New default `acot` implementation in `sicmutils.series`.
+
+- #450:
+
+  - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
+    numbers](https://en.wikipedia.org/wiki/Harmonic_number)
+
+  - moves `sicmutils.numerical.elliptic` to the `sicmutils.special` package, as
+    `sicmutils.special.elliptic`.
+
+  - New `sicmutils.special.factorial` namespace!
+    `sicmutils.util.permute/factorial` moves here, and the forgotten duplicate
+    `sicmutils.generic/factorial` is now gone.
+
+    - New functions: `falling-factorial`, `rising-factorial`,
+      `double-factorial`, `multi-factorial`, `subfactorial`,
+      `binomial-coefficient`, `stirling-first-kind`, `stirling-second-kind`.
+
+  - New `sicmutils.util.permute/multichoose` function, implementing the
+    definition [described here](https://mathworld.wolfram.com/Multichoose.html).
+
+  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
+    `sicmutils.special.factorial/falling-factorial`
+
+  - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
+
+- #458:
+
+  - Default implementation of `g/negative?` returning `false` for literal
+    numbers and symbols. This was required to get `g/abs` working for
+    polynomials and rational functions with symbolic coefficients.
+
+  - Polynomials and rational functions now correctly unwrap `Literal`
+    coefficients in `->expression`. Without this, the resulting expressions
+    would not correctly respond to `simplify` calls.
+
+  - Slight efficiency improvement in
+    `sicmutils.polynomial.gcd/->content+primitive`.
+
+  - `sicmutils.rational-function/from-points` now correctly builds its function.
+    Before, it was unhygienic; if `'x` appeared in the coefficients the results
+    would be incorrect.
+
+- #456:
+
+  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
+    gone as well.
+
+  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+    an actual polynomial instance. Because polynomials support `IFn` and respond
+    to the derivative operator `D`, this makes the `find-path` example on pages
+    22/23 of SICM run about 5x faster.
+
+  - Richardson extrapolation is now implemented as a functional fold. The
+    exposition in `sicmutils.polynomial.richardson` discusses this; the
+    namespaces gains `richardson-fold`, `richardson-sum` and `richardson-scan`.
+
+- #455 makes `sicmutils.util.aggregate/scan` and
+  `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
+  first element of the returned sequence before mapping the `present` function.
+
+- #453:
+
+  - Adds `sicmutils.polynomial/from-points` and
+    `sicmutils.rational-function/from-points` for generating `Polynomial` and
+    `RationalFunction` instances from sequences of points.
+
+- #451:
+
+  - new `sicmutils.algebra.fold` namespace:
+
+    - New folds: `kahan-babushka-neumaier` (aliased as `kbn`),
+      `kahan-babushka-klein` and and `kbk-n` macro for generating higher-order
+      `kahan-babushka-klein` variants. `generic-sum-fold` folds using
+      `sicmutils.generic/+`.
+
+    - `sicmutils.util.aggregate/kahan-fold` now lives here, named `kahan`.
+
+    - `fold->sum-fn` and `fold->scan-fn` generate functions like
+      `sicmutils.util.aggregate.{sum,scan}` specialized to the supplied fold.
+      See the docstrings for the multiple arities supported
+
+    - fold primitives: `count`, `constant`, `min`, `max`.
+
+    - fold combinator `join` allows compound folds to be built out of primitive
+      folds.
+
+  - Upgrades to `sicmutils.util.aggregate`:
+
+    - `scanning-sum` renamed to `scan`
+
+    - `halt-at` deleted in favor of the built-in `halt-when` that I didn't know
+      about!
+
+    - `scan` and `sum` now both use a dynamic binding, `*fold*`, to set the fold
+      they use for aggregation. By default, this is set to the new
+      `kahan-babushka-neumaier-fold`.
+
+    - The three-arity version of `sum` now uses transducers, saving a pass over
+      the input range.
+
+    - `pairwise-sum` implements pairwise summation, an error-limiting technique
+      for summing vectors. Use the dynamic binding `*cutoff*` to set where
+      `pairwise-sum` bails out to normal summation.
+
+  - Upgrades to `sicmutils.rational-function.polynomial`:
+
+    - The folds in this namespace now follow the fold contract laid out in
+      `sicmutils.algebra.fold`, implementing all three arities correctly.
+
+    - I realized that the fold implementation here should /not/ return a full
+      row every time it processes a previous row; a far better `present`
+      implementation would return the best estimate so far. Then you could build
+      a `scan` from that fold to see the estimates evolve lazily as new points
+      are added. This has better performance, it turns out, than the original
+      method!
+
+    - added a bunch to the exposition to make the advantages clear.
+
+  - Upgrades to `sicmutils.rational-function.interpolate`:
+
+    - `fold` interface upgraded, similar to the polynomial interpolation notes.
+
+    - New `bulirsch-stoer-fold`, `bulirsch-stoer-sum` and `bulirsch-stoer-scan`
+      functions. These are similar to the `modified-**` versions but use the
+      `bulirsch-stoer` algorithm, instead of `modified-bulirsch-stoer`.
+
+    - `modified-bulirsch-stoer-fold-fn` renamed to
+      `modified-bulirsch-stoer-fold`, to match the naming scheme of other
+      "folds" in the library.
+
+    - `modified-bulirsch-stoer-fold` renamed to `modified-bulirsch-stoer-sum`,
+      to match the convention that "reducing a sequence with a fold" is called
+      "summing" the sequence. I can see this changing down the road...
+
+    See `context-opts` for instructions on how to enable
+    `sicmutils.algebra.fold/kbk-n` in the SCI environment (you'll need to turn
+    on access to `js/Math` or `java.lang.Math`).
+
+  - Fixed a type inference warning in Clojurescript in `sicmutils.complex`.
+
+  - Added support for `sicmutils.util.def` and its `fork` macro to the default
+    SCI environment provided by SICMUtils. Helpful for macro-writing!
+
+  - `sicmutils.numerical.quadrature.adaptive` now uses the dynamically bound
+    `sicmutils.util.aggregate/*fold*` to accumulate its numerical integral
+    pieces, instead of a hardcoded `kahan-sum`.
+
+  - `sicmutils.numerical.quadrature.bulirsch-stoer` now uses the functional scan
+    versions of polynomial and rational function interpolation, as these are a
+    bit faster than the originals!
+
+  - `sicmutils.util.stream/scan` deleted in favor of
+    `sicmutils.util.aggregate/scan` with a dynamic binding for `*fold*` to
+    customize.
+
+- #448:
+
+  - new `g/infinite?` generic with implementations for all numeric types,
+    complex numbers, `differential` instances. Defaults to `false` for all other
+    types. (Also aliased into `sicmutils.env/infinite?`).
+
+  - The infix, TeX and JavaScript renderers (`->infix`, `->TeX` and
+    `->JavaScript`) all properly render `##Inf` and `##-Inf`. Infix uses the
+    Unicode symbol ∞, while `->TeX` uses the LaTeX command `\infty`.
+    Javascript's `Infinity` stands in for `##Inf` in generated JS code.
+
+  - Complex numbers now respond `true` to `g/negative?` if their imaginary
+    component is zero and real component is negative, false otherwise.
+
+  - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
+    side. This was causing bugs in cases where we allow, say, a scalar to be
+    added to a quaternion, and auto-convert the scalar right there (so it adds
+    only to the real part). OR in cases, like in the matrix PR, where we convert
+    the scalar in addition to `<scalar>*I*`.
+
+    - This caused some problems with `sicmutils.matrix` tests that were not well
+      typed.
+
+  - The default `expt` implementation is now available as a function to call
+    directly (`sicmutils.generic/default-expt`) without going through the
+    dispatch system.
+
+- #447 contains a grab-bag of fixes and additions, many related to complex
+  numbers:
+
+  - Use `Math/E` instead of `(Math/exp 1)` for euler's constant in
+    `sicmutils.env`.
+
+  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+    missing an `up` or `down`index type.
+
+  - symbolic `dot-product` and `inner-product`
+
+  - `inner-product` now defaults to `dot-product` for scalar instances. This is
+    correct for all numeric types we currently have, since `complex` is the only
+    tough case, and it has real coefficients.
+
+  - simplify now does NOT freeze expressions before simplifying. This allows
+    complex numbers to survive simplification, since they freeze to `(complex
+    <re> <im>)`.
+
+    - big rewrite in `sicmutils.simplify.rules`, to convert all of the frozen
+      matchers like `(complex 1 2)` into matchers that actually bind to a
+      complex number.
+
+    - more rules in `complex-trig`, it can now handle bigger products inside of
+      `sin` and `cos` multiplied by `I`.
+
+  - Various improvements to `sicmutils.complex`:
+
+    - complex implementations for `dot-product` between complex and real types
+
+    - Fixed reflection warnings with `ComplexFormat`in complex parsing code
+
+    - complex `zero?` now returns true for inputs like `(complex -0.0 -0.0)`,
+      where a negative zero lives in the real or imaginary slots
+
+    - new `sicmutils.complex/-I` binding, set to `(g/negate c/I)`
+
+    - `g/expt` for complex numbers optimizes the inputs equal to `I` by
+      returning exact 1, -1, `I` or `-I` depending on the input. This applies to
+      `g/square` and `g/cube` as well.
+
+- #445 fixes a bug where structures and other seq-able types were interpreted as
+  sequence matchers.
+
+  In `pattern.match` and all rules, things that respond true to `sequential?`
+  but not `seq?` or `vector?` (many of the sicmutils types, like structures and
+  the upcoming Quaternion type) were being converted to `seq` and treated as
+  sequence matchers vs literal matchers. This no longer happens, and structures
+  etc are treated as literal matchers.
+
+- #443:
+
+  - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`
+    and `reduce-kv` to work with structures.
+
+  - Removes a `reduced` shortcut condition in `sicmutils.generic/*` that was
+    causing multiplications of the form `(* 0 0 (up 0 0))` to shortcut and
+    return `0` instead of the appropriate structural form.
+
+  - the `atan` implementation for symbolic numbers is now careful not to return
+    a floating point number in the case of a 0 argument in the second position.
+    Additionally, it now returns symbolic `pi` or 0 in the case of `0` in the y
+    argument for positive and negative `x` argument, respectively, and symbolic
+    `(/ pi 2)` or `(- (/ pi 2))` for a 0 `x` argument and respective positive or
+    negative `y` argument.
+
+- #442 fixes #441 by upgrading the implementations of
+  `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
+  handle large inputs. Thanks to @swapneils for the report.
+
+- #440:
+
+  - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.
+
+  - Fixes a bug in `sicmutils.rules/exp-contract` leftover from the port from
+    Scheme. Thanks to @adamhaber for pointing this out!
+
+- #438:
+
+  - converts `doall` calls to `run!`, `dorun`, `doseq` or `mapv` where
+    applicable. In cases where we were trying to force side effects (mostly in
+    the tests), this change prevents the environment from retaining the full
+    sequence. This will save memory!
+
+  - adds missing tests from `connection.scm` to
+    `sicmutils.calculus.connection-test`, stressing pages 205 - 213 from MTW,
+    Gravitation.
+
+- #434: allow pattern matching forms to successfully bind to `nil` or `false`.
+
+- #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
+  coordinate symbols that start with the same symbol as the coordinate system's
+  prototype, like:
+
+```clj
+(typical-coords R2-polar)
+;;=> (up x065308 x165309)
+
+(typical-coords
+ (with-coordinate-prototype R2-polar (up 'r 'theta)))
+;;=> (up r65312 theta65313)
+```
+
+## 0.20.1
+
+- #396:
+
+  - fixes a bug in the SCI version of `define-coordinates` which didn't allow
+    any rebinding of manifolds.
+
+  - Removes the `bindings` key from `sicmutils.env.sci/context-opts`.
+    https://github.com/babashka/sci/issues/637 is a bug with variable rebinding
+    that occurs when `:bindings` is in play. Instead of relying on this key,
+    evaluate `(require '[sicmutils.env :refer :all])` against your SCI
+    environment to get all bindings.
+
+  - bumps the default version of SCI to 0.2.7.
+
 ## 0.20.0
 
 - #348:
@@ -191,7 +529,8 @@ into shape.
 > at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
 > page!)
 
-This release focused on improving the expressiveness and performance of the three simplification engines in SICMUtils:
+This release focused on improving the expressiveness and performance of the
+three simplification engines in SICMUtils:
 
   - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
     fleshed out, with full polynomial and rational function APIs and many

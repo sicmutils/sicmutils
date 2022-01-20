@@ -27,7 +27,8 @@
             [sicmutils.ratio]
             [sicmutils.value :as v]
             [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]))
+            [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.logic :as ul]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>
@@ -234,7 +235,7 @@
                               (n:pi-mod-2pi? x) -1
                               :else (Math/cos x)))
         (symbol? x) (cond (pi-over-2-mod-pi? x) 0
-                          (zero-mod-2pi? x) +1
+                          (zero-mod-2pi? x) 1
                           (pi-mod-2pi? x) -1
                           :else (list 'cos x))
         :else (list 'cos x)))
@@ -304,23 +305,29 @@
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (if (v/one? x)
-     (atan y)
-     (if (v/number? y)
-       (if (v/exact? y)
-         (if (v/zero? y)
-           0
-           (if (v/number? x)
-             (if (v/exact? x)
-               (if (v/zero? x)
-                 (g/atan y x)
-                 (list 'atan y x))
-               (g/atan y x))
-             (list 'atan y x)))
+   (cond (v/one? x) (atan y)
+
+         (v/exact-zero? y)
          (if (v/number? x)
-           (g/atan y x)
-           (list 'atan y x)))
-       (list 'atan y x)))))
+           (if (g/negative? x) 'pi 0)
+           (and (ul/assume! `(~'non-negative? ~x) 'numsymb-atan)
+                0))
+
+         (v/exact-zero? x)
+         (if (v/number? y)
+           (if (g/negative? y)
+             '(- (/ pi 2))
+             '(/ pi 2))
+           (and (ul/assume! `(~'non-negative? ~y) 'numsymb-atan)
+                '(/ pi 2)))
+
+         (and (v/number? x)
+              (v/number? y)
+              (or (not (v/exact? x))
+                  (not (v/exact? y))))
+         (g/atan y x)
+
+         :else (list 'atan y x))))
 
 (defn- cosh [x]
   (if (v/number? x)
@@ -339,6 +346,23 @@
         0
         (list 'sinh x)))
     (list 'sinh x)))
+
+(defn- tanh [x]
+  (div (sinh x)
+       (cosh x)))
+
+(defn- coth [x]
+  (div (cosh x)
+       (sinh x)))
+
+(defn- sech [x]
+  (div 1 (cosh x)))
+
+(defn- csch [x]
+  (div 1 (sinh x)))
+
+(defn- acot [x]
+  (sub '(/ pi 2) (atan x)))
 
 (defn- abs
   "Symbolic expression handler for abs."
@@ -463,6 +487,25 @@
       (atan (imag-part z)
             (real-part z)))))
 
+(defn dot-product
+  "Returns the symbolic dot product of the two supplied numbers `z1` and `z2`.
+
+  If both are numbers, defers to [[sicmutils.generic/dot-product]]. Else,
+  returns
+
+  $$\\Re(z_1)\\Re(z_2) + \\Im(z_1)\\Im(z_2)$$"
+  [z1 z2]
+  (cond (and (v/number? z1) (v/number? z2))
+        (g/dot-product z1 z2)
+
+        (v/real? z1) (mul z1 (real-part z2))
+        (v/real? z2) (mul (real-part z1) z2)
+        :else (add
+               (mul (real-part z1)
+                    (real-part z2))
+               (mul (imag-part z1)
+                    (imag-part z2)))))
+
 (defn ^:no-doc derivative
   "Returns the symbolic derivative of the expression `expr`, which should
   represent a function like `f`.
@@ -574,13 +617,18 @@
    'sin sin
    'cos cos
    'tan tan
+   'sec sec
+   'csc csc
    'asin asin
    'acos acos
+   'acot acot
    'atan atan
    'sinh sinh
    'cosh cosh
-   'sec sec
-   'csc csc
+   'tanh tanh
+   'coth coth
+   'sech sech
+   'csch csch
    'cube #(expt % 3)
    'square #(expt % 2)
    'abs abs
@@ -594,6 +642,8 @@
    'imag-part imag-part
    'conjugate conjugate
    'magnitude magnitude
+   'dot-product dot-product
+   'inner-product dot-product
    'angle angle
    'derivative derivative})
 

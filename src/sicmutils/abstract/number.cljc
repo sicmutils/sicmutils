@@ -177,16 +177,21 @@
 (defunary g/sin 'sin)
 (defunary g/cos 'cos)
 (defunary g/tan 'tan)
+(defunary g/sec 'sec)
+(defunary g/csc 'csc)
 
 (defunary g/asin 'asin)
 (defunary g/acos 'acos)
 (defunary g/atan 'atan)
 (defbinary g/atan 'atan)
+(defunary g/acot 'acot)
 
 (defunary g/sinh 'sinh)
 (defunary g/cosh 'cosh)
-(defunary g/sec 'sec)
-(defunary g/csc 'csc)
+(defunary g/tanh 'tanh)
+(defunary g/coth 'coth)
+(defunary g/sech 'sech)
+(defunary g/csch 'csch)
 
 (defunary g/abs 'abs)
 (defunary g/sqrt 'sqrt)
@@ -215,15 +220,22 @@
 (defunary g/magnitude 'magnitude)
 (defunary g/angle 'angle)
 (defunary g/conjugate 'conjugate)
+(defbinary g/dot-product 'dot-product)
+(defbinary g/inner-product 'inner-product)
 
 (defbinary g/gcd 'gcd)
 (defbinary g/lcm 'lcm)
+
+;; We currently default to `false` here; once literals gain metadata saying
+;; whether or not they are negative, we return /something/. Maybe this is
+;; ill-founded, but it was required for some polynomial code.
+(defmethod g/negative? [::x/numeric] [_] false)
 
 (defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
   (literal-number
    (ss/simplify-expression
-    (v/freeze a))))
+    (x/expression-of a))))
 
 (def ^:private memoized-simplify
   (memoize g/simplify))

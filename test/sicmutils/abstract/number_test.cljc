@@ -84,18 +84,17 @@
 
 (deftest predicate-tests
   (testing "v/="
-    (doall
-     (for [l ['x (an/literal-number 'x)]
-           r ['x (an/literal-number 'x)]]
-       (is (v/= l r))))
+    (doseq [l ['x (an/literal-number 'x)]
+            r ['x (an/literal-number 'x)]]
+      (is (v/= l r)))
 
-    (doall
-     (for [l [12 (an/literal-number 12)]
-           r [12 (an/literal-number 12)]]
-       (do (is (v/= l r))
-           #?(:cljs (is (= l r)
-                        "cljs overrides equality, and can compare literals with
-                        true numbers on the left side."))))))
+    (doseq [l [12 (an/literal-number 12)]
+            r [12 (an/literal-number 12)]]
+      (is (v/= l r))
+      #?(:cljs
+         (is (= l r)
+             "cljs overrides equality, and can compare literals with
+                        true numbers on the left side."))))
 
   (checking "interaction with symbols" 100 [x gen/symbol]
             (is (not (an/literal-number? x))
@@ -139,12 +138,11 @@
                ;; NOTE: This is cased to NOT consider rational numbers for now.
                [[l-num r-num] (gen/vector sg/real-without-ratio 2)]
                (let [compare-bit (v/compare l-num r-num)]
-                 (doall
-                  (for [l [l-num (an/literal-number l-num)]
-                        r [r-num (an/literal-number r-num)]]
-                    (cond (neg? compare-bit)  (is (< l r))
-                          (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                          :else (is (> l r))))))))
+                 (doseq [l [l-num (an/literal-number l-num)]
+                         r [r-num (an/literal-number r-num)]]
+                   (cond (neg? compare-bit)  (is (< l r))
+                         (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                         :else (is (> l r)))))))
 
   #?(:cljs
      (checking "`literal-number` implements valueOf properly" 100 [n sg/real]
@@ -196,9 +194,8 @@
                   others   [[(an/literal-number l) r]
                             [l (an/literal-number r)]
                             [(an/literal-number l) (an/literal-number r)]]]
-              (doall
-               (for [[x y] others]
-                 (is (v/= expected (op x y)))))))]
+              (doseq [[x y] others]
+                (is (v/= expected (op x y))))))]
     (checking "+, -, *, / fall through to number ops"
               100 [x sg/native-integral
                    y sg/native-integral]
@@ -230,7 +227,7 @@
                    (g/expt (an/literal-number x) e))))
 
   (checking "abs" 100 [x (sg/inexact-double)]
-            (is (= (an/literal-number (Math/abs x))
+            (is (= (an/literal-number (Math/abs ^double x))
                    (g/abs (an/literal-number x)))))
 
   (checking "sqrt" 100 [x (sg/inexact-double)]
@@ -412,10 +409,11 @@
               (is (= (cond (and x-one? y-zero?)            0
                            (and x-one? y-exact?)           (list 'atan y)
                            x-one?                          (g/atan y)
-                           (and y-exact? y-zero?)           0
-                           (and y-exact? x-exact? x-zero?) (g/atan y x)
+                           (and y-exact? y-zero?)          (if (neg? x) 'pi 0)
+                           (and x-exact? x-zero?)          (if (neg? y)
+                                                             '(- (/ pi 2))
+                                                             '(/ pi 2))
                            (and y-exact? x-exact?)         (list 'atan y x)
-                           y-exact?                        (g/atan y x)
                            :else                           (g/atan y x))
                      (x/expression-of
                       (g/atan
@@ -672,18 +670,17 @@
            (v/freeze
             (g/conjugate (an/literal-number
                           '(random x))))))
-    (doall
-     (for [op @#'sym/conjugate-transparent-operators]
-       (is (= (v/freeze
-               (an/literal-number
-                (list op
-                      (g/conjugate 'x)
-                      (g/conjugate 'y))))
-              (v/freeze
-               (g/conjugate (an/literal-number
-                             (list op 'x 'y)))))
-           "This is a little busted, since we don't check for the proper number
-           of inputs... but conjugates move inside these operators."))))
+    (doseq [op @#'sym/conjugate-transparent-operators]
+      (is (= (v/freeze
+              (an/literal-number
+               (list op
+                     (g/conjugate 'x)
+                     (g/conjugate 'y))))
+             (v/freeze
+              (g/conjugate (an/literal-number
+                            (list op 'x 'y)))))
+          "This is a little busted, since we don't check for the proper number
+           of inputs... but conjugates move inside these operators.")))
 
   (checking "make-rectangular" 100 [re gen/symbol
                                     im gen/symbol]
@@ -761,7 +758,18 @@
 
   (checking "magnitude" 100 [z gen/symbol]
             (is (= (g/sqrt (g/mul (g/conjugate z) z))
-                   (g/magnitude z)))))
+                   (g/magnitude z))))
+
+  (testing "dot-product"
+    (is (= '(+ (* 0.5 x (conjugate y))
+               (* 0.5 y (conjugate x)))
+           (v/freeze
+            (g/simplify
+             (g/dot-product 'x 'y)))))
+
+    (is (= (g/dot-product 'x 'y)
+           (g/inner-product 'x 'y))
+        "identical for abstract complex numbers")))
 
 (deftest symbolic-trig-tests
   (testing "trig shortcuts - sin"
@@ -843,8 +851,12 @@
   (testing "cosh"
     (is (= '(cosh x) (v/freeze (g/cosh 'x)))))
 
+  (testing "tan"
+    (is (= '(tan x) (v/freeze (g/tan 'x)))))
+
   (testing "cot"
-    (is (= '(/ (cos x) (sin x)) (v/freeze (g/cot 'x)))))
+    (is (= '(/ (cos x) (sin x))
+           (v/freeze (g/cot 'x)))))
 
   (testing "sec"
     (is (= '(/ 1 (cos x)) (v/freeze (g/sec 'x)))))
@@ -852,9 +864,22 @@
   (testing "csc"
     (is (= '(/ 1 (sin x)) (v/freeze (g/csc 'x)))))
 
+  (testing "acot"
+    (is (= '(- (/ pi 2) (atan x))
+           (v/freeze (g/acot 'x)))))
+
+  (testing "asec"
+    (is (= '(atan (sqrt (- (expt x 2) 1)))
+           (v/freeze
+            (g/asec 'x)))))
+
   (testing "tanh"
     (is (= '(/ (sinh x) (cosh x))
            (v/freeze (g/tanh 'x)))))
+
+  (testing "coth"
+    (is (= '(/ (cosh x) (sinh x))
+           (v/freeze (g/coth 'x)))))
 
   (testing "sech"
     (is (= '(/ 1 (cosh x))

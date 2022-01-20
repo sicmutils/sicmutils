@@ -32,9 +32,9 @@
   #?(:clj
      (:import (clojure.lang Associative
                             AFn IFn
-                            IPersistentVector IReduce
+                            IPersistentVector IReduce IKVReduce
                             IObj
-                            Indexed Sequential))))
+                            Indexed Reversible Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -132,6 +132,12 @@
        IReduce
        (reduce [_ f] (.reduce ^IReduce v f))
        (reduce [_ f start] (.reduce ^IReduce v f start))
+
+       IKVReduce
+       (kvreduce [_ f init] (.kvreduce ^IKVReduce v f init))
+
+       Reversible
+       (rseq [_] (.rseq ^Reversible v))
 
        IFn
        (invoke [_]
@@ -232,6 +238,12 @@
        IReduce
        (-reduce [_ f] (-reduce v f))
        (-reduce [_ f start] (-reduce v f start))
+
+       IKVReduce
+       (-kv-reduce [_ f init] (-kv-reduce v f init))
+
+       IReversible
+       (-rseq [_] (-rseq v))
 
        IFn
        (-invoke [_]
@@ -613,7 +625,7 @@
   For example:
 
   ```clojure
-  (doall (map-chain print (s/down (s/up 1 2) (s/up 3 4))))
+  (dorun (map-chain println (s/down (s/up 1 2) (s/up 3 4))))
 
   1 [0 0] [:s/down :s/up]
   2 [0 1] [:s/down :s/up]
@@ -787,7 +799,7 @@
   (assert (= (count v1) (count v2))
           (str "Not same dimension -- v:dot-product"
                v1 ", " v2))
-  (reduce g/+ (map g/* v1 v2)))
+  (apply g/+ (map g/* v1 v2)))
 
 (defn vector-inner-product
   "Returns the (vector) inner product of `v1` and `v2`; this is equivalent to the
@@ -874,7 +886,7 @@
                   struct2))]
     (mapr xform struct1)))
 
-(defn- cross-product
+(defn ^:no-doc cross-product
   "Returns the cross product of structures of length 3. Input orientations are
   ignored; result is an up-tuple."
   [s t]

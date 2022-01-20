@@ -124,12 +124,11 @@
        (checking "[[Differential]] is transparent to native comparison operators" 100
                  [[l-num r-num] (gen/vector real-minus-rationals 2)]
                  (let [compare-bit (v/compare l-num r-num)]
-                   (doall
-                    (for [l [l-num (d/bundle-element l-num 1 0)]
-                          r [r-num (d/bundle-element r-num 1 0)]]
-                      (cond (neg? compare-bit)  (is (< l r))
-                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                            :else (is (> l r)))))))))
+                   (doseq [l [l-num (d/bundle-element l-num 1 0)]
+                           r [r-num (d/bundle-element r-num 1 0)]]
+                     (cond (neg? compare-bit)  (is (< l r))
+                           (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                           :else (is (> l r))))))))
 
   (checking "v/numerical?" 100 [diff (sg/differential sg/real)]
             (is (v/numerical? diff)
@@ -170,6 +169,28 @@
                 (is (v/identity? (v/identity-like diff))))
 
       (testing "equality, comparison"
+        (checking "g/negative?, g/infinite?" 100 [x sg/real]
+                  (let [elem (d/bundle-element x 1 0)]
+                    (= (g/negative? x)
+                       (g/negative? elem)
+                       "negative? operates on finite-part only.")
+
+                    (is (not (g/infinite? elem))
+                        "infinite? is always false for real finite parts.")))
+
+        (testing "g/infinite?"
+          (is (not (g/infinite? (d/bundle-element 10 ##Inf 0)))
+              "g/infinite? only looks at the finite part right now. Not sure how
+              we would get into an infinite derivative with non-infinite finite
+              part, but marking this test here as documentation.")
+
+          (is (every?
+               g/infinite?
+               [(d/bundle-element ##-Inf 1 0)
+                (d/bundle-element ##Inf 1 0)])
+              "an infinite or negative infinite value in the finite part slot
+               makes the differential `g/infinite?`"))
+
         (checking "=, equiv ignore tangent parts" 100
                   [n sg/real-without-ratio]
                   (is (= (d/bundle-element n 1 0) n)
@@ -582,3 +603,72 @@
                   (is (ish? (Df-numeric n)
                             (Df n))
                       "Does numeric match autodiff?"))))))
+
+(deftest sinc-etc-tests
+  (is (zero? ((derivative g/sinc) 0)))
+  (is (zero? ((derivative g/tanc) 0)))
+  (is (zero? ((derivative g/sinhc) 0)))
+  (is (zero? ((derivative g/tanhc) 0)))
+
+  (letfn [(gen-double [min max]
+            (gen/double*
+             {:infinite? false
+              :NaN? false
+              :min min
+              :max max}))]
+    (with-comparator (v/within 1e-4)
+      (checking "sinc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/sinc) n)
+                          ((derivative g/sinc) n))))
+
+      ;; attempting to limit to a region where we avoid the infinities at
+      ;; multiples of pi/2 (other than 0).
+      (checking "tanc" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/tanc) n)
+                          ((derivative g/tanc) n))))
+
+      (checking "tanhc" 100 [n (gen-double 1 50)]
+                (is (ish? ((D-numeric g/tanhc) n)
+                          ((derivative g/tanhc) n)))))
+
+    (with-comparator (v/within 1e-4)
+      (checking "sinhc" 100 [n (gen-double 1 10)]
+                (is (ish? ((D-numeric g/sinhc) n)
+                          ((derivative g/sinhc) n)))))
+
+    (with-comparator (v/within 1e-8)
+      (checking "acot" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/acot) n)
+                          ((derivative g/acot) n))))
+
+      (checking "asec" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/asec) n)
+                          ((derivative g/asec) n))))
+
+      (checking "acsc" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/acsc) n)
+                          ((derivative g/acsc) n))))
+
+      (checking "sech" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/sech) n)
+                          ((derivative g/sech) n))))
+
+      (checking "coth" 100 [n (gen-double 1 3)]
+                (is (ish? ((D-numeric g/coth) n)
+                          ((derivative g/coth) n))))
+
+      (checking "csch" 100 [n (gen-double 0.5 10)]
+                (is (ish? ((D-numeric g/csch) n)
+                          ((derivative g/csch) n))))
+
+      (checking "acosh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/acosh) n)
+                          ((derivative g/acosh) n))))
+
+      (checking "asinh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/asinh) n)
+                          ((derivative g/asinh) n))))
+
+      (checking "atanh" 100 [n (gen-double 0.1 0.9)]
+                (is (ish? ((D-numeric g/atanh) n)
+                          ((derivative g/atanh) n)))))))

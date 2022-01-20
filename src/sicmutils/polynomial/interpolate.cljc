@@ -22,8 +22,8 @@
   methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
   that polynomial at some different `x`."
   (:require [sicmutils.generic :as g]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.algebra.fold :as af]
+            [sicmutils.util.aggregate :as ua]))
 
 (defn lagrange
   "Generates a lagrange interpolating polynomial that fits every point in the
@@ -52,7 +52,7 @@
                                     (get-in points [j 0]))
                            p (apply g/* (map #(g/- x %) others))
                            q (apply g/* (map #(g/- a %) others))]
-                       (g// (g/* fa p) q)))]
+                       (g/* (g/invert q) fa p)))]
     (transduce (map-indexed build-term)
                g/+
                points)))
@@ -268,7 +268,7 @@
 ;; row of $[x_l, x_r, p]$ vectors:
 
 (defn- neville-present [row]
-  (map (fn [[_ _ p]] p) row))
+  (map peek row))
 
 ;; Putting it all together:
 
@@ -505,7 +505,7 @@
   first entry of each tableau column. Each C value is the delta from the
   previous estimate."
   [row]
-  (ua/scanning-sum
+  (ua/scan
    (map (fn [[_ _ c _]] c) row)))
 
 ;; `tableau-fn` allows us to assemble these pieces into a final function that
@@ -540,15 +540,25 @@
 
 ;; ## Folds and Tableaus by Row
 ;;
+;; NOTE: These folds and scans seem to be higher performance than the functions
+;; above. Prefer `*-sum` functions when you want to consume a full sequence of
+;; points and get the full input, and `*-scan` functions when you want to
+;; observe all intermediate estimates. If you want a /column/ of the tableau,
+;; stick with the versions above.
+;;
 ;; The advantage of the method described above, where we generate an entire
 ;; tableau and lazily pull the first entry off of each column, is that we can
 ;; pass a lazy sequence in as `points` and get a lazy sequence of successive
 ;; estimates back. If we don't pull from the result sequence, no computation
 ;; will occur.
 ;;
-;; One problem with that structure is that we have to have our sequence of
-;; points available when we call a function like `neville`. What if we want to
-;; pause, save the current estimate and pick up later where we left off?
+;; One problem with that structure is that we have to have our full sequence of
+;; points available when we call a function like `neville`. As you pull an
+;; element off of the returned sequence, it just-in-time generates a new
+;; diagonal of the tableau required to realize that number.
+;;
+;; Even if the sequence is lazy, this is limiting. What if we want to pause,
+;; save the current estimate and pick up later where we left off?
 ;;
 ;; Look at the tableau again:
 ;;
@@ -567,6 +577,23 @@
 ;;
 ;; (f [p1 p12 p123 p1234] [x0 fx0]) => [p0 p01 p012 p0123 p01234]
 ;;
+;; This method reverses the order of the points, since rows are built from the
+;; bottom up:
+;;
+;; p4 p43 p432 p4321 p43210
+;; p3 p32 p321 p3210 .
+;; p2 p21 p210 .     .
+;; p1 p10 .    .     .
+;; p0 .   .    .     .
+;;
+;; The order of the points is reversed, but this is fine; polynomial
+;; interpolation doesn't care about the order of points. (NOTE that this WILL be
+;; something we have to consider in the fold version of Richardson
+;; extrapolation, in `sicmutils.polynomial.richardson`!)
+;;
+;; Notice that the /diagonal/ of this tableau is identical to the top row of the
+;; tableau before the points were reversed.
+;;
 ;; Here's something close, using our previous `merge` and `prepare` definitions:
 
 (defn- generate-new-row* [prepare merge]
@@ -575,15 +602,16 @@
     ;; From there, we can treat the previous row as a sequence of "r" values.
     (reduce merge (prepare point) prev-row)))
 
-;; there's a problem here. `reduce` only returns the FINAL value of the
+;; There's a problem here. `reduce` only returns the FINAL value of the
 ;; aggregation:
 ;;
 ;;   (let [f (generate-new-row* prepare present)]
 ;;     (f [p1 p12 p123 p1234] [x0 fx0]))
 ;;   ;; => p01234
 ;;
-;; We want the entire new row! Lucky for us, Clojure has a version of `reduce`,
-;; called `reductions`, that returns each intermediate aggregation result:
+;; If we want to continue building rows, we need the entire new row! Lucky for
+;; us, Clojure has a version of `reduce`, called `reductions`, that returns each
+;; intermediate aggregation result:
 
 (defn- generate-new-row [prepare merge]
   (fn [prev-row point]
@@ -597,18 +625,24 @@
 ;; above suggests the idea of a "fold" from functional programming:
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
 ;;
+;; Folds are explored (and implemented!) in detail in
+;; the [[sicmutils.algebra.fold]] namespace. See that namespace for an
+;; introduction, but I'll add a reminder here.
+;;
 ;; A fold consists of:
 ;;
-;; - `init`, an initial piece of state called an "accumulator"
+;; - `init`, an function that returns an initial piece of state called
+;;   an "accumulator"
 ;;
 ;; - a binary `merge` function that combines ("folds") a new element `x` into
-;;   the accumulator and returns a value of the same shape / type as `init`.
+;;   the accumulator, and returns a value of the same shape / type as the
+;;   accumulator returned by `init`.
 ;;
 ;; - a `present` function that transforms the accumulator into a final value.
 ;;
 ;; In Clojure, you perform a fold on a sequence with the `reduce` function:
 ;;
-;;     (reduce merge init xs)
+;;     (reduce merge (init) xs)
 ;;
 ;; For example:
 ;;
@@ -618,19 +652,38 @@
 ;; Our `generate-new-row` function from above is exactly the `merge` function of
 ;; a fold. The accumulator is the latest tableau row:
 
-;; `init`    == [], the initial empty row.
-;; `present` == the same present function as before (`neville-present` or
-;;   `mn-present`)
+;; `init`    == a function that returns [], the initial empty row.
 ;;
-;; Now that we've identified this new pattern, redefine `generate-new-row` with
-;; a new name:
+;; `present` == a function similar to `neville-present` or `mn-present` that
+;;              simply sums up the estimate deltas for the entire row, instead
+;;              of returning the running tally.
+;;
+;; `present` only needs to return the final value in each row because that is
+;; the best current estimate given all points supplied so far.
+;;
+;; If you want to recover the previous behavior of a lazy sequence of all
+;; estimates, the lazy "scan" pattern of `sicmutils.util.aggregate/scan` allows
+;; you to observe each element of the diagonal of the tableau as it's generated.
+;; This is identical to the "first row" of the non-fold tableau.
+;;
+;; Now that we've identified this new pattern, we can rewrite `generate-new-row`
+;; to return a new function matching the fold interface described
+;; in [[sicmutils.algebra.fold]]. The new function is
+;; called [[tableau-fold-fn]]:
 
 (defn tableau-fold-fn
-  "Transforms the supplied `prepare` and `merge` functions into a new function
-  that can merge a new point into a tableau row (generating the next tableau
-  row).
+  "Given `prepare` and `merge` and `present` functions, returns a fold capable of
+  aggregating a point of the form [x, f(x)] into an accumulating tableau
+  row (generating the next tableau row).
 
-  More detail on the arguments:
+  The 0-arity of the returned function returns an empty row, `[]`.
+
+  The 1-arity calls the supplied `present` on the accumulated tableau row.
+
+  The 2-arity scans the supplied `merge` across all entries in the accumulating
+  row, producing a new row.
+
+  ### More detail on the arguments:
 
   - `prepare`: a fn that processes each element of the supplied `points` into
   the state necessary to calculate future tableau entries.
@@ -644,147 +697,126 @@
   r
 
   the inputs are of the same form returned by `prepare`. `merge` should return a
-  new structure of the same form."
-  [prepare merge]
-  (fn [prev-row point]
-    (reductions merge (prepare point) prev-row)))
+  new structure of the same form.
+
+  - `present`: Transforms a `tableau` row into an estimate at some value `x` of
+  the polynomial interpolated to hit all supplied points."
+  [prepare merge present]
+  (fn
+    ([] [])
+    ([row] (present row))
+    ([prev-row point]
+     (reductions merge (prepare point) prev-row))))
 
 ;; Next, we can use this to generate specialized fold functions for our two
-;; incremental algorithms above - `neville` and `modified-neville`:
-
-(defn- neville-fold-fn
-  "Returns a function that accepts:
-
-  - `previous-row`: previous row of an interpolation tableau
-  - a new point of the form `[x (f x)]`
-
-  and returns the next row of the tableau using the algorithm described in
-  `neville`."
-  [x]
-  (tableau-fold-fn neville-prepare
-                   (neville-merge x)))
-
-(defn- modified-neville-fold-fn
-  "Returns a function that accepts:
-
-  - `previous-row`: previous row of an interpolation tableau
-  - a new point of the form `[x (f x)]`
-
-  and returns the next row of the tableau using the algorithm described in
-  `modified-neville`."
-  [x]
-  (tableau-fold-fn mn-prepare
-                   (mn-merge x)))
-
-;; This final function brings back in the notion of `present`. It returns a
-;; function that consumes an entire sequence of points, and then passes the
-;; final row into the exact `present-fn` we used above:
-
-(defn tableau-fold
-  "Returns a function that accepts a sequence of points and processes them into a
-  tableau by generating successive rows, one at a time.
-
-  The final row is passed into `present-fn`, which generates the final return
-  value.
-
-  This is NOT appropriate for lazy sequences! Fully consumes the input."
-  [fold-fn present-fn]
-  (fn [points]
-    (present-fn
-     (reduce fold-fn [] points))))
-
-;; Note that these folds process points in the OPPOSITE order as the column-wise
-;; tableau functions! Because you build up one row at a time, each new point is
-;; PRE-pended to the interpolations in the previous row.
+;; incremental algorithms above - `neville` and `modified-neville`.
 ;;
-;; The advantage is that you can save the current row, and then come back and
-;; absorb further points later.
-;;
-;; The disadvantage is that if you `present` p123, you'll see successive
-;; estimates for [p1, p12, p123]... but if you then prepend 0, you'll see
-;; estimates for [p0, p01, p012, p0123]. These don't share any elements, so
-;; they'll be totally different.
-;;
-;; If you REVERSE the incoming point sequence, the final row of the fold will
-;; in fact equal the row of the column-based method.
-;;
-;; If you want a true incremental version of the above code, reverse points! We
-;; don't do this automatically in case points is an infinite sequence.
-;;
-;; ## Fold Utilities
-;;
-;; `tableau-scan` below will return a function that acts identically to the
-;; non-fold, column-wise version of the interpolators. It does this by folding
-;; in one point at a time, but processing EVERY intermediate value through the
-;; presentation function.
-
-(defn tableau-scan
-  "Takes a folding function and a final presentation function (of accumulator type
-  => return value) and returns a NEW function that:
-
-  - accepts a sequence of incoming points
-  - returns the result of calling `present` on each successive row."
-  [fold-fn present-fn]
-  (fn [xs]
-    (->> (reductions fold-fn [] xs)
-         (map present-fn)
-         (rest))))
-
-;; And finally, we specialize to our two incremental methods.
+;; Instead of using `neville-present` as above, `neville-fold` returns only the
+;; final estimate. This is because folds are meant to consume their entire input
+;; sequence. If you want to observe intermediate values as they're generated,
+;; you can use the "scan" pattern, implemented in `neville-scan`.
 
 (defn neville-fold
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of successive approximations of `x` using polynomials fitted to the
-  points in reverse order.
+  "Given some point `x`, returns a fold that accumulates rows of an interpolation
+  tableau providing successively better estimates (at the value `x`) of a
+  polynomial interpolated to all seen points.
 
-  This function uses the [[neville]] algorithm internally."
+  The 2-arity aggregation step takes:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x_new (f x_new)]`
+
+    and returns the next row of the tableau using the algorithm described in
+  [[neville]]."
   [x]
-  (tableau-fold (neville-fold-fn x)
-                neville-present))
+  (tableau-fold-fn neville-prepare
+                   (neville-merge x)
+                   (fn [row]
+                     (peek (last row)))))
 
-(defn neville-scan
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
-  for each of the supplied points.
+;; Instead of using `mn-present` as above, `modified-neville-fold` uses the
+;; dynamically bound `sicmutils.util.aggregate/*fold*` to sum all deltas and
+;; return the current best estimate taking all points into account.
+;;
+;; If you want to observe intermediate values as they're generated, you can use
+;; the "scan" pattern, implemented in `neville-scan`.
 
-  For a sequence `a, b, c...` you'll see:
-
-  ```clojure
-  [([[neville]] [a] x)
-   ([[neville]] [b a] x)
-   ([[neville]] [c b a] x)
-   ...]
-  ```"
-  [x]
-  (tableau-scan (neville-fold-fn x)
-                neville-present))
+(defn ^:no-doc mn-present-final
+  "Aggregates intermediate deltas to produce an estimate for the final value in
+  the supplied row."
+  [row]
+  (transduce (map (fn [[_ _ c _]] c))
+             ua/*fold*
+             row))
 
 (defn modified-neville-fold
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of successive approximations of `x` using polynomials fitted to the
-  points in reverse order.
+  "Given some point `x`, returns a fold that accumulates rows of an interpolation
+  tableau providing successively better estimates (at the value `x`) of a
+  polynomial interpolated to all seen points.
 
-  This function uses the [[modified-neville]] algorithm internally."
+  The 2-arity aggregation step takes:
+
+  - `previous-row`: previous row of an interpolation tableau
+  - a new point of the form `[x_new (f x_new)]`
+
+  and returns the next row of the tableau using the algorithm described in
+  [[modified-neville]]."
   [x]
-  (tableau-fold (modified-neville-fold-fn x)
-                mn-present))
+  (tableau-fold-fn mn-prepare
+                   (mn-merge x)
+                   mn-present-final))
+
+;; ## Fold Utilities
+;;
+;; `af/fold->scan` will return a function that acts identically to the non-fold,
+;; column-wise version of the interpolators. It does this by folding in one
+;; point at a time, but processing EVERY intermediate value through the
+;; presentation function.
+
+;; Using this function, we specialize to our two incremental methods.
+
+(defn neville-sum
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns the best approximation of `x` using a polynomial
+  fitted to all points in `xs` using the algorithm described in [[neville]].
+
+  Faster than, but equivalent to, `(last ([[neville]] xs x))`"
+  [x]
+  (af/fold->sum-fn
+   (neville-fold x)))
+
+(defn neville-scan
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns a lazy sequence of successive approximations of
+  `x` using polynomials fitted to the first point, then the first and second
+  points, etc. using the algorithm described in [[neville]].
+
+  Equivalent to `([[neville]] xs x)`."
+  [x]
+  (af/fold->scan-fn
+   (neville-fold x)))
+
+(defn modified-neville-sum
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns the best approximation of `x` using a polynomial
+  fitted to all points in `xs` using the algorithm described
+  in [[modified-neville]].
+
+  Faster than, but equivalent to, `(last ([[modified-neville]] xs x))`"
+  [x]
+  (af/fold->sum-fn
+   (modified-neville-fold x)))
 
 (defn modified-neville-scan
-  "Returns a function that consumes an entire sequence `xs` of points, and returns
-  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
-  for each of the supplied points.
+  "Returns a function that consumes an entire sequence `xs` of points of the form
+  `[x_i, f(x_i)]` and returns a lazy sequence of successive approximations of
+  `x` using polynomials fitted to the first point, then the first and second
+  points, etc. using the algorithm described in [[modified-neville]].
 
-  For a sequence a, b, c... you'll see:
-
-  ```clojure
-  [([[modified-neville]] [a] x)
-   ([[modified-neville]] [b a] x)
-   ([[modified-neville]] [c b a] x)
-   ...]
-  ```"
+  Equivalent to `([[modified-neville]] xs x)`."
   [x]
-  (tableau-scan (modified-neville-fold-fn x)
-                mn-present))
+  (af/fold->scan-fn
+   (modified-neville-fold x)))
 
 ;; Next, check out:
 ;;

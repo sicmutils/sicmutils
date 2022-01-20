@@ -19,15 +19,21 @@
 
 (ns sicmutils.env.sci-test
   (:refer-clojure :exclude [eval])
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sci.core :as sci]
             [sicmutils.env :as e]
             [sicmutils.env.sci :as es]
             [sicmutils.operator :as o]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
+(use-fixtures :each hermetic-simplify-fixture)
+
 (defn eval [form]
-  (sci/eval-form (sci/fork es/context) form))
+  (let [ctx (sci/fork es/context)]
+    (sci/binding [sci/ns @sci/ns]
+      (sci/eval-form ctx '(require '[sicmutils.env :refer :all]))
+      (sci/eval-form ctx form))))
 
 (deftest pattern-tests
   (is (= ['(+ 2 1) "done!"]
@@ -80,6 +86,12 @@
       default bindings in `user`.")
 
   (testing "sci-specific macro definitions"
+    (is (= 2.0 (eval
+                '(do (require '[sicmutils.algebra.fold :as af])
+                     (let [sum (af/fold->sum-fn (kbk-n 2))]
+                       (sum [1.0 1e100 1.0 -1e100])))))
+        "compensated summation with a macro inside SCI")
+
     (is (= [true true true true]
            (eval '(let-coordinates [[x y]     R2-rect
                                     [r theta] R2-polar]
@@ -98,36 +110,48 @@
                       (= 2 (y p))]))))
         "using-coordinates works!")
 
-    (is (= [true true]
-           (eval '(do (define-coordinates [x y] R2-rect)
+    (is (= [true true true true]
+           (eval '(do
+                    (require '[sicmutils.calculus.manifold :as m])
 
-                      (let [p ((point R2-rect) (up 1 2))]
-                        [(= 1 (x p))
-                         (= 2 (y p))]))))
+                    (def old-prototype
+                      (m/coordinate-prototype R2-rect))
+
+                    (define-coordinates [x y] R2-rect)
+
+                    (let [p ((point R2-rect) (up 1 2))]
+                      [(= 1 (x p))
+                       (= 2 (y p))
+                       ;; Note that `R2-rect` is actually rebound.
+                       (= ['x0 'x1] old-prototype)
+                       (= ['x 'y] (m/coordinate-prototype R2-rect))]))))
         "define-coordinates version of that test")
 
-    (is (eval '(do (define-coordinates (up x y) R2-rect)
+    (is (eval
+         '(do (define-coordinates (up x y) R2-rect)
 
-                   (let [circular (- (* x d:dy) (* y d:dx))]
-                     (= '(+ (* 3 x0) (* -2 y0))
-                        (freeze
-                         (simplify
-                          ((circular (+ (* 2 x) (* 3 y)))
-                           ((point R2-rect) (up 'x0 'y0)))))))))
-        "define-coordinates works with a test from form_field_test.cljc")
+              (let [circular (- (* x d:dy) (* y d:dx))]
+                (= '(+ (* 3 x0) (* -2 y0))
+                   (freeze
+                    (simplify
+                     ((circular (+ (* 2 x) (* 3 y)))
+                      ((point R2-rect) (up 'x0 'y0)))))))))
+        "define-coordinates works with a test from form_field_test.cljc")))
 
-    (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"
-             (eval
-              '(do (defn L-central-polar [m U]
-                     (fn [[_ [r] [rdot φdot]]]
-                       (- (* (/ 1 2) m
-                             (+ (square rdot)
-                                (square (* r φdot))))
-                          (U r))))
-                   (with-literal-functions [U r φ]
-                     (let [L     (L-central-polar 'm U)
-                           state (up r φ)]
-                       (->infix
-                        (simplify
-                         (((Lagrange-equations L) state) 't))))))))))))
+(deftest more-sci-tests
+  ;; breaking these out to give the simplifier some repeatability.
+  (testing "internal defn, funky symbols, internal with-literal-functions macro"
+    (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
+           (eval
+            '(do (defn L-central-polar [m U]
+                   (fn [[_ [r] [rdot φdot]]]
+                     (- (* (/ 1 2) m
+                           (+ (square rdot)
+                              (square (* r φdot))))
+                        (U r))))
+                 (with-literal-functions [U r φ]
+                   (let [L     (L-central-polar 'm U)
+                         state (up r φ)]
+                     (->infix
+                      (simplify
+                       (((Lagrange-equations L) state) 't)))))))))))

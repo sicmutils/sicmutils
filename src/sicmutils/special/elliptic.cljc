@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.elliptic
+(ns sicmutils.special.elliptic
   "This namespace contains function to compute various [elliptic
   integrals](https://en.wikipedia.org/wiki/Elliptic_integral) in [Carlson
   symmetric form](https://en.wikipedia.org/wiki/Carlson_symmetric_form), as well

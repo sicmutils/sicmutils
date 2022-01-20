@@ -1251,7 +1251,10 @@
 (defbinary g/div (lift-2 g/div))
 
 (defunary g/negative?
-  (fn [x] (g/negative? (finite-term x))))
+  (comp g/negative? finite-term))
+
+(defunary g/infinite?
+  (comp g/infinite? finite-term))
 
 (defunary g/abs
   (fn [x]
@@ -1291,13 +1294,37 @@
 (defbinary g/expt (lift-2 g/expt))
 (defunary g/log (lift-1 g/log))
 (defunary g/exp (lift-1 g/exp))
-(defunary g/sin (lift-1 g/sin))
+
 (defunary g/cos (lift-1 g/cos))
+(defunary g/sin (lift-1 g/sin))
 (defunary g/tan (lift-1 g/tan))
-(defunary g/asin (lift-1 g/asin))
-(defunary g/acos (lift-1 g/acos))
+(defunary g/cot (lift-1 g/cot))
+(defunary g/sec (lift-1 g/sec))
+(defunary g/csc (lift-1 g/csc))
+
 (defunary g/atan (lift-1 g/atan))
 (defbinary g/atan (lift-2 g/atan))
-(defunary g/sinh (lift-1 g/sinh))
+(defunary g/asin (lift-1 g/asin))
+(defunary g/acos (lift-1 g/acos))
+(defunary g/acot (lift-1 g/acot))
+(defunary g/asec (lift-1 g/asec))
+(defunary g/acsc (lift-1 g/acsc))
+
 (defunary g/cosh (lift-1 g/cosh))
+(defunary g/sinh (lift-1 g/sinh))
 (defunary g/tanh (lift-1 g/tanh))
+(defunary g/sech (lift-1 g/sech))
+(defunary g/coth (lift-1 g/coth))
+(defunary g/csch (lift-1 g/csch))
+
+(defunary g/acosh (lift-1 g/acosh))
+(defunary g/asinh (lift-1 g/asinh))
+(defunary g/atanh (lift-1 g/atanh))
+(defunary g/acoth (lift-1 g/acoth))
+(defunary g/asech (lift-1 g/asech))
+(defunary g/acsch (lift-1 g/acsch))
+
+(defunary g/sinc (lift-1 g/sinc))
+(defunary g/sinhc (lift-1 g/sinhc))
+(defunary g/tanc (lift-1 g/tanc))
+(defunary g/tanhc (lift-1 g/tanhc))

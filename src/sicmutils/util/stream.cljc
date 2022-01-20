@@ -71,36 +71,6 @@
                         coll)]
     [(persistent! ts) (persistent! fs)]))
 
-(defn scan
-  "Returns a function that accepts a sequence `xs`, and performs a scan by:
-
-  - Aggregating each element of `xs` into
-  - the initial value `init`
-  - transforming each intermediate result by `present` (defaults to `identity`).
-
-  The returned sequence contains every intermediate result, after passing it
-  through `present` (not `init`, though).
-
-  This is what distinguishes a scan from a 'fold'; a fold would return the final
-  result. A fold isn't appropriate for aggregating infinite sequences, while a
-  scan works great.
-
-  Arities:
-
-  - the three-arity version takes `init` value, `f` fold function and `present`.
-  - the two arity version drops `init`, and instead calls `f` with no arguments.
-  The return value is the initial aggregator.
-  - The 1-arity version only takes the `merge` fn and defaults `present` to
-  `identity`.
-    "
-  [f & {:keys [present init]
-        :or {present identity}}]
-  (let [init (or init (f))]
-    (fn [xs]
-      (->> (reductions f init xs)
-           (map present)
-           (rest)))))
-
 ;; ## Convergence Tests
 ;;
 ;; This convergence tester comes from Gerald Sussman's "Abstraction in Numerical

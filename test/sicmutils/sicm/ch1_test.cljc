@@ -83,13 +83,13 @@
       (is (= '(up t
                   (up (x t) (y t) (z t))
                   (up ((D x) t) ((D y) t) ((D z) t)))
-             (simplify ((e/Γ q) 't))))
+             (simplify ((e/Gamma q) 't))))
 
       (is (= '(+ (* (/ 1 2) m (expt ((D x) t) 2))
                  (* (/ 1 2) m (expt ((D y) t) 2))
                  (* (/ 1 2) m (expt ((D z) t) 2)))
              (v/freeze
-              (simplify ((compose (L/L-free-particle 'm) (e/Γ q)) 't)))))
+              (simplify ((compose (L/L-free-particle 'm) (e/Gamma q)) 't)))))
 
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
@@ -370,7 +370,7 @@
 
 (deftest section-1-9
   (let [F->C (fn [F]
-               (let [f-bar #(->> % e/Γ (compose F) e/Γ)]
+               (let [f-bar #(->> % e/Gamma (compose F) e/Gamma)]
                  (e/Gamma-bar f-bar)))]
     (is (= '(up t
                 (up (* r (cos θ)) (* r (sin θ)))

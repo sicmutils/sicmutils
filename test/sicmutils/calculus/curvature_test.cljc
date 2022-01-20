@@ -141,13 +141,13 @@
                   a-function)
                  a-point))))
 
-        (doall
-         (for [x [d:dtheta d:dphi]
-               y [d:dtheta d:dphi]]
-           (is (= 0 (simplify
-                     ((((c/torsion-vector nabla) x y)
-                       a-function)
-                      a-point))))))
+        (doseq [x [d:dtheta d:dphi]
+                y [d:dtheta d:dphi]]
+          (is (zero?
+               (simplify
+                ((((c/torsion-vector nabla) x y)
+                  a-function)
+                 a-point)))))
 
         (is (= 1 (simplify
                   (((c/Riemann nabla)
@@ -163,13 +163,13 @@
             G-S2-1 (S2-Christoffel M-basis theta)
             nabla (cov/covariant-derivative
                    (cov/Christoffel->Cartan G-S2-1))]
-        (doall
-         (for [x [d:dtheta d:dphi]
-               y [d:dtheta d:dphi]]
-           (is (= 0 (simplify
-                     ((((c/torsion-vector nabla) x y)
-                       a-function)
-                      a-point))))))
+        (doseq [x [d:dtheta d:dphi]
+                y [d:dtheta d:dphi]]
+          (is (zero?
+               (simplify
+                ((((c/torsion-vector nabla) x y)
+                  a-function)
+                 a-point)))))
 
         (is (= 1 (simplify
                   (((c/Riemann nabla)

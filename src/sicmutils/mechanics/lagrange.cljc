@@ -24,6 +24,7 @@
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
+            [sicmutils.polynomial :as p]
             [sicmutils.structure :refer [up down]]
             [sicmutils.function :as f :refer [compose]]))
 
@@ -137,50 +138,36 @@
      (fn [t]
        (->> Dqs (map #(% t)) (cons t) (apply up))))))
 
-(def Γ Gamma)
-
 (defn Lagrangian-action
   ([L q t1 t2]
    (Lagrangian-action L q t1 t2 {}))
   ([L q t1 t2 integration-opts]
    (q/definite-integral
-     (compose L (Γ q)) t1 t2 integration-opts)))
+     (compose L (Gamma q)) t1 t2 integration-opts)))
 
-(defn Lagrange-equations
-  [Lagrangian]
+(defn Lagrange-equations [Lagrangian]
   (fn [q]
-    (- (D (compose ((partial 2) Lagrangian) (Γ q)))
-       (compose ((partial 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((partial 2) Lagrangian) (Gamma q)))
+       (compose ((partial 1) Lagrangian) (Gamma q)))))
 
-(defn linear-interpolants
-  [x0 x1 n]
+(defn linear-interpolants [x0 x1 n]
   (let [n+1 (inc n)
-        dx (/ (- x1 x0) n+1)]
+        dx  (/ (- x1 x0) n+1)]
     (for [i (range 1 n+1)]
       (+ x0 (* i dx)))))
 
 (defn Lagrange-interpolation-function
-  [ys xs]
-  (let [n (count ys)]
-    (assert (= (count xs) n))
-    (-> (fn [x]
-          (reduce + 0
-                  (for [i (range n)]
-                    (/ (reduce * 1
-                               (for [j (range n)]
-                                 (if (= j i)
-                                   (nth ys i)
-                                   (- x (nth xs j)))))
-                       (let [xi (nth xs i)]
-                         (reduce * 1
-                                 (for [j (range n)]
-                                   (cond (< j i) (- (nth xs j) xi)
-                                         (= j i) (if (odd? i) -1 1)
-                                         :else (- xi (nth xs j))))))))))
-        (f/with-arity [:exactly 1]))))
+  "Given `ys` (a sequence of function values) and `xs` (an equal-length sequence
+  of function inputs), returns a [[sicmutils.polynomial/Polynomial]] instance
+  guaranteed to pass through all supplied `xs` and `ys`.
 
-(defn Lagrangian->acceleration
-  [L]
+  The contract for inputs is that `(map vector xs ys)` should return a sequence
+  of pairs of points."
+  [ys xs]
+  (p/from-points
+   (map vector xs ys)))
+
+(defn Lagrangian->acceleration [L]
   (let [P ((partial 2) L)
         F ((partial 1) L)]
     (/ (- F
@@ -200,16 +187,14 @@
   [q v]
   #(up % (q %) (v %)))
 
-(defn Lagrange-equations-first-order
-  [L]
+(defn Lagrange-equations-first-order [L]
   (fn [q v]
     (let [state-path (qv->state-path q v)]
       (- (D state-path)
          (compose (Lagrangian->state-derivative L)
                   state-path)))))
 
-(defn Lagrangian->energy
-  [L]
+(defn Lagrangian->energy [L]
   (let [P ((partial 2) L)]
     (- (* P velocity) L)))
 
@@ -230,12 +215,9 @@
                    (+ sum (* (nth state0 n) dt-n:n!))
                    (/ (* dt-n:n! dt) n))))))))
 
-(defn Gamma-bar
-  [f]
+(defn Gamma-bar [f]
   (fn [local]
     ((f (osculating-path local)) (first local))))
-
-(def Γ-bar Gamma-bar)
 
 (defn F->C
   "Accepts a coordinate transformation `F` from a local tuple to a new coordinate
@@ -252,13 +234,13 @@
       ((Gamma-bar f-bar) local))))
 
 (defn Dt [F]
-  (let [G-bar (fn [q]
-                (D (compose F (Γ q))))]
-    (Γ-bar G-bar)))
+  (letfn [(G-bar [q]
+            (D (compose F (Gamma q))))]
+    (Gamma-bar G-bar)))
 
-(defn Euler-Lagrange-operator
-  [L]
-  (- (Dt ((partial 2) L)) ((partial 1) L)))
+(defn Euler-Lagrange-operator [L]
+  (- (Dt ((partial 2) L))
+     ((partial 1) L)))
 
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"
@@ -281,7 +263,9 @@
   [Lagrangian t0 q0 t1 q1]
   (fn [qs]
     (let [path (make-path t0 q0 t1 q1 qs)]
-      (Lagrangian-action Lagrangian path t0 t1))))
+      (Lagrangian-action
+       Lagrangian path t0 t1
+       {:compile? false}))))
 
 (defn find-path
   "SICM p. 23. The optional parameter values is a callback which will report

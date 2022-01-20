@@ -19,7 +19,10 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.rule :as pr :refer [rule-simplifier]]
+            [pattern.rule :as pr :refer [rule-simplifier template]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.complex :as c]
+            [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.simplify.rules :as r]
@@ -133,7 +136,12 @@
 
     (is (= '(* (/ 1 2) (log x))
            ((rule) '(log (sqrt x))))
-        "Drop the internal sqrt down as a 1/2 exponent.")))
+        "Drop the internal sqrt down as a 1/2 exponent."))
+
+  (testing "exp-contract"
+    (is (= '(exp (* 2 x))
+           (r/exp-contract '(expt (exp x) 2)))
+        "Test for bugfix from issue #439 ")))
 
 (deftest magnitude-tests
   (is (= '(expt x 10)
@@ -158,6 +166,14 @@
           '(magnitude (* 1 -2 y (expt x 11)))))
       "real numbers and integers get their magnitudes applied, odd exponents
       pulled apart."))
+
+(deftest miscsimp-tests
+  (let [s (r/miscsimp s/*rf-simplify*)]
+    (testing "expt of `i` stays complex"
+      (is (= -1 (s (list 'expt c/I 2))))
+      (is (= (g/- c/I) (s (list 'expt c/I 3))))
+      (is (= 1 (s (list 'expt c/I 4))))
+      (is (= c/I (s (list 'expt c/I 5)))))))
 
 (deftest simplify-square-roots-test
   (let [s (r/simplify-square-roots  s/*rf-simplify*)]
@@ -236,6 +252,15 @@
       (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
              (sqrt-contract
               '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
+
+(deftest specfun->logexp-test
+  (is (= (template
+          (+ x (/ (- (log (+ 1 (* ~c/I z)))
+                     (log (- 1 (* ~c/I z))))
+                  ~(c/complex 0.0 2.0))))
+         (r/specfun->logexp '(+ x (atan z))))
+      "lame test... but this is meant to show that complex numbers appear in the
+      replacement."))
 
 (deftest divide-numbers-through-test
   (let [d r/divide-numbers-through]
@@ -343,3 +368,54 @@
     (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y z))
            (full-rule expr))
         "The full rule collects products into exponents.")))
+
+(deftest complex-test
+  (testing "complex-trig"
+    (is (= '(cosh 1)
+           (r/complex-trig (list 'cos c/I)))
+        "cos i, no factors")
+
+    (is (= (list '* c/I '(sinh 1))
+           (r/complex-trig (list 'sin c/I)))
+        "sin i, no factors")
+
+    (is (= '(cosh z)
+           (r/complex-trig
+            (template (cos (* z ~c/I))))
+           (r/complex-trig
+            (template (cos (* ~c/I z)))))
+        "cos i, 1 factor")
+
+    (is (= (list '* c/I '(sinh z))
+           (r/complex-trig
+            (template (sin (* z ~c/I))))
+           (r/complex-trig
+            (template (sin (* ~c/I z)))))
+        "sin i, 1 factor")
+
+    (is (= '(cosh (* z x))
+           (r/complex-trig
+            (template (cos (* z ~c/I x))))
+           (r/complex-trig
+            (template (cos (* ~c/I z x))))
+           (r/complex-trig
+            (template (cos (* z x ~c/I)))))
+        "cos of i and more factors")
+
+    (is (= '(cosh (* z x))
+           (r/complex-trig
+            (template (cos (* z ~c/I x))))
+           (r/complex-trig
+            (template (cos (* ~c/I z x))))
+           (r/complex-trig
+            (template (cos (* z x ~c/I)))))
+        "cos of i and more factors")
+
+    (is (= (template (* ~c/I (sinh (* z x))))
+           (r/complex-trig
+            (template (sin (* z ~c/I x))))
+           (r/complex-trig
+            (template (sin (* ~c/I z x))))
+           (r/complex-trig
+            (template (sin (* z x ~c/I)))))
+        "sin of i and more factors")))

@@ -126,8 +126,8 @@
   "Takes a predicate function `pred` and returns a matcher that succeeds (with no
   new bindings) if its data input passes the predicate, fails otherwise."
   [pred]
-  (fn predicate-match [frame xs succeed]
-    (core:and (pred xs)
+  (fn predicate-match [frame data succeed]
+    (core:and (pred data)
               (succeed frame))))
 
 (defn frame-predicate
@@ -167,7 +167,7 @@
      (predicate pred)
      (fn bind-match [frame data succeed]
        (when (pred data)
-         (if-let [binding (frame sym)]
+         (if-let [[_ binding] (find frame sym)]
            (core:and (= binding data)
                      (succeed frame))
            (succeed (assoc frame sym data))))))))
@@ -446,7 +446,8 @@
 
         (s/wildcard? pattern) pass
 
-        (sequential? pattern)
+        (core:or (seq? pattern)
+                 (vector? pattern))
         (if (empty? pattern)
           (eq pattern)
           (sequence*

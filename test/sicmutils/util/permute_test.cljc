@@ -25,7 +25,8 @@
             [same :refer [ish?]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.util.permute :as p]))
+            [sicmutils.util.permute :as p]
+            [sicmutils.special.factorial :as sf]))
 
 (deftest misc-tests
   (testing "permutations"
@@ -150,10 +151,6 @@
            (p/subpermute {1 4, 4 2, 2 3, 3 1}
                          '[a b c d e]))))
 
-  (testing "factorial"
-    (is (= (apply g/* (range 1 8))
-           (p/factorial 7))))
-
   (checking "number-of-permutations" 100
             [xs (gen/let [n (gen/choose 0 6)]
                   (gen/vector gen/nat n))]
@@ -167,7 +164,14 @@
                        (gen/choose 0 n)))]
             (is (= (p/number-of-combinations (count xs) k)
                    (count
-                    (p/combinations xs k))))))
+                    (p/combinations xs k)))))
+
+  (checking "multichoose" 100
+            [n gen/nat k (gen/fmap inc gen/nat)]
+            (is (= (p/multichoose n k)
+                   (p/number-of-combinations
+                    (+ n k -1) k))
+                "Definition from https://mathworld.wolfram.com/Multichoose.html")))
 
 (deftest permutation-test
   (testing "permutation-sequence"

@@ -110,7 +110,18 @@
             (is (= x (g/trace x))))
 
   (checking "dimension always returns 1" 100 [x sg/real]
-            (is (= 1 (g/dimension x)))))
+            (is (= 1 (g/dimension x))))
+
+  (checking "dot-product, inner-product" 100
+            [x sg/real y sg/real]
+            (is (v/= (g/* x y)
+                     (g/dot-product x y))
+                "dot-product == mul for 1-d scalars.")
+
+            (is (= (g/dot-product x y)
+                   (g/inner-product x y))
+                "dot-product == inner-product for scalars, where conjugate acts
+                as identity")))
 
 (deftest integer-generics
   (gt/integral-tests u/int)
@@ -197,7 +208,8 @@
     (is (= (c/complex 0 Math/PI) (g/log -1))))
 
   (testing "exp"
-    (is (= 1.0 (g/exp 0)))))
+    (is (= 1 (g/exp 0))
+        "exp(0) evaluates to an exact 1, vs 1.0")))
 
 ;; Test of generic wrapper operations.
 
@@ -392,8 +404,8 @@
 
     (letfn [(nonzero [g]
               (gen/fmap (fn [x]
-                          (-> (if (v/zero? x) 1 x)
-                              (g/remainder 10000)))
+                          (let [small (g/remainder x 10000)]
+                            (if (v/zero? small) 1 small)))
                         g))]
       (checking "gcd" 100 [x (nonzero sg/small-integral)
                            y (nonzero sg/small-integral)
@@ -417,6 +429,26 @@
 
 (deftest numeric-trig-tests
   (testing "trig"
+    (testing "sinc"
+      (is (= 0 (g/sinc ##Inf)))
+      (is (= 0 (g/sinc ##-Inf)))
+      (is (= 1 (g/sinc 0)))
+      (is (= 1 (g/sinc #sicm/bigint 0)))
+
+      (checking "sinc nonzero" 100 [n (sg/reasonable-double)]
+                (is (ish? (/ (Math/sin n) n)
+                          (g/sinc n)))))
+
+    (testing "tanc"
+      (is (= 0 (g/sinc ##Inf)))
+      (is (= 0 (g/sinc ##-Inf)))
+      (is (= 1 (g/sinc 0)))
+      (is (= 1 (g/sinc #sicm/bigint 0)))
+
+      (checking "sinc nonzero" 100 [n (sg/reasonable-double)]
+                (is (ish? (/ (Math/sin n) n)
+                          (g/sinc n)))))
+
     (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
     (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
     (is (zero? (g/asin 0)))

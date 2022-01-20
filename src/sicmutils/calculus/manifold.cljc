@@ -417,8 +417,7 @@
 
   See [[typical-point]] for a coordinate-free version of this function."
   [coordinate-system]
-  (s/typical-object
-   (coordinate-prototype coordinate-system)))
+  (s/mapr gensym (coordinate-prototype coordinate-system)))
 
 (defn typical-point
   "Given an [[ICoordinateSystem]], returns a unique, symbolically-represented

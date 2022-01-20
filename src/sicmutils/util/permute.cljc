@@ -19,6 +19,8 @@
 
 (ns sicmutils.util.permute
   "Utilities for generating permutations of sequences."
+  (:require [sicmutils.special.factorial :as sf]
+            #?(:cljs [sicmutils.generic :as g]))
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
@@ -183,24 +185,30 @@
              xs
              m))
 
-(defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
-  [n]
-  (apply * (range 1 (inc n))))
-
 (defn number-of-permutations
   "Returns the number of possible ways of permuting a collection of `n` distinct
   elements."
   [n]
-  (factorial n))
+  (sf/factorial n))
 
 (defn number-of-combinations
-  "Returns the number of possible ways of choosing `k` distinct elements from a
-  collection of `n` total items."
+  "Returns 'n choose k', the number of possible ways of choosing `k` distinct
+  elements from a collection of `n` total items."
   [n k]
-  (quot (factorial n)
-        (* (factorial (- n k))
-           (factorial k))))
+  {:pre [(>= n 0)]}
+  (sf/binomial-coefficient n k))
+
+(let [div #?(:clj / :cljs g//)]
+  (defn multichoose
+    "Returns the number of possible ways of choosing a multiset with cardinality `k`
+  from a set of `n` items, where each item is allowed to be chosen multiple
+  times."
+    [n k]
+    {:pre [(>= n 0) (>= k 0)]}
+    (if (zero? k)
+      1
+      (div (sf/rising-factorial n k)
+           (sf/factorial k)))))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence

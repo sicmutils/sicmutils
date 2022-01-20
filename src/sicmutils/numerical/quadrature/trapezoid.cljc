@@ -256,10 +256,10 @@
       n-seq (take (inc n-elements)
                   (iterate (fn [x] (* 2 x)) 1))]
   ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-  (doall (trapezoid-sequence f1 0 1 {:n n-seq}))
+  (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
 
   ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-  (doall (map (trapezoid-sum f2 0 1) n-seq))
+  (run! (trapezoid-sum f2 0 1) n-seq)
 
   ;; A single evaluation of the final `n`
   ((trapezoid-sum f3 0 1) (last n-seq))
@@ -290,8 +290,8 @@
       n-seq (take 12 (interleave
                       (iterate (fn [x] (* 2 x)) 2)
                       (iterate (fn [x] (* 2 x)) 3)))]
-  (doall (trapezoid-sequence f1 0 1 {:n n-seq}))
-  (doall (map (trapezoid-sum f2 0 1) n-seq))
+  (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
+  (run! (trapezoid-sum f2 0 1) n-seq)
   (= [162 327]
      [@counter1 @counter2]))
 
