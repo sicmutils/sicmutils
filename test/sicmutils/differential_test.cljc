@@ -634,4 +634,41 @@
     (with-comparator (v/within 1e-4)
       (checking "sinhc" 100 [n (gen-double 1 10)]
                 (is (ish? ((D-numeric g/sinhc) n)
-                          ((derivative g/sinhc) n)))))))
+                          ((derivative g/sinhc) n)))))
+
+    (with-comparator (v/within 1e-8)
+      (checking "acot" 100 [n (gen-double 0.01 (- (/ Math/PI 2) 0.01))]
+                (is (ish? ((D-numeric g/acot) n)
+                          ((derivative g/acot) n))))
+
+      (checking "asec" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/asec) n)
+                          ((derivative g/asec) n))))
+
+      (checking "acsc" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/acsc) n)
+                          ((derivative g/acsc) n))))
+
+      (checking "sech" 100 [n (gen-double 3 100)]
+                (is (ish? ((D-numeric g/sech) n)
+                          ((derivative g/sech) n))))
+
+      (checking "coth" 100 [n (gen-double 1 3)]
+                (is (ish? ((D-numeric g/coth) n)
+                          ((derivative g/coth) n))))
+
+      (checking "csch" 100 [n (gen-double 0.5 10)]
+                (is (ish? ((D-numeric g/csch) n)
+                          ((derivative g/csch) n))))
+
+      (checking "acosh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/acosh) n)
+                          ((derivative g/acosh) n))))
+
+      (checking "asinh" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/asinh) n)
+                          ((derivative g/asinh) n))))
+
+      (checking "atanh" 100 [n (gen-double 0.1 0.9)]
+                (is (ish? ((D-numeric g/atanh) n)
+                          ((derivative g/atanh) n)))))))

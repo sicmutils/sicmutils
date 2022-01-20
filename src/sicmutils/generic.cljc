@@ -718,6 +718,8 @@ defaults to `1 / cosh(x)`."
   (div 2 (add (exp x)
               (exp (negate x)))))
 
+(declare csch)
+
 (defgeneric coth 1
   "Computes the [hyperbolic
  cotangent](https://mathworld.wolfram.com/HyperbolicCotangent.html) of the supplied
@@ -726,8 +728,7 @@ defaults to `1 / cosh(x)`."
 defaults to `cosh(x) / sinh(x)`."
   {:dfdx (fn [x]
            (negate
-            (mul (sech x)
-                 (tanh x))))})
+            (square (csch x))))})
 
 (defmethod coth :default [x]
   (let [exp2x (exp (add x x))]
@@ -775,7 +776,8 @@ defaults to `2 ln(sqrt((x+1)/2) + sqrt((x-1)/2))`."
 defaults to `ln(x + sqrt(1 + x^2))`."
   {:dfdx (fn [x]
            (invert
-            (add 1 (square x))))})
+            (sqrt
+             (add 1 (square x)))))})
 
 (defmethod asinh :default [x]
   (log
