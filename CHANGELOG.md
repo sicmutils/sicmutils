@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- #463 adds a new 1-arity to `sicmutils.matrix/characteristic-polynomial` that
+  returns an actual polynomial instance. Creating this polynomial once and
+  calling it many times is much more efficient. Closes #209.
+
   - `expt` called with a negative base and non-integral power now properly
     returns a complex number instead of `##NaN`.
 
