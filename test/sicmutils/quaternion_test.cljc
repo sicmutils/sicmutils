@@ -37,13 +37,6 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn v:make-unit
-  "Normalizes the supplied vector. TODO move this to a collections, or vector
-  namespace?"
-  [v]
-  (g/* (g/invert (g/abs v))
-		   v))
-
 (deftest interface-tests
   (checking "Clojure interface definitions" 100
             [q (sg/quaternion gen/nat)]
@@ -87,8 +80,16 @@
                 (is (= (get x i) (get v i)))
                 (is (= (nth x i) (nth v i))))
 
+              (is (= x (assoc q/ZERO
+                              0 (q/get-r x)
+                              1 (q/get-i x)
+                              2 (q/get-j x)
+                              3 (q/get-k x))))
+
               (is (= "face" (get x 10 "face"))
-                  "get can take a default arg")))
+                  "get can take a default arg")
+
+              (is (nil? (get x "face")))))
 
   (testing "quaternions can assoc new elements"
     (let [x #sicm/quaternion ['r 'i 'j 'k]]
@@ -280,6 +281,10 @@
         "passing an ill-formed literal to parse-quaternion throws an error at
         read-time.")
 
+    (is (= `(q/make 10) (q/parse-quaternion 10)))
+    (is (= `(q/make 10 11 12 13)
+           (q/parse-quaternion [10 11 12 13])))
+
     (checking "q/make" 100
               [[r i j k :as v] (gen/vector sg/real 4)]
               (is (= (q/make v)
@@ -468,6 +473,10 @@
                     (g/* x (q/conjugate x))))
                 "x*conj(x) == xx*, the squared norm"))
 
+  (testing "normalize"
+    (doseq [quat [q/ZERO q/ONE q/I q/J q/K]]
+      (is (= quat (q/normalize quat)))))
+
   (checking "q/dot-product, q/normalize, q/magnitude" 100
             [x (sg/quaternion #?(:clj sg/small-integral
                                  :cljs sg/native-integral))]
@@ -500,6 +509,7 @@
 
             (let [m      (q/magnitude x)
                   normal (q/normalize x)]
+              (is (ish? normal (q/normalize normal)))
               (if (v/zero? m)
                 (is (q/zero? x)
                     "can't normalize if the quaternion is zero.")
@@ -653,6 +663,20 @@
                       "exp(log(q)) acts as identity"))
 
         (checking "expt/sqrt" 100 [x gen]
+                  (let [r      (q/get-r x)
+                        pos-r  (g/abs r)
+                        sqrt-r (g/sqrt pos-r)]
+                    (if (g/negative? r)
+                      (is (= (q/make 0 sqrt-r 0 0)
+                             (g/sqrt (q/make r)))
+                          "sqrt of a negative real quaternion populates the i
+                        slot only")
+
+                      (is (= (q/make sqrt-r 0 0 0)
+                             (g/sqrt (q/make r)))
+                          "sqrt of a positive real quaternion populates the r
+                        slot only")))
+
                   (is (ish? x (q/mul
                                (q/sqrt x)
                                (q/sqrt x)))
@@ -672,9 +696,6 @@
                   (is (ish? x (g/expt x q/ONE))
                       "x to the quaternion 1 power is approx= x"))))
 
-    ;; TODO what does it mean to take a complex number to a complex power? What
-    ;; else can I test about it? Then check `(g/expt q q)`
-
     (testing "q/expt unit tests"
       (let [i**i (g/expt sc/I sc/I)]
         (is (= i**i
@@ -683,12 +704,11 @@
                (g/expt q/K q/K))
             "i^i matches quaternion implementation for each of the components.")
 
-        ;; TODO does this make sense? check against wolfram alpha?
         (is (ish? q/K (g/expt q/I q/J)))
         (is (ish? q/I (g/expt q/J q/K)))
         (is (ish? q/J (g/expt q/K q/I))))))
 
-  (testing "cos^2(x) + sin^2(x) == 1, sort of"
+  (testing "cos^2(x) + sin^2(x) ~== 1"
     (with-comparator (v/within 1e-10)
       (doseq [x [(q/make 2 0 0 0)
                  (q/make 2 2 0 0)
@@ -791,7 +811,20 @@
                    1.3552855852383054E11]
                   (g/sinhc q4)))))))
 
-;; TODO look at https://www.3dgep.com/understanding-quaternions/#Quaternion_Dot_Product
+(deftest generic-tests
+  (testing "any infinite? entry triggers infinite?"
+    (is (g/infinite? (q/make ##Inf 0 0 0)))
+    (is (g/infinite? (q/make 0 ##-Inf 0 0)))
+    (is (g/infinite? (q/make 0 0 ##Inf 0)))
+    (is (g/infinite? (q/make 0 0 0 ##Inf))))
+
+  (checking "infinite?" 100 [q (sg/quaternion gen/nat)]
+            (is (not (g/infinite? q)))))
+(defn v:make-unit
+  "Normalizes the supplied vector."
+  [v]
+  (g/* (g/invert (g/abs v))
+		   v))
 
 (deftest rotation-tests
   (is (= '(up theta
