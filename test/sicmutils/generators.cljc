@@ -442,23 +442,27 @@
   Quaternion
   (ish [this that]
     (cond (quat/quaternion? that)
-          (and (si/*comparator* (quat/get-r this) (quat/get-r that))
-               (si/*comparator* (quat/get-i this) (quat/get-i that))
-               (si/*comparator* (quat/get-j this) (quat/get-j that))
-               (si/*comparator* (quat/get-k this) (quat/get-k that)))
+          (and (si/*comparator* (u/double (quat/get-r this))
+                                (u/double (quat/get-r that)))
+               (si/*comparator* (u/double (quat/get-i this))
+                                (u/double (quat/get-i that)))
+               (si/*comparator* (u/double (quat/get-j this))
+                                (u/double (quat/get-j that)))
+               (si/*comparator* (u/double (quat/get-k this))
+                                (u/double (quat/get-k that))))
 
           (c/complex? that)
           (and (si/*comparator* 0.0 (quat/get-j this))
                (si/*comparator* 0.0 (quat/get-k this))
-               (si/*comparator* (quat/get-r this) (c/real that))
-               (si/*comparator* (quat/get-i this) (c/imaginary that)))
+               (si/*comparator* (u/double (quat/get-r this)) (c/real that))
+               (si/*comparator* (u/double (quat/get-i this)) (c/imaginary that)))
 
           (v/real? that)
-          (and (si/*comparator* 0.0 (quat/get-i this))
-               (si/*comparator* 0.0 (quat/get-j this))
-               (si/*comparator* 0.0 (quat/get-k this))
+          (and (si/*comparator* 0.0 (u/double (quat/get-i this)))
+               (si/*comparator* 0.0 (u/double (quat/get-j this)))
+               (si/*comparator* 0.0 (u/double (quat/get-k this)))
                (si/*comparator*
-                (quat/get-r this) (u/double that)))
+                (u/double (quat/get-r this)) (u/double that)))
 
           :else (v/= this that)))
 

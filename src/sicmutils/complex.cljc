@@ -157,7 +157,8 @@
              (and (zero? (imaginary this))
                   (v/= (real this) other))
 
-             :else false))
+             ;; Defer to `v/=` to support quaternion, octonion equality etc.
+             :else (v/= this other)))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]

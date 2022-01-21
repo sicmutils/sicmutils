@@ -1650,7 +1650,7 @@
 (defmethod g/cross-product [::quaternion ::sc/complex] [a b]
   (let [i2 (sc/imaginary b)]
     (make 0 0
-          (* (get-k a) i2)
+          (g/* (get-k a) i2)
           (g/- (g/* (get-j a) i2)))))
 
 (defmethod g/cross-product [::sc/complex ::quaternion] [a b]
