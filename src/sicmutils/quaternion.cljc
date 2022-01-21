@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2021 Sam Ritchie.
+;; Copyright © 2022 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -43,21 +43,53 @@
 
 ;; # Quaternions
 ;;
-;; A "quaternion" is an extension of a complex number...
+;; The [quaternion number system](https://en.wikipedia.org/wiki/Quaternion) is
+;; an extension of the complex number system. By introducing /three/ "imaginary"
+;; numbers $i$, $j$ and $k$, William Hamilton was able to devise a number system
+;; capable of representing rotations in 3-dimensional space, analogous to the
+;; ability of complex numbers to represent rotation and scaling in the 2d plane.
 ;;
-;; note how this idea came up, link to the history of vector analysis book.
-
-;; - this namespace implements them, provides an API and installs them into the
-;;   generic arithmetic system, making them COMPATIBLE with complex, real
-;;   numbers etc where possible.
+;; The book ["A History of Vector
+;; Analysis"](https://www.amazon.com/History-Vector-Analysis-Evolution-Mathematics/dp/0486679101)
+;; tells the full historical tale, from Hamilton's discovery of quaternions up
+;; through modern vector analysis. This namespace is mostly concerned with the
+;; implementation and manipulation of quaternions, but I expect more writing
+;; will appear in the library on this fascinating topic.
 ;;
-;; - also note rotation matrix API etc
+;; This namespace begins with an implementation of a [[Quaternion]] type along
+;; with a number of accessors and constructors. Next comes a suite of arithmetic
+;; functions, followed by transcendental functions
+;; like [[exp]], [[log]], [[sin]] etc.
 ;;
-;; - thank weavejester for the impl
-;; - thank spire https://github.com/typelevel/spire/blob/main/core/src/main/scala/spire/math/Quaternion.scala#L202
+;; Next comes an API for describing rotations in various ways, and converting
+;; between quaternions and other representations of rotations, like 3D and 4D
+;; matrices, Euler angles and more.
 ;;
-;; - also thank you for
-;; - https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1138
+;; Finally, the namespace ends by installing the [[Quaternion]] type into the
+;; generic system. Quaternions are compatible with complex numbers and real
+;; numbers, and interact with them by casting them up to [[Quaternion]]
+;; instances.
+;;
+;; ### Sources
+;;
+;; This implementation was inspired by a number of excellent Quaternion
+;; libraries:
+;;
+;; - The original scmutils implementation in Scheme, of course
+;; - [Spire's implementation in Scala](https://github.com/typelevel/spire/blob/main/core/src/main/scala/spire/math/Quaternion.scala#L202)
+;; - [weavejester's Euclidean library in Clojure](https://github.com/weavejester/euclidean)
+;; - [Boost's C++ Quaternion package](https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/quaternions.html)
+;; - [quaternions in C++, by ferd36](https://github.com/ferd36/quaternions)
+;;
+;; For more reading, see:
+;;
+;; - ["Quaternion"](https://en.wikipedia.org/wiki/Quaternion) on Wikipedia
+;; - ["Octonion" on Wikipedia](https://en.wikipedia.org/wiki/Octonion), for an
+;;   extension of the quaternions to 8 dimensions
+;; - ["Cayley-Dickson
+;;   Construction"](https://en.wikipedia.org/wiki/Cayley%E2%80%93Dickson_construction)
+;;   for a method that allows you to build successively higher-order extensions
+;;   of the real, complex, quaternion, octonion, sedonion tower.
 
 (declare arity eq evaluate zero? one?)
 
@@ -431,11 +463,6 @@
   "Returns the `k` component of the supplied quaternion `q`."
   [^Quaternion q]
   (.-k q))
-
-;; TODO write ->polar rep
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L552
-
-(defn ->polar [q])
 
 (defn ->complex
   "Returns a complex number created from the real and imaginary
