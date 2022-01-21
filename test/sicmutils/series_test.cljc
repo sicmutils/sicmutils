@@ -516,7 +516,19 @@
 
   (testing "catalan numbers"
     (is (= [1 1 2 5 14 42 132 429 1430 4862]
-           (take 10 s/catalan-series)))))
+           (take 10 s/catalan-series))))
+
+  (testing "harmonic numbers"
+    (is (= [1
+            #sicm/ratio 3/2
+            #sicm/ratio 11/6
+            #sicm/ratio 25/12
+            #sicm/ratio 137/60]
+           (take 5 s/harmonic-series))))
+
+  (testing "bell numbers"
+    (is (= [1 2 5 15 52 203 877 4140 21147 115975]
+           (take 10 s/bell-series)))))
 
 (deftest series-identity-tests
   (is (->> (g/- s/sin-series

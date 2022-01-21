@@ -32,6 +32,7 @@
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as i]
             [sicmutils.polynomial.interpolate :as pi]
+            [sicmutils.special.factorial :as sf]
             [sicmutils.series :as series]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
@@ -502,6 +503,20 @@
         :else
         (let [term (i/make-term (xpt/make 0 n) c)]
           (->Polynomial arity [term] nil))))
+
+;; ## Constructors of Special Polynomials
+
+(defn touchard
+  "Returns the nth [Touchard
+  polynomial](https://en.wikipedia.org/wiki/Touchard_polynomials).
+
+  These are also called [Bell
+  polynomials](https://mathworld.wolfram.com/BellPolynomial.html) (in
+  Mathematica, implemented as `BellB`) or /exponential polynomials/."
+  [n]
+  (make
+   (map #(sf/stirling-second-kind n %)
+        (range (inc n)))))
 
 ;; ###  Accessors, Predicates
 ;;
