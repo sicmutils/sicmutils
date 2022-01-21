@@ -697,6 +697,7 @@
 (def fib-series (->Series i/fib nil))
 (def catalan-series (->Series i/catalan nil))
 (def harmonic-series (->Series i/harmonic nil))
+(def bell-series (->Series i/bell nil))
 
 ;; ## Generic Implementations
 ;;

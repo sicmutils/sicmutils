@@ -22,6 +22,7 @@
   against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.special.factorial :as sf]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -704,8 +705,14 @@
   [n]
   (->series (binomial* n)))
 
-;; [Harmonic numbers](https://en.wikipedia.org/wiki/Harmonic_number):
+;;
 
-(def harmonic
+(def ^{:doc "The sequence of [Harmonic
+  numbers](https://en.wikipedia.org/wiki/Harmonic_number), starting from n=1."}
+  harmonic
   (reductions
    g/+ (map g// (iterate inc 1))))
+
+(def ^{:doc "The sequence of [Bell
+  numbers](https://en.wikipedia.org/wiki/Bell_number), starting from n=1."} bell
+  (map sf/bell (iterate inc 1)))

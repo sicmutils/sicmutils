@@ -286,4 +286,8 @@
 
   (testing "Stirling, second kind"
     (is (= 1 (sf/stirling-second-kind 0 0)))
-    (is (= 25 (sf/stirling-second-kind 5 3)))))
+    (is (= 25 (sf/stirling-second-kind 5 3))))
+
+  (testing "Bell numbers"
+    (is (= [1 1 2 5 15 52 203 877 4140 21147 115975]
+           (map sf/bell (range 11))))))

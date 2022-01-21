@@ -365,4 +365,16 @@
       (reset! rec (memoize rec*))
       (cond (zero? k) (if (zero? n) 1 0)
             (> k n) 0
-            :else (@rec n k)))))
+            :else (@rec n k))))
+
+  (defn bell
+    "Returns the `n`th [Bell number](https://en.wikipedia.org/wiki/Bell_number), ie,
+  the number of ways a set of `n` elements can be partitioned into nonempty
+  subsets.
+
+  The `n`th Bell number is denoted $B_n$."
+    [n]
+    {:pre [(>= n 0)]}
+    (let [xform (map #(stirling-second-kind n %))
+          ks    (range (inc n))]
+      (transduce xform add ks))))
