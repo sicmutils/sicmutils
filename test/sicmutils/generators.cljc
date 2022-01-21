@@ -138,7 +138,6 @@
 ;; ## Quaternions
 
 (defn quaternion
-  "TODO modify this to kick out more mixed etc!"
   ([] (quaternion (reasonable-double)))
   ([coeff-gen]
    (gen/let [r coeff-gen

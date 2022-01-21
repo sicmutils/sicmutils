@@ -342,10 +342,10 @@
                   (is (ish? (g/abs c2-mag) (g/magnitude c2))))
 
                 (testing "angles match"
-                  (is (= (g/angle (g/make-polar c1-mag theta1))
-                         (g/angle c1)))
-                  (is (= (g/angle (g/make-polar c2-mag theta2))
-                         (g/angle c2))))))
+                  (is (ish? (g/angle (g/make-polar c1-mag theta1))
+                            (g/angle c1)))
+                  (is (ish? (g/angle (g/make-polar c2-mag theta2))
+                            (g/angle c2))))))
 
     (checking "multipolar" 100 [[r1 theta1 r2 theta2]
                                 (gen/vector (sg/reasonable-real 1e3) 4)]
