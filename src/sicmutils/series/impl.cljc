@@ -343,7 +343,7 @@
 ;; ### Functional Composition
 ;;
 ;; To compose two series $F(x)$ and $G(x)$ means to create a new series
-;; $F(G(x))$. Derive this by substuting $G$ for $x$ in the expansion of $F$:
+;; $F(G(x))$. Derive this by substituting $G$ for $x$ in the expansion of $F$:
 ;;
 ;; $$F(G)=f+G \times F_{1}(G)=f+\left(g+x G_{1}\right) \times F_{1}(G)=\left(f+g F_{1}(G)\right)+x G_{1} \times F_{1}(G)$$
 ;;
