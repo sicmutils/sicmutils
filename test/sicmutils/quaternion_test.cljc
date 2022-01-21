@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2021 Sam Ritchie.
+;; Copyright © 2022 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -217,11 +217,11 @@
               (is (= (q/real-part x) (q/get-r x))
                   "`real-part` aliases `get-r`")
 
-              (is (= (sc/complex r i)
-                     (q/->complex x))
-                  "The 'complex' part of a quaternion is the real part and the
-                  coefficient attached to `i` turned into an imaginary
-                  number.")
+              (is (= [(sc/complex r i)
+                      (sc/complex j k)]
+                     (q/->complex-pair x))
+                  "The 'complex' version of a quaternion is a pair of complex
+                  numbers built from r,i and j,k respectively.")
 
               (is (= (vec x) (q/->vector x))
                   "`->vector` is a more efficient version of `(vec x)`")
@@ -266,9 +266,9 @@
               (is (v/= r (q/make r)) "real == quaternion")
               (is (v/= (q/make r) r) "quaternion == real")
 
-              (is (v/= #sicm/complex [r i] (q/make r i 0 0))
+              (is (ish? #sicm/complex [r i] (q/make r i 0 0))
                   "complex == quaternion")
-              (is (v/= (q/make r i 0 0) #sicm/complex [r i])
+              (is (ish? (q/make r i 0 0) #sicm/complex [r i])
                   "quaternion == complex")
 
               (is (v/= v (q/make v)) "vector == quaternion")
@@ -292,13 +292,84 @@
                   "make can take the full vector, individual components, or a
                   real component and imaginary vector.")
 
-              (is (= (q/make [r i 0 0])
-                     (q/make #sicm/complex [r i]))
+              (is (ish? (q/make [r i 0 0])
+                        (q/make #sicm/complex [r i]))
                   "make can properly unpack complex numbers")
 
               (is (= (q/make v)
                      (q/make (concat v [10 11 12])))
-                  "make ignores elements beyond the 4th"))))
+                  "make ignores elements beyond the 4th"))
+
+    (checking "to, from complex" 100 [[r i j k] (gen/vector sg/real 4)]
+              (let [c1 (sc/complex r i)
+                    c2 (sc/complex j k)
+                    q  (q/from-complex c1 c2)]
+                (is (= c1 (q/complex-1 q))
+                    "complex-1 returns the input first complex part")
+
+                (is (= c2 (q/complex-2 q))
+                    "complex-2 returns the input second complex part")
+
+                (is (= [c1 c2] (q/->complex-pair q))
+                    "->complex-pair gets both in one shot")))
+
+    (checking "spherical" 100 [[r theta colat lon]
+                               (gen/vector (sg/reasonable-real 1e3) 4)]
+              (let [q (q/spherical r theta colat lon)]
+                (is (ish? (g/abs r) (g/abs q))
+                    "magnitude equals r")
+
+                (let [axis [(* (g/sin colat) (g/cos lon))
+                            (* (g/sin colat) (g/sin lon))
+                            (* (g/cos colat))]]
+                  (is (ish? (q/spherical r theta colat lon)
+                            (-> (q/from-angle-normal-axis theta axis)
+                                (q/scale r)))
+                      "spherical is identical to building a spherical-coordinate
+                      axis and using from-angle-axis."))))
+
+    (checking "semipolar" 100 [[r alpha theta1 theta2]
+                               (gen/vector (sg/reasonable-real 1e3) 4)]
+              (let [q       (q/semipolar r alpha theta1 theta2)
+                    [c1 c2] (q/->complex-pair q)
+                    c1-mag  (g/* r (g/cos alpha))
+                    c2-mag  (g/* r (g/sin alpha))]
+                (is (ish? (g/abs r) (g/abs q))
+                    "magnitude equals r")
+
+                (testing "magnitudes match"
+                  (is (ish? (g/abs c1-mag) (g/magnitude c1)))
+                  (is (ish? (g/abs c2-mag) (g/magnitude c2))))
+
+                (testing "angles match"
+                  (is (= (g/angle (g/make-polar c1-mag theta1))
+                         (g/angle c1)))
+                  (is (= (g/angle (g/make-polar c2-mag theta2))
+                         (g/angle c2))))))
+
+    (checking "multipolar" 100 [[r1 theta1 r2 theta2]
+                                (gen/vector (sg/reasonable-real 1e3) 4)]
+              (let [q (q/multipolar r1 theta1 r2 theta2)
+                    [c1 c2] (q/->complex-pair q)]
+                (is (ish? (g/make-polar r1 theta1) c1))
+                (is (ish? (g/make-polar r2 theta2) c2))))
+
+    (with-comparator (v/within 1e-12)
+      (checking "cylindrospherical" 100 [[t r theta phi]
+                                         (gen/vector (sg/reasonable-real 1e3) 4)]
+                (is (ish? (g/+ t (g/* r (q/spherical 1 Math/PI theta phi)))
+                          (q/cylindrospherical t r theta phi))
+                    "building cylindrospherical matches building spherical,
+                    scaling by `r` and ADDING the real component.")))
+
+    (checking "cylindrical" 100 [[mag angle j k]
+                                 (gen/vector (sg/reasonable-real 1e3) 4)]
+              (let [q (q/cylindrical mag angle j k)]
+                (is (ish? (g/make-polar mag angle)
+                          (q/complex-1 q)))
+
+                (is (ish? (g/make-rectangular j k)
+                          (q/complex-2 q)))))))
 
 (deftest arithmetic-tests
   (testing "Quaternions form a skew field, ie, a division ring."
@@ -361,23 +432,25 @@
 
   (checking "multi-arg arithmetic" 100
             [xs (gen/vector (sg/quaternion) 0 20)]
-            (is (= (apply g/+ xs)
-                   (apply q/add xs))
+            (is (v/= (apply g/+ xs)
+                     (apply q/add xs))
                 "q/add matches g/+ for all arities")
 
-            (is (= (apply g/- xs)
-                   (apply q/sub xs))
+            (is (v/= (apply g/- xs)
+                     (apply q/sub xs))
                 "q/sub matches g/- for all arities")
 
-            (is (= (apply g/* xs)
-                   (apply q/mul xs))
+            (is (v/= (apply g/* xs)
+                     (apply q/mul xs))
                 "q/mul matches g/* for all arities")
 
-            (is (= (apply g// xs)
-                   (apply q/div xs))
+            (is (v/= (apply g// xs)
+                     (apply q/div xs))
                 "q/div matches g// for all arities"))
 
-  (checking "q/conjugate" 100 [x (sg/quaternion sg/any-integral)]
+  (checking "q/conjugate" 100 [x (sg/quaternion
+                                  #?(:clj sg/any-integral
+                                     :cljs sg/native-integral))]
             (let [sum (g/+ x (q/conjugate x))]
               (is (q/real? sum)
                   "adding x to its conjugate removes all imaginary coefficients")
@@ -396,7 +469,8 @@
                 "x*conj(x) == xx*, the squared norm"))
 
   (checking "q/dot-product, q/normalize, q/magnitude" 100
-            [x (sg/quaternion sg/small-integral)]
+            [x (sg/quaternion #?(:clj sg/small-integral
+                                 :cljs sg/native-integral))]
             (is (= (q/magnitude-sq x)
                    (q/dot-product x x))
                 "dot product of a quaternion with itself == the square of its
@@ -408,8 +482,8 @@
                 "the dot-product of a quaternion with itself equals its squared
                 magnitude.")
 
-            (let [x-complex (q/->complex x)
-                  x-real    (q/real-part x)]
+            (let [[x-complex _] (q/->complex-pair x)
+                  x-real        (q/real-part x)]
               (is (v/= (g/dot-product x x-complex)
                        (g/dot-product x-complex x))
                   "quaternion dots with complex")
@@ -434,27 +508,54 @@
                     "normalizing a quaternion makes it (approximately) a unit
                       quaternion."))))
 
-  (checking "q/cross-product" 100
-            [q1 (sg/quaternion sg/any-integral)
-             q2 (sg/quaternion sg/any-integral)]
-            (let [q1xq2 (q/cross-product q1 q2)]
-              (is (q/pure? q1xq2)
-                  "quaternion cross product has no real component")
+  (let [gen-q #?(:cljs (sg/quaternion sg/native-integral)
+                 :clj (sg/quaternion sg/any-integral))]
+    (checking "cross-product" 100
+              [q1 gen-q
+               q2 gen-q]
+              (let [q1xq2 (g/cross-product q1 q2)]
+                (is (q/pure? q1xq2)
+                    "quaternion cross product has no real component")
 
-              (is (v/zero? (q/dot-product q1 q1xq2))
-                  "dot of quaternion with an orthogonal quaternion == 0")
+                (is (v/zero? (g/dot-product q1 q1xq2))
+                    "dot of quaternion with an orthogonal quaternion == 0")
 
-              (is (v/zero? (q/dot-product q2 q1xq2))
-                  "dot of quaternion with an orthogonal quaternion == 0")))
+                (testing "cross with scalar"
+                  (is (= q/ZERO (g/cross-product (q/get-r q1) q2))
+                      "zero result")
 
-  ;; TODO add commutator identity from here:
-  ;; https://en.wikipedia.org/wiki/Quaternion#Quaternions_and_the_space_geometry
+                  (is (ish? (g/cross-product (q/get-r q1) q2)
+                            (g/cross-product (q/make (q/get-r q1)) q2))
+                      "real on left vs q on both sides, real-only left")
+
+                  (is (= q/ZERO (g/cross-product q1 (q/get-r q2)))
+                      "real on right")
+                  (is (= (g/cross-product q1 (q/make (q/get-r q2)))
+                         (g/cross-product q1 (q/get-r q2)))
+                      "real on right vs q on both sides, real-only right"))
+
+                (testing "cross with complex"
+                  (is (ish? (g/cross-product (q/complex-1 q1) q2)
+                            (g/cross-product (q/make (q/complex-1 q1)) q2))
+                      "complex on left vs q on both sides, complex-1-only left")
+
+                  (is (ish? (g/cross-product q1 (q/complex-1 q2))
+                            (g/cross-product q1 (q/make (q/complex-1 q2))))
+                      "complex on right vs q on both sides, complex-1-only right")))))
+
   (testing "commutator"
-    (let [q (q/make 'r 'i 'j 'k)]
+    (let [p (q/make 'r1 'i1 'j1 'k1)
+          q (q/make 'r2 'i2 'j2 'k2)]
       (is (q/zero?
            (g/simplify
-            (q/commutator q q)))
+            (q/commutator p p)))
           "the commutator of a vector with itself is zero")
+
+      (is (q/zero?
+           (g/simplify
+            (g/- (q/commutator p q)
+                 (g/cross-product  (g/* 2 p) q))))
+          "commutator identity")
 
       (is (= #sicm/quaternion
              [0
@@ -478,10 +579,10 @@
              q2 (sg/quaternion sg/any-integral)]
             (is (v/zero?
                  (q/commutator
-                  (q/make (q/->complex q1))
-                  (q/make (q/->complex q2))))
+                  (q/make (first (q/->complex-pair q1)))
+                  (q/make (first (q/->complex-pair q2)))))
                 "complex multiplication commutes, so the commutator of the
-                complex part is always zero.")
+                complex part (r,i) is always zero.")
 
             (is (v/zero?
                  (q/commutator
@@ -510,8 +611,9 @@
     (checking
      "exp, log match real and complex impls" 100 [x sg/complex]
      (let [quat (q/make x)]
-       (is (ish? (g/log x) (g/log quat))
-           "complex log matches quat log when j==k==0")
+       (with-comparator (v/within 1e-6)
+         (is (ish? (g/log x) (g/log quat))
+             "complex log matches quat log when j==k==0"))
 
        (is (ish? (g/exp x) (g/exp quat))
            "complex exp matches quat exp when j==k==0")

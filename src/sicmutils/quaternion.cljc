@@ -77,9 +77,12 @@
 ;;
 ;; - The original scmutils implementation in Scheme, of course
 ;; - [Spire's implementation in Scala](https://github.com/typelevel/spire/blob/main/core/src/main/scala/spire/math/Quaternion.scala#L202)
-;; - [weavejester's Euclidean library in Clojure](https://github.com/weavejester/euclidean)
+;; - [weavejester's Euclidean library in
+;;   Clojure](https://github.com/weavejester/euclidean) and his [associated
+;;   talk](https://www.booleanknot.com/slides/functional-3d-game-design.pdf)
 ;; - [Boost's C++ Quaternion package](https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/quaternions.html)
 ;; - [quaternions in C++, by ferd36](https://github.com/ferd36/quaternions)
+;; - [Quaternion.js](https://github.com/infusion/Quaternion.js/)
 ;;
 ;; For more reading, see:
 ;;
@@ -95,20 +98,26 @@
 
 ;; ## Quaternion Type Definition
 ;;
-;; TODO note what we are trying to support here with these various protocol and
-;; interface implementations.
+;; The [[Quaternion]] type is a container for the four coefficients $(a, b, c,
+;; d)$ of a quaternion of the form $a + bi + cj + dk$, along with an optional
+;; metadata entry `m`. (The coefficient fields are named `r`, `i`, `j` and `k`
+;; after the associated imaginary.)
 ;;
-;; - quaternions can hold functions in each position, so we want to support
-;;   `f/Arity` and `IFn`. These are basically vectors that can be applied in the
-;;   function position as IFn instances.
+;; The type implements a number of protocols, designed to achieve the following
+;; goals:
 ;;
-;; - we also want to be able to take derivatives of Quaternion-valued functions.
+;; - Quaternions should be `seq`-able into a sequence of the coefficient
+;;   entries, but also act like vectors with a fixed count of 4, capable of
+;;   supporting `rseq`, indexed lookups and efficient reductions.
 ;;
-;; - A quaternion can also act as
+;; - Unlike a vector, if a [[Quaternion]] has function entries, applying the
+;;   quaternion as a function should apply each component to the arguments and
+;;   return a new quaternion with the results as the new coefficients.
 ;;
-;;   - a sequence of its coefficients
-;;   - a vector, and all this implies... it's an associative thing, etc etc,
-;;     reducible, reversible.
+;; - The `D` operator should work on quaternions, so derivatives of functions
+;;   that return quaternions work well.
+;;
+;; - All [[sicmutils.value/Value]] functions should work well.
 
 (deftype Quaternion [r i j k m]
   f/IArity
@@ -464,16 +473,27 @@
   [^Quaternion q]
   (.-k q))
 
-(defn ->complex
-  "Returns a complex number created from the real and imaginary
-  components (dropping `j`, `k`).
+(defn complex-1
+  "Returns the `r` and `i` components of the quaternion `q` as a `Complex` number
+  instance."
+  [q]
+  (sc/complex (get-r q) (get-i q)))
+
+(defn complex-2
+  "Returns the `j` and `k` components of the quaternion `q` as a `Complex` number
+  instance."
+  [q]
+  (sc/complex (get-j q) (get-k q)))
+
+(defn ->complex-pair
+  "Returns a pair of complex number created respectively from the `(r,i)`
+  and `(j,k)` components of the supplied quaternion `q`.
 
   NOTE that this only works if the coefficients of `q` are real numbers, due to
   restrictions on the current complex number implementation. "
   [q]
   {:pre [(quaternion? q)]}
-  (sc/complex (get-r q)
-              (get-i q)))
+  [(complex-1 q) (complex-2 q)])
 
 (defn ->vector
   "Returns a 4-vector of the coefficients of quaternion `q`.
@@ -623,7 +643,7 @@
    (cond (quaternion? x) x
          (sequential? x) (apply ->Quaternion (take 4 x))
          (sc/complex? x) (->Quaternion
-                          (sc/real x) (sc/imaginary x) 0 0)
+                          (sc/real x)(sc/imaginary x) 0 0)
          :else (->Quaternion x 0 0 0)))
   ([r [i j k]]
    (->Quaternion r i j k))
@@ -644,50 +664,89 @@
        (str "Quaternion literal vectors require 4 elements. Received: " x)))
     `(make ~x)))
 
-;; TODO fill these in from
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L482
+(defn from-complex
+  "Given two complex numbers `a` and `b`, returns a quaternion instance with
+
+  - `r` and `i` components set to the real and imaginary components of `a`
+  - `j` and `k` components set to the real and imaginary components of `b`"
+  [a b]
+  (make (g/real-part a)
+        (g/imag-part a)
+        (g/real-part b)
+        (g/imag-part b)))
 
 (declare scale-l)
 
 (defn spherical
-  "TODO docs"
-  [rho theta phi1 phi2]
-  (let [s1    (g/sin phi1)
-        s2    (g/sin phi2)
-        c1    (g/cos phi2)
-        c2    (g/cos phi2)
-        c1*c2 (g/* c1 c2)]
-    (make (g/* rho (g/cos theta) c1*c2)
-          (g/* rho (g/sin theta) c1*c2)
-          (g/* rho s1 c2)
-          (g/* rho s2))))
+  "Generates a [[Quaternion]] instance, given:
 
-(defn semipolar [rho alpha theta1 theta2]
-  (let [cos-a (g/cos alpha)
-        sin-a (g/sin alpha)]
-    (make (g/* rho cos-a (g/cos theta1))
-          (g/* rho cos-a (g/sin theta1))
-          (g/* rho sin-a (g/cos theta2))
-          (g/* rho sin-a (g/sin theta2)))))
+  - a magnitude `r`
+  - a rotation angle `theta`, with a natural range of `-2*pi` to `2*pi`
+  - `colat`, the [colatitude](https://mathworld.wolfram.com/Colatitude.html) of
+    the (non-real) vectorial part of the quaternion
+  - `lon`, the longitude of the vectorial part of the quaternion"
+  [r theta colat lon]
+  (let [half-t (g// theta 2)
+        cos-ht (g/cos half-t)
+        sin-ht (g/sin half-t)
+        sin-co (g/sin colat)
+        r*sin-ht (g/* r sin-ht)
+        r*sin-ht*sin-co (g/* r*sin-ht sin-co)]
+    (make (g/* r cos-ht)
+          (g/* r*sin-ht*sin-co (g/cos lon))
+          (g/* r*sin-ht*sin-co (g/sin lon))
+          (g/* r*sin-ht (g/cos colat)))))
 
-(defn multipolar [rho1 theta1 rho2 theta2]
-  (make (g/* rho1 (g/cos theta1))
-        (g/* rho1 (g/sin theta1))
-        (g/* rho2 (g/cos theta2))
-        (g/* rho2 (g/sin theta2))))
+(defn semipolar
+  "Returns a [[Quaternion]] `q` with magnitude `rho`, built such that:
 
-(defn cylindrospherical [t r lon lat]
-  (let [cos-lat (g/cos lat)]
+  - the magnitude of `q` equals `rho`
+  - the magnitude `([[complex-1]] q)` equals `(* rho (cos alpha))`
+  - the angle of `([[complex-1]] q)` equals `theta1`
+  - The magnitude `([[complex-2]] q)` equals `(* rho (cos alpha))`
+  - the angle of `([[complex-2]] q)` equals `theta12`
+
+  This strange, possibly unnecessary constructor taken from the [Boost
+  quaternion
+  implementation](https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/create.html)."
+  [r alpha theta1 theta2]
+  (let [r*cos-a (g/* r (g/cos alpha))
+        r*sin-a (g/* r (g/sin alpha))]
+    (make (g/* r*cos-a (g/cos theta1))
+          (g/* r*cos-a (g/sin theta1))
+          (g/* r*sin-a (g/cos theta2))
+          (g/* r*sin-a (g/sin theta2)))))
+
+(defn multipolar
+  "Returns a [[Quaternion]] instance with [[complex-1]] part built from the polar
+  coordinates `r1` and `theta1` and [[complex-2]] part built from `r2` and
+  `theta2`"
+  [r1 theta1 r2 theta2]
+  (make (g/* r1 (g/cos theta1))
+        (g/* r1 (g/sin theta1))
+        (g/* r2 (g/cos theta2))
+        (g/* r2 (g/sin theta2))))
+
+(defn cylindrospherical
+  "Returns a [[Quaternion]] `q` with [[real-part]] equal to `t` and
+  the [[three-vector]] part built from the spherical coordinates `r`, `colat`
+  and `lon`."
+  [t r theta phi]
+  (let [r*sin-theta (g/* r (g/sin theta))]
     (make t
-          (g/* r (g/cos lon) cos-lat)
-          (g/* r (g/sin lon) cos-lat)
-          (g/* r (g/sin lat)))))
+          (g/* r*sin-theta (g/cos phi))
+          (g/* r*sin-theta (g/sin phi))
+          (g/* r (g/cos theta)))))
 
-(defn cylindrical [r angle h1 h2]
-  (make (g/* r (g/cos angle))
-        (g/* r (g/sin angle))
-        h1
-        h2))
+(defn cylindrical
+  "Returns a [[Quaternion]] `q` with [[complex-1]] built from the polar
+  coordinates `mag` and `angle`, and `j` and `k` components equal to the
+  supplied `j` and `k`."
+  [mag angle j k]
+  (make (g/* mag (g/cos angle))
+        (g/* mag (g/sin angle))
+        j
+        k))
 
 ;; ## Quaternions with Function Coefficients
 ;;
@@ -716,6 +775,15 @@
    (apply (get-j q) args)
    (apply (get-k q) args)))
 
+;; NOTE: the definition for [[partial-derivative]] comes from `quaternion.scm`
+;; in the original scmutils library. [This
+;; pdf](http://home.ewha.ac.kr/~bulee/quaternion.pdf)
+;; and [Wikipedia](https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Differentiation_with_respect_to_the_rotation_quaternion)
+;; seem to state that the derivative of, say, a quaternion-valued function with
+;; respect to a quaternion should /not/ be defined this way. If you run into
+;; trouble, study these sources and please correct this issue! Or if this
+;; implementation is correct, please add some exposition and delete the comment.
+
 (defn partial-derivative
   "Given a quaternion `q` with function coefficients and a possibly-empty sequence
   of partial derivative `selectors`, returns a new [[Quaternion]] generated by
@@ -730,7 +798,8 @@
 
 ;; ## Algebra
 ;;
-;; Okay, boom, quaternion algebra!
+;; The next section implements quaternion arithmetic. These implementations are
+;; installed into the generic arithmetic system at the bottom of the namespace.
 
 (defn add
   "Variadic function that returns the sum of all supplied quaternions.
@@ -918,13 +987,14 @@
          (g/* lj rj)
          (g/* lk rk))))
 
-;; TODO document that the suggestion here came from
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1109
-
 (defn cross-product
   "Returns a quaternion representing the (vector) cross product of the two pure
   sides (retrieved via [[three-vector]]) of the supplied quaternions `l` and
-  `r`."
+  `r`.
+
+  NOTE that the suggestion for this function comes from this [C++ quaternion
+  library](https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1109).
+  Strictly, this is not the 'cross product of two quaternions'."
   [l r]
   (make 0 (ss/cross-product
            (three-vector l)
@@ -986,9 +1056,6 @@
     q
     (q-div-scalar q (magnitude q))))
 
-
-;; TODO note the idea from https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1117
-
 (defn commutator
   "Returns the commutator of the supplied quaternions `l` and `r`.
 
@@ -1027,6 +1094,8 @@
 
 ;; TODO verify these with
 ;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1138
+
+;; Proof of exponential for wuaternions https://math.stackexchange.com/questions/1030737/exponential-function-of-quaternion-derivation
 
 (defn exp
   "TODO this is good as well, lovely! I think this works now."
@@ -1574,6 +1643,21 @@
 
 (defmethod g/partial-derivative [::quaternion v/seqtype] [q selectors]
   (partial-derivative q selectors))
+
+(defmethod g/cross-product [::quaternion ::quaternion] [a b] (cross-product a b))
+(defmethod g/cross-product [::quaternion ::v/scalar] [a b] ZERO)
+(defmethod g/cross-product [::v/scalar ::quaternion] [a b] ZERO)
+(defmethod g/cross-product [::quaternion ::sc/complex] [a b]
+  (let [i2 (sc/imaginary b)]
+    (make 0 0
+          (* (get-k a) i2)
+          (g/- (g/* (get-j a) i2)))))
+
+(defmethod g/cross-product [::sc/complex ::quaternion] [a b]
+  (let [i1 (sc/imaginary a)]
+    (make 0 0
+          (g/- (g/* i1 (get-k b)))
+          (g/* i1 (get-j b)))))
 
 (defmethod g/dot-product [::quaternion ::quaternion] [a b] (dot-product a b))
 (defmethod g/dot-product [::v/scalar ::quaternion] [a b] (g/* a (get-r b)))
