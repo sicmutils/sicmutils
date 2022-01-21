@@ -476,24 +476,36 @@
 ;; standard ways.
 
 (defn taylor-series
-  "Returns a [[sicmutils.series/Series]] of the coefficients of the taylor series
-  of the function `f` evaluated at `x`, with incremental quantity `dx`.
+  "Returns a [[sicmutils.series/Series]] of the coefficients of the [Taylor
+  series](https://en.wikipedia.org/wiki/Taylor_series) of the function `f`
+  evaluated at `x`, with incremental quantity `dx`.
 
-  NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
-  structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
-  == `(up 'dx 'dy)` would expand to this:
+  The typical definition of a Taylor series at the point `x` is
 
-  ```clojure
-  (fn [x] (* (s/up ('dx x) ('dy x))
-             ((D f) x)))
-  ```
+  $$f(x) = f(a) + \\frac{f'(a)}{1!}(x-a) +  \\frac{f''(a)}{2!} (x-a)^2 + \\ldots$$
 
-  `constantly` delays the interpretation of `dx` one step:
+  All derivatives of the original function and this Taylor series match at the
+  point `a`.
 
-  ```clojure
-  (fn [x] (* (s/up 'dx 'dy)
-             ((D f) x)))
-  ```
+  The argument `dx` is instead interpreted as an incremental difference
+  from `(x-a)`. So, passing 0 for `dx` would return the evaluation of the Taylor
+  series at the point `a`.
   "
   [f x dx]
   (((g/exp (g/* (constantly dx) D)) f) x))
+
+;; NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
+;; structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
+;; == `(up 'dx 'dy)` would expand to this:
+
+;; ```clojure
+;; (fn [x] (* (s/up ('dx x) ('dy x))
+;;           ((D f) x)))
+;; ```
+;;
+;; `constantly` delays the interpretation of `dx` one step:
+;;
+;; ```clojure
+;; (fn [x] (* (s/up 'dx 'dy)
+;;           ((D f) x)))
+;; ```

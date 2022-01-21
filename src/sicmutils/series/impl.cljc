@@ -22,6 +22,7 @@
   against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.special.factorial :as sf]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -343,7 +344,7 @@
 ;; ### Functional Composition
 ;;
 ;; To compose two series $F(x)$ and $G(x)$ means to create a new series
-;; $F(G(x))$. Derive this by substuting $G$ for $x$ in the expansion of $F$:
+;; $F(G(x))$. Derive this by substituting $G$ for $x$ in the expansion of $F$:
 ;;
 ;; $$F(G)=f+G \times F_{1}(G)=f+\left(g+x G_{1}\right) \times F_{1}(G)=\left(f+g F_{1}(G)\right)+x G_{1} \times F_{1}(G)$$
 ;;
@@ -704,8 +705,14 @@
   [n]
   (->series (binomial* n)))
 
-;; [Harmonic numbers](https://en.wikipedia.org/wiki/Harmonic_number):
+;;
 
-(def harmonic
+(def ^{:doc "The sequence of [Harmonic
+  numbers](https://en.wikipedia.org/wiki/Harmonic_number), starting from n=1."}
+  harmonic
   (reductions
    g/+ (map g// (iterate inc 1))))
+
+(def ^{:doc "The sequence of [Bell
+  numbers](https://en.wikipedia.org/wiki/Bell_number), starting from n=1."} bell
+  (map sf/bell (iterate inc 1)))

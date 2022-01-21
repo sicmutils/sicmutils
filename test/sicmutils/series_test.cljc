@@ -329,6 +329,16 @@
                    (v/freeze)))
             "power series expansion of g/sin around 0, evaluated at 'x")
 
+        (is (= '(+ (* (/ 1 6) (expt dx 3) (exp a))
+                   (* (/ 1 2) (expt dx 2) (exp a))
+                   (* dx (exp a))
+                   (exp a))
+               (-> ((s/function-> g/exp :x0 'a) 'dx)
+                   (s/sum 3)
+                   (g/simplify)
+                   (v/freeze)))
+            "power series expansion of g/exp around 'a, evaluated at 'dx")
+
         (letfn [(check [f n]
                   (is (= (take n (g/simplify
                                   ((f s/identity) 'x)))
@@ -516,7 +526,19 @@
 
   (testing "catalan numbers"
     (is (= [1 1 2 5 14 42 132 429 1430 4862]
-           (take 10 s/catalan-series)))))
+           (take 10 s/catalan-series))))
+
+  (testing "harmonic numbers"
+    (is (= [1
+            #sicm/ratio 3/2
+            #sicm/ratio 11/6
+            #sicm/ratio 25/12
+            #sicm/ratio 137/60]
+           (take 5 s/harmonic-series))))
+
+  (testing "bell numbers"
+    (is (= [1 2 5 15 52 203 877 4140 21147 115975]
+           (take 10 s/bell-series)))))
 
 (deftest series-identity-tests
   (is (->> (g/- s/sin-series

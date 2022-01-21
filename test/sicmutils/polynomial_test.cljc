@@ -436,6 +436,20 @@
                 "adding on a nonzero term then DROPPING it gives back the same
                 poly as if you'd never added.")))
 
+(deftest special-poly-tests
+  (is (= '[0
+           1
+           x
+           (+ (expt x 2) x)
+           (+ (expt x 3) (* 3 (expt x 2)) x)
+           (+ (expt x 4) (* 6 (expt x 3)) (* 7 (expt x 2)) x)
+           (+ (expt x 5) (* 10 (expt x 4)) (* 25 (expt x 3)) (* 15 (expt x 2)) x)]
+         (map #(-> (p/touchard %)
+                   (p/->expression ['x])
+                   (v/freeze))
+              (range -1 6)))
+      "Touchard matches examples from https://mathworld.wolfram.com/BellPolynomial.html"))
+
 (deftest arithmetic-tests
   (let [coeffs (gen/fmap #(g/modulo % 1000) sg/small-integral)]
     (testing "algebraic laws"

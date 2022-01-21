@@ -7,6 +7,17 @@
   - quaternions are implemented like vectors of length 4, and implement all
     appropriate Clojure protocols.
 
+- #468:
+
+  - adds `sicmutils.polynomial/touchard`, implementing a constructor for the
+    type of polynomial known as a "complete Bell polynomial" or ["Touchard
+    polynomial"](https://en.wikipedia.org/wiki/Touchard_polynomials).
+
+  - adds `sicmutils.special.factorial/bell` for computing the nth [Bell
+    number](https://en.wikipedia.org/wiki/Bell_number)
+
+  - `sicmutils.series/bell-series` returns an infinite sequence of bell numbers.
+
 - #276 adds an `integration-opts` to
   `sicmutils.mechanics.lagrange/Lagrangian-action`. All options are passed on to
   `definite-integral`. By default, `parametric-path-action` passes `:compile?
