@@ -323,7 +323,7 @@
                             (* (g/sin colat) (g/sin lon))
                             (* (g/cos colat))]]
                   (is (ish? (q/spherical r theta colat lon)
-                            (-> (q/from-angle-normal-axis theta axis)
+                            (-> (q/from-angle-axis theta axis)
                                 (q/scale r)))
                       "spherical is identical to building a spherical-coordinate
                       axis and using from-angle-axis."))))
