@@ -324,20 +324,21 @@
                 (is (= [c1 c2] (q/->complex-pair q))
                     "->complex-pair gets both in one shot")))
 
-    (checking "spherical" 100 [[r theta colat lon]
-                               (gen/vector (sg/reasonable-real 1e3) 4)]
-              (let [q (q/spherical r theta colat lon)]
-                (is (ish? (g/abs r) (g/abs q))
-                    "magnitude equals r")
+    (with-comparator (v/within 1e-10)
+      (checking "spherical" 100 [[r theta colat lon]
+                                 (gen/vector (sg/reasonable-real 1e3) 4)]
+                (let [q (q/spherical r theta colat lon)]
+                  (is (ish? (g/abs r) (g/abs q))
+                      "magnitude equals r")
 
-                (let [axis [(* (g/sin colat) (g/cos lon))
-                            (* (g/sin colat) (g/sin lon))
-                            (* (g/cos colat))]]
-                  (is (ish? (q/spherical r theta colat lon)
-                            (-> (q/from-angle-axis theta axis)
-                                (q/scale r)))
-                      "spherical is identical to building a spherical-coordinate
-                      axis and using from-angle-axis."))))
+                  (let [axis [(* (g/sin colat) (g/cos lon))
+                              (* (g/sin colat) (g/sin lon))
+                              (* (g/cos colat))]]
+                    (is (ish? (q/spherical r theta colat lon)
+                              (-> (q/from-angle-axis theta axis)
+                                  (q/scale r)))
+                        "spherical is identical to building a spherical-coordinate
+                      axis and using from-angle-axis.")))))
 
     (checking "semipolar" 100 [[r alpha theta1 theta2]
                                (gen/vector (sg/reasonable-real 1e3) 4)]

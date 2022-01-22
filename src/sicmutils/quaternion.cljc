@@ -1095,7 +1095,7 @@
     (if (and (v/zero? j)
              (v/zero? k))
       (if (v/zero? i)
-        (make (g/log r) 0 0 0)
+        (make (g/log r))
         (make (g/log (g/abs [r i]))
               (g/atan i r)
               0 0))
