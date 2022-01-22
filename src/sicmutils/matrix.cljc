@@ -29,7 +29,6 @@
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.polynomial :as poly]
             [sicmutils.series :as series]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -225,12 +224,22 @@
   [m]
   (instance? Matrix m))
 
+;; TODO add v/= implementations here, CERTAINLY the one with scalar on the
+;; left!!
+
 (defn- m:= [^Matrix this that]
   (and (instance? Matrix that)
        (let [^Matrix m that]
          (and (= (.-r this) (.-r m))
               (= (.-c this) (.-c m))
               (v/= (.-v this) (.-v m))))))
+
+(comment
+  (defn matrix=scalar [m c]
+    (m:= m (scalar*matrix c (m:make-identity (m:num-rows m)))))
+
+  (defn scalar=matrix [c m]
+    (m:= (scalar*matrix c (m:make-identity (m:num-rows m))) m)))
 
 (defn num-rows
   "Returns the number of rows of the supplied matrix `m`. Throws if a
@@ -316,6 +325,23 @@
     (generate nrows ncols
               (fn [i j]
                 (symbol (str prefix j "↑" i))))))
+
+(comment
+  (define (literal-column-matrix name nrows)
+    (m:generate nrows 1
+                (lambda (i j)
+                        (string->symbol
+                         (string-append (symbol->string name)
+                                        "^"
+                                        (number->string i))))))
+
+  (define (literal-row-matrix name ncols)
+    (m:generate 1 ncols
+                (lambda (i j)
+                        (string->symbol
+                         (string-append (symbol->string name)
+                                        "_"
+                                        (number->string j)))))))
 
 (defn get-in
   "Like [[clojure.core/get-in]] for matrices, but obeying the scmutils convention:
@@ -490,6 +516,25 @@
                       g/+ (for [k (range ca)]
                             (g/* (core-get-in a [%1 k])
                                  (core-get-in b [k %2])))))))
+
+(comment
+  (define (m:expt M n)
+    (assert (matrix? M) "Not a matrix -- EXPT")
+    (cond ((or (not (integer? n)) (inexact? n))
+           (error "Only integer powers allowed -- M:EXPT"))
+          ((fix:< n 0)
+           (m:expt (m:invert M) (fix:- 0 n)))
+          ((fix:zero? n)
+           (m:make-identity (m:num-rows M)))
+          (else
+           (let loop ((count n))
+                (cond ((fix:= count 1) M)
+                      ((even? count)
+                       (let ((a (loop (fix:quotient count 2))))
+                         (matrix*matrix a a)))
+                      (else
+                       (matrix*matrix M
+                                      (loop (fix:- count 1))))))))))
 
 (defn- elementwise
   "Applies `f` elementwise between the matrices `a` and `b`. Throws if `a` and `b`
@@ -671,6 +716,14 @@
 (defn s:transpose [ls ms rs]
   (m->s rs (transpose (s->m ls ms rs)) ls))
 
+(comment
+  ;; TODO add this!
+  (defn s:transpose1 [ms rs]
+    (let [ls (compatible-shape (g/* ms rs))]
+      (m->s rs
+            (transpose (s->m ls ms rs))
+            ls))))
+
 (defn- delete
   "Returns the vector formed by deleting the `i`'th element of the given vector
   `v`."
@@ -708,7 +761,9 @@
 
 (defn without
   "Returns the matrix formed by deleting the `i`-th row and `j`-th column of the
-  given matrix `m`."
+  given matrix `m`.
+
+  This is also called the 'minor' of m."
   [m i j]
   (->Matrix (dec (num-rows m))
             (dec (num-cols m))
@@ -738,6 +793,55 @@
                g/+
                (range 0 rows))))
 
+;;; Kleanthes Konaris determinant routine, slightly edited by GJS
+;;; -------------------------------------------------------------
+
+;;; (iota 4) --> (0 1 2 3), as in APL.
+
+(comment
+  (define (general-determinant add sub mul easy-zero?)
+    (let ((zero (add)))
+      (define (det m)
+        (let ((cache '()))
+          (define (c-det row active-column-list)
+            (if (null? (cdr active-column-list)) ;one active column
+              (matrix-ref m row (car active-column-list))
+              (let ((value
+                     (assoc (list row active-column-list) cache)))
+                (if value
+                  (cadr value)  ; cache hit!
+                  (let loop   ; cache miss!
+                    ((index 0)
+                     (remaining-columns active-column-list)
+                     (answer zero))
+                    (if (null? remaining-columns)
+                      (begin (set! cache
+                                   (cons (list (list row
+                                                     active-column-list)
+                                               answer)
+                                         cache))
+                             answer)
+                      (let ((term
+                             (matrix-ref m row (car remaining-columns))))
+                        (if (easy-zero? term)
+                          (loop (fix:+ index 1)
+                            (cdr remaining-columns)
+                            answer)
+                          (let ((contrib
+                                 (mul term
+                                      (c-det (fix:+ row 1)
+                                             (delete-nth index
+                                                         active-column-list)))))
+                            (if (even? index)
+                              (loop (fix:+ index 1)
+                                (cdr remaining-columns)
+                                (add answer contrib))
+                              (loop (fix:+ index 1)
+                                (cdr remaining-columns)
+                                (sub answer contrib))))))))))))
+          (c-det 0 (iota (m:dimension m)))))
+      det)))
+
 (defn determinant
   "Returns the determinant of the supplied square matrix `m`.
 
@@ -756,6 +860,12 @@
           (nth m 0)
           (for [i (range (num-rows m))]
             (determinant (without m 0 i)))))))
+
+(comment
+  (define (m:determinant A)
+    (if numerical?
+      (determinant-numerical A)
+      (determinant-general A))))
 
 (defn cofactors
   "Returns the matrix of cofactors of the supplied square matrix `m`."
@@ -790,6 +900,14 @@
   (m->s (s/compatible-shape rs)
         (invert (s->m ls ms rs))
         (s/compatible-shape ls)))
+
+(comment
+  ;; can we just make `ls` and call s:inverse? YES! Same as above.
+  (defn s:inverse1 [ms rs]
+    (let [ls (compatible-shape (g:* ms rs))]
+      (m->s (s/compatible-shape rs)
+            (invert (s->m ls ms rs))
+            (compatible-shape ls)))))
 
 (defn make-zero
   "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is
@@ -851,41 +969,129 @@
                    (v/zero? entry))))))
 
 (defn characteristic-polynomial
-  "Returns the [characteristic
-  polynomial](https://en.wikipedia.org/wiki/Characteristic_polynomial) of the
-  square matrix `m`.
-
-  If only `m` is supplied, returns a [[polynomial/Polynomial]] instance
-  representing the matrix `m`'s characteristic polynomial.
-
-  If `x` is supplied, returns the value of the characteristic polynomial of `m`
-  evaluated at `x`.
+  "Compute the characteristic polynomial of the square matrix m, evaluated at `x`.
 
   Typically `x` will be a symbolic variable, but if you wanted to get the value
-  of the characteristic polynomial at some particular numerical point `x` you
+  of the characteristic polynomial at some particular numerical point `x'` you
   could pass that too."
-  ([m]
-   (characteristic-polynomial m (poly/identity)))
-  ([m x]
-   (let [r (num-rows m)
-         c (num-cols m)]
-     (when-not (= r c) (u/illegal "not square"))
-     (let [Ix (generate r r (fn [i j]
-                              (if (= i j) x 0)))]
-       (determinant
-        (g/- Ix m))))))
+  [m x]
+  (let [r (num-rows m)
+        c (num-cols m)]
+    (when-not (= r c) (u/illegal "not square"))
+    (determinant (g/- (g/* x (I r)) m))))
+
+;; ## Solving
+
+(defn cramers-rule
+  "Linear equations solved by Cramer's rule.
+
+   Solves an inhomogeneous system of linear equations, `A*x=b`, where the matrix
+   `A` and the column matrix `b` are given.
+
+   returns the column matrix `X`.
+
+   Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
+  [A b]
+  {:pre [(square? A)
+         (column? b)
+         (= (dimension A) (num-rows b))]}
+  (let [bv (nth-col b 0)
+        d  (determinant A)
+        At (transpose A)]
+    (column*
+     (mapv (fn [i]
+             (g/div (determinant
+                     (with-substituted-row At i bv))
+                    d))
+           (range bv)))))
+
+;;; The following implements the classical adjoint formula for the
+;;; inverse of a matrix.  This may be useful for symbolic applications.
+
+(comment
+  (define (classical-adjoint-formula zero one add sub mul div zero?)
+    (let ((det (general-determinant add sub mul zero?)))
+      (define (matinv A)
+        (let ((dim (m:dimension A)))
+          (if (fix:= dim 1)
+            (m:generate 1 1
+                        (lambda (i j) (div one (matrix-ref A 0 0))))
+            (let* ((d (det A)) (-d (sub zero d)))
+              (m:generate dim dim
+                          (lambda (j i)
+                                  (if (even? (+ i j))
+                                    (div (det (m:minor A i j)) d)
+                                    (div (det (m:minor A i j)) -d))))))))
+      matinv)))
+
+(comment
+  (def numerical? false)
+
+  (define (easy-zero? x)
+    (cond ((number? x) (zero? x))
+          ;; Perhaps some form of easy simplification here?
+          ;;  e.g. substitution of numbers for literals,
+          ;;  and testing for zero result.
+          (else false)))
+
+  (define solve-general
+    (Cramers-rule g/+ g/- g/* g// easy-zero?))
+
+  (define (m:invert A)
+    (if numerical?
+      (matinv-numerical A)
+      (matinv-general A)))
+
+  (define (m:solve A b)
+    (if numerical?
+      (solve-numerical A b)
+      (solve-general A b))))
+
+(defn solve [A b]
+  (cramers-rule A b))
+
+(defn rsolve [b A]
+  (cond (s/up? b)   (column-matrix->up
+                     (solve A (up->column-matrix b)))
+        (column? b) (solve A b)
+        (s/down? b) (row-matrix->down
+                     (transpose
+                      (solve (transpose A)
+                             (transpose
+                              (down->row-matrix b)))))
+        (row? b)
+        (transpose
+         (solve (transpose A)
+                (transpose b)))
+        :else (u/illegal (str "I don't know how to solve:" b A))))
 
 ;; ## Generic Operation Installation
-
+;;
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
+
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
+(defmethod g/sub [::square-matrix ::v/scalar] [a b])
+(defmethod g/sub [::v/scalar ::square-matrix] [a b])
+
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
+(defmethod g/add [::square-matrix ::v/scalar] [a b])
+(defmethod g/add [::v/scalar ::square-matrix] [a b])
+
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::v/scalar ::matrix] [n a] (fmap #(g/* n %) a))
 (defmethod g/mul [::matrix ::v/scalar] [a n] (fmap #(g/* % n) a))
+
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
-(defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
+
+(defmethod g/div [::matrix ::v/scalar] [m u])
+(defmethod g/div [::v/scalar ::square-matrix] [u m])
+(defmethod g/div [::column-matrix ::square-matrix] [c m])
+(defmethod g/div [::row-matrix ::square-matrix] [r m])
+(defmethod g/div [::s/up ::square-matrix] [u m])
+(defmethod g/div [::s/down ::square-matrix] [d m])
+(defmethod g/div [::matrix ::square-matrix] [d m])
+
 (defmethod g/exp [::square-matrix] [m] (series/exp-series m))
 (defmethod g/cos [::square-matrix] [m] (series/cos-series m))
 (defmethod g/sin [::square-matrix] [m] (series/sin-series m))
@@ -914,11 +1120,12 @@
 (defmethod g/conjugate [::matrix] [m]  (fmap g/conjugate m))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
-(defmethod g/trace [::square-matrix] [m] (trace m))
+
 (defmethod g/determinant [::square-matrix] [m] (determinant m))
 (defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
+(defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/trace [::s/structure] [s]
   (square-structure-> s (fn [m _] (trace m))))
 
@@ -941,9 +1148,15 @@
 (defmethod g/div [::s/structure ::s/structure] [rv s]
   (s:solve-linear-left s rv))
 
+(defmethod g/solve-linear [::square-matrix ::s/up] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::s/down] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::column-matrix] [A b] (rsolve b A))
+(defmethod g/solve-linear [::square-matrix ::row-matrix] [A b] (rsolve b A))
 (defmethod g/solve-linear [::s/structure ::s/structure] [s product]
   (s:solve-linear-left s product))
 
+(defmethod g/solve-linear-right [::row-matrix ::square-matrix] [b A] (rsolve b A))
+(defmethod g/solve-linear-right [::down ::square-matrix] [b A] (rsolve b A))
 (defmethod g/solve-linear-right [::s/structure ::s/structure] [product s]
   (s:solve-linear-right product s))
 
