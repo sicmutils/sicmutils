@@ -34,6 +34,7 @@
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.permute :as up]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Associative AFn IFn Sequential))))
@@ -321,11 +322,13 @@
      (by-rows ['x_0↑0 'x_1↑0]
               ['x_0↑1 'x_1↑1]))
   ```"
-  [sym nrows ncols]
-  (let [prefix (str sym "_")]
-    (generate nrows ncols
-              (fn [i j]
-                (symbol (str prefix j "↑" i))))))
+  ([sym nrows]
+   (literal-matrix sym nrows nrows))
+  ([sym nrows ncols]
+   (let [prefix (str sym "_")]
+     (generate nrows ncols
+               (fn [i j]
+                 (symbol (str prefix j "↑" i)))))))
 
 (defn literal-column-matrix [sym nrows]
   (generate nrows 1
@@ -690,20 +693,24 @@
               (str "product is not numerical: " ls ms rs)))
     ms))
 
-(defn s:transpose [ls ms rs]
-  (m->s rs (transpose (s->m ls ms rs)) ls))
-
-(defn s:transpose1 [ms rs]
-  (let [ls (s/compatible-shape (g/* ms rs))]
-    (s:transpose ls ms rs)))
+(defn s:transpose
+  ([ms rs]
+   (let [ls (s/compatible-shape (g/* ms rs))]
+     (s:transpose ls ms rs)))
+  ([ls ms rs]
+   (m->s rs (transpose (s->m ls ms rs)) ls)))
 
 (defn- delete
   "Returns the vector formed by deleting the `i`'th element of the given vector
   `v`."
   [v i]
-  (vec
-   (concat (take i v)
-           (drop (inc i) v))))
+  (if (vector? v)
+    (into (subvec v 0 i)
+          (subvec v (inc i)))
+    ;; TODO why not the second??
+    (into (vec (take i v))
+          (drop (inc i) v))
+    #_(delete (vec v) i)))
 
 (defn with-substituted-row
   "Returns a new matrix of identical shape to `m`, with the vector `v` substituted
@@ -766,60 +773,52 @@
                g/+
                (range 0 rows))))
 
-;;; Kleanthes Konaris determinant routine, slightly edited by GJS
-;;; -------------------------------------------------------------
+;; Kleanthes Koniaris determinant routine, slightly edited by GJS
 
-;;; (iota 4) --> (0 1 2 3), as in APL.
-
-(comment
-  (define (general-determinant add sub mul easy-zero?)
-    (let ((zero (add)))
-      (define (det m)
-        (let ((cache '()))
-          (define (c-det row active-column-list)
-            (if (null? (cdr active-column-list)) ;one active column
-              (matrix-ref m row (car active-column-list))
-              (let ((value
-                     (assoc (list row active-column-list) cache)))
-                (if value
-                  (cadr value)  ; cache hit!
-                  (let loop   ; cache miss!
-                    ((index 0)
-                     (remaining-columns active-column-list)
-                     (answer zero))
-                    (if (null? remaining-columns)
-                      (begin (set! cache
-                                   (cons (list (list row
-                                                     active-column-list)
-                                               answer)
-                                         cache))
-                             answer)
-                      (let ((term
-                             (matrix-ref m row (car remaining-columns))))
-                        (if (easy-zero? term)
-                          (loop (fix:+ index 1)
-                            (cdr remaining-columns)
-                            answer)
-                          (let ((contrib
-                                 (mul term
-                                      (c-det (fix:+ row 1)
-                                             (delete-nth index
-                                                         active-column-list)))))
-                            (if (even? index)
-                              (loop (fix:+ index 1)
-                                (cdr remaining-columns)
-                                (add answer contrib))
-                              (loop (fix:+ index 1)
-                                (cdr remaining-columns)
-                                (sub answer contrib))))))))))))
-          (c-det 0 (iota (m:dimension m)))))
-      det)))
-
-(defn determinant
-  "Returns the determinant of the supplied square matrix `m`.
+(defn general-determinant
+  "Returns a procedure that computes the determinant of the supplied square matrix
+  `m`.
 
   Generic operations are used, so this works on symbolic square matrices."
-  [m]
+  [add sub mul easy-zero?]
+  (let [zero (add)]
+    (fn [m]
+      {:pre [(square? m)]}
+      (let [c-det (atom nil)]
+        (letfn [(c-det* [row [col & cols :as active-cols]]
+                  (if-not cols
+                    ;; one active column
+                    (core-get-in m [row col])
+                    (loop [idx 0
+                           remaining-cols active-cols
+                           answer zero]
+                      (if-not (seq remaining-cols)
+                        answer
+                        (let [term (core-get-in m [row (first remaining-cols)])]
+                          (if (easy-zero? term)
+                            (recur (inc idx)
+                                   (rest remaining-cols)
+                                   answer)
+                            (let [without-i (delete active-cols idx)
+                                  delta (mul term (@c-det (inc row) without-i))]
+                              (recur (inc idx)
+                                     (rest remaining-cols)
+                                     (if (even? idx)
+                                       (add answer delta)
+                                       (sub answer delta))))))))))]
+          (reset! c-det (memoize c-det*))
+          (@c-det 0 (range (dimension m))))))))
+
+(def ^{:doc "Returns the determinant of the supplied square matrix `m`.
+
+  Generic operations are used, so this works on symbolic square matrices."
+       :arglists '([m])}
+  determinant
+  (general-determinant g/+ g/- g/* v/numeric-zero?))
+
+;; TODO move to tests now that this sucks!
+#_
+(defn determinant [m]
   {:pre [(square? m)]}
   (condp = (num-rows m)
     0 m
@@ -833,12 +832,6 @@
           (nth m 0)
           (for [i (range (num-rows m))]
             (determinant (without m 0 i)))))))
-
-(comment
-  (define (m:determinant A)
-    (if numerical?
-      (determinant-numerical A)
-      (determinant-general A))))
 
 (defn cofactors
   "Returns the matrix of cofactors of the supplied square matrix `m`."
@@ -869,15 +862,13 @@
               (transpose C))))))
 
 (defn s:inverse
-  [ls ms rs]
-  (m->s (s/compatible-shape rs)
-        (invert (s->m ls ms rs))
-        (s/compatible-shape ls)))
-
-(defn s:inverse1
-  [ms rs]
-  (let [ls (s/compatible-shape (g/* ms rs))]
-    (s:inverse ls ms rs)))
+  ([ms rs]
+   (let [ls (s/compatible-shape (g/* ms rs))]
+     (s:inverse ls ms rs)))
+  ([ls ms rs]
+   (m->s (s/compatible-shape rs)
+         (invert (s->m ls ms rs))
+         (s/compatible-shape ls))))
 
 (defn make-zero
   "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is
@@ -978,61 +969,54 @@
   `A` and the column matrix `b` are given. returns the column matrix `X`.
 
   Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
-  [A b]
-  {:pre [(square? A)
-         (column? b)
-         (= (dimension A) (num-rows b))]}
-  (let [bv (nth-col b 0)
-        d  (determinant A)
-        At (transpose A)]
-    (column*
-     (mapv (fn [i]
-             (g/div (determinant
-                     (with-substituted-row At i bv))
-                    d))
-           (range bv)))))
+  [add sub mul div zero?]
+  (let [det (general-determinant add sub mul zero?)]
+    (fn [A b]
+      {:pre [(square? A)
+             (column? b)
+             (= (dimension A) (num-rows b))]}
+      (let [bv (nth-col b 0)
+            d  (determinant A)
+            At (transpose A)]
+        (column*
+         (mapv (fn [i]
+                 (g/div (det
+                         (with-substituted-row At i bv))
+                        d))
+               (range bv)))))))
 
 ;;; The following implements the classical adjoint formula for the
 ;;; inverse of a matrix.  This may be useful for symbolic applications.
 
-(comment
-  (define (classical-adjoint-formula zero one add sub mul div zero?)
-    (let ((det (general-determinant add sub mul zero?)))
-      (define (matinv A)
-        (let ((dim (m:dimension A)))
-          (if (fix:= dim 1)
-            (m:generate 1 1
-                        (lambda (i j) (div one (matrix-ref A 0 0))))
-            (let* ((d (det A)) (-d (sub zero d)))
-              (m:generate dim dim
-                          (lambda (j i)
-                                  (if (even? (+ i j))
-                                    (div (det (m:minor A i j)) d)
-                                    (div (det (m:minor A i j)) -d))))))))
-      matinv)))
+(defn classical-adjoint-formula [zero one add sub mul div zero?]
+  (let [det (general-determinant add sub mul zero?)]
+    (fn matinv [A]
+      (let [dim (dimension A)]
+        (if (= dim 1)
+          (generate 1 1
+                    (fn [i j] (g/div one (core-get-in A [0 0]))))
+          (let* [d  (det A)
+                 -d (g/sub zero d)]
+            (generate dim dim
+                      (fn [j i]
+                        (if (even? (+ i j))
+                          (g/div (det (without A i j)) d)
+                          (g/div (det (without A i j)) -d))))))))))
 
-(comment
-  (def numerical? false)
+#_
+(def solve-general
+  (cramers-rule g/+ g/- g/* g// v/numeric-zero?))
 
-  (define (easy-zero? x)
-    (cond ((number? x) (zero? x))
-          ;; Perhaps some form of easy simplification here?
-          ;;  e.g. substitution of numbers for literals,
-          ;;  and testing for zero result.
-          (else false)))
-
-  (define solve-general
-    (Cramers-rule g/+ g/- g/* g// easy-zero?))
-
-  (define (m:invert A)
-    (if numerical?
+#_(defn m:invert [A]
+    (if *numerical?*
       (matinv-numerical A)
       (matinv-general A)))
 
-  (define (m:solve A b)
-    (if numerical?
-      (solve-numerical A b)
-      (solve-general A b))))
+#_
+(defn m:solve [A b]
+  (if *numerical?*
+    (solve-numerical A b)
+    (solve-general A b)))
 
 (defn solve [A b]
   (cramers-rule A b))

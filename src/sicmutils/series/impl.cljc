@@ -20,8 +20,7 @@
 (ns ^:no-doc sicmutils.series.impl
   "Backing implementation for the types defined in [[sicmutils.series]], written
   against pure Clojure sequences."
-  (:require [sicmutils.abstract.number :as an]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.special.factorial :as sf]
             [sicmutils.util :as u]
@@ -639,8 +638,8 @@
 
 ;; These two are less elegant, perhaps:
 
-(def acosx (c-seq (an/literal-number '(/ pi 2)) asinx))
-(def acotx (c-seq (an/literal-number '(/ pi 2)) atanx))
+(def acosx (c-seq (/ Math/PI 2) asinx))
+(def acotx (c-seq (/ Math/PI 2) atanx))
 
 ;; The hyperbolic trig functions are defined in a similar way:
 

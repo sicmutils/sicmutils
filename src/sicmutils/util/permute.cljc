@@ -24,7 +24,7 @@
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
-(defn- delete-nth
+(defn ^:no-doc delete-nth
   "returns the sequence `xs` with its `n`th element dropped."
   [xs n]
   (concat (take n xs)

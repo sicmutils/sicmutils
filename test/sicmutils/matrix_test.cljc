@@ -955,13 +955,15 @@
                (g/divide H)))))))
 
 (deftest series-expansion-tests
-  (is (= (m/by-rows [(g// 'pi 2) 0] [0 (g// 'pi 2)])
+  (is (= (m/by-rows [(g// Math/PI 2) 0]
+                    [0 (g// Math/PI 2)])
          (first
           (g/acos
            (m/by-rows [1 2] [3 4]))))
       "series expansion works for g/acos")
 
-  (is (= (m/by-rows [(g// 'pi 2) 0] [0 (g// 'pi 2)])
+  (is (= (m/by-rows [(g// Math/PI 2) 0]
+                    [0 (g// Math/PI 2)])
          (first
           (g/acot
            (m/by-rows [1 2] [3 4]))))
