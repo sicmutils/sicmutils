@@ -29,6 +29,7 @@
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial :as poly]
             [sicmutils.series :as series]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -342,6 +343,7 @@
                          (string-append (symbol->string name)
                                         "_"
                                         (number->string j)))))))
+
 
 (defn get-in
   "Like [[clojure.core/get-in]] for matrices, but obeying the scmutils convention:
@@ -969,27 +971,37 @@
                    (v/zero? entry))))))
 
 (defn characteristic-polynomial
-  "Compute the characteristic polynomial of the square matrix m, evaluated at `x`.
+  "Returns the [characteristic
+  polynomial](https://en.wikipedia.org/wiki/Characteristic_polynomial) of the
+  square matrix `m`.
+
+  If only `m` is supplied, returns a [[polynomial/Polynomial]] instance
+  representing the matrix `m`'s characteristic polynomial.
+
+  If `x` is supplied, returns the value of the characteristic polynomial of `m`
+  evaluated at `x`.
 
   Typically `x` will be a symbolic variable, but if you wanted to get the value
-  of the characteristic polynomial at some particular numerical point `x'` you
+  of the characteristic polynomial at some particular numerical point `x` you
   could pass that too."
-  [m x]
-  (let [r (num-rows m)
-        c (num-cols m)]
-    (when-not (= r c) (u/illegal "not square"))
-    (determinant (g/- (g/* x (I r)) m))))
+  ([m]
+   (characteristic-polynomial m (poly/identity)))
+  ([m x]
+   (let [r (num-rows m)
+         c (num-cols m)]
+     (when-not (= r c) (u/illegal "not square"))
+     (let [Ix (generate r r (fn [i j]
+                              (if (= i j) x 0)))]
+       (determinant
+        (g/- Ix m))))))
 
 ;; ## Solving
 
 (defn cramers-rule
   "Linear equations solved by Cramer's rule.
-
    Solves an inhomogeneous system of linear equations, `A*x=b`, where the matrix
    `A` and the column matrix `b` are given.
-
    returns the column matrix `X`.
-
    Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
   [A b]
   {:pre [(square? A)
@@ -1066,7 +1078,7 @@
         :else (u/illegal (str "I don't know how to solve:" b A))))
 
 ;; ## Generic Operation Installation
-;;
+
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
 
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))

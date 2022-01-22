@@ -424,11 +424,18 @@
   (binding [m/*careful-conversion* false]
     (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner) with
               either side empty returns an empty structure"
-              100 [[l inner r] (gen/let [rows (gen/choose 0 5) cols (gen/choose 0 5)]
+              100 [[l inner r] (gen/let [rows (gen/choose 0 5)
+                                         cols (gen/choose 0 5)]
                                  (<l|:inner:|r> rows cols))]
-              (is (v/zero?
-                   (g/- (m/s:transpose l inner r)
-                        (s/transpose-outer inner))))))
+              (if (empty? r)
+                (testing "in this case, the right side is fully collapsed and
+                empty and the left side contains a single empty structure."
+                  (do (is (v/zero? (m/s:transpose l inner r)))
+                      (is (empty? (s/transpose-outer inner)))))
+                (is (v/zero?
+                     (g/- (m/s:transpose l inner r)
+                          (s/transpose-outer inner)))
+                    "left side empty generates a compatible, zero entry"))))
 
   (comment
     (defn transpose-test [left-multiplier thing right-multiplier]
@@ -837,7 +844,6 @@
 
           )
 
-
         (let [a (s/up (s/down 'a 'b)
                       (s/down 'c 'd))
               b (s/down 'e 'f)]
@@ -944,3 +950,13 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest characteristic-poly-tests
+  (let [M (m/by-rows [1 3 2] [4 5 2] [1 4 5])
+        p (m/characteristic-polynomial M)]
+    (is (= (m/characteristic-polynomial M 12)
+           (p 12))
+        "passing the arg directly has the same result as calling the returned
+        polynomial.")
+
+    (is (= 315 (p 12)))))
