@@ -444,7 +444,42 @@
 
             (is (= (g/simplify (g/div s x))
                    (g/simplify (g/* s (g/invert x))))
-                "s/q matches quaternion division"))
+                "s/q matches quaternion division")
+
+            (is (= (g/simplify (g/solve-linear (q/make s) x))
+                   (g/simplify  (g/solve-linear s x)))
+                "solve-linear scalar matches q*q")
+
+            (is (= (g/simplify (g/solve-linear-right x (q/make s)))
+                   (g/simplify  (g/solve-linear-right x s)))
+                "solve-linear-right scalar matches q*q"))
+
+  (checking "complex + quaternion arithmetic matches quaternion-only
+            implementations." 100
+            [c sg/complex x (sg/quaternion sg/symbol)]
+            (is (= (g/simplify (g/solve-linear (q/make c) x))
+                   (g/simplify  (g/solve-linear c x)))
+                "solve-linear complex matches q*q")
+
+            (is (= (g/simplify (g/solve-linear x (q/make c)))
+                   (g/simplify  (g/solve-linear x c)))
+                "solve-linear complex matches q*q, c right")
+
+            (is (= (g/simplify (g/solve-linear-right (q/make c) x))
+                   (g/simplify  (g/solve-linear-right c x)))
+                "solve-linear-right complex matches q*q")
+
+            (is (= (g/simplify (g/solve-linear-right x (q/make c)))
+                   (g/simplify  (g/solve-linear-right x c)))
+                "solve-linear-right complex matches q*q, c right")
+
+            (is (= (g/simplify (g/dot-product (q/make c) x))
+                   (g/simplify  (g/dot-product c x)))
+                "dot-product complex matches q*q")
+
+            (is (= (g/simplify (g/dot-product x (q/make c)))
+                   (g/simplify  (g/dot-product x c)))
+                "dot-product complex matches q*q, c right"))
 
   (checking "multi-arg arithmetic" 100
             [xs (gen/vector (sg/quaternion) 0 20)]

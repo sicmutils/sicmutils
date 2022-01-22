@@ -1425,7 +1425,7 @@
   (g/+ (g/* (get-r a) (sc/real b))
        (g/* (get-i a) (sc/imaginary b))))
 
-(defmethod g/solve-linear-right [::quaternion ::scalar] [q s] (q-div-scalar q s))
+(defmethod g/solve-linear-right [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
 (defmethod g/solve-linear-right [::quaternion ::quaternion] [a b] (div a b))
 (defmethod g/solve-linear-right [::sc/complex ::quaternion] [a b] (div (make a) b))
 (defmethod g/solve-linear-right [::quaternion ::sc/complex] [a b] (div a (make b)))

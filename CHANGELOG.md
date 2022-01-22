@@ -2,10 +2,36 @@
 
 ## [unreleased]
 
-  - quaternions!
+- #461 adds `sicmutils.quaternion`, with a full arithmetic implementation and
+  the beginnings of a rotation API. Quaternions are implemented like vectors of
+  length 4, and implement all appropriate Clojure protocols. All arithmetic is
+  compatible with all scalars and complex numbers.
 
-  - quaternions are implemented like vectors of length 4, and implement all
-    appropriate Clojure protocols.
+  - Accessors: `get-r`, `real-part`, `get-i`, `get-j`, `get-k`, `complex-1`,
+    `complex-2`, `->complex-pair`, `->vector`, `three-vector`
+
+  - Predicates: `real?`, `zero?`, `one?`, `pure?`, `unit?`
+
+  - Constants: `ZERO`, `ONE`, `I`, `J`, `K`
+
+  - Reader literal `#sicm/quaternion` takes a 4-vector or a single entry.
+
+  - Constructors: `make`, `from-complex`, `spherical`, `semipolar`,
+    `multipolar`, `cylindrospherical`, `cylindrical`
+
+  - More: `arity`, `evaluate`, `partial-derivative`, `magnitude-sq`,
+    `normalize`, `commutator`
+
+  - Transcendental functions: `exp` `log`, `cos`, `sin`, `tan` `sinh`, `cosh`,
+    `tanh`. Many more transcendentals will work, thanks to their default
+    implementations.
+
+  - Arithmetic and generics: `+`, `-`, `*`, `/`, `dot-product`, `cross-product`,
+    `conjugate`, `magnitude`, `expt`, `sqrt`, `simplify`, `infinite?`,
+    `solve-linear-right`, `solve-linear`
+
+  - Rotation-related: `from-angle-normal-axis`, `from-angle-axis`, `pitch`,
+    `roll`, `yaw`, `->angle-axis`
 
 - #468:
 
