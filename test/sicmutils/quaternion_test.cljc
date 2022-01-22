@@ -440,7 +440,11 @@
 
             (is (= (g/simplify (q/div x (q/make s)))
                    (g/simplify (q/q-div-scalar x s)))
-                "q/s matches quaternion division"))
+                "q/s matches quaternion division")
+
+            (is (= (g/simplify (g/div s x))
+                   (g/simplify (g/* s (g/invert x))))
+                "s/q matches quaternion division"))
 
   (checking "multi-arg arithmetic" 100
             [xs (gen/vector (sg/quaternion) 0 20)]
@@ -592,8 +596,8 @@
            quaternions, where 2 components are 0.")))
 
   (checking "q/commutator" 100
-            [q1 (sg/quaternion sg/any-integral)
-             q2 (sg/quaternion sg/any-integral)]
+            [q1 (sg/quaternion sg/small-integral)
+             q2 (sg/quaternion sg/small-integral)]
             (is (v/zero?
                  (q/commutator
                   (q/make (first (q/->complex-pair q1)))
@@ -844,63 +848,4 @@
            (q/->angle-axis
             (q/from-angle-axis
              'theta
-             ['x 'y (g/sqrt (g/- 1 (g/square 'x) (g/square 'y)))]))))))
-
-  (is (= (s/up 0 (s/up 0 0 0))
-         (g/simplify
-          (let [theta 'theta
-                v (s/up 'x 'y 'z)
-                axis (v:make-unit v)
-                [theta' axis'] (-> (q/from-angle-axis theta axis)
-                                   (q/->rotation-matrix)
-                                   (q/rotation-matrix->)
-                                   (q/->angle-axis))]
-            (s/up (g/- theta' theta)
-                  (g/- axis' axis))))))
-
-  ;; But look at (show-notes) to see the assumptions.
-  ;;
-  ;; Indeed:
-  (is (= (s/up 2.0
-               (s/up -0.5345224838248488
-                     -1.0690449676496976
-                     -1.6035674514745464))
-         (let [theta -1
-               v (s/up 1 2 3)
-               axis (v:make-unit v)
-               [theta' axis'] (-> (q/from-angle-axis theta axis)
-                                  (q/->rotation-matrix)
-                                  (q/rotation-matrix->)
-                                  (q/->angle-axis))]
-           (s/up (g/- theta' theta)
-                 (g/- axis' axis))))))
-
-(defn rotation-matrix->quaternion-mason [M]
-  (let [r11 (get-in M [0 0]) r12 (get-in M [0 1]) r13 (get-in M [0 2])
-        r21 (get-in M [1 0]) r22 (get-in M [1 1]) r23 (get-in M [1 2])
-        r31 (get-in M [2 0]) r32 (get-in M [2 1]) r33 (get-in M [2 2])
-        quarter (g// 1 4)
-
-        q0-2 (g/* quarter (g/+ 1 r11 r22 r33))
-
-        q0q1 (g/* quarter (g/- r32 r23))
-        q0q2 (g/* quarter (g/- r13 r31))
-        q0q3 (g/* quarter (g/- r21 r12))
-        q1q2 (g/* quarter (g/+ r12 r21))
-        q1q3 (g/* quarter (g/+ r13 r31))
-        q2q3 (g/* quarter (g/+ r23 r32))]
-    ;; If numerical, choose largest of squares.
-    ;; If symbolic, choose nonzero square.
-    (let [q0 (g/sqrt q0-2)
-          q1 (g// q0q1 q0)
-          q2 (g// q0q2 q0)
-          q3 (g// q0q3 q0)]
-      (q/make q0 q1 q2 q3))))
-
-(deftest new-tests
-  (let [M (g/* (mr/rotate-z-matrix 0.1)
-               (mr/rotate-x-matrix 0.2)
-               (mr/rotate-z-matrix 0.3))]
-    (is (v/zero?
-         (g/- (rotation-matrix->quaternion-mason M)
-              (q/rotation-matrix-> M))))))
+             ['x 'y (g/sqrt (g/- 1 (g/square 'x) (g/square 'y)))])))))))

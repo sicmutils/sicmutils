@@ -1071,14 +1071,6 @@
 
 ;; ## Transcendental Functions
 
-;; TODO documented etc up to here.
-
-;; NOTE that this is good, ported from quaternion.js... not bad, handles zero
-;; cases well.
-
-;; TODO check against:
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1157
-
 (defn log
   "Returns the logarithm $\\ln q$ of the supplied quaternion `q`.
 
@@ -1230,7 +1222,8 @@
 ;; The following section provides a number of utilities for building quaternions
 ;; that represent rotations, and moving quaternions and other representations of
 ;; rotations in 3d and 4d space.
-
+;;
+;;
 ;; ### Conversion to/from Angle-Axis
 
 (defn from-angle-normal-axis
@@ -1322,313 +1315,6 @@
             axis (g/div v v-mag)]
         [theta axis]))))
 
-;; ## To/From 3D axes
-;;
-;; NOTE this one is weird. I think this is, give me the new orthogonal set of
-;; axes you want to point at, and I will generate a rotation to get to those.
-
-(defn from-axes
-  "Create a quaternion from three axis vectors."
-  [x-axis y-axis z-axis]
-  (let [[m00 m10 m20] x-axis
-        [m01 m11 m21] y-axis
-        [m02 m12 m22] z-axis
-        trace (g/+ m00 m11 m22)]
-    (cond
-      (>= trace 0)
-      (let [s (g/sqrt (inc trace))
-            r (/ 0.5 s)]
-        (make (* r (- m21 m12))
-              (* r (- m02 m20))
-              (* r (- m10 m01))
-              (* 0.5 s)))
-
-      (and (> m00 m11) (> m00 m22))
-      (let [s (Math/sqrt (- (inc m00) m11 m22))
-            r (/ 0.5 s)]
-        (make (* 0.5 s)
-              (* r (+ m10 m01))
-              (* r (+ m02 m20))
-              (* r (- m21 m12))))
-
-      (> m11 m22)
-      (let [s (Math/sqrt (- (inc m11) m00 m22))
-            r (/ 0.5 s)]
-        (make (* r (+ m10 m01))
-              (* 0.5 s)
-              (* r (+ m21 m12))
-              (* r (- m02 m20))))
-
-      :else
-      (let [s (Math/sqrt (- (inc m22) m00 m11))
-            r (/ 0.5 s)]
-        (make (* r (+ m02 m20))
-              (* r (+ m21 m12))
-              (* 0.5 s)
-              (* r (- m10 m01)))))))
-
-(defn ->axes
-  "Return the three axes of the quaternion."
-  [q]
-  ;; NOTE that this norm was actually the dot-product.
-  (let [n (magnitude-sq q)]
-    (if (and (v/number? n)
-             (or (v/zero? n)
-                 (g/negative? n)))
-      (m/I 3)
-      (let [;; TODO check assumption here! for symbolic we can log an assumption.
-            ;; Can we hardcode the zero case more easily, since so much disappears?
-            s (g// 2 n)
-            [w x y z] q
-            xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
-            xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
-            yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
-            zz (g/* z zs) zw (g/* z ws)]
-        [[(g/- 1 (g/+ yy zz)) (g/+ xy zw) (g/- xz yw)]
-         [(g/- xy zw) (g/- 1 (g/+ xx zz)) (g/+ yz xw)]
-         [(g/+ xz yw) (g/- yz xw) (g/- 1 (g/+ xx yy))]]))))
-
-(comment
-  ;; TODO move v:make-unit somewhere since we need it!
-
-  (defn look-at
-    "Create a quaternion that is directed at a point specified by a vector."
-    [direction up]
-    (let [z-axis (v/normalize direction)
-          x-axis (v/normalize (g/cross-product up direction))
-          y-axis (v/normalize (g/cross-product direction x-axis))]
-      (from-axes x-axis y-axis z-axis))))
-
-;; ## TODO add quaternions as 2x2 complex matrices
-;; ## https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L578
-
-;; /**
-;; * Returns a 2x2 complex matrix representation of a Quaternion x:
-;; * [ a + b i,  c + d i]
-;; * [ -c + d i, a - b i]
-;; */
-;; template<typename T>
-;; inline complex_matrix_2d<T> to_complex_matrix_2d(const Quaternion<T>& x) {
-;;                                                                           complex_matrix_2d<T> cm;
-;;                                                                           cm[0][0] = {x.a(), x.b()}; cm[0][1] = {x.c(), x.d()};
-;;                                                                           cm[1][0] = -conj(cm[0][1]); cm[1][1] = conj(cm[0][0]);
-;;                                                                           return cm;
-;;                                                                           }
-
-;; ## Quaternions as 4x4 matrices
-
-(def ONE-matrix
-  (m/by-rows
-   [1 0 0 0]
-   [0 1 0 0]
-   [0 0 1 0]
-   [0 0 0 1]))
-
-(def I-matrix
-  (m/by-rows
-   [0 1 0 0]
-   [-1 0 0 0]
-   [0 0 0 -1]
-   [0 0 1 0]))
-
-(def J-matrix
-  (m/by-rows
-   [0 0 1 0]
-   [0 0 0 1]
-   [-1 0 0 0]
-   [0 -1 0 0]))
-
-(def K-matrix
-  (m/by-rows
-   [0 0 0 1]
-   [0 0 -1 0]
-   [0 1 0 0]
-   [-1 0 0 0]))
-
-(def ONE-tensor (m/->structure ONE-matrix))
-(def I-tensor (m/->structure I-matrix))
-(def J-tensor (m/->structure J-matrix))
-(def K-tensor (m/->structure K-matrix))
-
-(defn ->4x4
-  "Returns a 4x4 matrix that represents the supplied [[Quaternion]] `q`."
-  [q]
-  (g/+ (g/* (get-r q) ONE-matrix)
-       (g/* (get-i q) I-matrix)
-       (g/* (get-j q) J-matrix)
-       (g/* (get-k q) K-matrix)))
-
-(defn q:4x4->
-  "TODO what is the deal with this first row thing??"
-  [four-matrix]
-  (make
-   (nth four-matrix 0)))
-
-;; To rotate a 3-vector by the angle prescribed by a unit quaternion.
-
-;; TODO see if it's more efficient to do this, AND if so move the next one to
-;; the tests.
-
-(defn rotate
-  "Rotate a vector with a quaternion."
-  [q v]
-  {:pre [(quaternion? q)
-         (vector? v)
-         (= 3 (count v))]}
-  (let [[vx vy vz] v
-        [qw qx qy qz] q]
-    [(g/+ (g/* qw qw vx)       (g/* 2 qy qw vz) (g/* -2 qz qw vy)    (g/* qx qx vx)
-          (g/* 2 qy qx vy)     (g/* 2 qz qx vz) (g/- (g/* qz qz vx)) (g/- (g/* qy qy vx)))
-     (g/+ (g/* 2 qx qy vx)     (g/* qy qy vy)   (g/* 2 qz qy vz)     (g/* 2 qw qz vx)
-          (g/- (g/* qz qz vy)) (g/* qw qw vy)   (g/* -2 qx qw vz)    (g/- (g/* qx qx vy)))
-     (g/+ (g/* 2 qx qz vx)     (g/* 2 qy qz vy) (g/* qz qz vz)       (g/* -2 qw qy vx)
-          (g/- (g/* qy qy vz)) (g/* 2 qw qx vy) (g/- (g/* qx qx vz)) (g/* qw qw vz))]))
-
-;; TODO see if this is better with symbolic?
-
-(defn gjs-rotate [q]
-  {:pre [(quaternion? q)]}
-  ;; TODO copy rotation from above. This returns a rotation function??
-  ;;(assert (q:unit? q)) This assertion is really:
-
-  ;; TODO log this `assume-unit!` as a new function, have it throw on false.
-  (let [vv (->vector q)
-        v  (g/simplify (g/dot-product vv vv))]
-    (ul/assume! (list '= v 1) 'rotate))
-  (let [q* (conjugate q)]
-    (fn the-rotation [three-v]
-      (three-vector
-       (mul q (make 0 three-v) q*)))))
-
-;; ## Relation to 3x3 Rotation Matrices
-;;
-;; Expanded Matt Mason method.
-
-;; TODO get the simplify stuff going, maybe in a separate PR... AND remove this
-;; `careful-simplify` stuff.
-
-(def careful-simplify g/simplify)
-
-(defn rotation-matrix->
-  "TODO change >= etc to using compare... OR just go ahead and add those to v/
-  finally!"
-  [M]
-  ;; (assert (orthogonal-matrix? M))
-  ;; returns a unit quaternion
-  (let [r11 (get-in M [0 0]) r12 (get-in M [0 1]) r13 (get-in M [0 2])
-        r21 (get-in M [1 0]) r22 (get-in M [1 1]) r23 (get-in M [1 2])
-        r31 (get-in M [2 0]) r32 (get-in M [2 1]) r33 (get-in M [2 2])
-        quarter (g// 1 4)
-
-        q0-2 (g/* quarter (g/+ 1 r11 r22 r33))
-        q1-2 (g/* quarter (g/+ 1 r11 (g/- r22) (g/- r33)))
-        q2-2 (g/* quarter (g/+ 1 (g/- r11) r22 (g/- r33)))
-        q3-2 (g/* quarter (g/+ 1 (g/- r11) (g/- r22) r33))
-
-        q0q1 (g/* quarter (g/- r32 r23))
-        q0q2 (g/* quarter (g/- r13 r31))
-        q0q3 (g/* quarter (g/- r21 r12))
-        q1q2 (g/* quarter (g/+ r12 r21))
-        q1q3 (g/* quarter (g/+ r13 r31))
-        q2q3 (g/* quarter (g/+ r23 r32))
-
-        q0-2s (careful-simplify q0-2)
-        q1-2s (careful-simplify q1-2)
-        q2-2s (careful-simplify q2-2)
-        q3-2s (careful-simplify q3-2)]
-    (cond (and (v/number? q0-2s) (v/number? q1-2s)
-               (v/number? q2-2s) (v/number? q3-2s))
-          (cond (>= q0-2s (max q1-2s q2-2s q3-2s))
-                (let [q0 (g/sqrt q0-2s)
-                      q1 (g// q0q1 q0)
-                      q2 (g// q0q2 q0)
-                      q3 (g// q0q3 q0)]
-                  (make q0 q1 q2 q3))
-
-                (>= q1-2s (max q0-2s q2-2s q3-2s))
-                (let [q1 (g/sqrt q1-2s)
-                      q0 (g// q0q1 q1)
-                      q2 (g// q1q2 q1)
-                      q3 (g// q1q3 q1)]
-                  (make q0 q1 q2 q3))
-
-                (>= q2-2s (max q0-2s q1-2s q3-2s))
-                (let [q2 (g/sqrt q2-2s)
-                      q0 (g// q0q2 q2)
-                      q1 (g// q1q2 q2)
-                      q3 (g// q2q3 q2)]
-                  (make q0 q1 q2 q3))
-
-                :else
-                (let [q3 (g/sqrt q3-2s)
-                      q0 (g// q0q3 q3)
-                      q1 (g// q1q3 q3)
-                      q2 (g// q2q3 q3)]
-                  (make q0 q1 q2 q3)))
-
-          (not (v/numeric-zero? q0-2s))
-          (let [q0 (g/sqrt q0-2)
-                q1 (g// q0q1 q0)
-                q2 (g// q0q2 q0)
-                q3 (g// q0q3 q0)]
-            (make q0 q1 q2 q3))
-
-          (not (v/numeric-zero? q1-2s))
-          (let [q1 (g/sqrt q1-2)
-                q0 0
-                q2 (g// q1q2 q1)
-                q3 (g// q1q3 q1)]
-            (make q0 q1 q2 q3))
-
-          (not (v/numeric-zero? q2-2s))
-          (let [q2 (g/sqrt q2-2)
-                q0 0
-                q1 0
-                q3 (g// q2q3 q2)]
-            (make q0 q1 q2 q3))
-
-          :else (make 0 0 0 0))))
-
-(defn ->rotation-matrix [q]
-  {:pre [(quaternion? q)]}
-  ;;(assert (q:unit? q))
-  ;; This assertion is really:
-  ;; TODO same thing, pull out assumption!!
-  (let [vv (->vector q)
-        v  (g/simplify (g/dot-product vv vv))]
-    (ul/assume! (list '= v 1) 'quaternion->rotation-matrix))
-  (let [q0 (get-r q) q1 (get-i q)
-        q2 (get-j q) q3 (get-k q)
-        m-2 (g/+ (g/square q0) (g/square q1)
-                 (g/square q2) (g/square q3))]
-    (m/by-rows [(g// (g/+ (g/expt q0 2)
-                          (g/expt q1 2)
-                          (g/* -1 (g/expt q2 2))
-                          (g/* -1 (g/expt q3 2)))
-                     m-2)
-                (g// (g/* 2 (g/- (g/* q1 q2) (g/* q0 q3)))
-                     m-2)
-                (g// (g/* 2 (g/+ (g/* q1 q3) (g/* q0 q2)))
-                     m-2)]
-               [(g// (g/* 2 (g/+ (g/* q1 q2) (g/* q0 q3)))
-                     m-2)
-                (g// (g/+ (g/expt q0 2)
-                          (g/* -1 (g/expt q1 2))
-                          (g/expt q2 2)
-                          (g/* -1 (g/expt q3 2)))
-                     m-2)
-                (g// (g/* 2 (g/- (g/* q2 q3) (g/* q0 q1)))
-                     m-2)]
-               [(g// (g/* 2 (g/- (g/* q1 q3) (g/* q0 q2)))
-                     m-2)
-                (g// (g/* 2 (g/+ (g/* q2 q3) (g/* q0 q1)))
-                     m-2)
-                (g// (g/+ (g/expt q0 2)
-                          (g/* -1 (g/expt q1 2))
-                          (g/* -1 (g/expt q2 2))
-                          (g/expt q3 2))
-                     m-2)])))
-
 ;; ## Generic Method Installation
 ;;
 ;; ### Equality
@@ -1680,9 +1366,8 @@
 
 (defmethod g/invert [::quaternion] [q] (invert q))
 
-;; TODO add tests for scalar / quat
 (defmethod g/div [::quaternion ::quaternion] [a b] (div a b))
-(defmethod g/div [::v/scalar ::quaternion] [q s] (scale-l s (g/invert q)))
+(defmethod g/div [::v/scalar ::quaternion] [s q] (scale-l s (g/invert q)))
 (defmethod g/div [::quaternion ::v/scalar] [q s] (q-div-scalar q s))
 (defmethod g/div [::sc/complex ::quaternion] [a b] (div (make a) b))
 (defmethod g/div [::quaternion ::sc/complex] [a b] (div a (make b)))
@@ -1700,7 +1385,6 @@
 (defmethod g/sinh [::quaternion] [q] (sinh q))
 (defmethod g/tanh [::quaternion] [q] (tanh q))
 
-;; TODO test!
 (defmethod g/infinite? [::quaternion] [q]
   (or (g/infinite? (get-r q))
       (g/infinite? (get-i q))
@@ -1750,25 +1434,3 @@
 (defmethod g/solve-linear [::quaternion ::quaternion] [a b] (div b a))
 (defmethod g/solve-linear [::sc/complex ::quaternion] [a b] (div b (make a)))
 (defmethod g/solve-linear [::quaternion ::sc/complex] [a b] (div (make b) a))
-
-;; ## Implementation Notes
-;;
-;; TODO: look at `assume!` in scmutils. What if you can show that the thing IS
-;; indeed true? Does the logging just happen as the default failure?
-;;
-;; NOTE I think I know what this does now, and it lives in
-;; `sicmutils.util.logic`. We can augment what that does - but it tries to
-;; execute whatever statement it can,and fails if that thing can provably go
-;; false.
-;;
-;; NOTE AND you might not want to normalize every damned time, if you have some
-;; symbolic thing. Do it twice and it's going to get crazy. So why not just
-;; assume that it's normalized?
-
-;; TODO slerp, fromAxisAngle (confirm), fromEuler (confirm), fromBetweenVectors https://github.com/infusion/Quaternion.js/
-
-;; slerp notes: https://math.stackexchange.com/questions/93605/understanding-the-value-of-inner-product-of-two-quaternions-in-slerp
-;;
-;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
-;;
-;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
