@@ -671,4 +671,16 @@
 
       (checking "atanh" 100 [n (gen-double 0.1 0.9)]
                 (is (ish? ((D-numeric g/atanh) n)
-                          ((derivative g/atanh) n)))))))
+                          ((derivative g/atanh) n))))
+
+      (checking "acoth" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/acoth) n)
+                          ((derivative g/acoth) n))))
+
+      (checking "asech" 100 [n (gen-double 0.1 0.9)]
+                (is (ish? ((D-numeric g/asech) n)
+                          ((derivative g/asech) n))))
+
+      (checking "acsch" 100 [n (gen-double 2 10)]
+                (is (ish? ((D-numeric g/acsch) n)
+                          ((derivative g/acsch) n)))))))

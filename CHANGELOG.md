@@ -2,6 +2,37 @@
 
 ## [unreleased]
 
+- #461 adds `sicmutils.quaternion`, with a full arithmetic implementation and
+  the beginnings of a rotation API. Quaternions are implemented like vectors of
+  length 4, and implement all appropriate Clojure protocols. All arithmetic is
+  compatible with all scalars and complex numbers.
+
+  - Accessors: `get-r`, `real-part`, `get-i`, `get-j`, `get-k`, `complex-1`,
+    `complex-2`, `->complex-pair`, `->vector`, `three-vector`
+
+  - Predicates: `real?`, `zero?`, `one?`, `pure?`, `unit?`
+
+  - Constants: `ZERO`, `ONE`, `I`, `J`, `K`
+
+  - Reader literal `#sicm/quaternion` takes a 4-vector or a single entry.
+
+  - Constructors: `make`, `from-complex`, `spherical`, `semipolar`,
+    `multipolar`, `cylindrospherical`, `cylindrical`
+
+  - More: `arity`, `evaluate`, `partial-derivative`, `magnitude-sq`,
+    `normalize`, `commutator`
+
+  - Transcendental functions: `exp` `log`, `cos`, `sin`, `tan` `sinh`, `cosh`,
+    `tanh`. Many more transcendentals will work, thanks to their default
+    implementations.
+
+  - Arithmetic and generics: `+`, `-`, `*`, `/`, `dot-product`, `cross-product`,
+    `conjugate`, `magnitude`, `expt`, `sqrt`, `simplify`, `infinite?`,
+    `solve-linear-right`, `solve-linear`
+
+  - Rotation-related: `from-angle-normal-axis`, `from-angle-axis`, `pitch`,
+    `roll`, `yaw`, `->angle-axis`
+
 - #468:
 
   - adds `sicmutils.polynomial/touchard`, implementing a constructor for the
@@ -2800,7 +2831,7 @@ multiplication is composition as before.
 `asin`; these now return taylor series expansions of the operator, where
 multiplication is composition as before.
 
-## [v0.21.1]
+## [v0.12.1]
 
 - Getting Github releases up to parity with the most recent release to Clojars.
 

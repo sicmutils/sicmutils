@@ -83,6 +83,7 @@
    'sicmutils.polynomial.gcd                 (ns-publics 'sicmutils.polynomial.gcd)
    'sicmutils.polynomial.interpolate         (ns-publics 'sicmutils.polynomial.interpolate)
    'sicmutils.polynomial.richardson          (ns-publics 'sicmutils.polynomial.richardson)
+   'sicmutils.quaternion                     (ns-publics 'sicmutils.quaternion)
    'sicmutils.ratio                          (ns-publics 'sicmutils.ratio)
    'sicmutils.rational-function              (ns-publics 'sicmutils.rational-function)
    'sicmutils.rational-function.interpolate  (ns-publics 'sicmutils.rational-function.interpolate)
