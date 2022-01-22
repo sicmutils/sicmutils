@@ -1073,18 +1073,32 @@
 
 ;; TODO documented etc up to here.
 
-(defn log
-  ";; NOTE that this is good, ported from quaternion.js... not bad, handles zero
-  cases well.
+;; NOTE that this is good, ported from quaternion.js... not bad, handles zero
+;; cases well.
 
-  check: https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1157"
+;; TODO check against:
+;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1157
+
+(defn log
+  "Returns the logarithm $\\ln q$ of the supplied quaternion `q`.
+
+  Given a quaternion $q$ with real part $r$ and non-real vector $\\vec{v}$, the
+  logarithm [is computed
+  as](https://en.wikipedia.org/wiki/Quaternion#Exponential,_logarithm,_and_power_functions)
+
+  $$
+  \\ln(q) = \\ln \\|q\\| + \\frac{\\mathbf{v}}{\\|\\mathbf{v}\\|} \\
+  \\arccos \\frac{r}{\\|\\q\\|}
+  $$"
   [q]
   (let [[r i j k] q]
     (if (and (v/zero? j)
              (v/zero? k))
-      (make (g/log (g/abs [r i]))
-            (g/atan i r)
-            0 0)
+      (if (v/zero? i)
+        (make (g/log r) 0 0 0)
+        (make (g/log (g/abs [r i]))
+              (g/atan i r)
+              0 0))
       (let [q-mag (magnitude q)
             v     (three-vector q)
             v-mag (g/abs v)]
@@ -1092,13 +1106,17 @@
               (g/mul (g/acos (g/div r q-mag))
                      (g/div v v-mag)))))))
 
-;; TODO verify these with
-;; https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1138
-
-;; Proof of exponential for wuaternions https://math.stackexchange.com/questions/1030737/exponential-function-of-quaternion-derivation
-
 (defn exp
-  "TODO this is good as well, lovely! I think this works now."
+  "Returns the exponential $e^q$ of the supplied quaternion `q`.
+
+  Given a quaternion $q$ with real part $r$ and non-real vector $\\vec{v}$, the
+  exponential [is computed
+  as](https://en.wikipedia.org/wiki/Quaternion#Exponential,_logarithm,_and_power_functions)
+
+  $$
+  \\exp(q) = e^r \\left(\\cos \\|\\mathbf{v}\\| \\
+  + \\frac{\\mathbf{v}}{\\|\\mathbf{v}\\|} \\sin\\|\\mathbf{v}\\| \\right)
+  $$"
   [q]
   (let [r     (real-part q)
         exp-r (g/exp r)
@@ -1109,10 +1127,14 @@
       (make (g/* exp-r (g/cos v-mag))
             (g/* exp-r (g/sinc v-mag) v)))))
 
-;; DONE add more transcendental functions to be totally complete
-;; https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html
+(defn cos
+  "Returns the cosine of the supplied quaternion `q`.
 
-(defn cos [q]
+  See the [Boost
+  documentation](https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html)
+  and [source](https://www.boost.org/doc/libs/1_78_0/boost/math/quaternion.hpp)
+  for a reference implementation."
+  [q]
   (let [r     (real-part q)
         v     (three-vector q)
         v-mag (g/abs v)]
@@ -1121,7 +1143,14 @@
                     (g/sinhc v-mag))
                v))))
 
-(defn sin [q]
+(defn sin
+  "Returns the sine of the supplied quaternion `q`.
+
+  See the [Boost
+  documentation](https://www.boost.org/doc/libs/1_78_0/libs/math/doc/html/math_toolkit/trans.html)
+  and [source](https://www.boost.org/doc/libs/1_78_0/boost/math/quaternion.hpp)
+  for a reference implementation."
+  [q]
   (let [r     (real-part q)
         v     (three-vector q)
         v-mag (g/abs v)]
@@ -1130,30 +1159,39 @@
                     (g/sinhc v-mag))
                v))))
 
-(defn tan [q]
+(defn tan
+  "Returns the tangent of the supplied quaternion `q`.
+
+  [[tan]] is defined as `(/ (sin q) (cos q))`."
+  [q]
   (div (sin q) (cos q)))
 
-(defn cosh [q]
+(defn cosh
+  "Returns the hyperbolic cosine of the supplied quaternion `q`.
+
+  [[cosh]] is defined in terms of the [[exp]] function as `(e^q + e^{-q}) / 2`."
+  [q]
   (-> (add (exp q) (exp (negate q)))
       (q-div-scalar 2)))
 
-(defn sinh [q]
+(defn sinh
+  "Returns the hyperbolic sine of the supplied quaternion `q`.
+
+  [[sinh]] is defined in terms of the [[exp]] function as `(e^q - e^{-q}) / 2`."
+  [q]
   (-> (sub (exp q) (exp (negate q)))
       (q-div-scalar 2)))
 
-(defn tanh [q]
+(defn tanh
+  "Returns the hyperbolic tangent of the supplied quaternion `q`.
+
+  [[tan]] is defined as `(/ (sinh q) (cosh q))`."
+  [q]
   (div (sinh q) (cosh q)))
 
-;; TODO do a better job here based on this quaternion.js impl, so we match when
-;; complex numbers are at play...:
-;; https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L577-L645
-
-;; TODO NOTE quaternion power here theorem 1.3
-;; https://web.archive.org/web/20170705123142/http://www.lce.hut.fi/~ssarkka/pub/quat.pdf
-
 (defn expt
-  "TODO check if it's a native integer and go here:
-  https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L1268"
+  "Returns the result of raising quaternion `q` to the real, complex or quaternion
+  power `p`."
   [q p]
   (if (v/native-integral? p)
     (g/default-expt q p)
@@ -1163,16 +1201,20 @@
        (scale (log q) p)))))
 
 (defn sqrt
-  "Thanks to Spire for the implementation:
-  https://github.com/typelevel/spire/blob/82f607714f94ba1c70b13fd4751063dfdcd155f5/core/src/main/scala/spire/math/Quaternion.scala#L217
+  "Returns the square root of the supplied quaternion `q`.
 
-  NOTE that if we have a real number we "
+  `([[sqrt]] q)` is identical to, but more efficient than, raising `q` to the
+  1/2 power.
+
+  Thanks to the [Spire
+  library](https://github.com/typelevel/spire/blob/82f607714f94ba1c70b13fd4751063dfdcd155f5/core/src/main/scala/spire/math/Quaternion.scala#L217)
+  for the correct implementation used here."
   [q]
   (let [r (get-r q)]
     (if (real? q)
       (if (g/negative? r)
         (make 0 (g/sqrt (g/abs r)) 0 0)
-        (make (g/sqrt r)))
+        (make (g/sqrt r) 0 0 0))
       (let [n   (g/sqrt (g/+ r (magnitude q)))
             rt2 (g/sqrt 2)]
         (make (g// n rt2)
@@ -1180,13 +1222,25 @@
                    (g/* n rt2)))))))
 
 ;; ## Quaternions and 3D rotations
+;;
+;; The story of quaternions, from their discovery to their modern day usage, is
+;; tightly connected to their [utility in describing rotations in 3-dimensional
+;; space](https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation).
+;;
+;; The following section provides a number of utilities for building quaternions
+;; that represent rotations, and moving quaternions and other representations of
+;; rotations in 3d and 4d space.
 
 ;; ### Conversion to/from Angle-Axis
 
 (defn from-angle-normal-axis
-  "Create a quaternion from an angle in radians and a normalized axis vector.
+  "Returns a [[Quaternion]] that represents a rotation of `angle` radians around
+  the unit (normalized) vector described by the second argument, a 3-vector with
+  components `x`, `y` and `z`.
 
-  Call this if you've ALREADY normalized the vector!"
+  The second argument represents an axis of rotation.
+
+  NOTE: If you have an UN-normalized axis, prefer [[from-angle-axis]]."
   [angle [x y z]]
   (let [half-angle (g/div angle 2)
         half-sine  (g/sin half-angle)]
@@ -1195,46 +1249,27 @@
                   (g/* half-sine y)
                   (g/* half-sine z))))
 
-;; TODO read this and the one above and figure out the weavejester code this
-;; came from. Then combine wih the GJS style.
-
 (defn from-angle-axis
-  "Create a quaternion from an angle in radians and an arbitrary axis vector."
+  "Returns a [[Quaternion]] that represents a rotation of `angle` radians around a
+  normalized version of the vector described by `axis`. `axis` must be a
+  3-vector with components `x`, `y` and `z`.
+
+  Given an `axis` with numeric entries, [[from-angle-axis]] will explicitly
+  normalize `axis` before calling [[from-angle-normal-axis]]. If any entries are
+  non-numerical (ie, symbolic), [[from-angle-axis]] will instead log an
+  assumption that the magnitude of `axis` == 1 and proceed.
+
+  NOTE: If you have an already-normalized axis,
+  prefer [[from-angle-normal-axis]]."
   [angle axis]
-  (let [vv     (g/abs axis)
-        normal (g/div axis vv)]
-    (from-angle-normal-axis angle normal)))
-
-;; NOTE above is the weavejester version. Next, the scmutils way of doing it.
-;; assumption is good... otherwise the same. It ASSUMES instead of normalizing.
-
-;; NOTE: this should almost certainly normalize the axis? well, we'll see. If it
-;; is symbolic, we want to just LOG that we are normalizing.
-
-(defn angle-axis->
-  "NOTE from gjs: Given a axis (a unit 3-vector) and an angle...
-
-  TODO change name?"
-  [theta axis]
-  (let [v (g/simplify
-           (ss/vector-dot-product axis axis))]
-    ;; TODO SO the way this works is if it can trivially evaluate to false, THEN
-    ;; we throw an error.
-    (ul/assume! (list '= v 1) 'angle-axis->))
-  (make (g/cos (g// theta 2))
-        (g/* (g/sin (g// theta 2))
-             axis)))
-
-;; What to do if the vector part is 0? Here is one style:
-;; https://math.stackexchange.com/questions/291110/numerically-stable-extraction-of-axis-angle-from-unit-quaternion
-;;
-;; that is basically what we have here. Except that solution bails with
-;; numerically tiny vector and returns a default.
-;;
-;; TODO re-read what GJS has going on here.
-;;
-;;   TODO note that is undefined if you are not provided with a unit quaternion,
-;;   so we can make that assumption, no problem... log it!
+  (if (every? v/number? axis)
+    (let [v-mag  (g/abs axis)
+          normal (g/div axis v-mag)]
+      (from-angle-normal-axis angle normal))
+    (let [vv (g/simplify
+              (ss/vector-dot-product axis axis))]
+      (and (ul/assume! (list '= vv 1) 'from-angle-axis)
+           (from-angle-normal-axis angle axis)))))
 
 (defn pitch
   "Create a quaternion representing a pitch rotation by the supplied
@@ -1254,45 +1289,43 @@
   [angle]
   (from-angle-normal-axis angle [0 0 1]))
 
+(def ^{:dynamic true
+       :doc "Tolerance setting for [[->angle-axis]]."}
+  *angle-axis-tolerance*
+  1e-8)
+
 (defn ->angle-axis
-  "TODO complete! this is old, from GJS.
+  "Given a unit quaternion `q` [representing a spatial
+  rotation](https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation) (sometimes
+  called a 'versor'), returns a pair of
 
-  Problem: this is singular if the vector part is zero."
-  ([q] (->angle-axis q vector))
-  ([q continue]
-   {:pre [(quaternion? q)]}
-   (let [v (three-vector q)
-         theta (g/mul 2 (g/atan
-                         (g/abs v)
-                         (real-part q)))
-         axis (g/div v (g/abs v))]
-     (continue theta axis))))
+  - `theta`, the rotation in radians about the rotation axis
+  - `axis`, a 3-element unit vector with elements `x`, `y` and `z` representing
+    an axis of rotation in 3d Euclidean space.
 
-;; ### to/from 3D axes
+  If the unit quaternion `q` represents NO rotation, the axis is undefined; this
+  manifests as the squared norm of the non-real vector part of `q` sitting
+  within [[*angle-axis-tolerance*]] of 0.
+
+  In this case, the conversion is degenerate and [[->angle-axis]] returns the
+  pair [0 [1 0 0]] as a default. (This check only occurs with a quaternion with
+  all numeric elements in the non-real positions.)"
+  [q]
+  {:pre [(quaternion? q)]}
+  (let [v  (three-vector q)
+        vv (ss/vector-dot-product v v)]
+    (if (and (every? v/number? v)
+             ((v/within *angle-axis-tolerance*) 0.0 vv))
+      [0 [1 0 0]]
+      (let [v-mag (g/sqrt vv)
+            theta (g/mul 2 (g/atan v-mag (real-part q)))
+            axis (g/div v v-mag)]
+        [theta axis]))))
+
+;; ## To/From 3D axes
 ;;
 ;; NOTE this one is weird. I think this is, give me the new orthogonal set of
 ;; axes you want to point at, and I will generate a rotation to get to those.
-
-(defn axes
-  "Return the three axes of the quaternion."
-  [q]
-  ;; NOTE that this norm was actually the dot-product.
-  (let [n (magnitude-sq q)]
-    (if (and (v/number? n)
-             (or (v/zero? n)
-                 (g/negative? n)))
-      (m/I 3)
-      (let [;; TODO check assumption here! for symbolic we can log an assumption.
-            ;; Can we hardcode the zero case more easily, since so much disappears?
-            s (g// 2 n)
-            [w x y z] q
-            xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
-            xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
-            yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
-            zz (g/* z zs) zw (g/* z ws)]
-        [[(g/- 1 (g/+ yy zz)) (g/+ xy zw) (g/- xz yw)]
-         [(g/- xy zw) (g/- 1 (g/+ xx zz)) (g/+ yz xw)]
-         [(g/+ xz yw) (g/- yz xw) (g/- 1 (g/+ xx yy))]]))))
 
 (defn from-axes
   "Create a quaternion from three axis vectors."
@@ -1334,18 +1367,53 @@
               (* 0.5 s)
               (* r (- m10 m01)))))))
 
+(defn ->axes
+  "Return the three axes of the quaternion."
+  [q]
+  ;; NOTE that this norm was actually the dot-product.
+  (let [n (magnitude-sq q)]
+    (if (and (v/number? n)
+             (or (v/zero? n)
+                 (g/negative? n)))
+      (m/I 3)
+      (let [;; TODO check assumption here! for symbolic we can log an assumption.
+            ;; Can we hardcode the zero case more easily, since so much disappears?
+            s (g// 2 n)
+            [w x y z] q
+            xs (g/* x s)  ys (g/* y s)  zs (g/* z s)  ws (g/* w s)
+            xx (g/* x xs) xy (g/* x ys) xz (g/* x zs) xw (g/* x ws)
+            yy (g/* y ys) yz (g/* y zs) yw (g/* y ws)
+            zz (g/* z zs) zw (g/* z ws)]
+        [[(g/- 1 (g/+ yy zz)) (g/+ xy zw) (g/- xz yw)]
+         [(g/- xy zw) (g/- 1 (g/+ xx zz)) (g/+ yz xw)]
+         [(g/+ xz yw) (g/- yz xw) (g/- 1 (g/+ xx yy))]]))))
+
 (comment
+  ;; TODO move v:make-unit somewhere since we need it!
+
   (defn look-at
     "Create a quaternion that is directed at a point specified by a vector."
     [direction up]
     (let [z-axis (v/normalize direction)
-          x-axis (v/normalize (v/cross up direction))
-          y-axis (v/normalize (v/cross direction x-axis))]
+          x-axis (v/normalize (g/cross-product up direction))
+          y-axis (v/normalize (g/cross-product direction x-axis))]
       (from-axes x-axis y-axis z-axis))))
 
 ;; ## TODO add quaternions as 2x2 complex matrices
 ;; ## https://github.com/ferd36/quaternions/blob/master/include/quaternion.h#L578
 
+;; /**
+;; * Returns a 2x2 complex matrix representation of a Quaternion x:
+;; * [ a + b i,  c + d i]
+;; * [ -c + d i, a - b i]
+;; */
+;; template<typename T>
+;; inline complex_matrix_2d<T> to_complex_matrix_2d(const Quaternion<T>& x) {
+;;                                                                           complex_matrix_2d<T> cm;
+;;                                                                           cm[0][0] = {x.a(), x.b()}; cm[0][1] = {x.c(), x.d()};
+;;                                                                           cm[1][0] = -conj(cm[0][1]); cm[1][1] = conj(cm[0][0]);
+;;                                                                           return cm;
+;;                                                                           }
 
 ;; ## Quaternions as 4x4 matrices
 
@@ -1416,8 +1484,11 @@
      (g/+ (g/* 2 qx qz vx)     (g/* 2 qy qz vy) (g/* qz qz vz)       (g/* -2 qw qy vx)
           (g/- (g/* qy qy vz)) (g/* 2 qw qx vy) (g/- (g/* qx qx vz)) (g/* qw qw vz))]))
 
-(defn rotate [q]
+;; TODO see if this is better with symbolic?
+
+(defn gjs-rotate [q]
   {:pre [(quaternion? q)]}
+  ;; TODO copy rotation from above. This returns a rotation function??
   ;;(assert (q:unit? q)) This assertion is really:
 
   ;; TODO log this `assume-unit!` as a new function, have it throw on false.

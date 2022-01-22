@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.quaternion-test
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
@@ -35,7 +35,13 @@
             [sicmutils.structure :as s]
             [sicmutils.quaternion :as q]
             [sicmutils.util :as u]
+            [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
+
+(use-fixtures :each
+  (fn [thunk]
+    (binding [ul/*log-assumptions?* false]
+      (thunk))))
 
 (deftest interface-tests
   (checking "Clojure interface definitions" 100
@@ -820,6 +826,7 @@
 
   (checking "infinite?" 100 [q (sg/quaternion gen/nat)]
             (is (not (g/infinite? q)))))
+
 (defn v:make-unit
   "Normalizes the supplied vector."
   [v]
@@ -834,17 +841,16 @@
          (v/freeze
           (g/simplify
            (q/->angle-axis
-            (q/angle-axis->
+            (q/from-angle-axis
              'theta
              ['x 'y (g/sqrt (g/- 1 (g/square 'x) (g/square 'y)))]))))))
-
 
   (is (= (s/up 0 (s/up 0 0 0))
          (g/simplify
           (let [theta 'theta
                 v (s/up 'x 'y 'z)
                 axis (v:make-unit v)
-                [theta' axis'] (-> (q/angle-axis-> theta axis)
+                [theta' axis'] (-> (q/from-angle-axis theta axis)
                                    (q/->rotation-matrix)
                                    (q/rotation-matrix->)
                                    (q/->angle-axis))]
@@ -861,7 +867,7 @@
          (let [theta -1
                v (s/up 1 2 3)
                axis (v:make-unit v)
-               [theta' axis'] (-> (q/angle-axis-> theta axis)
+               [theta' axis'] (-> (q/from-angle-axis theta axis)
                                   (q/->rotation-matrix)
                                   (q/rotation-matrix->)
                                   (q/->angle-axis))]
