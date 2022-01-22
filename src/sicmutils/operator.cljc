@@ -484,6 +484,7 @@
                     [g/acos series/acos-series 'acos]
                     [g/asin series/asin-series 'asin]
                     [g/atan series/atan-series 'atan]
+                    [g/acot series/acot-series 'acot]
                     [g/cosh series/cosh-series 'cosh]
                     [g/sinh series/sinh-series 'sinh]
                     [g/tanh series/tanh-series 'tanh]

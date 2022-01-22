@@ -263,6 +263,9 @@
               (is (= m (m/num-rows M)))
               (is (= n (m/num-cols M)))))
 
+  (testing "make-diagonal"
+    (is (= (m/I 10) (m/make-diagonal 10 1))))
+
   (checking "make-diagonal" 100
             [vs (gen/vector sg/real 1 20)]
             (let [M (m/make-diagonal vs)]
@@ -950,6 +953,19 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest series-expansion-tests
+  (is (= (m/by-rows [(g// 'pi 2) 0] [0 (g// 'pi 2)])
+         (first
+          (g/acos
+           (m/by-rows [1 2] [3 4]))))
+      "series expansion works for g/acos")
+
+  (is (= (m/by-rows [(g// 'pi 2) 0] [0 (g// 'pi 2)])
+         (first
+          (g/acot
+           (m/by-rows [1 2] [3 4]))))
+      "series expansion works for g/acot"))
 
 (deftest characteristic-poly-tests
   (let [M (m/by-rows [1 3 2] [4 5 2] [1 4 5])
