@@ -443,7 +443,11 @@
                   (is (not (g/negative? gxy)))
                   (is (= x (g/exact-divide xz g)))
                   (is (= y (g/exact-divide yz g)))
-                  (is (= (g/abs z) g)))))
+                  (is (= (g/abs z) g))
+
+                  (testing "1, -1 on right is id or negate"
+                    (is (= z (g/exact-divide z 1)))
+                    (is (= (- z) (g/exact-divide z -1)))))))
 
     (testing "lcm"
       (is (zero? (g/lcm 0 0))))
