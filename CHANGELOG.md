@@ -8,8 +8,12 @@
     it to work with real/complex pairs.
 
   - tweaks the default gcd implementation so that two identical values `x`, even
-    if they are floating point, will return `x` from `(gcd x x)`. (Really this
-    should check on their absolute values...)
+    if they are floating point, will return `x` from `(gcd x x)`. (default gcd
+    in `sicmutils.euclid` can handle cases now where the terms are equal and of
+    opposite sign.)
+
+  - adds `exact-divide` handling of non-integral numbers when the inputs are
+    either equal or of opposite sign.
 
 - #398 adds a `sicmutils.generic/gcd` implementation for complex numbers,
   closing the long-standing #58. Thanks to @adamhaber for this!

@@ -50,7 +50,13 @@
       (is (= 1 (e/gcd 8 7)))
       (is (= 1 (e/gcd -8 7) 1))
       (is (= 1 (e/gcd 8 -7) 1))
-      (is (= 1 (e/gcd -8 -7) 1))))
+      (is (= 1 (e/gcd -8 -7) 1))
+
+      (testing "EQUAL floats, each sign combo causes identity result"
+        (is (= 1.2 (e/gcd -1.2 1.2)))
+        (is (= 1.2 (e/gcd -1.2 -1.2)))
+        (is (= 1.2 (e/gcd 1.2 -1.2)))
+        (is (= 1.2 (e/gcd 1.2 1.2))))))
 
   (testing "generic-gcd"
     (is (= (* 2 5 7) (g/gcd (* 2 3 5 7) (* 2 5 7 11))))

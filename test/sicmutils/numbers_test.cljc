@@ -446,7 +446,13 @@
                   (is (= (g/abs z) g)))))
 
     (testing "lcm"
-      (is (zero? (g/lcm 0 0))))))
+      (is (zero? (g/lcm 0 0))))
+
+    (testing "exact-divide floats"
+      (is (= -1.0 (g/exact-divide 1.2 -1.2)))
+      (is (= 1.0 (g/exact-divide -1.2 -1.2)))
+      (is (= -1.0 (g/exact-divide -1.2 1.2)))
+      (is (= 1.0 (g/exact-divide 1.2 1.2))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

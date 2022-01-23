@@ -50,7 +50,10 @@
   [a b]
   (cond (v/zero? a) (g/abs b)
         (v/zero? b) (g/abs a)
-        (= a b)     (g/abs a)
+
+        (or (v/= a b) (v/= a (g/negate b)))
+        (g/abs a)
+
         (not (and (v/integral? a) (v/integral? b))) 1
         :else (loop [a (g/abs a) b (g/abs b)]
                 (if (v/zero? b)
