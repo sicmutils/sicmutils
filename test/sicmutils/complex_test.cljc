@@ -362,8 +362,8 @@
               (is (fourth-power-is-one? (g/gcd (c/complex 1 0) (c/round z)))))
 
     (testing "gcd when args are equal"
-      (is (= (complex 12.2 0)
-             (g/gcd (complex 12.2 0) 12.2))
+      (is (= (c/complex 12.2 0)
+             (g/gcd (c/complex 12.2 0) 12.2))
           "if args are v/= floating point input is okay")
 
       (is (= (c/complex 0 2)

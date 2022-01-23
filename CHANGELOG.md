@@ -2,6 +2,18 @@
 
 ## [unreleased]
 
+- #471:
+
+  - installs the complex GCD implementation into the generic system and modifies
+    it to work with real/complex pairs.
+
+  - tweaks the default gcd implementation so that two identical values `x`, even
+    if they are floating point, will return `x` from `(gcd x x)`. (Really this
+    should check on their absolute values...)
+
+- #398 adds a `sicmutils.generic/gcd` implementation for complex numbers,
+  closing the long-standing #58. Thanks to @adamhaber for this!
+
 - #461 adds `sicmutils.quaternion`, with a full arithmetic implementation and
   the beginnings of a rotation API. Quaternions are implemented like vectors of
   length 4, and implement all appropriate Clojure protocols. All arithmetic is
