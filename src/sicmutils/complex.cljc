@@ -206,6 +206,19 @@
 
 ;; ## Complex GCD
 
+(defn ^:no-doc abs-real
+  "Returns a complex or real number with a positive real component. (ie, either z
+  or (* -1 z)), whichever number has a positive real component."
+  [z]
+  (cond (complex? z)
+        (if (neg? (real z))
+          (g/negate z)
+          z)
+
+        (v/real? z) (Math/abs z)
+
+        :else (u/illegal "not supported!")))
+
 (defn ^:no-doc gcd
   "Returns the complex gcd of two complex numbers using the euclidean algorithm.
 
@@ -217,7 +230,7 @@
   [l r]
   (cond (v/zero? l) r
         (v/zero? r) l
-        (v/= l r)   l
+        (v/= l r)   (abs-real l)
         (not (or (gaussian-integer? l)
                  (gaussian-integer? r)))
         (u/illegal "gcd can only be computed for gaussian integers, but
@@ -236,8 +249,9 @@
                             [l r] [r l])]
                 (loop [a (round l)
                        b (round r)]
-                  (if (v/zero? b) a
-                      (recur b (g/sub a (g/mul (round (g/div a b)) b))))))))
+                  (if (v/zero? b)
+                    (abs-real a)
+                    (recur b (g/sub a (g/mul (round (g/div a b)) b))))))))
 
 ;; ## Generic Method Installation
 

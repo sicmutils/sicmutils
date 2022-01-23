@@ -344,12 +344,14 @@
 
 (deftest gcd-tests
   (testing "gcd-complex"
-    (checking "GCD of anything with itself is itself." 100
+    (checking "GCD of anything with itself is itself (up to sign)" 100
               [z sg/complex]
               (let [gaussian-z (c/round z)]
-                (is (= gaussian-z (g/gcd gaussian-z gaussian-z))))
+                (is (= (c/abs-real gaussian-z)
+                       (g/gcd gaussian-z gaussian-z))))
 
-              (is (= z (g/gcd z z))
+              (is (= (c/abs-real z)
+                     (g/gcd z z))
                   "also true for non-gaussians, only in this case!"))
 
     (checking "GCD of anything with 0 is itself, also for non-gaussian complex
@@ -384,6 +386,12 @@
                 (let [gaussian-l (c/round l)
                       gaussian-r (c/round r)
                       z (g/gcd gaussian-l gaussian-r)]
+                  (when-not (or (v/zero? gaussian-l)
+                                (v/zero? gaussian-r))
+                    (is (not (neg? (g/real-part z)))
+                        "real part of the GCD is always positive, unless either
+                        side to gcd is 0."))
+
                   (check gaussian-l gaussian-r)
                   (check (g/real-part gaussian-l) gaussian-r)
                   (check gaussian-l (g/real-part gaussian-r)))))))
