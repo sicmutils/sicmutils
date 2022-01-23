@@ -972,21 +972,24 @@
               b (s/down 'e 'f)
               c (g/* a b)]
           (is (= (s/down 0 0)
-                 (g/- b (g/* (m/s:inverse a b) c)))
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
               "up of ups"))
 
         (let [a (s/up (s/down 'a 'b) (s/down 'c 'd))
               b (s/down 'e 'f)
               c (g/* a b)]
           (is (= (s/down 0 0)
-                 (g/- b (g/* (m/s:inverse a b) c)))
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
               "up of downs"))
 
         (let [a (s/down (s/up 'a 'b) (s/up 'c 'd))
               b (s/up 'e 'f)
               c (g/* a b)]
-          (is (= 1
-                 (g/- b (g/* (m/s:inverse a b) c)))
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
               "down of ups"))
 
         (let [a (s/up (s/down 'a 'b)
