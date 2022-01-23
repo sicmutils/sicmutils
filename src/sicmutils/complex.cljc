@@ -90,33 +90,6 @@
   #?(:clj (.getImaginary a)
      :cljs (obj/get a "im")))
 
-(defmethod g/make-rectangular [::v/real ::v/real] [re im]
-  (if (v/zero? im)
-    re
-    (complex re im)))
-
-(defmethod g/make-polar [::v/real ::v/real] [radius angle]
-  (cond (v/zero? radius) radius
-        (v/zero? angle)  radius
-        :else
-        #?(:cljs (Complex. #js {:abs (js/Number radius)
-                                :arg (js/Number angle)})
-           :clj (let [angle (u/double angle)]
-                  (Complex. (* radius (Math/cos angle))
-                            (* radius (Math/sin angle)))))))
-
-(defmethod g/real-part [::complex] [a] (real a))
-(defmethod g/imag-part [::complex] [a] (imaginary a))
-(defmethod g/magnitude [::complex] [^Complex a] (.abs a))
-(defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
-(defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
-
-(defmethod g/dot-product [::complex ::complex] [a b]
-  (+ (* (real a) (real b))
-     (* (imaginary a) (imaginary b))))
-(defmethod g/dot-product [::complex ::v/real] [a b] (* (real a) b))
-(defmethod g/dot-product [::v/real ::complex] [a b] (* a (real b)))
-
 (defn ^:no-doc parse-complex
   "Parser that converts a string, vector or numeric representation of a complex
    number, like
@@ -145,6 +118,8 @@
                (str
                 "#sicm/complex takes a string, 2-vector or a number. Received: "
                 x))))
+
+;; ## Type Extensions
 
 #?(:cljs
    (extend-type Complex
@@ -199,6 +174,103 @@
   (exact? [c] (and (v/exact? (real c))
                    (v/exact? (imaginary c))))
   (kind [_] ::complex))
+
+;; ## Gaussian Integers
+
+(defn round
+  "Generates a [Gaussian integer](https://en.wikipedia.org/wiki/Gaussian_integer)
+  from the complex number `z` by rounding the real and imaginary components of
+  `z` to their nearest integral values."
+  [z]
+  (cond (complex? z)
+        (complex
+         (Math/round ^Float (real z))
+         (Math/round ^Float (imaginary z)))
+        (v/native-integral? z) z
+        :else (Math/round (double z))))
+
+(defn gaussian-integer?
+  "Returns true if `z` is a [Gaussian
+  integer](https://en.wikipedia.org/wiki/Gaussian_integer), ie, a complex entry
+  with integral real and imaginary components.
+
+  [[gaussian-integer?]] will return true if the real and imaginary components
+  are within `epsilon` of integral values. See [[value/almost-integral?]] for
+  details."
+  [z]
+  (if (complex? z)
+    (and (v/almost-integral? (real z))
+         (v/almost-integral? (imaginary z)))
+    (and (v/real? z)
+         (v/almost-integral? z))))
+
+;; ## Complex GCD
+
+(defn ^:no-doc gcd
+  "Returns the complex gcd of two complex numbers using the euclidean algorithm.
+
+  For more details on the algorithm, see [this post on Ask Dr
+  Math](https://web.archive.org/web/20190720160400/http://mathforum.org/library/drmath/view/67068.html).
+
+  NOTE that the GCD of two complex numbers is determined up to a factor of ±1
+  and ±i."
+  [l r]
+  (cond (v/zero? l) r
+        (v/zero? r) l
+        (v/= l r)   l
+        (not (or (gaussian-integer? l)
+                 (gaussian-integer? r)))
+        (u/illegal "gcd can only be computed for gaussian integers, but
+        both arguments were not.")
+
+        (not (gaussian-integer? l))
+        (u/illegal "gcd can only be computed for gaussian integers, but first
+        argument was not.")
+
+        (not (gaussian-integer? r))
+        (u/illegal "gcd can only be computed for gaussian integers, but second
+        argument was not.")
+
+        :else (let [[l r] (if (< (g/magnitude l)
+                                 (g/magnitude r))
+                            [l r] [r l])]
+                (loop [a (round l)
+                       b (round r)]
+                  (if (v/zero? b) a
+                      (recur b (g/sub a (g/mul (round (g/div a b)) b))))))))
+
+;; ## Generic Method Installation
+
+(defmethod g/gcd [::complex ::complex] [a b] (gcd a b))
+(defmethod g/gcd [::complex ::v/real] [a b] (gcd a b))
+(defmethod g/gcd [::v/real ::complex] [a b] (gcd a b))
+
+(defmethod g/make-rectangular [::v/real ::v/real] [re im]
+  (if (v/zero? im)
+    re
+    (complex re im)))
+
+(defmethod g/make-polar [::v/real ::v/real] [radius angle]
+  (cond (v/zero? radius) radius
+        (v/zero? angle)  radius
+        :else
+        #?(:cljs (Complex. #js {:abs (js/Number radius)
+                                :arg (js/Number angle)})
+           :clj (let [angle (u/double angle)]
+                  (Complex. (* radius (Math/cos angle))
+                            (* radius (Math/sin angle)))))))
+
+(defmethod g/real-part [::complex] [a] (real a))
+(defmethod g/imag-part [::complex] [a] (imaginary a))
+(defmethod g/magnitude [::complex] [^Complex a] (.abs a))
+(defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
+(defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
+
+(defmethod g/dot-product [::complex ::complex] [a b]
+  (+ (* (real a) (real b))
+     (* (imaginary a) (imaginary b))))
+(defmethod g/dot-product [::complex ::v/real] [a b] (* (real a) b))
+(defmethod g/dot-product [::v/real ::complex] [a b] (* a (real b)))
 
 (defmethod v/= [::complex ::complex] [^Complex a ^Complex b]
   (.equals a b))

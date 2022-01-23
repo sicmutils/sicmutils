@@ -419,6 +419,10 @@
                 (is (= 1 (g/gcd 1 x)))
                 (is (= 1 (g/gcd x 1)))))
 
+    (checking "gcd identities even with real" 100 [x sg/real]
+              (is (= (g/abs x)
+                     (g/gcd x x))))
+
     (letfn [(nonzero [g]
               (gen/fmap (fn [x]
                           (let [small (g/remainder x 10000)]
