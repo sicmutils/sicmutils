@@ -332,6 +332,70 @@
     (testing "arithmetic"
       (is (v/numerical? c/I)))))
 
+(defn fourth-power-is-one?
+  "Checks if x^4 is 1+0i. This is needed because the gcd-complex function returns
+   solutions that are determined up to a factor of ±1 and ±i."
+  [x]
+  (let [x4 (g/expt x 4)
+        re (g/real-part x4)
+        im (g/imag-part x4)]
+    (and (ish? re 1)
+         (ish? im 0))))
+
+(deftest gcd-tests
+  (testing "gcd-complex"
+    (checking "GCD of anything with itself is itself (up to sign)" 100
+              [z sg/complex]
+              (let [gaussian-z (c/round z)]
+                (is (= (c/abs-real gaussian-z)
+                       (g/gcd gaussian-z gaussian-z))))
+
+              (is (= (c/abs-real z)
+                     (g/gcd z z))
+                  "also true for non-gaussians, only in this case!"))
+
+    (checking "GCD of anything with 0 is itself, also for non-gaussian complex
+              numbers (by definition)" 100 [z sg/complex]
+              (is (= z (g/gcd z (c/complex 0 0))))
+              (is (= z (g/gcd (c/complex 0 0) z))))
+
+    (checking "GCD of anything with 1 is 1." 100 [z sg/complex]
+              (is (fourth-power-is-one? (g/gcd (c/round z) (c/complex 1 0))))
+              (is (fourth-power-is-one? (g/gcd (c/complex 1 0) (c/round z)))))
+
+    (testing "gcd when args are equal"
+      (is (= (c/complex 12.2 0)
+             (g/gcd (c/complex 12.2 0) 12.2))
+          "if args are v/= floating point input is okay")
+
+      (is (= (c/complex 0 2)
+             (g/gcd (c/complex 24 2) 12)
+             (g/gcd 12 (c/complex 24 2)))
+          "complex + real"))
+
+    (letfn [(check [l r]
+              (let [z (g/gcd l r)]
+                (if (v/zero? z)
+                  (is (and (v/zero? l)
+                           (v/zero? r)))
+                  (is (fourth-power-is-one?
+                       (g/gcd (g// l z)
+                              (g// r z)))))))]
+      (checking "dividing out the GCD gives coprime results" 100
+                [l sg/complex r sg/complex]
+                (let [gaussian-l (c/round l)
+                      gaussian-r (c/round r)
+                      z (g/gcd gaussian-l gaussian-r)]
+                  (when-not (or (v/zero? gaussian-l)
+                                (v/zero? gaussian-r))
+                    (is (not (neg? (g/real-part z)))
+                        "real part of the GCD is always positive, unless either
+                        side to gcd is 0."))
+
+                  (check gaussian-l gaussian-r)
+                  (check (g/real-part gaussian-l) gaussian-r)
+                  (check gaussian-l (g/real-part gaussian-r)))))))
+
 (deftest trig-tests
   (testing "sin"
     (is (near (g/sin (c/complex 10))

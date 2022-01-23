@@ -419,6 +419,10 @@
                 (is (= 1 (g/gcd 1 x)))
                 (is (= 1 (g/gcd x 1)))))
 
+    (checking "gcd identities even with real" 100 [x sg/real]
+              (is (= (g/abs x)
+                     (g/gcd x x))))
+
     (letfn [(nonzero [g]
               (gen/fmap (fn [x]
                           (let [small (g/remainder x 10000)]
@@ -439,10 +443,20 @@
                   (is (not (g/negative? gxy)))
                   (is (= x (g/exact-divide xz g)))
                   (is (= y (g/exact-divide yz g)))
-                  (is (= (g/abs z) g)))))
+                  (is (= (g/abs z) g))
+
+                  (testing "1, -1 on right is id or negate"
+                    (is (= z (g/exact-divide z 1)))
+                    (is (= (- z) (g/exact-divide z -1)))))))
 
     (testing "lcm"
-      (is (zero? (g/lcm 0 0))))))
+      (is (zero? (g/lcm 0 0))))
+
+    (testing "exact-divide floats"
+      (is (= -1.0 (g/exact-divide 1.2 -1.2)))
+      (is (= 1.0 (g/exact-divide -1.2 -1.2)))
+      (is (= -1.0 (g/exact-divide -1.2 1.2)))
+      (is (= 1.0 (g/exact-divide 1.2 1.2))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

@@ -50,37 +50,17 @@
   [a b]
   (cond (v/zero? a) (g/abs b)
         (v/zero? b) (g/abs a)
+
+        (or (v/= a b) (v/= a (g/negate b)))
+        (g/abs a)
+
         (not (and (v/integral? a) (v/integral? b))) 1
         :else (loop [a (g/abs a) b (g/abs b)]
                 (if (v/zero? b)
                   a
                   (recur b (g/remainder a b))))))
 
-(defn round-complex [z]
-  "Rounds a complex number the closest complex number whose real and imaginary parts are both integers.
-   See [Gaussian integer](https://en.wikipedia.org/wiki/Gaussian_integer)."
-  (c/complex (Math/round (g/real-part z))
-             (Math/round (g/imag-part z))))
-
-(defn is-gaussian-integer [a]
-  (and (v/almost-integral? (g/real-part a)) (v/almost-integral? (g/imag-part a))))
-
-(defn gcd-complex [a b]
-  "Returns the complex gcd of two complex numbers using the euclidean algorithm.
-   For more details on the algorithm, see:
-   https://web.archive.org/web/20190720160400/http://mathforum.org/library/drmath/view/67068.html
-   Note that the GCD of two complex numbers is determinet up to a factor of ±1 and ±i."
-  (cond (v/zero? a) b
-        (v/zero? b) a
-        (not (or (is-gaussian-integer a) (is-gaussian-integer b))) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but both arguments were not."))
-        (not (is-gaussian-integer a)) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but first argument was not."))
-        (not (is-gaussian-integer b)) (throw (Exception. "gcd-complex can only be computed for gaussian integers, but second argument was not."))
-        :else (let [[a b] (if (< (g/magnitude a) (g/magnitude b)) [a b] [b a])]
-                (loop [a (round-complex a)
-                       b (round-complex b)]
-                  (if (v/zero? b) a
-                      (recur b (g/- a (g/* (round-complex (g// a b)) b))))))))
-
 ;; multimethod implementation for basic numeric types.
+
 (defmethod g/gcd :default [a b]
   (gcd a b))
