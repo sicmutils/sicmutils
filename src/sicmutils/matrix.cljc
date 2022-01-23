@@ -272,7 +272,10 @@
   (and (matrix? m)
        (= (num-rows m) 1)))
 
-(defn- m:= [^Matrix this that]
+(defn- m:=
+  "Returns true if the matrices `this` and `that` are of identical shape and
+  return `v/=` for all entries, false otherwise."
+  [^Matrix this that]
   (and (instance? Matrix that)
        (let [^Matrix m that]
          (and (= (.-r this) (.-r m))
@@ -281,11 +284,17 @@
 
 (declare make-diagonal)
 
-(defn- matrix=scalar [m c]
+(defn- matrix=scalar
+  "Returns true if the matrix `m` is a diagonal matrix with all diagonal elements
+  equal to `c`, false otherwise."
+  [m c]
   (and (square? m)
        (m:= m (make-diagonal (num-rows m) c))))
 
-(defn- scalar=matrix [c m]
+(defn- scalar=matrix
+  "Returns true if the matrix `m` is a diagonal matrix with all diagonal elements
+  equal to `c`, false otherwise."
+  [c m]
   (and (square? m)
        (m:= (make-diagonal (num-rows m) c) m)))
 
@@ -307,8 +316,11 @@
                    (range r)))))
 
 (defn literal-matrix
-  "Generates a `nrows` x `ncols` matrix of symbolic entries, each prefixed by
-  the supplied symbol `sym`.
+  "Generates a `nrows` x `ncols` matrix of symbolic entries, each prefixed by the
+  supplied symbol `sym`.
+
+  If `ncols` (the third argument) is not supplied, returns a square matrix of
+  size `nrows` x `nrows`.
 
   NOTE: The symbols in the returned matrix record their Einstein-notation path
   into the structure that this matrix represents; a `down` of `up` columns. This
@@ -330,13 +342,33 @@
                (fn [i j]
                  (symbol (str prefix j "↑" i)))))))
 
-(defn literal-column-matrix [sym nrows]
+(defn literal-column-matrix
+  "Returns a column matrix of `nrows` symbolic entries, each prefixed by the
+  supplied symbol `sym`.
+
+  For example:
+
+  ```clojure
+  (= (literal-column-matrix 'x 3)
+     (by-cols ['x↑0 'x↑1 'x↑2]))
+  ```"
+  [sym nrows]
   (generate nrows 1
             (fn [i _]
               (symbol
                (str sym "↑" i)))))
 
-(defn literal-row-matrix [sym ncols]
+(defn literal-row-matrix
+  "Returns a row matrix of `ncols` symbolic entries, each prefixed by the
+  supplied symbol `sym`.
+
+  For example:
+
+  ```clojure
+  (= (literal-row-matrix 'x 3)
+     (by-rows ['x_0 'x_1 'x_2]))
+  ```"
+  [sym ncols]
   (generate 1 ncols
             (fn [_ j]
               (symbol
@@ -516,10 +548,16 @@
                             (g/* (core-get-in a [%1 k])
                                  (core-get-in b [k %2])))))))
 
-(defn- scalar*matrix [c m]
+(defn- scalar*matrix
+  "Returns a matrix of the same dimensions as matrix `m` with each entry
+  multiplied (on the left) by the scalar quantity `c`."
+  [c m]
   (fmap #(g/* c %) m))
 
-(defn- matrix*scalar [m c]
+(defn- matrix*scalar
+  "Returns a matrix of the same dimensions as matrix `m` with each entry
+  multiplied (on the right) by the scalar quantity `c`."
+  [m c]
   (fmap #(g/* % c) m))
 
 (defn- elementwise
@@ -1013,6 +1051,12 @@
         :else (u/illegal (str "I don't know how to solve:" b A))))
 
 ;; ## Generic Operation Installation
+
+(defmethod v/= [::matrix ::matrix] [a b] (m:= a b))
+(defmethod v/= [::square-matrix ::v/scalar] [m c] (matrix=scalar m c))
+(defmethod v/= [::v/scalar ::square-matrix] [c m] (scalar=matrix c m))
+
+;; TODO add equality with up, down, row and col
 
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
 

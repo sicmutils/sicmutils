@@ -363,13 +363,21 @@
 
 (deftest literal-matrix-creation
   (testing "literal-matrix"
-    (let [M (m/literal-matrix 'x 3 3)]
+    (let [M (m/literal-matrix 'x 3)]
       (is (m/matrix? M))
       (is (= M (m/by-rows ['x_0↑0 'x_1↑0 'x_2↑0]
                           ['x_0↑1 'x_1↑1 'x_2↑1]
                           ['x_0↑2 'x_1↑2 'x_2↑2]))
           "A literal matrix is a matrix populated by symbols with index refs
-          baked in.")))
+          baked in."))
+
+    (is (= (m/literal-column-matrix 'x 3)
+           (m/by-cols ['x↑0 'x↑1 'x↑2]))
+        "literal column")
+
+    (is (= (m/literal-row-matrix 'x 3)
+           (m/by-rows ['x_0 'x_1 'x_2]))
+        "literal row"))
 
   (checking "structure prototype matches matrix literal" 100
             [[sym M] (gen/let [sym    sg/symbol
