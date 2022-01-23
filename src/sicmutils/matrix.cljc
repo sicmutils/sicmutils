@@ -748,11 +748,11 @@
 
   This is also called the 'minor' of m."
   [m i j]
-  (->Matrix (dec (num-rows m))
-            (dec (num-cols m))
-            (mapv #(delete % j)
-                  (delete
-                   (matrix->vector m) i))) )
+  (->Matrix
+   (dec (num-rows m))
+   (dec (num-cols m))
+   (mapv #(delete % j)
+         (delete (matrix->vector m) i))) )
 
 (defn- checkerboard-negate [s i j]
   (if (even? (+ i j))
