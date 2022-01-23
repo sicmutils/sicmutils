@@ -32,6 +32,7 @@
             [sicmutils.numsymb]
             [sicmutils.structure :as s]
             [sicmutils.structure-test :refer [<l|:inner:|r>]]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -734,6 +735,52 @@
                       (= (m/I n)
                          (g/* (g/invert A) A)
                          (g/* A (g/invert A)))))))
+
+(defn naive-determinant [m]
+  {:pre [(m/square? m)]}
+  (condp = (m/num-rows m)
+    0 m
+    1 (get-in m [0 0])
+    2 (let [[[a b] [c d]] m]
+        (g/- (g/* a d)
+             (g/* b c)))
+    (ua/generic-sum
+     (map g/*
+          (cycle [1 -1])
+          (nth m 0)
+          (for [i (range (m/num-rows m))]
+            (naive-determinant (m/without m 0 i)))))))
+
+(deftest naive-vs-determinant-tests
+  (let [M (m/literal-matrix 'x 6)]
+    (is (v/zero?
+         (g/simplify
+          (g/- (m/determinant M)
+               (naive-determinant M))))
+        "the more complicated determinant routine in the matrix namespace
+        matches the naive implementation above.")))
+
+(defn naive-invert
+  "Returns the inverse of the supplied square matrix `m`."
+  [m]
+  {:pre [(m/square? m)]}
+  (let [r (m/num-rows m)]
+    (condp = r
+      0 m
+      1 (m/->Matrix 1 1 [[(g/invert (get-in m [0 0]))]])
+      (let [C (m/cofactors m)
+            Δ (ua/generic-sum (map g/* (nth m 0) (nth C 0)))]
+        (m/fmap #(g/divide % Δ)
+                (m/transpose C))))))
+
+(deftest naive-vs-invert-tests
+  (let [M (m/literal-matrix 'x 4)]
+    (is (v/zero?
+         (g/simplify
+          (g/- (m/invert M)
+               (naive-invert M))))
+        "the more complicated determinant routine in the matrix namespace
+        matches the naive implementation above.")))
 
 (deftest product-tests
   ;; TODO - fix the case where we have a 1x1 matrix that can't reach these

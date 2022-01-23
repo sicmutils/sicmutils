@@ -516,6 +516,12 @@
                             (g/* (core-get-in a [%1 k])
                                  (core-get-in b [k %2])))))))
 
+(defn- scalar*matrix [c m]
+  (fmap #(g/* c %) m))
+
+(defn- matrix*scalar [m c]
+  (fmap #(g/* % c) m))
+
 (defn- elementwise
   "Applies `f` elementwise between the matrices `a` and `b`. Throws if `a` and `b`
   don't have the same dimensions."
@@ -707,10 +713,7 @@
   (if (vector? v)
     (into (subvec v 0 i)
           (subvec v (inc i)))
-    ;; TODO why not the second??
-    (into (vec (take i v))
-          (drop (inc i) v))
-    #_(delete (vec v) i)))
+    (delete (into [] v) i)))
 
 (defn with-substituted-row
   "Returns a new matrix of identical shape to `m`, with the vector `v` substituted
@@ -748,7 +751,8 @@
   (->Matrix (dec (num-rows m))
             (dec (num-cols m))
             (mapv #(delete % j)
-                  (delete m i))) )
+                  (delete
+                   (matrix->vector m) i))) )
 
 (defn- checkerboard-negate [s i j]
   (if (even? (+ i j))
@@ -780,7 +784,7 @@
   `m`.
 
   Generic operations are used, so this works on symbolic square matrices."
-  [add sub mul easy-zero?]
+  [add sub mul zero?]
   (let [zero (add)]
     (fn [m]
       {:pre [(square? m)]}
@@ -795,7 +799,7 @@
                       (if-not (seq remaining-cols)
                         answer
                         (let [term (core-get-in m [row (first remaining-cols)])]
-                          (if (easy-zero? term)
+                          (if (zero? term)
                             (recur (inc idx)
                                    (rest remaining-cols)
                                    answer)
@@ -816,23 +820,6 @@
   determinant
   (general-determinant g/+ g/- g/* v/numeric-zero?))
 
-;; TODO move to tests now that this sucks!
-#_
-(defn determinant [m]
-  {:pre [(square? m)]}
-  (condp = (num-rows m)
-    0 m
-    1 (core-get-in m [0 0])
-    2 (let [[[a b] [c d]] m]
-        (g/- (g/* a d)
-             (g/* b c)))
-    (ua/generic-sum
-     (map g/*
-          (cycle [1 -1])
-          (nth m 0)
-          (for [i (range (num-rows m))]
-            (determinant (without m 0 i)))))))
-
 (defn cofactors
   "Returns the matrix of cofactors of the supplied square matrix `m`."
   [m]
@@ -848,18 +835,38 @@
                                 (determinant)
                                 (checkerboard-negate i j)))))))
 
-(defn invert
-  "Returns the inverse of the supplied square matrix `m`."
-  [m]
-  {:pre [(square? m)]}
-  (let [r (num-rows m)]
-    (condp = r
-      0 m
-      1 (->Matrix 1 1 [[(g/invert (core-get-in m [0 0]))]])
-      (let [C (cofactors m)
-            Δ (ua/generic-sum (map g/* (nth m 0) (nth C 0)))]
-        (fmap #(g/divide % Δ)
-              (transpose C))))))
+;;; The following implements the classical adjoint formula for the
+;;; inverse of a matrix. This may be useful for symbolic applications.
+
+(defn classical-adjoint-formula
+  "sub, div should be one or two args and invert..."
+  [add sub mul div zero?]
+  (let [zero (add)
+        det  (general-determinant add sub mul zero?)]
+    (fn inv [A]
+      (let [dim (dimension A)]
+        (if (= dim 1)
+          (->Matrix 1 1 [[(div (core-get-in A [0 0]))]])
+          (let* [d  (det A)
+                 -d (sub d)]
+            (generate dim dim
+                      (fn [i j]
+                        (let [denom (if (even? (+ i j)) d -d)]
+                          (div (det (without A j i)) denom))))))))))
+
+(def ^{:doc "Returns the inverse of the supplied square matrix `m`."
+       :arglists '([A b])}
+  invert
+  (classical-adjoint-formula g/+ g/- g/* g// v/numeric-zero?))
+
+(defn ^:no-doc m-div-m [m1 m2]
+  (mul m1 (invert m2)))
+
+(defn ^:no-doc m-div-c [m c]
+  (matrix*scalar m (g/invert c)))
+
+(defn ^:no-doc c-div-m [c m]
+  (scalar*matrix c (invert m)))
 
 (defn s:inverse
   ([ms rs]
@@ -971,55 +978,25 @@
   Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
   [add sub mul div zero?]
   (let [det (general-determinant add sub mul zero?)]
-    (fn [A b]
+    (fn solve [A b]
       {:pre [(square? A)
              (column? b)
-             (= (dimension A) (num-rows b))]}
+             (= (dimension A)
+                (num-rows b))]}
       (let [bv (nth-col b 0)
-            d  (determinant A)
+            bn (num-rows b)
+            d  (det A)
             At (transpose A)]
         (column*
          (mapv (fn [i]
-                 (g/div (det
-                         (with-substituted-row At i bv))
-                        d))
-               (range bv)))))))
+                 (div (det (with-substituted-row At i bv))
+                      d))
+               (range bn)))))))
 
-;;; The following implements the classical adjoint formula for the
-;;; inverse of a matrix.  This may be useful for symbolic applications.
-
-(defn classical-adjoint-formula [zero one add sub mul div zero?]
-  (let [det (general-determinant add sub mul zero?)]
-    (fn matinv [A]
-      (let [dim (dimension A)]
-        (if (= dim 1)
-          (generate 1 1
-                    (fn [i j] (g/div one (core-get-in A [0 0]))))
-          (let* [d  (det A)
-                 -d (g/sub zero d)]
-            (generate dim dim
-                      (fn [j i]
-                        (if (even? (+ i j))
-                          (g/div (det (without A i j)) d)
-                          (g/div (det (without A i j)) -d))))))))))
-
-#_
-(def solve-general
+(def ^{:doc "document!"
+       :arglists '([A b])}
+  solve
   (cramers-rule g/+ g/- g/* g// v/numeric-zero?))
-
-#_(defn m:invert [A]
-    (if *numerical?*
-      (matinv-numerical A)
-      (matinv-general A)))
-
-#_
-(defn m:solve [A b]
-  (if *numerical?*
-    (solve-numerical A b)
-    (solve-general A b)))
-
-(defn solve [A b]
-  (cramers-rule A b))
 
 (defn rsolve [b A]
   (cond (s/up? b)   (column-matrix->up
@@ -1055,20 +1032,19 @@
   (elementwise g/+ (make-diagonal (num-rows b) a) b))
 
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::v/scalar ::matrix] [n a] (fmap #(g/* n %) a))
-(defmethod g/mul [::matrix ::v/scalar] [a n] (fmap #(g/* % n) a))
+(defmethod g/mul [::v/scalar ::matrix] [n a] (scalar*matrix n a))
+(defmethod g/mul [::matrix ::v/scalar] [a n] (matrix*scalar a n))
 
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 
-;; TODO fill these in!
-(defmethod g/div [::matrix ::v/scalar] [m u])
-(defmethod g/div [::v/scalar ::square-matrix] [u m])
-(defmethod g/div [::column-matrix ::square-matrix] [c m])
-(defmethod g/div [::row-matrix ::square-matrix] [r m])
-(defmethod g/div [::s/up ::square-matrix] [u m])
-(defmethod g/div [::s/down ::square-matrix] [d m])
-(defmethod g/div [::matrix ::square-matrix] [d m])
+(defmethod g/div [::matrix ::v/scalar] [m c] (m-div-c m c))
+(defmethod g/div [::v/scalar ::square-matrix] [c m] (c-div-m c m))
+(defmethod g/div [::column-matrix ::square-matrix] [c m] (rsolve c m))
+(defmethod g/div [::row-matrix ::square-matrix] [r m] (rsolve r m))
+(defmethod g/div [::s/up ::square-matrix] [u m] (rsolve u m))
+(defmethod g/div [::s/down ::square-matrix] [d m] (rsolve d m))
+(defmethod g/div [::matrix ::square-matrix] [d m] (m-div-m d m))
 
 (defmethod g/exp [::square-matrix] [m] (series/exp-series m))
 (defmethod g/cos [::square-matrix] [m] (series/cos-series m))
