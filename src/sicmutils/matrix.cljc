@@ -841,8 +841,7 @@
 (defn classical-adjoint-formula
   "sub, div should be one or two args and invert..."
   [add sub mul div zero?]
-  (let [zero (add)
-        det  (general-determinant add sub mul zero?)]
+  (let [det (general-determinant add sub mul zero?)]
     (fn inv [A]
       (let [dim (dimension A)]
         (if (= dim 1)
@@ -859,13 +858,13 @@
   invert
   (classical-adjoint-formula g/+ g/- g/* g// v/numeric-zero?))
 
-(defn ^:no-doc m-div-m [m1 m2]
+(defn- m-div-m [m1 m2]
   (mul m1 (invert m2)))
 
-(defn ^:no-doc m-div-c [m c]
+(defn- m-div-c [m c]
   (matrix*scalar m (g/invert c)))
 
-(defn ^:no-doc c-div-m [c m]
+(defn- c-div-m [c m]
   (scalar*matrix c (invert m)))
 
 (defn s:inverse
