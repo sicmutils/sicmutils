@@ -446,8 +446,11 @@
 
         (s/wildcard? pattern) pass
 
-        (core:or (seq? pattern)
-                 (vector? pattern))
+        (vector? pattern)
+        (and (predicate vector?)
+             (pattern->combinators (seq pattern)))
+
+        (seq? pattern)
         (if (empty? pattern)
           (eq pattern)
           (sequence*
