@@ -442,7 +442,7 @@
   (testing "s:transpose with rectangular"
     (is (= (s/down (s/up 'c 'e 'g)
                    (s/up 'd 'f 'h))
-           (m/s:transpose
+           (m/s:transpose-orientation
             (s/up (s/down 'c 'd)
                   (s/down 'e 'f)
                   (s/down 'g 'h))))
@@ -450,7 +450,7 @@
 
     (is (= (s/up (s/down 'c 'e 'g)
                  (s/down 'd 'f 'h))
-           (m/s:transpose
+           (m/s:transpose-orientation
             (s/down (s/up 'c 'd)
                     (s/up 'e 'f)
                     (s/up 'g 'h))))
@@ -458,7 +458,7 @@
 
     (is (= (s/down (s/down 'c 'e 'g)
                    (s/down 'd 'f 'h))
-           (m/s:transpose
+           (m/s:transpose-orientation
             (s/down (s/down 'c 'd)
                     (s/down 'e 'f)
                     (s/down 'g 'h))))
@@ -466,7 +466,7 @@
 
     (is (= (s/up (s/up 'c 'e 'g)
                  (s/up 'd 'f 'h))
-           (m/s:transpose
+           (m/s:transpose-orientation
             (s/up (s/up 'c 'd)
                   (s/up 'e 'f)
                   (s/up 'g 'h))))
@@ -502,7 +502,9 @@
   (letfn [(transpose-test [left-multiplier thing right-multiplier]
             ;; Should produce numerical zero and a zero structure
             [(g/- (g/* left-multiplier (g/* thing right-multiplier))
-                  (g/* (g/* (m/s:transpose thing) left-multiplier) right-multiplier))
+                  (g/* (g/* (m/s:transpose-orientation thing)
+                            left-multiplier)
+                       right-multiplier))
              (g/- (m/s:transpose left-multiplier thing right-multiplier)
                   (m/s:transpose thing right-multiplier))])]
 

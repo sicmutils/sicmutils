@@ -646,18 +646,21 @@
 
 (defn s->m
   "Convert the structure `ms`, which would be a scalar if the (compatible)
-  multiplication`(* ls ms rs)` were performed, to a matrix."
-  [ls ms rs]
-  (when *careful-conversion*
-    (assert (v/numerical? (g/* ls (g/* ms rs)))))
-  (let [ndowns (s/dimension ls)
-        nups   (s/dimension rs)]
-    (generate ndowns nups
-              (fn [i j]
-                (g/* (s/unflatten
-                      (s/basis-unit ndowns i) ls)
-                     (g/* ms (s/unflatten
-                              (s/basis-unit nups j) rs)))))))
+  multiplication `(* ls ms rs)` were performed, to a matrix."
+  ([ms rs]
+   (let [ls (s/compatible-shape (g/* ms rs))]
+     (s->m ls ms rs)))
+  ([ls ms rs]
+   (when *careful-conversion*
+     (assert (v/numerical? (g/* ls (g/* ms rs)))))
+   (let [ndowns (s/dimension ls)
+         nups   (s/dimension rs)]
+     (generate ndowns nups
+               (fn [i j]
+                 (g/* (s/unflatten
+                       (s/basis-unit ndowns i) ls)
+                      (g/* ms (s/unflatten
+                               (s/basis-unit nups j) rs))))))))
 
 (defn as-matrix
   "Any one argument function of a structure can be seen as a matrix. This is only
@@ -665,8 +668,7 @@
   [F]
   (fn [s]
     (let [v (F s)]
-      (s->m
-       (s/compatible-shape (g/* v s)) v s))))
+      (s->m v s))))
 
 (defn nth-row
   "Returns the `n`-th row of the supplied matrix `m` as a `down` structure."
@@ -744,18 +746,30 @@
     ms))
 
 (defn s:transpose
-  "The first arity is s:transpose2, second is s:transpose1, then s:transpose."
-  ([s]
-   (let [ret (two-tensor-operation s transpose)]
-     (if (= (s/orientation ret)
-            (s/orientation (first ret)))
-       ret
-       (s/transpose ret))))
+  "2-arity is s:transpose1, then s:transpose."
   ([ms rs]
    (let [ls (s/compatible-shape (g/* ms rs))]
      (s:transpose ls ms rs)))
   ([ls ms rs]
    (m->s rs (transpose (s->m ls ms rs)) ls)))
+
+(defn s:transpose-orientation
+  "s:transpose2 from scmutils"
+  [s]
+  (let [ret (two-tensor-operation s transpose)]
+    (if (= (s/orientation ret)
+           (s/orientation (first ret)))
+      ret
+      (s/transpose ret))))
+
+(defn s:invert
+  "s:invert from scmutils"
+  [s]
+  (let [ret (two-tensor-operation s invert)]
+    (if (= (s/orientation ret)
+           (s/orientation (first ret)))
+      (s/transpose ret)
+      ret)))
 
 (defn- delete
   "Returns the vector formed by deleting the `i`'th element of the given vector
@@ -1141,10 +1155,7 @@
   (two-tensor-> s (fn [m _] (trace m))))
 
 (defmethod g/invert [::s/structure] [a]
-  (let [a' (two-tensor-operation a invert)]
-    (if (= (s/orientation a') (s/orientation (first a')))
-      (s/opposite a' (map #(s/opposite a' %) a'))
-      a')))
+  (s:invert a))
 
 (defn- s:solve-linear-left [M product]
   (let [cp (s/compatible-shape product)
