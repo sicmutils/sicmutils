@@ -158,7 +158,11 @@
   (testing "equality"
     (is (= [[1 2] [3 4]] (m/by-rows [1 2] [3 4])))
     (is (= (m/by-rows [1 2] [3 4])
-           (m/by-rows [1 2] [3 4])))))
+           (m/by-rows [1 2] [3 4])))
+
+    (testing "scalar equality on either side"
+      (is (v/= 'x (m/make-diagonal 10 'x)))
+      (is (v/= (m/make-diagonal 10 'x) 'x)))))
 
 (deftest matrix-basics
   (checking "square? is false for numbers" 100
@@ -169,6 +173,10 @@
             [m (gen/let [n (gen/choose 1 10)]
                  (sg/square-matrix n))]
             (is (m/square? m)))
+
+  (testing "some"
+    (is (m/some even? (m/by-rows [1 2] [1 3])))
+    (is (not (m/some even? (m/by-rows [1 5] [1 3])))))
 
   (checking "fmap-indexed" 100
             [M (gen/let [rows (gen/choose 1 5)
@@ -225,6 +233,15 @@
             (let [col (m/column* vs)]
               (is (= (m/by-cols vs) col))
               (is (m/column? col))))
+
+  (testing "malformed by-cols, by-rows"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (m/by-cols [1] [2 3]))
+        "counts aren't equal")
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (m/by-rows [1] [2 3]))
+        "counts aren't equal"))
 
   (checking "with-substituted-row works" 100
             [[m new-row] (gen/let [n (gen/choose 1 10)]
@@ -398,7 +415,7 @@
                       (list -4 -5 -6)) (g/negate M)))
     (is (= (s/down (s/up -1 -2)
                    (s/up -3 -4))
-           (m/square-structure-operation
+           (m/two-tensor-operation
             (s/down (s/up 1 2) (s/up 3 4))
             #(m/fmap - %)))))
 
@@ -421,6 +438,39 @@
                  (sg/matrix m n))]
             (is (m/square?
                  (g/* (g/transpose M) M))))
+
+  (testing "s:transpose with rectangular"
+    (is (= (s/down (s/up 'c 'e 'g)
+                   (s/up 'd 'f 'h))
+           (m/s:transpose
+            (s/up (s/down 'c 'd)
+                  (s/down 'e 'f)
+                  (s/down 'g 'h))))
+        "up of downs")
+
+    (is (= (s/up (s/down 'c 'e 'g)
+                 (s/down 'd 'f 'h))
+           (m/s:transpose
+            (s/down (s/up 'c 'd)
+                    (s/up 'e 'f)
+                    (s/up 'g 'h))))
+        "down of ups")
+
+    (is (= (s/down (s/down 'c 'e 'g)
+                   (s/down 'd 'f 'h))
+           (m/s:transpose
+            (s/down (s/down 'c 'd)
+                    (s/down 'e 'f)
+                    (s/down 'g 'h))))
+        "down of downs")
+
+    (is (= (s/up (s/up 'c 'e 'g)
+                 (s/up 'd 'f 'h))
+           (m/s:transpose
+            (s/up (s/up 'c 'd)
+                  (s/up 'e 'f)
+                  (s/up 'g 'h))))
+        "up of ups"))
 
   (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner)"
             100 [[l inner r] (gen/let [rows (gen/choose 1 5)
@@ -449,44 +499,49 @@
                           (s/transpose-outer inner)))
                     "left side empty generates a compatible, zero entry"))))
 
-  (comment
-    (defn transpose-test [left-multiplier thing right-multiplier]
-      ;; Should produce numerical zero and a zero structure
-      [(- (* left-multiplier (* thing right-multiplier))
-          (* (* (s:transpose2 thing) left-multiplier) right-multiplier))
-       (- (s:transpose left-multiplier thing right-multiplier)
-          (s:transpose1 thing right-multiplier))])
+  (letfn [(transpose-test [left-multiplier thing right-multiplier]
+            ;; Should produce numerical zero and a zero structure
+            [(g/- (g/* left-multiplier (g/* thing right-multiplier))
+                  (g/* (g/* (m/s:transpose thing) left-multiplier) right-multiplier))
+             (g/- (m/s:transpose left-multiplier thing right-multiplier)
+                  (m/s:transpose thing right-multiplier))])]
 
     ;; down down
-    (transpose-test (up 'a 'b)
-                    (down (down 'c 'd) (down 'e 'f) (down 'g 'h))
-                    (up 'i 'j 'k))
-    ;; (0 (down (down 0 0 0) (down 0 0 0)))
+    (is (v/= [0 (s/down (s/down 0 0 0) (s/down 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/up 'a 'b)
+               (s/down (s/down 'c 'd) (s/down 'e 'f) (s/down 'g 'h))
+               (s/up 'i 'j 'k))))
+        "down, down")
 
     ;; up up
-    (transpose-test (down 'a 'b)
-                    (up (up 'c 'd) (up 'e 'f) (up 'g 'h))
-                    (down 'i 'j 'k))
-    ;; (0 (up (up 0 0 0) (up 0 0 0)))
+    (is (v/= [0 (s/up (s/up 0 0 0) (s/up 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/down 'a 'b)
+               (s/up (s/up 'c 'd) (s/up 'e 'f) (s/up 'g 'h))
+               (s/down 'i 'j 'k))))
+        "up, up")
 
-    ;; up down
-    (transpose-test (up 'a 'b)
-                    (up (down 'c 'd) (down 'e 'f) (down 'g 'h))
-                    (down 'i 'j 'k))
-    ;; (0 (down (up 0 0 0) (up 0 0 0)))
+    (is (v/= [0 (s/down (s/up 0 0 0) (s/up 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/up 'a 'b)
+               (s/up (s/down 'c 'd) (s/down 'e 'f) (s/down 'g 'h))
+               (s/down 'i 'j 'k))))
+        "up, down")
 
-    ;; down up
-    (transpose-test (down 'a 'b)
-                    (down (up 'c 'd) (up 'e 'f) (up 'g 'h))
-                    (up 'i 'j 'k))
-
-    ;; (0 (up (down 0 0 0) (down 0 0 0)))
-    )
+    (is (v/= [0 (s/up (s/down 0 0 0) (s/down 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/down 'a 'b)
+               (s/down (s/up 'c 'd) (s/up 'e 'f) (s/up 'g 'h))
+               (s/up 'i 'j 'k))))))
 
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
         M (m/by-rows [1 2 3]
                      [4 5 6])]
-
     (is (= 8 (g/dimension A))
         "The dimension of a structure is the total number of entries,
         disregarding structure.")
@@ -552,7 +607,7 @@
                     (concat l [(m/->structure M)] r))
                    (m/seq-> (concat l [M] r)))))
 
-  (testing "square-structure->"
+  (testing "two-tensor->"
     (doseq [[S M] [[(s/down (s/up 11 12) (s/up 21 22))
                     (m/by-rows [11 21] [12 22])]
                    [(s/up (s/down 11 12) (s/down 21 22))
@@ -561,9 +616,9 @@
                     (m/by-rows [11 21] [12 22])]
                    [(s/down (s/down 11 12) (s/down 21 22))
                     (m/by-rows [11 12] [21 22])]]]
-      (m/square-structure-> S (fn [m ->s]
-                                (is (= M m))
-                                (is (= S (->s m)))))))
+      (m/two-tensor-> S (fn [m ->s]
+                          (is (= M m))
+                          (is (= S (->s m)))))))
 
   (testing "structure as matrix"
     (let [A (s/up (s/up 1 2)
@@ -581,8 +636,8 @@
                     (s/up 0 0 2 0)
                     (s/up 0 1 2 0)
                     (s/up 1 0 0 1))
-          cof #(m/square-structure-operation % m/cofactors)
-          det #(m/square-structure-> % (fn [m _] (g/determinant m)))]
+          cof #(m/two-tensor-operation % m/cofactors)
+          det #(m/two-tensor-> % (fn [m _] (g/determinant m)))]
 
       (testing "cofactors"
         (is (= (s/up (s/up 4 -3) (s/up -2 1)) (cof A)))
@@ -604,15 +659,28 @@
         (is (= 7 (g/trace G))))))
 
   (testing "s->m->s"
-    (is (= (m/by-rows [1 2] [2 3]) (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))
-    (is (= (m/by-rows [-3 2] [2 -1]) (m/invert (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))))
+    (is (= (m/by-rows [1 2] [2 3])
+           (m/s->m (s/down 'x 'y)
+                   (s/down (s/up 1 2) (s/up 2 3))
+                   (s/up 'x 'y))))
+
+    (is (= (m/by-rows [-3 2] [2 -1])
+           (m/invert (m/s->m (s/down 'x 'y)
+                             (s/down (s/up 1 2) (s/up 2 3))
+                             (s/up 'x 'y)))))
+
     (is (= (s/up (s/down -3 2) (s/down 2 -1))
            (m/m->s
             (s/compatible-shape (s/down 1 2))
-            (m/invert (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))
+            (m/invert (m/s->m (s/down 'x 'y)
+                              (s/down (s/up 1 2) (s/up 2 3))
+                              (s/up 'x 'y)))
             (s/compatible-shape (s/up 2 3)))))
+
     (is (= (s/down (s/up -3 2) (s/up 2 -1))
-           (m/s:inverse (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))))
+           (m/s:inverse (s/down 'x 'y)
+                        (s/down (s/up 1 2) (s/up 2 3))
+                        (s/up 'x 'y))))))
 
 (deftest matrix-mul-div
   (let [M (m/by-rows [1 2 3]
@@ -621,16 +689,31 @@
                      [4 5]
                      [5 6])]
     (is (= (m/by-rows [26 32] [38 47]) (g/* M S))))
+
   (let [M (m/by-rows '[a b] '[c d])
         d (s/down 'x 'y)
         u (s/up 'x 'y)]
     (testing "mul"
-      (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y)) (g/+ (g/* 'c 'x) (g/* 'd 'y)))
+      (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y))
+                   (g/+ (g/* 'c 'x) (g/* 'd 'y)))
              (g/* M u)))
-      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
+      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b))
+                     (g/+ (g/* 'x 'c) (g/* 'y 'd)))
              (g/* d M)))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) 'foo (g/* u M)))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/* M d))))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* u M)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* M d)))
+
+      (testing "matrix, scalar mult"
+        (is (= (m/by-rows [(g/* 'x 'a) (g/* 'x 'b)]
+                          [(g/* 'x 'c) (g/* 'x 'd)])
+               (g/* 'x M)))
+
+        (is (= (m/by-rows [(g/* 'a 'x) (g/* 'b 'x)]
+                          [(g/* 'c 'x) (g/* 'd 'x)])
+               (g/* M 'x)))))))
 
 (deftest square-tests
   (checking "square matrices return true for square?"
@@ -790,6 +873,15 @@
         "the more complicated determinant routine in the matrix namespace
         matches the naive implementation above.")))
 
+(deftest struct-matrix-conversion-tests
+  (is (= (into [] (s/literal-up 'x 4))
+         (m/column-matrix->vector
+          (m/literal-column-matrix 'x 4))))
+
+  (is (= (into [] (s/literal-down 'x 4))
+         (m/row-matrix->vector
+          (m/literal-row-matrix 'x 4)))))
+
 (deftest product-tests
   ;; TODO - fix the case where we have a 1x1 matrix that can't reach these
   ;; methods, since it gets dispatched as square.
@@ -866,41 +958,36 @@
                          (s/up 2))))
           "s = x*(s/x)")
 
-      (testing "structure multiplication, division are associative"
-        (comment
-          ;; TODO integrate remaining!
+      (testing "structure multiplication, division are associative. Test by
+      equation solving. All answers should be <0 0>."
+        (let [a (s/down (s/down 'a 'b) (s/down 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
+              "down of downs"))
 
-          ;; Test by equation solving.  All answers should be <0 0>.
+        (let [a (s/up (s/up 'a 'b) (s/up 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/- b (g/* (m/s:inverse a b) c)))
+              "up of ups"))
 
-          ;; down of downs
-          (let ((a (down (down 'a 'b) (down 'c 'd)))
-                (b (up 'e 'f)))
-            (let ((c (* a b)))
-              (- b (* (s:inverse1 a b) c))))
-          ;; (up 0 0)
+        (let [a (s/up (s/down 'a 'b) (s/down 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/- b (g/* (m/s:inverse a b) c)))
+              "up of downs"))
 
-          ;; up of ups
-          (let ((a (up (up 'a 'b) (up 'c 'd)))
-                (b (down 'e 'f)))
-            (let ((c (* a b)))
-              (- b (* (s:inverse1 a b) c))))
-          ;; (down 0 0)
-
-          ;; up of downs
-          (let ((a (up (down 'a 'b) (down 'c 'd)))
-                (b (down 'e 'f)))
-            (let ((c (* a b)))
-              (- b (* (s:inverse1 a b) c))))
-          ;; (down 0 0)
-
-          ;; down of ups
-          (let ((a (down (up 'a 'b) (up 'c 'd)))
-                (b (up 'e 'f)))
-            (let ((c (* a b)))
-              (- b (* (s:inverse1 a b) c))))
-          ;; (up 0 0)
-
-          )
+        (let [a (s/down (s/up 'a 'b) (s/up 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= 1
+                 (g/- b (g/* (m/s:inverse a b) c)))
+              "down of ups"))
 
         (let [a (s/up (s/down 'a 'b)
                       (s/down 'c 'd))

@@ -390,7 +390,7 @@
   "Returns true if `f` is true for some element of the matrix `m`, false
   otherwise. (Also works on arbitrary nested sequences.)"
   [f m]
-  (some f (flatten m)))
+  (core-some f (flatten m)))
 
 (defn fmap
   "Maps `f` over the elements of the matrix `m` returning a new matrix of the same
@@ -574,7 +574,7 @@
     (generate ra ca #(f (core-get-in a [%1 %2])
                         (core-get-in b [%1 %2])))))
 
-(defn square-structure->
+(defn two-tensor->
   "Converts the square structure `s` into a matrix, and calls the supplied
   continuation `continue` with
 
@@ -584,25 +584,31 @@
 
   Returns the result of the continuation call."
   [s continue]
-  (let [major-size (count s)
-        major-orientation (s/orientation s)
-        minor-sizes (map #(if (s/structure? %) (count %) 1) s)
-        minor-orientations (map s/orientation s)
-        minor-orientation (first minor-orientations)]
-    (if (and (every? #(= major-size %) minor-sizes)
-             (every? #(= minor-orientation %) (rest minor-orientations)))
-      (let [need-transpose (= minor-orientation ::s/up)
-            M (generate major-size major-size
-                        #(core-get-in s (if need-transpose [%2 %1] [%1 %2])))]
+  (let [outer-size         (count s)
+        outer-orientation  (s/orientation s)
+        inner-sizes        (map #(if (s/structure? %) (count %) 1) s)
+        inner-size         (first inner-sizes)
+        inner-orientations (map s/orientation s)
+        inner-orientation  (first inner-orientations)]
+    (if (and (every? #{inner-orientation} (rest inner-orientations))
+             (every? #{inner-size} (rest inner-sizes)))
+      (let [need-transpose? (= inner-orientation ::s/up)
+            [major-size minor-size]
+            (if need-transpose?
+              [inner-size outer-size]
+              [outer-size inner-size])
+            M (generate major-size minor-size
+                        #(core-get-in s (if need-transpose? [%2 %1] [%1 %2])))]
         (continue
-         M #(->structure % major-orientation minor-orientation need-transpose)))
-      (u/illegal "structure is not square"))))
+         M
+         #(->structure % outer-orientation inner-orientation need-transpose?)))
+      (u/illegal "structure is not rectangular"))))
 
-(defn square-structure-operation
+(defn two-tensor-operation
   "Applies matrix operation `f` to square structure `s` and returns a structure of
   the same type as the supplied structure."
   [s f]
-  (square-structure-> s (fn [m ->s] (->s (f m)))))
+  (two-tensor-> s (fn [m ->s] (->s (f m)))))
 
 (defn- M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
@@ -738,6 +744,13 @@
     ms))
 
 (defn s:transpose
+  "The first arity is s:transpose2, second is s:transpose1, then s:transpose."
+  ([s]
+   (let [ret (two-tensor-operation s transpose)]
+     (if (= (s/orientation ret)
+            (s/orientation (first ret)))
+       ret
+       (s/transpose ret))))
   ([ms rs]
    (let [ls (s/compatible-shape (g/* ms rs))]
      (s:transpose ls ms rs)))
@@ -772,7 +785,7 @@
   - columns from `lowcol` -> `hicol`"
   [x lowrow hirow lowcol hicol]
   (let [m (if (s/structure? x)
-            (square-structure-> x (fn [m _] m))
+            (two-tensor-> x (fn [m _] m))
             x)]
     (generate (inc (- hirow lowrow))
               (inc (- hicol lowcol))
@@ -1121,14 +1134,14 @@
 
 (defmethod g/determinant [::square-matrix] [m] (determinant m))
 (defmethod g/determinant [::s/structure] [s]
-  (square-structure-> s (fn [m _] (determinant m))))
+  (two-tensor-> s (fn [m _] (determinant m))))
 
 (defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/trace [::s/structure] [s]
-  (square-structure-> s (fn [m _] (trace m))))
+  (two-tensor-> s (fn [m _] (trace m))))
 
 (defmethod g/invert [::s/structure] [a]
-  (let [a' (square-structure-operation a invert)]
+  (let [a' (two-tensor-operation a invert)]
     (if (= (s/orientation a') (s/orientation (first a')))
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
