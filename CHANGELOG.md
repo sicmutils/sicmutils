@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- #474:
+
   - `g/quotient` now supports inexact inputs, as LONG as the inputs are equal up
     to sign. So `(g/quotient 1.2 -1.2)` now returns `-1` instead of throwing.
 
