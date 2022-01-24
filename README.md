@@ -207,7 +207,7 @@ To cite this repository:
   author = {Colin Smith and Sam Ritchie},
   title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.20.1},
+  version = {0.21.0},
   year = {2016},
 }
 ```
