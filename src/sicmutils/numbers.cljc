@@ -171,6 +171,32 @@
     1
     (Math/exp a)))
 
+;; We don't yet suport quotient, remainder with floating point, but there are a
+;; few cases where it does make sense. When two numbers are identical up to
+;; sign, it's fine to say that they divide evenly (and return 1 or -1). If that
+;; happens, we can return a 0 remainder.
+
+(defn- careful-divide
+  "Minimum effort division. If `b` and `a` are equal or of opposite sign,
+  returns 1 or -1 respectively. If `a` is 1 or -1, returns `b` or `-b`
+  respectively. Else, returns nil."
+  [b a]
+  (cond (v/= a b)            (v/one-like a)
+        (v/= a (g/negate b)) (g/negate (v/one-like a))
+        (v/one? a)            b
+        (v/one? (g/negate a)) (g/negate b)
+        :else nil))
+
+(defmethod g/exact-divide [::v/scalar ::v/real] [b a]
+  (or (careful-divide b a)
+      (u/illegal
+       (str "exact-divide not allowed between: " b ", " a))))
+
+(defmethod g/quotient [::v/scalar ::v/real] [b a]
+  (or (careful-divide b a)
+      (u/illegal
+       (str "quotient not allowed between: " b ", " a))))
+
 (defn ^:private exact-divide
   "Checked implementation of g/exact-divide general enough to use for any type
   that defines g/remainder and g/quotient."
@@ -178,14 +204,8 @@
   {:pre [(v/zero? (g/remainder a b))]}
   (g/quotient a b))
 
-(defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
-(defmethod g/exact-divide [::v/scalar ::v/real] [b a]
-  (cond (= a b)               (v/one-like a)
-        (= a (g/negate b))    (g/negate (v/one-like a))
-        (v/one? a)            b
-        (v/one? (g/negate a)) (g/negate b)
-        :else (u/illegal
-               (str "exact not allowed: " b ", " a))))
+(defmethod g/exact-divide [::v/integral ::v/integral] [b a]
+  (exact-divide b a))
 
 (defmethod g/integer-part [::v/integral] [a] a)
 (defmethod g/fractional-part [::v/integral] [a] 0)

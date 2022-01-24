@@ -454,6 +454,13 @@
                    (g/simplify  (g/solve-linear-right x s)))
                 "solve-linear-right scalar matches q*q"))
 
+  (testing "unit tests from failed generative"
+    (let [c #sicm/complex [-1.0 -2.0]
+          x #sicm/quaternion ['a 'b 'c 'd]]
+      (is (= (g/simplify (g/solve-linear (q/make c) x))
+             (g/simplify (g/solve-linear c x)))
+          "solve-linear complex matches q*q unit")))
+
   (checking "complex + quaternion arithmetic matches quaternion-only
             implementations." 100
             [c sg/complex x (sg/quaternion sg/symbol)]
