@@ -386,6 +386,37 @@
               (is (ish? (g/modulo x y)
                         (g/remainder x y))))
 
+    (testing "quotient, exact-divide error when exact results aren't possible"
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/exact-divide 4 1.2)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/quotient 4 1.2))))
+
+    (checking "quotient, remainder with floats" 100
+              [x (gen/such-that (complement v/zero?) sg/real)]
+              (is (= (g/quotient x x)
+                     (g/exact-divide x x))
+                  "exact-divide is fine if passed identical inputs")
+
+              (is (v/= 1 (g/quotient x x))
+                  "x/x == 1")
+
+              (is (v/= 1 (g/quotient (- x) (- x)))
+                  "-x/-x == 1")
+
+              (is (v/= -1 (g/quotient (- x) x))
+                  "-x/x == -1")
+
+              (is (v/= -1 (g/quotient x (- x)))
+                  "x/-x == -1")
+
+              (testing "remainder"
+                (is (v/zero? (g/remainder x x)))
+                (is (v/zero? (g/remainder x (- x))))
+                (is (v/zero? (g/remainder (- x) (- x))))
+                (is (v/zero? (g/remainder (- x) x)))))
+
     (checking "x == y*quot(x,y) + rem(x,y)" 100
               [x (gen-integer 1e4)
                y (nonzero (gen-integer 1e4))]

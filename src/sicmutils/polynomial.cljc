@@ -1123,7 +1123,8 @@
 
         :else
         (letfn [(coeff:div [l r]
-                  [(g/quotient l r) (g/remainder l r)])]
+                  (if (= l r)
+                    [(g/quotient l r) (g/remainder l r)]))]
           (binary-combine u v coeff:div i/div
                           :->poly
                           (fn [a [q r]]
