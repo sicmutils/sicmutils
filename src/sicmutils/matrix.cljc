@@ -576,39 +576,47 @@
 
 (defn two-tensor->
   "Converts the square structure `s` into a matrix, and calls the supplied
-  continuation `continue` with
+  continuation `cont` with
 
   - the generated matrix
   - a function which will restore a matrix to a structure with the same inner
     and outer orientations as s
 
   Returns the result of the continuation call."
-  [s continue]
-  (let [outer-size         (count s)
-        outer-orientation  (s/orientation s)
-        inner-sizes        (map #(if (s/structure? %) (count %) 1) s)
-        inner-size         (first inner-sizes)
-        inner-orientations (map s/orientation s)
-        inner-orientation  (first inner-orientations)]
-    (if (and (every? #{inner-orientation} (rest inner-orientations))
-             (every? #{inner-size} (rest inner-sizes)))
-      (let [need-transpose? (= inner-orientation ::s/up)
-            [major-size minor-size]
-            (if need-transpose?
-              [inner-size outer-size]
-              [outer-size inner-size])
-            M (generate major-size minor-size
-                        #(core-get-in s (if need-transpose? [%2 %1] [%1 %2])))]
-        (continue
-         M
-         #(->structure % outer-orientation inner-orientation need-transpose?)))
-      (u/illegal "structure is not rectangular"))))
+  [s cont]
+  (if-let [{:keys [inner-size
+                   outer-size
+                   inner-orientation
+                   outer-orientation]}
+           (s/two-tensor-info s)]
+    (let [transpose? (= inner-orientation ::s/up)
+          [major-size minor-size]
+          (if transpose?
+            [inner-size outer-size]
+            [outer-size inner-size])
+          M (generate major-size minor-size
+                      (fn [i j]
+                        (let [path (if transpose? [j i] [i j])]
+                          (core-get-in s path))))
+          restore-fn (fn [m]
+                       (->structure
+                        m outer-orientation inner-orientation transpose?))]
+      (cont M restore-fn))
+    (u/illegal "structure is not a 2-tensor")))
 
 (defn two-tensor-operation
   "Applies matrix operation `f` to square structure `s` and returns a structure of
   the same type as the supplied structure."
   [s f]
   (two-tensor-> s (fn [m ->s] (->s (f m)))))
+
+(defn structure->matrix
+  "Given some 2-tensor-shaped structure `s`, returns the corresponding matrix.
+
+  The outer orientation is ignored; If the inner structures are `up`, they're
+  treated as columns. Inner `down` structures are treated as rows."
+  [s]
+  (two-tensor-> s (fn [m _] m)))
 
 (defn- M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
@@ -754,6 +762,20 @@
    (m->s rs (transpose (s->m ls ms rs)) ls)))
 
 (defn s:transpose-orientation
+  #_"Given some 2-tensor `s` (a 'rectangular' nested structure), returns a structure
+  that represents the multiplicative inverse of the supplied structure. The
+  inner and outer structure orientations of `(s:invert s)` are the SAME as `s`.
+
+  If `s` is an up-of-downs or down-of-ups, `(g/* s (s:invert s))`
+  and `(g/* (s:invert s) s)` will evaluate to an identity-matrix-shaped
+  up-of-downs or down-of-ups.
+
+  If `s` is an up-of-ups or down-of-downs, multiplying `s` `(s:invert s)` will
+  result in a scalar, as both structures collapse.
+
+  NOTE: I DO NOT yet understand the meaning of this scalar! If you do, please
+  open a pull request and explain it here."
+
   "s:transpose2 from scmutils"
   [s]
   (let [ret (two-tensor-operation s transpose)]
@@ -762,8 +784,22 @@
       ret
       (s/transpose ret))))
 
+(declare invert)
+
 (defn s:invert
-  "s:invert from scmutils"
+  "Given some 2-tensor `s` (a 'square' nested structure), returns a structure
+  that represents the multiplicative inverse of the supplied structure. The
+  inner and outer structure orientations of `(s:invert s)` are the SAME as `s`.
+
+  If `s` is an up-of-downs or down-of-ups, `(g/* s (s:invert s))`
+  and `(g/* (s:invert s) s)` will evaluate to an identity-matrix-shaped
+  up-of-downs or down-of-ups.
+
+  If `s` is an up-of-ups or down-of-downs, multiplying `s` `(s:invert s)` will
+  result in a scalar, as both structures collapse.
+
+  NOTE: I DO NOT yet understand the meaning of this scalar! If you do, please
+  open a pull request and explain it here."
   [s]
   (let [ret (two-tensor-operation s invert)]
     (if (= (s/orientation ret)
@@ -940,6 +976,19 @@
    (m->s (s/compatible-shape rs)
          (invert (s->m ls ms rs))
          (s/compatible-shape ls))))
+
+(defn s:solve-linear-left [M product]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* cp M))]
+    (s/s:* (s:inverse cp M cr) product)))
+
+(defn s:solve-linear-right [product M]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* M cp))]
+    (s/s:* product (s:inverse cr M cp))))
+
+(defn s:divide-by-structure [rv s]
+  (s:solve-linear-left s rv))
 
 (defn make-zero
   "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is
@@ -1157,18 +1206,8 @@
 (defmethod g/invert [::s/structure] [a]
   (s:invert a))
 
-(defn- s:solve-linear-left [M product]
-  (let [cp (s/compatible-shape product)
-        cr (s/compatible-shape (s/s:* cp M))]
-    (s/s:* (s:inverse cp M cr) product)))
-
-(defn- s:solve-linear-right [product M]
-  (let [cp (s/compatible-shape product)
-        cr (s/compatible-shape (s/s:* M cp))]
-    (s/s:* product (s:inverse cr M cp))))
-
 (defmethod g/div [::s/structure ::s/structure] [rv s]
-  (s:solve-linear-left s rv))
+  (s:divide-by-structure rv s))
 
 (defmethod g/solve-linear [::square-matrix ::s/up] [A b] (rsolve b A))
 (defmethod g/solve-linear [::square-matrix ::s/down] [A b] (rsolve b A))
@@ -1177,10 +1216,16 @@
 (defmethod g/solve-linear [::s/structure ::s/structure] [s product]
   (s:solve-linear-left s product))
 
+(defmethod g/solve-linear [::s/structure ::v/scalar] [s c]
+  (s/structure*scalar (s:invert s) c))
+
 (defmethod g/solve-linear-right [::row-matrix ::square-matrix] [b A] (rsolve b A))
 (defmethod g/solve-linear-right [::down ::square-matrix] [b A] (rsolve b A))
 (defmethod g/solve-linear-right [::s/structure ::s/structure] [product s]
   (s:solve-linear-right product s))
+
+(defmethod g/solve-linear-right [::v/scalar ::s/structure] [c s]
+  (s/scalar*structure c (s:invert s)))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
 (defmethod g/dimension [::column-matrix] [m] (num-rows m))

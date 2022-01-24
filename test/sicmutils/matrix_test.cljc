@@ -876,13 +876,40 @@
         matches the naive implementation above.")))
 
 (deftest struct-matrix-conversion-tests
+  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+               (m/structure->matrix (s/up)))
+      "without ANY inner structure we can't proceed.")
+
+  (testing "almost-empty tensors"
+    (is (= (m/literal-matrix 'x 1 0)
+           (m/structure->matrix
+            (s/up (s/down)))))
+
+    (is (= (m/literal-matrix 'x 0 1)
+           (m/structure->matrix
+            (s/down (s/up))))))
+
   (is (= (into [] (s/literal-up 'x 4))
          (m/column-matrix->vector
           (m/literal-column-matrix 'x 4))))
 
   (is (= (into [] (s/literal-down 'x 4))
          (m/row-matrix->vector
-          (m/literal-row-matrix 'x 4)))))
+          (m/literal-row-matrix 'x 4))))
+
+  (is (= (m/by-cols ['a 'b] ['c 'd])
+         (m/structure->matrix
+          (s/down (s/up 'a 'b) (s/up 'c 'd)))
+         (m/structure->matrix
+          (s/up (s/up 'a 'b) (s/up 'c 'd))))
+      "outer structure is ignored, and inner up signifies columns.")
+
+  (is (= (m/by-rows ['a 'b] ['c 'd])
+         (m/structure->matrix
+          (s/up (s/down 'a 'b) (s/down 'c 'd)))
+         (m/structure->matrix
+          (s/down (s/down 'a 'b) (s/down 'c 'd))))
+      "outer structure is ignored, and inner down signifies rows."))
 
 (deftest product-tests
   ;; TODO - fix the case where we have a 1x1 matrix that can't reach these
@@ -953,6 +980,36 @@
              (g/div (s/up 1 2 3)
                     (s/up 2)))
           "one compatible for contraction layer added")
+
+      (testing "divide-by-structure from structs.scm"
+        (let [a (s/up (s/down 'a 'b) (s/down 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (m/s:divide-by-structure c a))))
+              "up-down, down"))
+
+        (let [a (s/down (s/up 'a 'b) (s/up 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (m/s:divide-by-structure c a))))
+              "down-up, up"))
+
+        (testing "from GJS: 'the following are strange results', not sure why!"
+          (let [a (s/down (s/down 'a 'b) (s/down 'c 'd))
+                b (s/down 'e 'f)]
+            (is (= (s/down 'e 'f)
+                   (g/simplify
+                    (g/* a (m/s:divide-by-structure b a))))))
+
+          (let [a (s/up (s/up 'a 'b) (s/up 'c 'd))
+                b (s/up 'e 'f)]
+            (is (= (s/up 'e 'f)
+                   (g/simplify
+                    (g/* a (m/s:divide-by-structure b a))))))))
 
       (is (= (s/up 1 2 3)
              (g/* (s/up 2)
@@ -1100,6 +1157,17 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest two-tensor-tests
+  (testing "solve-linear right and left between scalar, 2-tensor"
+    (is (= (s/up (s/down -24 12) (s/down 18 -6))
+           (g/solve-linear-right
+            12
+            (s/up (s/down 1 2) (s/down 3 4)))
+
+           (g/solve-linear-left
+            (s/up (s/down 1 2) (s/down 3 4))
+            12)))))
 
 (deftest series-expansion-tests
   (is (= (m/by-rows [(g// Math/PI 2) 0]

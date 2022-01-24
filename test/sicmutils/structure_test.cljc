@@ -314,6 +314,30 @@
     (is (= (s/up 1 2 3) (s/up 1 2 3)))
     (is (= (s/up 1 2 3) (s/up 1 2 3)))))
 
+(deftest two-tensor-tests
+  (testing "tensor predicates"
+    (let [up-of-downs   (s/up (s/down 1 2) (s/down 3 4))
+          down-of-ups   (g/transpose up-of-downs)
+          up-of-ups     (s/up (s/up 1 2) (s/up 3 4))
+          down-of-downs (g/transpose up-of-ups)
+          preds [s/up-of-downs? s/down-of-ups?
+                 s/two-down? s/two-up?
+                 s/two-tensor?]
+          check (fn [expected s]
+                  (is (= expected
+                         (map #(% s) preds))))]
+      (is (= {:outer-orientation ::s/up
+              :inner-orientation ::s/down
+              :outer-size 2
+              :inner-size 2}
+             (s/two-tensor-info up-of-downs)))
+
+      (check [true false false false true] up-of-downs)
+      (check [false true false false true] down-of-ups)
+      (check [false false true false true] down-of-downs)
+      (check [false false false true true] up-of-ups)
+      (check [false false false false false] (s/up (s/down 1 2) (s/up 2 3 4))))))
+
 (deftest structural-operations
   (testing "structure?"
     (is (s/structure? [1 2 3]))
