@@ -170,10 +170,11 @@
 (defn Lagrangian->acceleration [L]
   (let [P ((partial 2) L)
         F ((partial 1) L)]
-    (/ (- F
-          (+ ((partial 0) P)
-             (* ((partial 1) P) velocity)))
-       ((partial 2) P))))
+    (g/solve-linear-left
+     ((partial 2) P)
+     (- F
+        (+ ((partial 0) P)
+           (* ((partial 1) P) velocity))))))
 
 (defn Lagrangian->state-derivative
   "The state derivative of a Lagrangian is a function carrying a state

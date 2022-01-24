@@ -78,7 +78,7 @@
       (let [z (dual-zero w)
             M ((D w-of-v) z)
             b (w-of-v z)
-            v (/ (- w b) M)]
+            v (g/solve-linear-left M (- w b))]
         (- (* w v) (F v))))))
 
 (def Legendre-transform

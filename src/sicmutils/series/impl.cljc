@@ -638,8 +638,8 @@
 
 ;; These two are less elegant, perhaps:
 
-(def acosx (c-seq '(/ pi 2) asinx))
-(def acotx (c-seq '(/ pi 2) atanx))
+(def acosx (c-seq (/ Math/PI 2) asinx))
+(def acotx (c-seq (/ Math/PI 2) atanx))
 
 ;; The hyperbolic trig functions are defined in a similar way:
 

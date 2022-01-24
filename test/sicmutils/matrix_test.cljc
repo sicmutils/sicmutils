@@ -32,6 +32,7 @@
             [sicmutils.numsymb]
             [sicmutils.structure :as s]
             [sicmutils.structure-test :refer [<l|:inner:|r>]]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -157,7 +158,11 @@
   (testing "equality"
     (is (= [[1 2] [3 4]] (m/by-rows [1 2] [3 4])))
     (is (= (m/by-rows [1 2] [3 4])
-           (m/by-rows [1 2] [3 4])))))
+           (m/by-rows [1 2] [3 4])))
+
+    (testing "scalar equality on either side"
+      (is (v/= 'x (m/make-diagonal 10 'x)))
+      (is (v/= (m/make-diagonal 10 'x) 'x)))))
 
 (deftest matrix-basics
   (checking "square? is false for numbers" 100
@@ -168,6 +173,10 @@
             [m (gen/let [n (gen/choose 1 10)]
                  (sg/square-matrix n))]
             (is (m/square? m)))
+
+  (testing "some"
+    (is (m/some even? (m/by-rows [1 2] [1 3])))
+    (is (not (m/some even? (m/by-rows [1 5] [1 3])))))
 
   (checking "fmap-indexed" 100
             [M (gen/let [rows (gen/choose 1 5)
@@ -225,6 +234,15 @@
               (is (= (m/by-cols vs) col))
               (is (m/column? col))))
 
+  (testing "malformed by-cols, by-rows"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (m/by-cols [1] [2 3]))
+        "counts aren't equal")
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (m/by-rows [1] [2 3]))
+        "counts aren't equal"))
+
   (checking "with-substituted-row works" 100
             [[m new-row] (gen/let [n (gen/choose 1 10)]
                            (gen/tuple (sg/square-matrix n)
@@ -262,6 +280,9 @@
               (is (v/zero? M))
               (is (= m (m/num-rows M)))
               (is (= n (m/num-cols M)))))
+
+  (testing "make-diagonal"
+    (is (= (m/I 10) (m/make-diagonal 10 1))))
 
   (checking "make-diagonal" 100
             [vs (gen/vector sg/real 1 20)]
@@ -359,13 +380,21 @@
 
 (deftest literal-matrix-creation
   (testing "literal-matrix"
-    (let [M (m/literal-matrix 'x 3 3)]
+    (let [M (m/literal-matrix 'x 3)]
       (is (m/matrix? M))
       (is (= M (m/by-rows ['x_0↑0 'x_1↑0 'x_2↑0]
                           ['x_0↑1 'x_1↑1 'x_2↑1]
                           ['x_0↑2 'x_1↑2 'x_2↑2]))
           "A literal matrix is a matrix populated by symbols with index refs
-          baked in.")))
+          baked in."))
+
+    (is (= (m/literal-column-matrix 'x 3)
+           (m/by-cols ['x↑0 'x↑1 'x↑2]))
+        "literal column")
+
+    (is (= (m/literal-row-matrix 'x 3)
+           (m/by-rows ['x_0 'x_1 'x_2]))
+        "literal row"))
 
   (checking "structure prototype matches matrix literal" 100
             [[sym M] (gen/let [sym    sg/symbol
@@ -386,7 +415,7 @@
                       (list -4 -5 -6)) (g/negate M)))
     (is (= (s/down (s/up -1 -2)
                    (s/up -3 -4))
-           (m/square-structure-operation
+           (m/two-tensor-operation
             (s/down (s/up 1 2) (s/up 3 4))
             #(m/fmap - %)))))
 
@@ -409,6 +438,39 @@
                  (sg/matrix m n))]
             (is (m/square?
                  (g/* (g/transpose M) M))))
+
+  (testing "s:transpose with rectangular"
+    (is (= (s/down (s/up 'c 'e 'g)
+                   (s/up 'd 'f 'h))
+           (m/s:transpose-orientation
+            (s/up (s/down 'c 'd)
+                  (s/down 'e 'f)
+                  (s/down 'g 'h))))
+        "up of downs")
+
+    (is (= (s/up (s/down 'c 'e 'g)
+                 (s/down 'd 'f 'h))
+           (m/s:transpose-orientation
+            (s/down (s/up 'c 'd)
+                    (s/up 'e 'f)
+                    (s/up 'g 'h))))
+        "down of ups")
+
+    (is (= (s/down (s/down 'c 'e 'g)
+                   (s/down 'd 'f 'h))
+           (m/s:transpose-orientation
+            (s/down (s/down 'c 'd)
+                    (s/down 'e 'f)
+                    (s/down 'g 'h))))
+        "down of downs")
+
+    (is (= (s/up (s/up 'c 'e 'g)
+                 (s/up 'd 'f 'h))
+           (m/s:transpose-orientation
+            (s/up (s/up 'c 'd)
+                  (s/up 'e 'f)
+                  (s/up 'g 'h))))
+        "up of ups"))
 
   (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner)"
             100 [[l inner r] (gen/let [rows (gen/choose 1 5)
@@ -437,10 +499,51 @@
                           (s/transpose-outer inner)))
                     "left side empty generates a compatible, zero entry"))))
 
+  (letfn [(transpose-test [left-multiplier thing right-multiplier]
+            ;; Should produce numerical zero and a zero structure
+            [(g/- (g/* left-multiplier (g/* thing right-multiplier))
+                  (g/* (g/* (m/s:transpose-orientation thing)
+                            left-multiplier)
+                       right-multiplier))
+             (g/- (m/s:transpose left-multiplier thing right-multiplier)
+                  (m/s:transpose thing right-multiplier))])]
+
+    ;; down down
+    (is (v/= [0 (s/down (s/down 0 0 0) (s/down 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/up 'a 'b)
+               (s/down (s/down 'c 'd) (s/down 'e 'f) (s/down 'g 'h))
+               (s/up 'i 'j 'k))))
+        "down, down")
+
+    ;; up up
+    (is (v/= [0 (s/up (s/up 0 0 0) (s/up 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/down 'a 'b)
+               (s/up (s/up 'c 'd) (s/up 'e 'f) (s/up 'g 'h))
+               (s/down 'i 'j 'k))))
+        "up, up")
+
+    (is (v/= [0 (s/down (s/up 0 0 0) (s/up 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/up 'a 'b)
+               (s/up (s/down 'c 'd) (s/down 'e 'f) (s/down 'g 'h))
+               (s/down 'i 'j 'k))))
+        "up, down")
+
+    (is (v/= [0 (s/up (s/down 0 0 0) (s/down 0 0 0))]
+             (g/simplify
+              (transpose-test
+               (s/down 'a 'b)
+               (s/down (s/up 'c 'd) (s/up 'e 'f) (s/up 'g 'h))
+               (s/up 'i 'j 'k))))))
+
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
         M (m/by-rows [1 2 3]
                      [4 5 6])]
-
     (is (= 8 (g/dimension A))
         "The dimension of a structure is the total number of entries,
         disregarding structure.")
@@ -506,7 +609,7 @@
                     (concat l [(m/->structure M)] r))
                    (m/seq-> (concat l [M] r)))))
 
-  (testing "square-structure->"
+  (testing "two-tensor->"
     (doseq [[S M] [[(s/down (s/up 11 12) (s/up 21 22))
                     (m/by-rows [11 21] [12 22])]
                    [(s/up (s/down 11 12) (s/down 21 22))
@@ -515,9 +618,9 @@
                     (m/by-rows [11 21] [12 22])]
                    [(s/down (s/down 11 12) (s/down 21 22))
                     (m/by-rows [11 12] [21 22])]]]
-      (m/square-structure-> S (fn [m ->s]
-                                (is (= M m))
-                                (is (= S (->s m)))))))
+      (m/two-tensor-> S (fn [m ->s]
+                          (is (= M m))
+                          (is (= S (->s m)))))))
 
   (testing "structure as matrix"
     (let [A (s/up (s/up 1 2)
@@ -535,8 +638,8 @@
                     (s/up 0 0 2 0)
                     (s/up 0 1 2 0)
                     (s/up 1 0 0 1))
-          cof #(m/square-structure-operation % m/cofactors)
-          det #(m/square-structure-> % (fn [m _] (g/determinant m)))]
+          cof #(m/two-tensor-operation % m/cofactors)
+          det #(m/two-tensor-> % (fn [m _] (g/determinant m)))]
 
       (testing "cofactors"
         (is (= (s/up (s/up 4 -3) (s/up -2 1)) (cof A)))
@@ -558,15 +661,28 @@
         (is (= 7 (g/trace G))))))
 
   (testing "s->m->s"
-    (is (= (m/by-rows [1 2] [2 3]) (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))
-    (is (= (m/by-rows [-3 2] [2 -1]) (m/invert (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))))
+    (is (= (m/by-rows [1 2] [2 3])
+           (m/s->m (s/down 'x 'y)
+                   (s/down (s/up 1 2) (s/up 2 3))
+                   (s/up 'x 'y))))
+
+    (is (= (m/by-rows [-3 2] [2 -1])
+           (m/invert (m/s->m (s/down 'x 'y)
+                             (s/down (s/up 1 2) (s/up 2 3))
+                             (s/up 'x 'y)))))
+
     (is (= (s/up (s/down -3 2) (s/down 2 -1))
            (m/m->s
             (s/compatible-shape (s/down 1 2))
-            (m/invert (m/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))
+            (m/invert (m/s->m (s/down 'x 'y)
+                              (s/down (s/up 1 2) (s/up 2 3))
+                              (s/up 'x 'y)))
             (s/compatible-shape (s/up 2 3)))))
+
     (is (= (s/down (s/up -3 2) (s/up 2 -1))
-           (m/s:inverse (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))))
+           (m/s:inverse (s/down 'x 'y)
+                        (s/down (s/up 1 2) (s/up 2 3))
+                        (s/up 'x 'y))))))
 
 (deftest matrix-mul-div
   (let [M (m/by-rows [1 2 3]
@@ -575,16 +691,59 @@
                      [4 5]
                      [5 6])]
     (is (= (m/by-rows [26 32] [38 47]) (g/* M S))))
+
   (let [M (m/by-rows '[a b] '[c d])
         d (s/down 'x 'y)
         u (s/up 'x 'y)]
     (testing "mul"
-      (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y)) (g/+ (g/* 'c 'x) (g/* 'd 'y)))
+      (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y))
+                   (g/+ (g/* 'c 'x) (g/* 'd 'y)))
              (g/* M u)))
-      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
+      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b))
+                     (g/+ (g/* 'x 'c) (g/* 'y 'd)))
              (g/* d M)))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) 'foo (g/* u M)))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/* M d))))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* u M)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* M d)))
+
+      (testing "matrix, scalar mult"
+        (is (= (m/by-rows [(g/* 'x 'a) (g/* 'x 'b)]
+                          [(g/* 'x 'c) (g/* 'x 'd)])
+               (g/* 'x M)))
+
+        (is (= (m/by-rows [(g/* 'a 'x) (g/* 'b 'x)]
+                          [(g/* 'c 'x) (g/* 'd 'x)])
+               (g/* M 'x)))))
+
+    (testing "matrix, scalar division"
+      (is (= (g/* 'x (g// M))
+             (g// 'x M))
+          "matrix on right, matrix inverts")
+
+      (is (= (m/by-rows [(g/* 'a (g// 'x)) (g/* 'b (g// 'x))]
+                        [(g/* 'c (g// 'x)) (g/* 'd (g// 'x))])
+             (g// M 'x))))
+
+    (testing "matrix, scalar addition acts on the diagonal"
+      (is (= (m/by-rows [(g/+ 'x 'a) 'b]
+                        ['c (g/+ 'x 'd)])
+             (g/+ 'x M)))
+
+      (is (= (m/by-rows [(g/+ 'a 'x) 'b]
+                        ['c (g/+ 'd 'x)])
+             (g/+ M 'x))))
+
+    (testing "matrix, scalar subtraction acts on the diagonal"
+      (is (= (m/by-rows [(g/- 'x 'a) (g/- 'b)]
+                        [(g/- 'c) (g/- 'x 'd)])
+             (g/- 'x M))
+          "matrix on right, matrix negates")
+
+      (is (= (m/by-rows [(g/- 'a 'x) 'b]
+                        ['c (g/- 'd 'x)])
+             (g/- M 'x))))))
 
 (deftest square-tests
   (checking "square matrices return true for square?"
@@ -698,6 +857,88 @@
                          (g/* (g/invert A) A)
                          (g/* A (g/invert A)))))))
 
+(defn naive-determinant [m]
+  {:pre [(m/square? m)]}
+  (condp = (m/num-rows m)
+    0 m
+    1 (get-in m [0 0])
+    2 (let [[[a b] [c d]] m]
+        (g/- (g/* a d)
+             (g/* b c)))
+    (ua/generic-sum
+     (map g/*
+          (cycle [1 -1])
+          (nth m 0)
+          (for [i (range (m/num-rows m))]
+            (naive-determinant (m/without m 0 i)))))))
+
+(deftest naive-vs-determinant-tests
+  (let [M (m/literal-matrix 'x 6)]
+    (is (v/zero?
+         (g/simplify
+          (g/- (m/determinant M)
+               (naive-determinant M))))
+        "the more complicated determinant routine in the matrix namespace
+        matches the naive implementation above.")))
+
+(defn naive-invert
+  "Returns the inverse of the supplied square matrix `m`."
+  [m]
+  {:pre [(m/square? m)]}
+  (let [r (m/num-rows m)]
+    (condp = r
+      0 m
+      1 (m/->Matrix 1 1 [[(g/invert (get-in m [0 0]))]])
+      (let [C (m/cofactors m)
+            Δ (ua/generic-sum (map g/* (nth m 0) (nth C 0)))]
+        (m/fmap #(g/divide % Δ)
+                (m/transpose C))))))
+
+(deftest naive-vs-invert-tests
+  (let [M (m/literal-matrix 'x 4)]
+    (is (v/zero?
+         (g/simplify
+          (g/- (m/invert M)
+               (naive-invert M))))
+        "the more complicated determinant routine in the matrix namespace
+        matches the naive implementation above.")))
+
+(deftest struct-matrix-conversion-tests
+  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+               (m/structure->matrix (s/up)))
+      "without ANY inner structure we can't proceed.")
+
+  (testing "almost-empty tensors"
+    (is (= (m/literal-matrix 'x 1 0)
+           (m/structure->matrix
+            (s/up (s/down)))))
+
+    (is (= (m/literal-matrix 'x 0 1)
+           (m/structure->matrix
+            (s/down (s/up))))))
+
+  (is (= (into [] (s/literal-up 'x 4))
+         (m/column-matrix->vector
+          (m/literal-column-matrix 'x 4))))
+
+  (is (= (into [] (s/literal-down 'x 4))
+         (m/row-matrix->vector
+          (m/literal-row-matrix 'x 4))))
+
+  (is (= (m/by-cols ['a 'b] ['c 'd])
+         (m/structure->matrix
+          (s/down (s/up 'a 'b) (s/up 'c 'd)))
+         (m/structure->matrix
+          (s/up (s/up 'a 'b) (s/up 'c 'd))))
+      "outer structure is ignored, and inner up signifies columns.")
+
+  (is (= (m/by-rows ['a 'b] ['c 'd])
+         (m/structure->matrix
+          (s/up (s/down 'a 'b) (s/down 'c 'd)))
+         (m/structure->matrix
+          (s/down (s/down 'a 'b) (s/down 'c 'd))))
+      "outer structure is ignored, and inner down signifies rows."))
+
 (deftest product-tests
   ;; TODO - fix the case where we have a 1x1 matrix that can't reach these
   ;; methods, since it gets dispatched as square.
@@ -737,6 +978,24 @@
               (is (= (g/outer-product s s)
                      (g/outer-product col row))))))
 
+(deftest division-tests
+  (let [M (m/by-rows [1 2] [3 4])]
+    (is (= (s/up 1 0)
+           (g// (s/up 1 3) M))
+        "up/M")
+
+    (is (= (g// (s/down 5 -1) 2)
+           (g// (s/down 1 3) M))
+        "down/M")
+
+    (is (= (m/column 1 0)
+           (g// (m/column 1 3) M))
+        "up/M matches column/M")
+
+    (is (= (g// (m/row 5 -1) 2)
+           (g// (m/row 1 3) M))
+        "down/M matches row/M")))
+
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2)
                 (s/up 3 4))
@@ -768,13 +1027,76 @@
                     (s/up 2)))
           "one compatible for contraction layer added")
 
+      (testing "divide-by-structure from structs.scm"
+        (let [a (s/up (s/down 'a 'b) (s/down 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (m/s:divide-by-structure c a))))
+              "up-down, down"))
+
+        (let [a (s/down (s/up 'a 'b) (s/up 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (m/s:divide-by-structure c a))))
+              "down-up, up"))
+
+        (testing "from GJS: 'the following are strange results', not sure why!"
+          (let [a (s/down (s/down 'a 'b) (s/down 'c 'd))
+                b (s/down 'e 'f)]
+            (is (= (s/down 'e 'f)
+                   (g/simplify
+                    (g/* a (m/s:divide-by-structure b a))))))
+
+          (let [a (s/up (s/up 'a 'b) (s/up 'c 'd))
+                b (s/up 'e 'f)]
+            (is (= (s/up 'e 'f)
+                   (g/simplify
+                    (g/* a (m/s:divide-by-structure b a))))))))
+
       (is (= (s/up 1 2 3)
              (g/* (s/up 2)
                   (g/div (s/up 1 2 3)
                          (s/up 2))))
           "s = x*(s/x)")
 
-      (testing "structure multiplication, division are associative"
+      (testing "structure multiplication, division are associative. Test by
+      equation solving. All answers should be <0 0>."
+        (let [a (s/down (s/down 'a 'b) (s/down 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
+              "down of downs"))
+
+        (let [a (s/up (s/up 'a 'b) (s/up 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
+              "up of ups"))
+
+        (let [a (s/up (s/down 'a 'b) (s/down 'c 'd))
+              b (s/down 'e 'f)
+              c (g/* a b)]
+          (is (= (s/down 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
+              "up of downs"))
+
+        (let [a (s/down (s/up 'a 'b) (s/up 'c 'd))
+              b (s/up 'e 'f)
+              c (g/* a b)]
+          (is (= (s/up 0 0)
+                 (g/simplify
+                  (g/- b (g/* (m/s:inverse a b) c))))
+              "down of ups"))
+
         (let [a (s/up (s/down 'a 'b)
                       (s/down 'c 'd))
               b (s/down 'e 'f)]
@@ -881,6 +1203,32 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest two-tensor-tests
+  (testing "solve-linear right and left between scalar, 2-tensor"
+    (is (= (s/up (s/down -24 12) (s/down 18 -6))
+           (g/solve-linear-right
+            12
+            (s/up (s/down 1 2) (s/down 3 4)))
+
+           (g/solve-linear-left
+            (s/up (s/down 1 2) (s/down 3 4))
+            12)))))
+
+(deftest series-expansion-tests
+  (is (= (m/by-rows [(g// Math/PI 2) 0]
+                    [0 (g// Math/PI 2)])
+         (first
+          (g/acos
+           (m/by-rows [1 2] [3 4]))))
+      "series expansion works for g/acos")
+
+  (is (= (m/by-rows [(g// Math/PI 2) 0]
+                    [0 (g// Math/PI 2)])
+         (first
+          (g/acot
+           (m/by-rows [1 2] [3 4]))))
+      "series expansion works for g/acot"))
 
 (deftest characteristic-poly-tests
   (let [M (m/by-rows [1 3 2] [4 5 2] [1 4 5])
