@@ -2,6 +2,68 @@
 
 ## [unreleased]
 
+- #469:
+
+  - `sicmutils.matrix` gains:
+
+    - `literal-column-matrix`, `literal-row-matrix` for generating slightly
+      tidier matrices of literal entries. (See `literal-matrix` for the prior
+      option.)
+
+    - `structure->matrix` converts 2 tensors into explicit matrices.
+
+    - `s:solve-linear-left`, `s:solve-linear-right`, `s:divide-by-structure` act
+      on 2 tensors. These live in the matrix namespace since they depend on
+      conversions to and from tensors and matrices.
+
+    - `make-diagonal` for generating diagonal matrices with a constant element
+      along the diagonal.
+
+    - `s->m`, `s:transpose` and `s:inverse` all gain new 2-arities
+      that provides a sane default for `ls`.
+
+    - More efficient matrix `invert` and `determinant` routines, plus functions
+      to generate type specific custom matrix inversion and determinant routines
+      via `classical-adjoint-formula`, `general-determinant`.
+
+    - Linear equation solving via `solve`, `rsolve` and `cramers-rule`.
+
+  - Implements new generics for matrices and structures:
+
+    - diagonal matrices respond true to `v/=` with a scalar if all entries along
+      the diagonal are equal to that scalar.
+
+    - square matrices can now `g/+` and `g/-` with scalars; the scalar `c` is
+      converted `(* c I)`, where `I` is an identity matrix of the same dimension
+      as the square matrix.
+
+    - `(g/acot M)` now expands the matrix `M` into a nice power series, more
+      efficient than the previous default.
+
+    - Thanks to `solve` and `cramers-rule`, the following `g/div` combinations
+      now work: `matrix/scalar`, `scalar/square-matrix`,
+      `column-matrix/square-matrix`, `row-matrix/square-matrix`,
+      `up/square-matrix`, `down/square-matrix`, `matrix/square-matrix`.
+
+    - new `solve-linear` implementations between square matrices and `up`
+      `down`, row and column matrices, and between structures and scalars.
+
+    - new `solve-linear-right` between row-matrix+square-matrix,
+      down+square-matrix and scalar+structure.
+
+  - Fixes an infinite loop with `sicmutils.matrix/some`.
+
+  - Renames `square-structure->` to `two-tensor->`, and
+    `square-structure-operation` to `two-tensor-operation`. These functions now
+    work with rectangular 2 tensors, not just square.
+
+  - `sicmutils.structure` gains `down-of-ups?`, `up-of-downs?`, `two-up?`,
+    `two-down?`, `two-tensor?` and `two-tensor-info` for working with "2
+    tensors", ie, structures that contain structural entries of matching
+    orientation and size.
+
+  - New `g/acot` generic method installed for Operator instances.
+
 - #461 adds `sicmutils.quaternion`, with a full arithmetic implementation and
   the beginnings of a rotation API. Quaternions are implemented like vectors of
   length 4, and implement all appropriate Clojure protocols. All arithmetic is

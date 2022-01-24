@@ -443,7 +443,8 @@
         outer-orientation  (orientation s)
         inner-sizes        (into #{} (map #(if (structure? %) (count %) 1)) s)
         inner-orientations (into #{} (map orientation) s)]
-    (when (and (= 1 (count inner-orientations))
+    (when (and (every? structure? s)
+               (= 1 (count inner-orientations))
                (= 1 (count inner-sizes)))
       {:outer-orientation outer-orientation
        :inner-orientation (first inner-orientations)

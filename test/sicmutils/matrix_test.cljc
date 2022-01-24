@@ -715,7 +715,35 @@
 
         (is (= (m/by-rows [(g/* 'a 'x) (g/* 'b 'x)]
                           [(g/* 'c 'x) (g/* 'd 'x)])
-               (g/* M 'x)))))))
+               (g/* M 'x)))))
+
+    (testing "matrix, scalar division"
+      (is (= (g/* 'x (g// M))
+             (g// 'x M))
+          "matrix on right, matrix inverts")
+
+      (is (= (m/by-rows [(g/* 'a (g// 'x)) (g/* 'b (g// 'x))]
+                        [(g/* 'c (g// 'x)) (g/* 'd (g// 'x))])
+             (g// M 'x))))
+
+    (testing "matrix, scalar addition acts on the diagonal"
+      (is (= (m/by-rows [(g/+ 'x 'a) 'b]
+                        ['c (g/+ 'x 'd)])
+             (g/+ 'x M)))
+
+      (is (= (m/by-rows [(g/+ 'a 'x) 'b]
+                        ['c (g/+ 'd 'x)])
+             (g/+ M 'x))))
+
+    (testing "matrix, scalar subtraction acts on the diagonal"
+      (is (= (m/by-rows [(g/- 'x 'a) (g/- 'b)]
+                        [(g/- 'c) (g/- 'x 'd)])
+             (g/- 'x M))
+          "matrix on right, matrix negates")
+
+      (is (= (m/by-rows [(g/- 'a 'x) 'b]
+                        ['c (g/- 'd 'x)])
+             (g/- M 'x))))))
 
 (deftest square-tests
   (checking "square matrices return true for square?"
@@ -949,6 +977,24 @@
                   row (m/down->row-matrix (g/transpose s))]
               (is (= (g/outer-product s s)
                      (g/outer-product col row))))))
+
+(deftest division-tests
+  (let [M (m/by-rows [1 2] [3 4])]
+    (is (= (s/up 1 0)
+           (g// (s/up 1 3) M))
+        "up/M")
+
+    (is (= (g// (s/down 5 -1) 2)
+           (g// (s/down 1 3) M))
+        "down/M")
+
+    (is (= (m/column 1 0)
+           (g// (m/column 1 3) M))
+        "up/M matches column/M")
+
+    (is (= (g// (m/row 5 -1) 2)
+           (g// (m/row 1 3) M))
+        "down/M matches row/M")))
 
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2)

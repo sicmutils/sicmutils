@@ -34,7 +34,6 @@
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.permute :as up]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Associative AFn IFn Sequential))))
@@ -602,7 +601,7 @@
                        (->structure
                         m outer-orientation inner-orientation transpose?))]
       (cont M restore-fn))
-    (u/illegal "structure is not a 2-tensor")))
+    (u/illegal (str "structure " s " is not a 2-tensor"))))
 
 (defn two-tensor-operation
   "Applies matrix operation `f` to square structure `s` and returns a structure of
@@ -754,7 +753,30 @@
     ms))
 
 (defn s:transpose
-  "2-arity is s:transpose1, then s:transpose."
+  "Given structural inputs `ls` (optional), `ms` and `rs`, constrained such
+  that `(* ls ms rs)` returns a numerical quantity, returns a result such that
+  the following relationship remains true:
+
+  ```clj
+  (* <ls| (* ms |rs>)) = (* <rs| (* (s:transpose ms) |ls>))
+  ```
+
+  For example:
+
+  ```clj
+  (let [ls (s/up 1 2)
+      ms (s/up (s/down 1 2) (s/down 3 4))
+      rs (s/down 1 2)]
+  (g/* ls (g/* ms rs))
+  ;;=> 27
+
+  (g/* rs (g/* (s:transpose ls ms rs) ls))
+  ;;=> 27
+  )
+  ```
+
+  `ls` is optional. If `ls` is not supplied, a compatible shape is generated
+  internally."
   ([ms rs]
    (let [ls (s/compatible-shape (g/* ms rs))]
      (s:transpose ls ms rs)))
@@ -762,21 +784,29 @@
    (m->s rs (transpose (s->m ls ms rs)) ls)))
 
 (defn s:transpose-orientation
-  #_"Given some 2-tensor `s` (a 'rectangular' nested structure), returns a structure
-  that represents the multiplicative inverse of the supplied structure. The
-  inner and outer structure orientations of `(s:invert s)` are the SAME as `s`.
+  "Given some 2 tensor `s`, returns a structure with elements 'transposed' by
+  swapping the inner and outer orientations and dimensions, like a matrix
+  transpose.
 
-  If `s` is an up-of-downs or down-of-ups, `(g/* s (s:invert s))`
-  and `(g/* (s:invert s) s)` will evaluate to an identity-matrix-shaped
-  up-of-downs or down-of-ups.
+  Orientations are only flipped if they are different in the input. If the inner
+  and outer orientations of `s` are the same, the returned structure has this
+  identical orientation.
 
-  If `s` is an up-of-ups or down-of-downs, multiplying `s` `(s:invert s)` will
-  result in a scalar, as both structures collapse.
+  For example:
 
-  NOTE: I DO NOT yet understand the meaning of this scalar! If you do, please
-  open a pull request and explain it here."
+  ```clj
+  ;; opposite orientation gets flipped:
+  (s:transpose-orientation (s/up (s/down 1 2 3) (s/down 4 5 6)))
+  ;;=> (down (up 1 4) (up 2 5) (up 3 6))
 
-  "s:transpose2 from scmutils"
+  ;; same orientation stays the same:
+  (s:transpose-orientation (s/down (s/down 1 2 3) (s/down 4 5 6)))
+  ;;=> (down (down 1 4) (down 2 5) (down 3 6))
+  ```
+
+  See [[structure/two-tensor?]] for more detail on 2 tensors.
+
+  NOTE: In scmutils, this function is called `s:transpose2`."
   [s]
   (let [ret (two-tensor-operation s transpose)]
     (if (= (s/orientation ret)
@@ -878,13 +908,17 @@
                g/+
                (range 0 rows))))
 
-;; Kleanthes Koniaris determinant routine, slightly edited by GJS
+;; Note from GJS in scmutils: "Kleanthes Koniaris determinant routine, slightly
+;; edited by GJS"
 
 (defn general-determinant
-  "Returns a procedure that computes the determinant of the supplied square matrix
-  `m`.
+  "Given coefficient procedures `add`, `sub`, `mul` and `zero?`, returns a
+  procedure that efficiently computes the determinant of the supplied square
+  matrix `m`.
 
-  Generic operations are used, so this works on symbolic square matrices."
+  [[general-determinant]] is useful for generating fast type-specific
+  determinant routines. See [[determinant]] for a default using generic
+  arithmetic."
   [add sub mul zero?]
   (let [zero (add)]
     (fn [m]
@@ -936,11 +970,17 @@
                                 (determinant)
                                 (checkerboard-negate i j)))))))
 
-;;; The following implements the classical adjoint formula for the
-;;; inverse of a matrix. This may be useful for symbolic applications.
+;;; The following implements the classical adjoint formula for the inverse of a
+;;; matrix. This may be useful for symbolic applications.
 
 (defn classical-adjoint-formula
-  "sub, div should be one or two args and invert..."
+  "Given coefficient procedures `add`, `sub`, `mul` and `zero?`, returns a
+  procedure that efficiently computes the inverse of the supplied square
+  matrix `m`.
+
+  [[classical-adjoint-formula]] is useful for generating fast type-specific
+  matrix inversion routines. See [[invert]] for a default using generic
+  arithmetic."
   [add sub mul div zero?]
   (let [det (general-determinant add sub mul zero?)]
     (fn inv [A]
@@ -955,17 +995,23 @@
                           (div (det (without A j i)) denom))))))))))
 
 (def ^{:doc "Returns the inverse of the supplied square matrix `m`."
-       :arglists '([A b])}
+       :arglists '([A])}
   invert
   (classical-adjoint-formula g/+ g/- g/* g// v/numeric-zero?))
 
 (defn- m-div-m [m1 m2]
   (mul m1 (invert m2)))
 
-(defn- m-div-c [m c]
+(defn- m-div-c
+  "Returns the result of multiplying (on the right) the scalar `c` by the inverse
+  of matrix `m`."
+  [m c]
   (matrix*scalar m (g/invert c)))
 
-(defn- c-div-m [c m]
+(defn- c-div-m
+  "Returns the result of multiplying (on the left) the scalar `c` by the inverse
+  of matrix `m`."
+  [c m]
   (scalar*matrix c (invert m)))
 
 (defn s:inverse
@@ -1083,12 +1129,15 @@
 ;; ## Solving
 
 (defn cramers-rule
-  "Linear equations solved by Cramer's rule.
+  "Given coefficient procedures `add`, `sub`, `mul`, `div` and `zero?`, returns a
+  procedure that efficiently computes the solution to an inhomogeneous system of
+  linear equations, `A*x=b`, where the matrix `A` and the column matrix `b` are
+  given. The returned procedure returns the column matrix `x`.
 
-  Solves an inhomogeneous system of linear equations, `A*x=b`, where the matrix
-  `A` and the column matrix `b` are given. returns the column matrix `X`.
+  Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions.
 
-  Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
+  [[cramers-rule]] is useful for generating fast type-specific linear equation
+  solvers. See [[solve]] for a default using generic arithmetic."
   [add sub mul div zero?]
   (let [det (general-determinant add sub mul zero?)]
     (fn solve [A b]
@@ -1106,12 +1155,24 @@
                       d))
                (range bn)))))))
 
-(def ^{:doc "document!"
+(def ^{:doc "Given a matrix `A` and a column matrix `b`, computes the solution
+  to an inhomogeneous system of linear equations, `A*x=b`, where the matrix `A`
+  and the column matrix `b` are given.
+
+ Returns the column matrix `x`.
+
+ Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
        :arglists '([A b])}
   solve
   (cramers-rule g/+ g/- g/* g// v/numeric-zero?))
 
-(defn rsolve [b A]
+(defn rsolve
+  "Generalization of [[solve]] that can handle `up` and `down` structures, as well
+  as `row` and `column` matrices.
+
+  Given `row` or `down` values for `b`, `A` is appropriately transposed before
+  solving."
+  [b A]
   (cond (s/up? b)   (column-matrix->up
                      (solve A (up->column-matrix b)))
         (column? b) (solve A b)
@@ -1131,8 +1192,6 @@
 (defmethod v/= [::matrix ::matrix] [a b] (m:= a b))
 (defmethod v/= [::square-matrix ::v/scalar] [m c] (matrix=scalar m c))
 (defmethod v/= [::v/scalar ::square-matrix] [c m] (scalar=matrix c m))
-
-;; TODO add equality with up, down, row and col
 
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
 
