@@ -19,9 +19,15 @@
 
 (ns sicmutils.euclid-test
   (:require [clojure.test :refer [is deftest testing]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numbers]
             [sicmutils.euclid :as e]
-            [sicmutils.generic :as g]))
+            [sicmutils.value :as v]
+            [sicmutils.complex :as c]
+            [sicmutils.generic :as g]
+            [sicmutils.generators :as sg]
+            [same :refer [ish?]]))
 
 (defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned
@@ -44,7 +50,13 @@
       (is (= 1 (e/gcd 8 7)))
       (is (= 1 (e/gcd -8 7) 1))
       (is (= 1 (e/gcd 8 -7) 1))
-      (is (= 1 (e/gcd -8 -7) 1))))
+      (is (= 1 (e/gcd -8 -7) 1))
+
+      (testing "EQUAL floats, each sign combo causes identity result"
+        (is (= 1.2 (e/gcd -1.2 1.2)))
+        (is (= 1.2 (e/gcd -1.2 -1.2)))
+        (is (= 1.2 (e/gcd 1.2 -1.2)))
+        (is (= 1.2 (e/gcd 1.2 1.2))))))
 
   (testing "generic-gcd"
     (is (= (* 2 5 7) (g/gcd (* 2 3 5 7) (* 2 5 7 11))))

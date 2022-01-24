@@ -21,7 +21,8 @@
   "Implementations of various [greatest common
   divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) algorithms."
   (:require [sicmutils.generic :as g]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [sicmutils.complex :as c]))
 
 (defn extended-gcd
   "Returns a vector containing the [greatest common
@@ -49,6 +50,10 @@
   [a b]
   (cond (v/zero? a) (g/abs b)
         (v/zero? b) (g/abs a)
+
+        (or (v/= a b) (v/= a (g/negate b)))
+        (g/abs a)
+
         (not (and (v/integral? a) (v/integral? b))) 1
         :else (loop [a (g/abs a) b (g/abs b)]
                 (if (v/zero? b)

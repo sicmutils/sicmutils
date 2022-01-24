@@ -180,8 +180,10 @@
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
 (defmethod g/exact-divide [::v/scalar ::v/real] [b a]
-  (cond (= a b) (v/one-like a)
-        (v/one? a) b
+  (cond (= a b)               (v/one-like a)
+        (= a (g/negate b))    (g/negate (v/one-like a))
+        (v/one? a)            b
+        (v/one? (g/negate a)) (g/negate b)
         :else (u/illegal
                (str "exact not allowed: " b ", " a))))
 
