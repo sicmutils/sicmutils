@@ -332,6 +332,10 @@
               :inner-size 2}
              (s/two-tensor-info up-of-downs)))
 
+      (testing "1-deep structures are NOT two tensors, currently"
+        (is (not (s/two-tensor? (s/up 1 2 3))))
+        (is (not (s/two-tensor? (s/down 1 2 3)))))
+
       (check [true false false false true] up-of-downs)
       (check [false true false false true] down-of-ups)
       (check [false false true false true] down-of-downs)
