@@ -2,4 +2,12 @@
  :builds {:test
           {:target    :node-test
            :output-to "target/main/node-tests.js"
-           :compiler-options {:infer-externs :auto}}}}
+           :compiler-options {:infer-externs :auto}}
+
+          ;; Test advanced compilation with `shadow-cljs compile advanced`.
+          :advanced
+          {:target    :browser
+           :output-to "target/main/advanced.js"
+           :modules {:base {:entries [sicmutils.env]}}
+           :compiler-options {:infer-externs :auto
+                              :optimizations :advanced}}}}
