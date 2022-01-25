@@ -1,6 +1,6 @@
 # Changelog
 
-## [unreleased]
+## [0.21.0]
 
 - #474:
 
@@ -354,11 +354,11 @@
   - Complex numbers now respond `true` to `g/negative?` if their imaginary
     component is zero and real component is negative, false otherwise.
 
-  - `g/+`, `g/-`, `g//` now short circuit if there is a NUMERIC zero on either
-    side. This was causing bugs in cases where we allow, say, a scalar to be
-    added to a quaternion, and auto-convert the scalar right there (so it adds
-    only to the real part). OR in cases, like in the matrix PR, where we convert
-    the scalar in addition to `<scalar>*I*`.
+  - `g/+`, `g/-`, `g//` now no longer short circuit if there is a NUMERIC zero
+    on either side. This was causing bugs in cases where we allow, say, a scalar
+    to be added to a quaternion, and auto-convert the scalar right there (so it
+    adds only to the real part). OR in cases, like in the matrix PR, where we
+    convert the scalar in addition to `<scalar>*I*`.
 
     - This caused some problems with `sicmutils.matrix` tests that were not well
       typed.
