@@ -118,9 +118,6 @@
   `:convergence-fn` user-supplied function of two successive elements in `xs`
   that stops iteration and signals convergence if it returns true.
 
-  `:fail-fn` user-supplied function of two successive elements in `xs` that
-  stops iteration and signals NO convergence (failure!) if it returns true.
-
   `:minterms` `seq-limit` won't return until at least this many terms from the
   sequence have been processed.
 
@@ -133,8 +130,7 @@
   ([xs {:keys [minterms
                maxterms
                tolerance
-               convergence-fn
-               fail-fn]
+               convergence-fn]
         :or {minterms       2
              tolerance      v/sqrt-machine-epsilon
              convergence-fn (close-enuf? tolerance)}}]

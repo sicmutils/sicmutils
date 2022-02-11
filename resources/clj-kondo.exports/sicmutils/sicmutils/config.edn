@@ -15,4 +15,7 @@
    potemkin/import-def
    hooks.import-def/import-def
 
-   pattern.rule/pattern hooks.rule/pattern}}}
+   pattern.rule/pattern hooks.rule/pattern
+
+   com.gfredericks.test.chuck.clojure-test/checking
+   hooks.chuck/checking}}}

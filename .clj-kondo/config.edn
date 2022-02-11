@@ -1,5 +1,6 @@
 {:config-in-comment {:linters {:unresolved-symbol {:level :off}}}
  :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"]
+ :output {:exclude-files ["src/data_readers.clj"]}
  :linters
  {:unresolved-symbol
   {:exclude [(pattern.rule/rule)

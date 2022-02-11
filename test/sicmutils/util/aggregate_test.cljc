@@ -22,11 +22,9 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
             [sicmutils.numbers]
             [sicmutils.algebra.fold :as af]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.aggregate :as ua]))
 
 (deftest sum-tests
   (is (= [0.0 1.0 5.0 14.0 30.0]

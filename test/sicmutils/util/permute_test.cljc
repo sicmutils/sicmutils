@@ -22,11 +22,8 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
-            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.util.permute :as p]
-            [sicmutils.special.factorial :as sf]))
+            [sicmutils.util.permute :as p]))
 
 (deftest misc-tests
   (testing "permutations"

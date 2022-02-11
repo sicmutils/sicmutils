@@ -20,6 +20,7 @@
 (ns sicmutils.numsymb
   "Implementations of the generic operations for numeric types that have
   optimizations available, and for the general symbolic case."
+  (:refer-clojure :exclude [abs])
   (:require [sicmutils.complex :as c]
             [sicmutils.euclid]
             [sicmutils.generic :as g]
@@ -582,7 +583,7 @@
 
 (defn- sym:=
   ([] true)
-  ([x] true)
+  ([_] true)
   ([x y] (sym:bin= x y))
   ([x y & more]
    (let [xs    (cons x (cons y more))

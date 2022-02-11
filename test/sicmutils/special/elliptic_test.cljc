@@ -27,7 +27,6 @@
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :refer [D-numeric]]
-            [sicmutils.numerical.unimin.golden :refer [phi]]
             [sicmutils.numerical.quadrature :as q]
             [sicmutils.special.elliptic :as e]
             [sicmutils.value :as v]))
@@ -360,9 +359,16 @@
                         [sn (g/square cn) dn])
                   "special case for k == u")))
 
+  (testing "unit test before bugfix in #477"
+    (let [phi (g/asin 0.0)
+          k    0.0
+          u    (e/elliptic-f phi k)
+          [sn] (e/jacobi-elliptic-functions u k)]
+      (is (ish? phi (Math/asin sn)))))
+
   (with-comparator (v/within 1e-8)
     (checking "jacobi-elliptic phi == asin(sn)" 100
               [[phi k] legendre-phi-k]
               (let [u    (e/elliptic-f phi k)
-                    [sn] (e/jacobi-elliptic-functions u k vector)]
+                    [sn] (e/jacobi-elliptic-functions u k)]
                 (is (ish? phi (Math/asin sn)))))))

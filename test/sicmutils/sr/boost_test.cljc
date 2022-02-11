@@ -27,10 +27,10 @@
             [sicmutils.sr.boost :as sb]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [-]]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [up]]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)

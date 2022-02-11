@@ -372,7 +372,7 @@
     'and (fn [[x y]] (str x " ∧ " y))
     'or  (fn [[x y]] (str x " ∨ " y))
     'expt (fn [[x e]]
-            (if (and (integer? e) ((complement neg?) e))
+            (when (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
     'partial (fn [ds]
                (when (and (= (count ds) 1) (integer? (first ds)))
@@ -595,7 +595,7 @@
   (let [tex-string (->TeX* expr)]
     (if equation
       (let [label (if (and (string? equation)
-                           (not (empty? equation)))
+                           (seq equation))
                     (str "\\label{" equation "}\n")
                     "")]
         (str "\\begin{equation}\n"
@@ -674,7 +674,7 @@
                                               (str " % " b)
                                               (parens)))
                                 'remainder (fn [[a b]]
-                                             (str a " % "))
+                                             (str a " % " b))
                                 'and (fn [[a b]] (str a " && " b))
                                 'or (fn [[a b]] (str a " || " b))
                                 '/ render-infix-ratio}))]

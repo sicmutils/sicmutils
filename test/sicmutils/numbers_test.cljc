@@ -30,7 +30,6 @@
             [sicmutils.generic-test :as gt]
             [sicmutils.generators :as sg]
             [sicmutils.laws :as l]
-            [sicmutils.numbers :as n]
             [sicmutils.value :as v]))
 
 (def near (v/within 1e-12))
@@ -231,35 +230,35 @@
 ;; Test of generic wrapper operations.
 
 (deftest generic-plus
-  "sicmutils.numbers provides implementations of the methods needed by g/+. Test
+  (testing "sicmutils.numbers provides implementations of the methods needed by g/+. Test
   that these functions now come work with numbers."
-  (testing "simple"
-    (is (= 7 (g/+ 3 4)))
-    (is (= 4 (g/+ 2 2)))
-    (is (= 3.5 (g/+ 1.5 2))))
+    (testing "simple"
+      (is (= 7 (g/+ 3 4)))
+      (is (= 4 (g/+ 2 2)))
+      (is (= 3.5 (g/+ 1.5 2))))
 
-  (testing "many"
-    (is (= 10 (g/+ 1 2 3 4)))
-    (is (= 33 (g/+ 3 4 5 6 7 8)))))
+    (testing "many"
+      (is (= 10 (g/+ 1 2 3 4)))
+      (is (= 33 (g/+ 3 4 5 6 7 8))))))
 
 (deftest generic-minus
-  "numbers provides implementations, so test behaviors."
-  (is (= -3.14 (g/- 3.14)))
-  (is (= 2.14 (g/- 3.14 1)))
+  (testing "numbers provides implementations, so test behaviors."
+    (is (= -3.14 (g/- 3.14)))
+    (is (= 2.14 (g/- 3.14 1))))
 
   (testing "many"
     (is (= -14 (g/- 10 9 8 7)))))
 
 (deftest generic-times
-  "numbers provides implementations, so test behaviors."
-  (is (= 20 (g/* 5 4)))
-  (is (= 4 (g/* 2 2)))
-  (is (= 8 (g/* 2 2 2))))
+  (testing "numbers provides implementations, so test behaviors."
+    (is (= 20 (g/* 5 4)))
+    (is (= 4 (g/* 2 2)))
+    (is (= 8 (g/* 2 2 2)))))
 
 (deftest generic-divide
-  "numbers provides implementations, so test behaviors."
-  (is (= 5 (g/divide 20 4)))
-  (is (= 2 (g/divide 8 2 2))))
+  (testing "numbers provides implementations, so test behaviors."
+    (is (= 5 (g/divide 20 4)))
+    (is (= 2 (g/divide 8 2 2)))))
 
 (deftest fractional-integer-tests
   (checking "fractional-part" 100

@@ -45,6 +45,10 @@
 
 (deftest basic
   (testing "raw expressions"
+    (is (= "function(remainder, x, y) {\n  return x % y;\n}"
+           (->JavaScript (g/remainder 'x 'y)))
+        "remainder works")
+
     (is (= "Df(x, y)" (->infix '((D f) x y))))
     (is (= "D(f + g)(x, y)" (->infix '((D (+ f g)) x y))))
     (is (= "D(f g)(x, y)" (->infix '((D (* f g)) x y))))
@@ -68,7 +72,7 @@
     (is (= "- a" (->infix '(- a)))))
 
   (testing "with-simplifier"
-    (af/with-literal-functions [[f [0 0] 0] h k]
+    (af/with-literal-functions [[f [0 0] 0]]
       (is (= "a + b + c" (s->infix (+ 'a 'b 'c))))
       (is (= "a b c" (s->infix (* 'a 'b 'c))))
       (is (= "a b + a c" (s->infix (* 'a (+ 'b 'c)))))

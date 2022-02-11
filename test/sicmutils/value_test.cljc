@@ -23,9 +23,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             #?(:cljs [cljs.reader :refer [read-string]])
-            #?(:cljs [goog.array :as garray])
             [sicmutils.generators :as sg]
-            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -37,6 +35,8 @@
               :cljs '(sicmutils.util/bigint 10))
            (read-string {:readers {'sicm/bigint u/parse-bigint}}
                         (pr-str #sicm/bigint 10))))
+
+    #_{:clj-kondo/ignore [:unused-binding]}
     (let [one-e-40 (apply str "1" (repeat 40 "0"))]
       (is (= #?(:clj (bigint 1e40)
                 :cljs (list 'sicmutils.util/bigint one-e-40))
