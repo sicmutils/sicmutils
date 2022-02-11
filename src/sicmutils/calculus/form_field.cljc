@@ -53,7 +53,7 @@
   "Returns a form field that returns, for any supplied vector field `vf`, a
   manifold function [[manifold/zero-manifold-function]] that maps every input
   manifold `point` to the scalar value 0."
-  [vf]
+  [_]
   m/zero-manifold-function)
 
 (defn get-rank

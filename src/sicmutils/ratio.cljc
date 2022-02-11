@@ -34,13 +34,12 @@
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
             #?(:cljs [goog.array :as garray])
             #?(:cljs [goog.object :as obj])
-            [sicmutils.complex :as c]
-            [sicmutils.expression :as x]
+            #?(:cljs [sicmutils.complex :as c])
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
-  #?(:clj (:import (clojure.lang BigInt Ratio))))
+  #?(:clj (:import (clojure.lang Ratio))))
 
 (def ^:no-doc ratiotype
   #?(:clj Ratio :cljs Fraction))
@@ -76,10 +75,11 @@
         [x]
         (obj/get x "d"))]))
 
-(defn- promote [x]
-  (if (v/one? (denominator x))
-    (numerator x)
-    x))
+#?(:cljs
+   (defn- promote [x]
+     (if (v/one? (denominator x))
+       (numerator x)
+       x)))
 
 (defn rationalize
   "Construct a ratio."
@@ -146,7 +146,7 @@
                    (if (v/one? d)
                      n
                      `(~'/ ~n ~d))))
-     (exact? [c] true)
+     (exact? [_] true)
      (kind [_] Ratio))
 
    :cljs
@@ -170,8 +170,8 @@
                        `(~'/
                          ~(v/freeze n)
                          ~(v/freeze d)))))
-       (exact? [c] true)
-       (kind [x] Fraction)
+       (exact? [_] true)
+       (kind [_] Fraction)
 
        IEquiv
        (-equiv [this other]
@@ -199,10 +199,10 @@
        Object
        (toString [r]
          (let [x (v/freeze r)]
-           (if number? x)
-           x
-           (let [[_ n d] x]
-             (str n "/" d))))
+           (if (number? x)
+             x
+             (let [[_ n d] x]
+               (str n "/" d)))))
 
        IPrintWithWriter
        (-pr-writer [x writer opts]
@@ -232,7 +232,7 @@
               (g/lcm (core-denominator a)
                      (core-denominator b))))
 
-     (defmethod g/infinite? [Ratio] [a] false)
+     (defmethod g/infinite? [Ratio] [_] false)
 
      (doseq [[op f] [[g/exact-divide /]
                      [g/quotient quot]
@@ -271,7 +271,7 @@
 
      (defmethod g/negate [Fraction] [a] (promote (.neg ^js a)))
      (defmethod g/negative? [Fraction] [a] (neg? (obj/get a "s")))
-     (defmethod g/infinite? [Fraction] [a] false)
+     (defmethod g/infinite? [Fraction] [_] false)
      (defmethod g/invert [Fraction] [a] (promote (.inverse ^js a)))
      (defmethod g/square [Fraction] [a] (promote (.mul ^js a a)))
      (defmethod g/cube [Fraction] [a] (promote (.pow ^js a 3)))

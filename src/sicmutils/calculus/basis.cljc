@@ -117,7 +117,7 @@
       (let [vector-basis  (basis->vector-basis basis)
             oneform-basis (basis->oneform-basis basis)]
         (g/* (vector-basis f)
-             (s/mapr (fn [onefb] (fn [m] ((onefb v) m0)))
+             (s/mapr (fn [onefb] (fn [_] ((onefb v) m0)))
                      oneform-basis))))))
 
 (defn Jacobian

@@ -23,8 +23,7 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.sr.boost :as b]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :as s]
-            [sicmutils.util :as u]))
+            [sicmutils.structure :as s]))
 
 ;; ## Special-relativity frames
 ;;
@@ -59,8 +58,7 @@
 ;; ### SR frames
 
 (defn- coordinates->event
-  [ancestor-frame this-frame
-   {:keys [boost-direction vc origin]}]
+  [ancestor-frame _ {:keys [boost-direction vc origin]}]
   {:pre [(= (cf/frame-owner origin) ancestor-frame)]}
   (fn c->e [coords]
     {:pre [(SR-coordinates? coords)]}
@@ -91,13 +89,13 @@
 
 ;; ### The background frame
 
-(defn base-frame-point [ancestor-frame this-frame _]
+(defn base-frame-point [_ this-frame _]
   (fn [coords]
     {:pre [(SR-coordinates? coords)
            (= this-frame (cf/frame-owner coords))]}
     (cf/make-event coords)))
 
-(defn base-frame-chart [ancestor-frame this-frame _]
+(defn base-frame-chart [_ this-frame _]
   (fn [event]
     {:pre [(cf/event? event)]}
     (make-SR-coordinates this-frame event)))

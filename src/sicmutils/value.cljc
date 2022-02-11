@@ -190,21 +190,22 @@
   (one-like [_] 1)
   (identity-like [_] 1)
   (freeze [x] x)
-  (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
+  (exact? [x] #?(:clj  (or (integer? x) (ratio? x))
+                 :cljs (integer? x)))
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
                        ::native-integral
                        ::floating-point)))
 
   #?(:clj Boolean :cljs boolean)
-  (zero? [x] false)
-  (one? [x] false)
-  (identity? [x] false)
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
   (freeze [x] x)
-  (exact? [x] false)
+  (exact? [_] false)
   (kind [x] (type x))
 
   #?@(:clj
@@ -216,7 +217,7 @@
        (one-like [_] 1.0)
        (identity-like [_] 1.0)
        (freeze [x] x)
-       (exact? [x] false)
+       (exact? [_] false)
        (kind [x] (type x))
 
        java.lang.Float
@@ -227,18 +228,18 @@
        (one-like [_] 1.0)
        (identity-like [_] 1.0)
        (freeze [x] x)
-       (exact? [x] false)
+       (exact? [_] false)
        (kind [x] (type x))])
 
   nil
   (zero? [_] true)
   (one?[_] false)
   (identity?[_] false)
-  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
-  (one-like [o] (u/unsupported "nil doesn't support one-like."))
-  (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
+  (zero-like [_] (u/unsupported "nil doesn't support zero-like."))
+  (one-like [_] (u/unsupported "nil doesn't support one-like."))
+  (identity-like [_] (u/unsupported "nil doesn't support identity-like."))
   (freeze [_] nil)
-  (exact? [x] false)
+  (exact? [_] false)
   (kind [_] nil)
 
   Var
@@ -253,13 +254,13 @@
   (kind [v] (type v))
 
   #?(:clj Object :cljs default)
-  (zero? [o] false)
-  (one? [o] false)
-  (identity? [o] false)
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
   (zero-like [o] (u/unsupported (str "zero-like: " o)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
-  (exact? [o] false)
+  (exact? [_] false)
   (freeze [o] (if (sequential? o)
                 (map freeze o)
                 (get @object-name-map o o)))
@@ -345,7 +346,7 @@
            (= this other))))
 
      IPrintWithWriter
-     (-pr-writer [x writer opts]
+     (-pr-writer [x writer _]
        (let [rep (if (<= x (.-MAX_SAFE_INTEGER js/Number))
                    (str x)
                    (str "\"" x "\""))]

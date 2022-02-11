@@ -21,7 +21,6 @@
   (:require [clojure.string :refer [join]]
             [sicmutils.collection]
             [sicmutils.differential :as d]
-            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
@@ -318,7 +317,7 @@
     (.-orientation ^Structure s)
     ::up))
 
-(defn- s:count
+(defn ^:no-doc s:count
   "Returns the count for sequential `s`, `1` otherwise."
   [s]
   (if (sequential? s)
@@ -333,7 +332,7 @@
     (-> s flatten count)
     1))
 
-(defn- s:nth
+(defn ^:no-doc s:nth
   "Structure-specific version of `nth`; acts as [[clojure.core/nth]] for
   structural things.
 

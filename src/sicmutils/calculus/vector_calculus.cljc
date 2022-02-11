@@ -33,7 +33,7 @@
             [sicmutils.calculus.metric :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [- * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]))

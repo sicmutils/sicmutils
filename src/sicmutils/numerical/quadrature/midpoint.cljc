@@ -23,9 +23,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
-            [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.aggregate :as ua]))
 
 ;; ## Midpoint Method
 ;;

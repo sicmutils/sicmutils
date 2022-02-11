@@ -94,8 +94,7 @@
                      increment))))]
     (lp1 permuted-list 0)))
 
-(defn permutation-interchanges
-  ""[permuted-list]
+(defn permutation-interchanges [permuted-list]
   (letfn [(lp1 [plist n]
             (if (empty? plist)
               n
@@ -152,7 +151,7 @@
 
 (defn- index-of [v x]
   #?(:clj (.indexOf ^APersistentVector v x)
-     :cljs (-indexOf v x)))
+     :cljs (#'-indexOf v x)))
 
 (defn sort-and-permute
   "cont = (fn [ulist slist perm iperm] ...)

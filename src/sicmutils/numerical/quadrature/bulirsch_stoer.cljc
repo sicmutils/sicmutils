@@ -22,10 +22,8 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
-            [sicmutils.generic :as g]
             [sicmutils.polynomial.interpolate :as poly]
             [sicmutils.rational-function.interpolate :as rat]
-            [sicmutils.util :as u]
             [sicmutils.util.stream :as us]))
 
 ;; ## Bulirsch-Stoer Integration

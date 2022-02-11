@@ -26,7 +26,6 @@
   (:refer-clojure :exclude [name])
   (:require [sicmutils.abstract.number :as an]
             [sicmutils.differential :as d]
-            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]

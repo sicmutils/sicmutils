@@ -84,7 +84,7 @@
 
 (deftype Stopwatch [elapsed-fn offset is-running?]
   IStopwatch
-  (running? [this] is-running?)
+  (running? [_] is-running?)
 
   (start [this]
     (if is-running?
@@ -97,7 +97,7 @@
         (Stopwatch. (constantly offset') offset' false))
       this))
 
-  (reset [this] (Stopwatch. nil 0 false))
+  (reset [_] (Stopwatch. nil 0 false))
 
   (-elapsed [_ unit]
     (-> (if is-running?
@@ -120,11 +120,11 @@
       (start [this] (swap! sw start) this)
       (stop [this] (swap! sw stop) this)
       (reset [this] (swap! sw reset) this)
-      (-elapsed [this unit] (-elapsed @sw unit))
+      (-elapsed [_ unit] (-elapsed @sw unit))
       (repr [_] (repr @sw))
 
       Object
-      (toString [this] (repr @sw)))))
+      (toString [_] (repr @sw)))))
 
 (defn stopwatch
   "Returns an implementation of [[IStopwatch]]."

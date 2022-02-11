@@ -19,7 +19,7 @@
 
 (ns sicmutils.examples.double-pendulum
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [up down square sin cos + - * /]]))
+  (:require [sicmutils.env :as e :refer [up square cos + - * /]]))
 
 (defn V
   [m1 m2 l1 l2 g]

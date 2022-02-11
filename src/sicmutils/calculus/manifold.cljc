@@ -539,11 +539,11 @@ codebase compatibility."}
   ([manifold coordinate-prototype]
    (let [id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (= (s/dimension coords)
                 (:dimension manifold)))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]
@@ -577,7 +577,7 @@ codebase compatibility."}
   ([manifold coordinate-prototype]
    (let [id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (and (s/up? coords)
                   (= (s/dimension coords)
                      (:dimension manifold))
@@ -586,7 +586,7 @@ codebase compatibility."}
                     (or (not (v/number? c0))
                         (>= c0 0)))))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]
@@ -636,14 +636,14 @@ codebase compatibility."}
   ([manifold coordinate-prototype]
    (let [id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (and (s/up? coords)
                   (= (g/dimension coords)
                      (:dimension manifold))
                   (or (not (v/number? coords))
                       (>= (nth coords 0) 0))))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]
@@ -695,11 +695,11 @@ codebase compatibility."}
   ([manifold coordinate-prototype]
    (let [id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (and (s/up? coords)
                   (= (g/dimension coords) 4)))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]
@@ -718,13 +718,18 @@ codebase compatibility."}
               point this
               (fn []
                 (let [rep (manifold-point-representation point)]
-                  (let [[t x y z] rep]
-                    (let [r (g/sqrt
+                  (if-not (check-coordinates this rep)
+                    (throw
+                     (ex-info "bad ->SpacetimeSpherical point: "
+                              {:point point
+                               :coordinate-system this}))
+                    (let [[t x y z] rep
+                          r (g/sqrt
                              (g/+ (g/square x)
                                   (g/square y)
                                   (g/square z)))]
-                      (if (and (v/number? r)
-                               (v/zero? r))
+                      (when (and (v/number? r)
+                                 (v/zero? r))
                         (throw
                          (ex-info "->SpacetimeSpherical singular: "
                                   {:point point
@@ -759,13 +764,13 @@ codebase compatibility."}
        ([manifold coordinate-prototype]
         (let [id (u/uuid)]
           (-> (reify ICoordinateSystem
-                (check-coordinates [this coords]
+                (check-coordinates [_ coords]
                   (and (s/up? coords)
                        (= (g/dimension coords) 2)
                        (or (not (v/number? coords))
                            (>= (nth coords 0) 0))))
 
-                (check-point [this point]
+                (check-point [_ point]
                   (my-manifold-point? point manifold))
 
                 (coords->point [this coords]
@@ -823,7 +828,7 @@ codebase compatibility."}
              orientation-inverse-matrix (g/invert orientation-matrix)
              id (u/uuid)]
          (-> (reify ICoordinateSystem
-               (check-coordinates [this coords]
+               (check-coordinates [_ coords]
                  (let [dim (g/dimension coords)]
                    (or (and (= n 1)
                             (= dim 1))
@@ -838,7 +843,7 @@ codebase compatibility."}
                                            (not (g/negative? coord)))))
                                     coords)))))
 
-               (check-point [this point]
+               (check-point [_ point]
                  (my-manifold-point? point manifold))
 
                (coords->point [this coords]
@@ -936,11 +941,11 @@ codebase compatibility."}
            orientation-inverse-matrix (g/invert orientation-matrix)
            id (u/uuid)]
        (-> (reify ICoordinateSystem
-             (check-coordinates [this coords]
+             (check-coordinates [_ coords]
                (or (and (= n 1) (= (g/dimension coords) 1))
                    (and (s/up? coords) (= (g/dimension coords) n))))
 
-             (check-point [this point]
+             (check-point [_ point]
                (my-manifold-point? point manifold))
 
              (coords->point [this coords]
@@ -1014,13 +1019,13 @@ codebase compatibility."}
            orientation-inverse-matrix (g/invert orientation-matrix)
            id (u/uuid)]
        (-> (reify ICoordinateSystem
-             (check-coordinates [this coords]
+             (check-coordinates [_ coords]
                (or (and (= n 1)
                         (= (g/dimension coords) 1))
                    (and (s/up? coords)
                         (= (g/dimension coords) n))))
 
-             (check-point [this point]
+             (check-point [_ point]
                (my-manifold-point? point manifold))
 
              (coords->point [this coords]
@@ -1049,9 +1054,9 @@ codebase compatibility."}
                   (let [pt (g/* orientation-inverse-matrix
                                 (manifold-point-representation point))
                         final-coord (nth pt n)]
-                    (if (and (v/number? final-coord)
-                             (or (g/negative? final-coord)
-                                 (v/zero? final-coord)))
+                    (when (and (v/number? final-coord)
+                               (or (g/negative? final-coord)
+                                   (v/zero? final-coord)))
                       (throw
                        (ex-info "Point not covered by S^n-gnomic coordinate patch."
                                 {:point point
@@ -1080,14 +1085,14 @@ codebase compatibility."}
    (let [n (:dimension manifold)
          id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (and (s/up? coords)
                   (= (g/dimension coords) n)
                   (let [c0 (nth coords 0)]
                     (or (not (v/number? c0))
                         (not (v/zero? c0))))))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]
@@ -1130,15 +1135,15 @@ codebase compatibility."}
    (let [n (:dimension manifold)
          id (u/uuid)]
      (-> (reify ICoordinateSystem
-           (check-coordinates [this coords]
+           (check-coordinates [_ coords]
              (and (s/up? coords)
                   (= (g/dimension coords) n)
                   (or (not (v/number? (nth coords 0)))
-                      (and (< (/ Math/PI -2)
-                              (nth coords 0)
-                              (/ Math/PI 2) )))))
+                      (< (/ Math/PI -2)
+                         (nth coords 0)
+                         (/ Math/PI 2) ))))
 
-           (check-point [this point]
+           (check-point [_ point]
              (my-manifold-point? point manifold))
 
            (coords->point [this coords]

@@ -454,14 +454,16 @@
               (let [u (* c u)
                     sn (Math/sin u)
                     cn (Math/cos u)
+                    ;; TODO this has got to be a legit bug that we should tell
+                    ;; GJS about.
                     [a sn cn dn] (if-not (= sn 0.0)
                                    (loop [em em
                                           en en
                                           a  (/ cn sn)
                                           c  (* a c)
                                           dn 1.0]
-                                     (if (and (not (empty? em))
-                                              (not (empty? en)))
+                                     (if (and (seq em)
+                                              (seq en))
                                        (let [b (first em)
                                              [a c dn] (let [a  (* c a)
                                                             c  (* dn c)

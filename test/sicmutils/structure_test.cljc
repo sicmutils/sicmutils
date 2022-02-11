@@ -378,14 +378,14 @@
       (is (= 1 (g/dimension 99)))))
 
   (checking "s:count, s:nth for reals" 100 [n sg/real]
-            (is (= 1 (@#'s/s:count n)))
-            (is (= n (@#'s/s:nth n 0))))
+            (is (= 1 (s/s:count n)))
+            (is (= n (s/s:nth n 0))))
 
   (checking "s:count, s:nth for structures" 100
             [s (sg/structure sg/real 5)
              n (gen/choose 0 4)]
-            (is (= (count s) (@#'s/s:count s)))
-            (is (= (get s n) (@#'s/s:nth s n))))
+            (is (= (count s) (s/s:count s)))
+            (is (= (get s n) (s/s:nth s n))))
 
   (checking "up*==up, down*==down" 100
             [vs (gen/vector sg/real 1 20)]

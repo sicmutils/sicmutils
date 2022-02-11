@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.polynomial
-  (:refer-clojure :exclude [extend divide identity])
+  (:refer-clojure :exclude [extend divide identity abs])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.collection]
@@ -1265,8 +1265,7 @@
   (if (or (not (polynomial? p))
           (< n 0))
     p
-    (let [a (bare-arity p)
-          new-arity (inc (max a n))]
+    (let [a (bare-arity p)]
       (if (> n a)
         (->Polynomial (inc n) (bare-terms p) (meta p))
         (map-exponents #(xpt/raise % n 0)

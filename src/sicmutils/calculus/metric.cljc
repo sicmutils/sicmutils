@@ -28,7 +28,7 @@
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [down]]
             [sicmutils.value :as v]))
 
 ;; ## Metrics
@@ -307,8 +307,7 @@
 
 (defn sharpen [metric basis m]
   (let [g-ij ((metric->inverse-components metric basis) m)
-	      vector-basis (b/basis->vector-basis basis)
-	      oneform-basis (b/basis->oneform-basis basis)]
+	      vector-basis (b/basis->vector-basis basis)]
     (fn sharp [oneform-field]
       (let [oneform-coeffs
 	          (s/mapr (fn [ei] ((oneform-field ei) m))
@@ -319,7 +318,7 @@
 ;; ## Useful metrics
 
 (def S2-metric
-  (let [[theta phi]   (coord/coordinate-functions m/S2-spherical)
+  (let [[theta] (coord/coordinate-functions m/S2-spherical)
         [dtheta dphi] (ff/coordinate-system->oneform-basis m/S2-spherical)]
     (-> (fn the-metric [v1 v2]
           (g/+ (g/* (dtheta v1) (dtheta v2))

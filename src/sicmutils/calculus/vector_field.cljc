@@ -144,7 +144,7 @@
   "Returns a vector field that returns, for any supplied function `f`, a manifold
   function [[manifold/zero-manifold-function]] that maps every input manifold
   `point` to the scalar value 0."
-  [f]
+  [_]
   m/zero-manifold-function)
 
 (defn- vf:zero-like

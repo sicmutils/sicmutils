@@ -29,7 +29,6 @@
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Fn MultiFn))))
@@ -66,6 +65,7 @@
 ;; non-higher-order version would respond to =(partial 0)=. In other words,
 ;; these two forms should evaluate to equivalent results:
 
+#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (let [f (fn [x]
             (fn [y]
@@ -74,6 +74,7 @@
     ((((D f) 'x) 'y) 'z)))
 ;;=> (* y z)
 
+#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (((partial 0) g/*) 'x 'y 'z))
 ;;=> (* y z)
@@ -214,7 +215,7 @@
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
-  (perturbed? [f]
+  (perturbed? [#?(:cljs _ :clj f)]
     #?(:clj (:perturbed? (meta f) false)
        :cljs false))
   (replace-tag [f old new] (replace-tag-fn f old new))
@@ -229,7 +230,7 @@
                         (extract-tangent-fn (.-afn f) tag))])
 
   MultiFn
-  (perturbed? [f] false)
+  (perturbed? [_] false)
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
 

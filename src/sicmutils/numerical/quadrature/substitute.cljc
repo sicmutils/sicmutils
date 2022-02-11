@@ -27,8 +27,7 @@
   The strategies currently implemented were each described by Press, et al. in
   section 4.4 of ['Numerical
   Recipes'](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)."
-  (:require [clojure.core.match :refer [match]]
-            [sicmutils.numerical.quadrature.common :as qc]))
+  (:require [sicmutils.numerical.quadrature.common :as qc]))
 
 ;; ## Infinite Endpoints
 ;;

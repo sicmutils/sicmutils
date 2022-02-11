@@ -187,13 +187,13 @@
 ;; function of this signature:
 
 (comment
-  (defn- neville-incremental*
+  (defn _neville-incremental
     "Takes a potentially lazy sequence of `points` and a point `x` and generates a
   lazy sequence of approximations of P(x).
 
   entry `N` in the returned sequence is the estimate using a polynomial
   generated from the first `N` points of the input sequence."
-    [points x]
+    [_points _x]
     ,,,))
 ;;
 ;; First, write a function to process each initial point into a vector that
@@ -272,7 +272,7 @@
 
 ;; Putting it all together:
 
-(defn neville-incremental*
+(defn neville-incremental
   "Takes a potentially lazy sequence of `points` and a point `x` and generates a
   lazy sequence of approximations of P(x).
 
@@ -288,9 +288,9 @@
 ;; approximation.
 
 (comment
-  (defn- lagrange-incremental
+  (defn lagrange-incremental
     "Generates a sequence of estimates of `x` to polynomials fitted to `points`;
-  each entry uses one more point, just like `neville-incremental*`."
+  each entry uses one more point, just like [[neville-incremental]]."
     [points x]
     (let [n (count points)]
       (map (fn [i]
@@ -302,7 +302,7 @@
         diffs  (map (fn [neville lagrange]
                       (g/simplify
                        (g/- neville lagrange)))
-                    (neville-incremental* points 'x)
+                    (neville-incremental points 'x)
                     (lagrange-incremental points 'x))]
     (every? zero? diffs))
   ;; => true
@@ -367,7 +367,7 @@
                (- xl xr))]
       [xl xr p])))
 
-;; And now, `neville`, identical to `neville-incremental*` except using the
+;; And now, [[neville]], identical to [[neville-incremental]] except using the
 ;; generic tableau generator.
 ;;
 ;; The form of the tableau also makes it easy to select a particular /column/
@@ -596,11 +596,12 @@
 ;;
 ;; Here's something close, using our previous `merge` and `prepare` definitions:
 
-(defn- generate-new-row* [prepare merge]
-  (fn [prev-row point]
-    ;; the new point, once it's prepared, is the first entry in the new row.
-    ;; From there, we can treat the previous row as a sequence of "r" values.
-    (reduce merge (prepare point) prev-row)))
+(comment
+  (defn generate-new-row* [prepare merge]
+    (fn [prev-row point]
+      ;; the new point, once it's prepared, is the first entry in the new row.
+      ;; From there, we can treat the previous row as a sequence of "r" values.
+      (reduce merge (prepare point) prev-row))))
 
 ;; There's a problem here. `reduce` only returns the FINAL value of the
 ;; aggregation:
@@ -613,9 +614,10 @@
 ;; us, Clojure has a version of `reduce`, called `reductions`, that returns each
 ;; intermediate aggregation result:
 
-(defn- generate-new-row [prepare merge]
-  (fn [prev-row point]
-    (reductions merge (prepare point) prev-row)))
+(comment
+  (defn generate-new-row [prepare merge]
+    (fn [prev-row point]
+      (reductions merge (prepare point) prev-row))))
 
 ;;   (let [f (generate-new-row prepare present)]
 ;;     (f [p1 p12 p123 p1234] [x0 fx0]))

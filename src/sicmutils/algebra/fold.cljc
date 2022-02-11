@@ -325,6 +325,7 @@
 
 ;; Simple! But watch it "break":
 
+#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   ;; This should be 1.0...
   (= 0.9999999999999999

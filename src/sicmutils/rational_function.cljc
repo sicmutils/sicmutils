@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.rational-function
+  (:refer-clojure :exclude [abs])
   (:require [clojure.set :as set]
             [sicmutils.complex :refer [complex?]]
             [sicmutils.expression.analyze :as a]
@@ -79,7 +80,7 @@
   #?@(:clj
       [Object
        (equals [this that] (eq this that))
-       (toString [p] (pr-str (list '/ u v)))
+       (toString [_] (pr-str (list '/ u v)))
 
        IObj
        (meta [_] m)
@@ -137,7 +138,7 @@
 
       :cljs
       [Object
-       (toString [p] (str u " : " v))
+       (toString [_] (str u " : " v))
 
        IEquiv
        (-equiv [this that] (eq this that))
@@ -406,15 +407,15 @@
   The result is reduced to a potentially-non-[[RationalFunction]] result
   using [[make-reduced]]."
   [u v poly-op uv-op]
-  (let [a (check-same-arity u v)
-        u-n (r/numerator u)
-        u-d (r/denominator u)
-        v-n (r/numerator v)
-        v-d (r/denominator v)]
-    (let [[n d] (if (and (v/one? u-d) (v/one? v-d))
-                  [(poly-op u-n v-n) 1]
-                  (uv-op u-n u-d v-n v-d))]
-      (make-reduced a n d))))
+  (let [a    (check-same-arity u v)
+        u-n  (r/numerator u)
+        u-d  (r/denominator u)
+        v-n  (r/numerator v)
+        v-d  (r/denominator v)
+        [n d] (if (and (v/one? u-d) (v/one? v-d))
+                [(poly-op u-n v-n) 1]
+                (uv-op u-n u-d v-n v-d))]
+    (make-reduced a n d)))
 
 ;; The following functions act on full numerator, denominator pairs, and are
 ;; suitable for use as the `uv-op` argument to [[binary-combine]].
@@ -488,11 +489,11 @@
   "Returns the `[numerator, denominator]` pair that represents the greatest common
   divisor of `(/ u u')` and `(/ v v')`."
   [u u' v v']
-  (let [d1 (g/gcd u v)
-        d2 (g/lcm u' v')]
-    (let [result (make d1 d2)]
-      [(r/numerator result)
-       (r/denominator result)])))
+  (let [d1     (g/gcd u v)
+        d2     (g/lcm u' v')
+        result (make d1 d2)]
+    [(r/numerator result)
+     (r/denominator result)]))
 
 ;; ## RationalFunction versions
 ;;
@@ -792,10 +793,10 @@
 (def ^{:doc "Singleton [[a/ICanonicalize]] instance."}
   analyzer
   (reify a/ICanonicalize
-    (expression-> [this expr cont]
+    (expression-> [_ expr cont]
       (expression-> expr cont))
 
-    (expression-> [this expr cont v-compare]
+    (expression-> [_ expr cont v-compare]
       (expression-> expr cont v-compare))
 
     (->expression [_ rf vars]
