@@ -18,14 +18,14 @@
 ;;
 
 (ns sicmutils.examples.top
-  (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [cos up + - * /]]
+  (:refer-clojure :exclude [- *])
+  (:require [sicmutils.env :as e :refer [cos up - *]]
             [sicmutils.mechanics.rigid :as rigid]))
 
 (defn L
   [A B C gMR]
   (let [T (rigid/T-rigid-body A B C)
-        V (fn [[t [theta _ _] qdot]]
+        V (fn [[_ [theta _ _]]]
             (* gMR (cos theta)))]
     (- T V)))
 

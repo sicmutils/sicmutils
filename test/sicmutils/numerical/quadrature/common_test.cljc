@@ -31,11 +31,6 @@
     (is (not (qc/open? qc/closed)))
     (is (qc/open? "face") "Anything not closed is open."))
 
-  (testing "infinities"
-    (is (qc/infinite? ##Inf))
-    (is (qc/infinite? ##-Inf))
-    (is (not (qc/infinite? 10))))
-
   (testing "interval changing functions"
     (is (qc/closed? (qc/close-l qc/open-closed)))
     (is (qc/closed? (qc/close-r qc/closed-open)))

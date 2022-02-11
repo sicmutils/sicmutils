@@ -26,8 +26,7 @@
             [sicmutils.generic :as g]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.aggregate :as ua]))
 
 ;; ## The Trapezoid Method
 ;;
@@ -80,17 +79,17 @@
 ;; We can use the symbolic algebra facilities in the library to show that this
 ;; simplification is valid:
 
-#_
-(let [f (f/literal-function 'f)
-      square    (g/* (f 'x_l)
-                     (g/- 'x_r 'x_l))
-      triangle  (g/* (g// 1 2)
-                     (g/- 'x_r 'x_l)
-                     (g/- (f 'x_r) (f 'x_l)))]
-  (zero?
-   (g/simplify
-    (g/- (single-trapezoid f 'x_l 'x_r)
-         (g/+ square triangle)))))
+(comment
+  (let [f (f/literal-function 'f)
+        square    (g/* (f 'x_l)
+                       (g/- 'x_r 'x_l))
+        triangle  (g/* (g// 1 2)
+                       (g/- 'x_r 'x_l)
+                       (g/- (f 'x_r) (f 'x_l)))]
+    (zero?
+     (g/simplify
+      (g/- (single-trapezoid f 'x_l 'x_r)
+           (g/+ square triangle))))))
 ;; => true
 
 ;; We can use `qr/windowed-sum` to turn this function into an (inefficient)
@@ -102,9 +101,9 @@
 
 ;; Fitting triangles is easy:
 
-#_
-(= (* 0.5 10 10)
-   ((trapezoid-sum* identity 0.0 10.0) 10))
+(comment
+  (= (* 0.5 10 10)
+     ((trapezoid-sum* identity 0.0 10.0) 10)))
 
 ;; In fact, we can even use our estimator to estimate $\pi$:
 
@@ -114,19 +113,19 @@
 
 ;; The accuracy is not bad, for 10 slices:
 
-#_
-(= 3.1399259889071587
-   (pi-estimator* 10))
+(comment
+  (= 3.1399259889071587
+     (pi-estimator* 10)))
 
-#_
-(- Math/PI (pi-estimator* 10))
+(comment
+  (- Math/PI (pi-estimator* 10)))
 ;; => 0.0016666646826344333
 
 ;; 10000 slices gets us closer:
 
-#_
-(< (- Math/PI (pi-estimator* 10000))
-   1e-8)
+(comment
+  (< (- Math/PI (pi-estimator* 10000))
+     1e-8))
 
 ;; Fun fact: the trapezoid method is equal to the /average/ of the left and
 ;; right Riemann sums. You can see that in the equation, but lets verify:
@@ -135,18 +134,19 @@
   (every? #(< % 1e-15)
           (map - l-seq r-seq)))
 
-#_
-(let [points  (take 5 (iterate inc 1))
-      average (fn [l r]
-                (/ (+ l r) 2))
-      f       (fn [x] (/ 4 (+ 1 (* x x))))
-      [a b]   [0 1]
-      left-estimates  (qr/left-sequence f a b {:n points})
-      right-estimates (qr/right-sequence f a b {:n points})]
-  (basically-identical? (map (trapezoid-sum f a b) points)
-                        (map average
-                             left-estimates
-                             right-estimates)))
+(comment
+  (let [points  (take 5 (iterate inc 1))
+        average (fn [l r]
+                  (/ (+ l r) 2))
+        f       (fn [x] (/ 4 (+ 1 (* x x))))
+        [a b]   [0 1]
+        left-estimates  (qr/left-sequence f a b {:n points})
+        right-estimates (qr/right-sequence f a b {:n points})]
+    (basically-identical?
+     (map (trapezoid-sum* f a b) points)
+     (map average
+          left-estimates
+          right-estimates))))
 
 ;; ## Efficient Trapezoid Method
 ;;
@@ -182,10 +182,10 @@
   (let [f (fn [x] (/ 4 (+ 1 (* x x))))]
     (trapezoid-sum* f 0.0 1.0)))
 
-#_
-(basically-identical?
- (map pi-estimator (range 1 100))
- (map pi-estimator* (range 1 100)))
+(comment
+  (basically-identical?
+   (map pi-estimator (range 1 100))
+   (map pi-estimator* (range 1 100))))
 ;; => true
 
 ;; ## Incremental Trapezoid Rule
@@ -247,28 +247,28 @@
 ;; When $n=11$, the incremental implementation uses 2049 evaluations, while the
 ;; non-incremental takes 4017.
 
-#_
-(let [n-elements 11
-      f (fn [x] (/ 4 (+ 1 (* x x))))
-      [counter1 f1] (u/counted f)
-      [counter2 f2] (u/counted f)
-      [counter3 f3] (u/counted f)
-      n-seq (take (inc n-elements)
-                  (iterate (fn [x] (* 2 x)) 1))]
-  ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-  (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
+(comment
+  (let [n-elements 11
+        f (fn [x] (/ 4 (+ 1 (* x x))))
+        [counter1 f1] (u/counted f)
+        [counter2 f2] (u/counted f)
+        [counter3 f3] (u/counted f)
+        n-seq (take (inc n-elements)
+                    (iterate (fn [x] (* 2 x)) 1))]
+    ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
+    (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
 
-  ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-  (run! (trapezoid-sum f2 0 1) n-seq)
+    ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
+    (run! (trapezoid-sum f2 0 1) n-seq)
 
-  ;; A single evaluation of the final `n`
-  ((trapezoid-sum f3 0 1) (last n-seq))
+    ;; A single evaluation of the final `n`
+    ((trapezoid-sum f3 0 1) (last n-seq))
 
-  (let [two**n+1 (inc (g/expt 2 n-elements))
-        n+2**n (+ n-elements (g/expt 2 (inc n-elements)))]
-    (= [2049 4107 2049]
-       [two**n+1 n+2**n two**n+1]
-       [@counter1 @counter2 @counter3])))
+    (let [two**n+1 (inc (g/expt 2 n-elements))
+          n+2**n (+ n-elements (g/expt 2 (inc n-elements)))]
+      (= [2049 4107 2049]
+         [two**n+1 n+2**n two**n+1]
+         [@counter1 @counter2 @counter3]))))
 ;; => true
 
 ;; Another short example that hints of work to come. The incremental
@@ -283,17 +283,17 @@
 ;; This is a good bit more efficient than the Midpoint method's incremental
 ;; savings, since factors of 2 come up more often than factors of 3.
 
-#_
-(let [f (fn [x] (/ 4 (+ 1 (* x x))))
-      [counter1 f1] (u/counted f)
-      [counter2 f2] (u/counted f)
-      n-seq (take 12 (interleave
-                      (iterate (fn [x] (* 2 x)) 2)
-                      (iterate (fn [x] (* 2 x)) 3)))]
-  (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
-  (run! (trapezoid-sum f2 0 1) n-seq)
-  (= [162 327]
-     [@counter1 @counter2]))
+(comment
+  (let [f (fn [x] (/ 4 (+ 1 (* x x))))
+        [counter1 f1] (u/counted f)
+        [counter2 f2] (u/counted f)
+        n-seq (take 12 (interleave
+                        (iterate (fn [x] (* 2 x)) 2)
+                        (iterate (fn [x] (* 2 x)) 3)))]
+    (dorun (trapezoid-sequence f1 0 1 {:n n-seq}))
+    (run! (trapezoid-sum f2 0 1) n-seq)
+    (= [162 327]
+       [@counter1 @counter2])))
 
 ;; Final Trapezoid API:
 ;;
@@ -323,7 +323,8 @@
   using the Trapezoid method with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
-  passed on to `us/seq-limit` to configure convergence checking.
+  passed on to [[sicmutils.util.stream/seq-limit]] to configure convergence
+  checking.
 
   See [[trapezoid-sequence]] for information on the optional args in `opts` that
   customize this function's behavior."

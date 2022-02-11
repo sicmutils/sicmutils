@@ -65,7 +65,6 @@
 ;; non-higher-order version would respond to =(partial 0)=. In other words,
 ;; these two forms should evaluate to equivalent results:
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (let [f (fn [x]
             (fn [y]
@@ -74,7 +73,6 @@
     ((((D f) 'x) 'y) 'z)))
 ;;=> (* y z)
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (((partial 0) g/*) 'x 'y 'z))
 ;;=> (* y z)

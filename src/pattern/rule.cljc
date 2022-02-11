@@ -28,7 +28,7 @@
             [pattern.syntax :as ps]
             [sicmutils.util :as u]
             #?(:cljs
-               [sicmutils.util.def :as util.def
+               [sicmutils.util.def
                 :refer-macros [import-def]])))
 
 ;; ## Rules

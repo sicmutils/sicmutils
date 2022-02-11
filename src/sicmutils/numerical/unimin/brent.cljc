@@ -35,14 +35,12 @@
               (org.apache.commons.math3.analysis
                UnivariateFunction)
               (org.apache.commons.math3.optim.nonlinear.scalar
-               GoalType
-               ObjectiveFunction)
+               GoalType)
               (org.apache.commons.math3.optim
                MaxEval
                MaxIter
                OptimizationData
-               ConvergenceChecker
-               PointValuePair))))
+               ConvergenceChecker))))
 
 (defn- terminate?
   "Brent's method terminates (ie converges) when `a` and `b` are narrow enough
@@ -322,7 +320,7 @@
                relative-threshold
                absolute-threshold
                (reify ConvergenceChecker
-                 (converged [_ iter previous current]
+                 (converged [_ iter _ current]
                    (callback iter
                              (.getPoint ^UnivariatePointValuePair current)
                              (.getValue ^UnivariatePointValuePair current))
@@ -337,15 +335,15 @@
                          (MaxIter. maxiter)
                          (SearchInterval. a b)
                          GoalType/MINIMIZE])
-            p (.optimize o args)]
-        (let [xx (.getPoint p)
-              fx (.getValue p)]
-          (callback (.getIterations o) xx fx)
-          {:result xx
-           :value fx
-           :iterations (.getIterations o)
-           :converged? true
-           :fncalls @f-counter})))))
+            p  (.optimize o args)
+            xx (.getPoint p)
+            fx (.getValue p)]
+        (callback (.getIterations o) xx fx)
+        {:result xx
+         :value fx
+         :iterations (.getIterations o)
+         :converged? true
+         :fncalls @f-counter}))))
 
 #?(:clj
    (defn brent-max-commons

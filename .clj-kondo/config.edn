@@ -1,0 +1,7 @@
+{:config-in-comment {:linters {:unresolved-symbol {:level :off}}}
+ :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"]
+ :linters
+ {:unresolved-symbol
+  {:exclude [(pattern.rule/rule)
+             (pattern.rule/ruleset)
+             (pattern.rule/template)]}}}

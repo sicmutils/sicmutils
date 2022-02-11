@@ -91,8 +91,6 @@
              (v/freeze
               (simplify ((compose (L/L-free-particle 'm) (e/Gamma q)) 't)))))
 
-      ;; at this point in the text we should be able to show-expression
-      ;; in TeX form XXX.
       ;; p. 20
       (is (= 435.0 (e/Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0)))
 

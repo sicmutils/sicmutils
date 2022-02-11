@@ -20,8 +20,8 @@
 (ns sicmutils.mechanics.rigid
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.generic :as g :refer [sin cos + - * /]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.generic :as g :refer [sin cos + * /]]
+            [sicmutils.structure :refer [up]]
             [sicmutils.matrix :as matrix]
             [sicmutils.function :as f]
             [sicmutils.mechanics.lagrange :as L]

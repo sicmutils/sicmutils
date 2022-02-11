@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  (:require [sicmutils.expression.compile :as c]
+  (:require [sicmutils.generic :as g]
+            [sicmutils.expression.compile :as c]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.boole :as boole]
             [sicmutils.numerical.quadrature.common :as qc]
@@ -138,8 +139,8 @@
   ([method a b] (get-integrator method a b {}))
   ([method a b m]
    (when-let [[integrate opts] (extract-method method)]
-     (let [integrate (if (or (qc/infinite? a)
-                             (qc/infinite? b))
+     (let [integrate (if (or (g/infinite? a)
+                             (g/infinite? b))
                        (qi/improper integrate)
                        integrate)]
        [integrate (dissoc (merge opts m) :method)]))))

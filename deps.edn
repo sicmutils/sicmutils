@@ -2,6 +2,7 @@
  {:clj-kondo
   {:replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
    :main-opts ["-m" "clj-kondo.main"]}}
+ :paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"},
         dm3/stopwatch {:mvn/version "0.1.1"},
         cljsjs/odex {:mvn/version "2.0.4-0"},

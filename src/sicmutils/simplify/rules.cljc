@@ -607,15 +607,16 @@ For example:
     (/ (* ??p ??q)
        (* ??u (sqrt ?x) ??v)))))
 
+;; TODO why am I not using simplify here?
 (defn non-negative-factors!
   "Takes a `simplify` function, two simplified expressions `x` and `y` and a symbolic
   identifier `id` and registers an assumption that both sides are
   non-negative (just one side if they end up equal after simplification).
 
   Returns the conjuction of both assumptions."
-  ([simplify x id]
+  ([_ x id]
    (ul/assume! `(~'non-negative? ~x) id (fn [] false)))
-  ([simplify x y id]
+  ([_ x y id]
    (and (ul/assume! `(~'non-negative? ~x) id (fn [] false))
         (ul/assume! `(~'non-negative? ~y) id (fn [] false)))))
 
@@ -813,6 +814,7 @@ For example:
 
 ;; ## Partials
 
+#_{:clj-kondo/ignore [:type-mismatch]}
 (def canonicalize-partials
   (rule-simplifier
    (ruleset
@@ -1010,8 +1012,8 @@ For example:
         sym:div (sym/symbolic-operator '/)]
     (letfn [(zero-mod-pi? [x]
               (or (sym/zero-mod-pi? x)
-                  (or (v/integral?
-                       (simplify (sym:div x 'pi))))))
+                  (v/integral?
+                   (simplify (sym:div x 'pi)))))
 
             (pi-over-2-mod-2pi? [x]
               (or (sym/pi-over-2-mod-2pi? x)
@@ -1591,8 +1593,8 @@ out of the first term of the argument."}
     (* (? #(g/invert (% '?d))) ?n))))
 
 (defn ^:no-doc occurs-in? [syms all]
-  (not
-   (empty?
+  (boolean
+   (seq
     (cs/intersection syms all))))
 
 (defn universal-reductions
@@ -1605,7 +1607,6 @@ out of the first term of the argument."}
         sim-root (simplify-square-roots simplify)]
     (fn [expr]
       (let [syms     (x/variables-in expr)
-            logexp?  (occurs-in? #{'log 'exp} syms)
             sincos?  (occurs-in? #{'sin 'cos} syms)
             invtrig? (occurs-in? #{'asin 'acos 'atan} syms)
             logexp?  (occurs-in? #{'log 'exp} syms)

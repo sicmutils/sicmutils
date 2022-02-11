@@ -43,7 +43,8 @@
                            = core=}
                   :exclude [+ - * / zero? compare divide
                             numerator denominator
-                            #?@(:cljs [= partial infinite?])])
+                            infinite? abs
+                            #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]

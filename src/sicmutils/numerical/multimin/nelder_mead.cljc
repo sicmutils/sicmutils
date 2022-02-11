@@ -83,11 +83,11 @@
      [sorted-simplex sorted-fsimplex])))
 
 (defn ^:private step-defaults
-  "Generates the options required for a step of Nelder-Mead. :adaptive? controls
-  the set of defaults. If true, they're generated using the supplied dimension;
-  else, they're static.
-  "
-  [dimension {:keys [alpha beta sigma gamma adaptive?]
+  "Generates the options required for a step of Nelder-Mead.
+
+  `:adaptive?` controls the set of defaults. If true, they're generated using
+  the supplied dimension; else, they're static."
+  [dimension {:keys [adaptive?]
               :or {adaptive? true}
               :as m}]
   (let [base (if adaptive?

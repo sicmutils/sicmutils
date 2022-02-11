@@ -20,9 +20,10 @@
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.env :as e :refer [abs square up + - * /]]
-            #?(:clj [taoensso.timbre :as log])
-            #?(:clj [hiccup.core :refer :all])
-            #?(:clj [hiccup.page :refer :all])))
+            #?@(:clj
+                [[taoensso.timbre :as log]
+                 [hiccup.core :refer [html]]
+                 [hiccup.page :refer [html5]]])))
 
 (defn- pairs
   "Return a sequence of pairs of different elements from the given sequence."

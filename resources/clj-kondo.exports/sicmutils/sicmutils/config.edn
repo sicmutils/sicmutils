@@ -1,0 +1,18 @@
+{:lint-as {sicmutils.numerical.quadrature.common/defintegrator clojure.core/def
+           sicmutils.util.def/import-vars potemkin/import-vars
+           sicmutils.util.def/defgeneric clojure.core/defmulti}
+ :hooks
+ {:analyze-call
+  {sicmutils.abstract.function/with-literal-functions
+   hooks.with-literal-functions/with-literal-functions
+
+   sicmutils.env/with-literal-functions
+   hooks.with-literal-functions/with-literal-functions
+
+   sicmutils.util.def/import-def
+   hooks.import-def/import-def
+
+   potemkin/import-def
+   hooks.import-def/import-def
+
+   pattern.rule/pattern hooks.rule/pattern}}}

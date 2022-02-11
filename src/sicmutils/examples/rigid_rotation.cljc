@@ -18,8 +18,7 @@
 ;;
 
 (ns sicmutils.examples.rigid-rotation
-  (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [up + - * /]]
+  (:require [sicmutils.env :as e :refer [up]]
             [sicmutils.mechanics.rigid :as r]))
 
 (defn evolver

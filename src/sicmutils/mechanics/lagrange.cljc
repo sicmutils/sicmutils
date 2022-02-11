@@ -22,11 +22,10 @@
   (:require [sicmutils.numerical.quadrature :as q]
             [sicmutils.numerical.minimize :as m]
             [sicmutils.calculus.derivative :refer [D partial]]
-            [sicmutils.function :as f]
+            [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.polynomial :as p]
-            [sicmutils.structure :refer [up down]]
-            [sicmutils.function :as f :refer [compose]]))
+            [sicmutils.structure :refer [up]]))
 
 (defn state->t
   "Extract the time slot from a state tuple.

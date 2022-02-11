@@ -207,7 +207,6 @@
 ;; The upshot is that, armed with these techniques, we can implement a
 ;; higher-order `derivative` function (almost!) as simply as this:
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (defn derivative [f]
     (fn [x]
@@ -222,7 +221,6 @@
 ;; All of the examples above are about first-order derivatives. Taking
 ;; higher-order derivatives is, in theory, straightforward:
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (derivative
    (derivative f)))
@@ -265,7 +263,6 @@
 ;; This implies that `extract-tangent` needs to take a tag, to determine _which_
 ;; tangent to extract:
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (defn derivative [f]
     (let [tag (fresh-tag)]
@@ -326,7 +323,6 @@
 ;;
 ;; In other words, =(derivative offset-fn)= should act just like:
 
-#_{:clj-kondo/ignore [:unresolved-symbol]}
 (comment
   (derivative
    (fn [offset] (g (+ x offset)))))

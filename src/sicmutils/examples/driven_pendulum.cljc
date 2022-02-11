@@ -19,7 +19,7 @@
 
 (ns sicmutils.examples.driven-pendulum
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [cos up + - * /]]
+  (:require [sicmutils.env :as e :refer [cos up + * /]]
             [sicmutils.examples.pendulum :as pendulum]))
 
 (defn vertical-periodic-drive

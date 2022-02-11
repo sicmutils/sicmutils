@@ -119,9 +119,9 @@
     ([f a b opts]
      (let [{:keys [infinite-breakpoint] :as opts} (fill-defaults opts)
            call (fn [integrate l r interval]
-                  (let [m (qc/with-interval opts interval)]
-                    (let [result (integrate f l r m)]
-                      (:result result))))
+                  (let [m      (qc/with-interval opts interval)
+                        result (integrate f l r m)]
+                    (:result result)))
            ab-interval   (qc/interval opts)
            integrate     (partial call integrator)
            inf-integrate (partial call (qs/infinitize integrator))

@@ -128,7 +128,7 @@ larger-sized golden ratio piece."}
   within `epsilon` absolute distance, false otherwise."
   [epsilon]
   (let [close? (v/within epsilon)]
-    (fn [[xa _] l r [xb _] _]
+    (fn [[xa _] _ _ [xb _] _]
       (close? xa xb))))
 
 (defn ^:private counter-fn
@@ -208,8 +208,8 @@ larger-sized golden ratio piece."}
                   callback (constantly nil)}
              :as opts}]
    (let [[fn-counter f] (u/counted f)
-         [xa fa :as a] (if (vector? xa) xa [xa (f xa)])
-         [xb fb :as b] (if (vector? xb) xb [xb (f xb)])
+         [xa :as a] (if (vector? xa) xa [xa (f xa)])
+         [xb :as b] (if (vector? xb) xb [xb (f xb)])
          opts (merge {:maxfun 1000
                       :maxiter 1000
                       :fn-tolerance 1e-8
@@ -220,7 +220,7 @@ larger-sized golden ratio piece."}
          xr           (golden-cut xa xb)
          convergence? (convergence-fn opts)
          stop?        (stop-fn (assoc opts :fn-counter fn-counter))]
-     (loop [[a l r b :as state] [a [xl (f xl)] [xr (f xr)] b]
+     (loop [[a l r b] [a [xl (f xl)] [xr (f xr)] b]
             iteration 0]
        (callback a l r b iteration)
        (let [converged? (convergence? a l r b iteration)]

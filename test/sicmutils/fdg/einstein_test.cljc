@@ -24,7 +24,6 @@
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.env :as e :refer [+ - * / expt sin
-                                         literal-function
                                          with-literal-functions
                                          spacetime-rect spacetime-sphere
                                          compose square point up
