@@ -614,7 +614,7 @@
              terms)))
 
   v/Value
-  (zero? [this]
+  (zero? [_]
     (every? (comp v/zero? coefficient) terms))
   (one? [this] (one? this))
   (identity? [this] (one? this))

@@ -83,7 +83,7 @@
                     (v/number? expression) (.valueOf expression)
                     :else this)))
   #?(:clj
-     (equals [a b]
+     (equals [_ b]
              (if (instance? Literal b)
                (let [b ^Literal b]
                  (and (= type (.-type b))
@@ -110,7 +110,7 @@
        (-with-meta [_ meta] (Literal. type expression meta))
 
        IEquiv
-       (-equiv [a b]
+       (-equiv [_ b]
                (if (instance? Literal b)
                  (let [b ^Literal b]
                    (and (= type (.-type b))
@@ -119,14 +119,14 @@
                  (v/= expression b)))
 
        IComparable
-       (-compare [a b]
+       (-compare [_ b]
                  (if (instance? Literal b)
                    (-compare expression (.-expression ^Literal b))
                    (-compare expression b)))
 
        IPrintWithWriter
        (-pr-writer
-        [_ writer opts]
+        [_ writer _]
         (-write writer (str expression)))]))
 
 #?(:clj

@@ -21,8 +21,7 @@
   "Implementations of various [greatest common
   divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) algorithms."
   (:require [sicmutils.generic :as g]
-            [sicmutils.value :as v]
-            [sicmutils.complex :as c]))
+            [sicmutils.value :as v]))
 
 (defn extended-gcd
   "Returns a vector containing the [greatest common

@@ -31,8 +31,7 @@
                             IPersistentVector
                             IPersistentMap
                             IPersistentSet
-                            ISeq
-                            LazySeq))))
+                            ISeq))))
 
 ;; ## Vector Implementations
 ;;
@@ -90,7 +89,7 @@
    (zero-like [xs] (map v/zero-like xs))
    (one-like [xs] (u/unsupported (str "one-like: " xs)))
    (identity-like [xs] (u/unsupported (str "identity-like: " xs)))
-   (exact? [xs] false)
+   (exact? [_] false)
    (freeze [xs] (map v/freeze xs))
    (kind [xs] (type xs))
 

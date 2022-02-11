@@ -445,7 +445,7 @@
        (one-like [_] (.getOne goog.math.Long))
        (identity-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
-       (exact? [x] true)
+       (exact? [_] true)
        (kind [_] goog.math.Long))))
 
 (defn kind-predicate
