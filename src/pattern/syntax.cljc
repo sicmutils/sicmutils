@@ -128,8 +128,8 @@
   returns a predicate that only returns true if all of the predicates pass for
   its input, false otherwise.
 
-  If `pattern` has no restrictions or is some other input type, returns a else
-  returns a predicate that will always return `true`."
+  If `pattern` has no restrictions or is some other input type, returns a
+  predicate that will always return `true`."
   [pattern]
   (let [no-constraint (fn [_] true)]
     (if (simple-symbol? pattern)

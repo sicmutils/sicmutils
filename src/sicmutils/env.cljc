@@ -46,16 +46,16 @@
                             #?@(:cljs [= partial infinite?])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.abstract.number :as an]
+            [sicmutils.abstract.number]
             [sicmutils.algebra.fold]
             [sicmutils.complex]
-            [sicmutils.expression :as x]
+            [sicmutils.expression]
             [sicmutils.expression.render :as render]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.modint]
             [sicmutils.operator :as o]
-            [sicmutils.polynomial.factor :as pf]
+            [sicmutils.polynomial.factor]
             [sicmutils.ratio]
             [sicmutils.simplify]
             [sicmutils.structure :as structure]
@@ -64,9 +64,8 @@
             [sicmutils.quaternion]
             [sicmutils.series :as series]
             [sicmutils.util.aggregate]
-            [sicmutils.util.def :as util.def
-             #?@(:cljs [:refer [import-def import-vars]
-                        :include-macros true])]
+            #?(:cljs [sicmutils.util.def
+                      :refer-macros [import-def import-vars]])
             [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
