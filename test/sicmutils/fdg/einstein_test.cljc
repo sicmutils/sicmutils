@@ -57,13 +57,13 @@
 
 (defn Einstein-field-equation [coordinate-system K]
   (fn [metric-tensor Lambda stress-energy-tensor]
-    (let [Einstein-tensor (Einstein coordinate-system metric-tensor)]
-      (let [EFE-residuals (- (+ Einstein-tensor (* Lambda metric-tensor))
+    (let [Einstein-tensor (Einstein coordinate-system metric-tensor)
+          EFE-residuals   (- (+ Einstein-tensor (* Lambda metric-tensor))
                              (* K stress-energy-tensor))]
-        (ci/with-argument-types
-          EFE-residuals
-          [::vf/vector-field
-           ::vf/vector-field])))))
+      (ci/with-argument-types
+        EFE-residuals
+        [::vf/vector-field
+         ::vf/vector-field]))))
 
 ;; (define K (/ (* 8 :pi :G) (expt :c 4)))
 ;; (& 2.076115391974129e-43 (/ (expt second 2) (* kilogram meter)))
@@ -122,7 +122,6 @@
 
   (defn Tperfect-fluid [rho p c metric]
     (let [basis (e/coordinate-system->basis spacetime-sphere)
-          es (e/basis->vector-basis basis)
           inverse-metric (e/metric:invert metric basis)
           T (fn [w1 w2]
               (+ (* (+ (compose rho t)

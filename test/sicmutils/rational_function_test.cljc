@@ -25,9 +25,7 @@
             [sicmutils.abstract.number :as an]
             [sicmutils.calculus.derivative :as deriv :refer [D]]
             [sicmutils.complex :as c]
-            [sicmutils.differential :as sd]
             [sicmutils.expression :as x]
-            [sicmutils.expression.analyze :as a]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.laws :as sl]
@@ -230,7 +228,7 @@
 (deftest rf-operations
   (let [x+1 (p/make [1 1])
         x-1 (p/make [-1 1])]
-    (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
+    (is (= x+1 (g/mul x-1 (rf/make x+1 x-1))))))
 
 (defn rf-simp [expr]
   (letfn [(cont [a b]

@@ -22,7 +22,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish? with-comparator]
+            [same :refer [ish?]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.calculus.derivative :refer [D]]
@@ -995,18 +995,7 @@
           d2 (->poly
               '(+ (* 2 (expt x1 2) (expt x2 2))
                   (* x1 x2)
-                  (* 2 x1)))
-          d3 (->poly
-              '(+ (* x2 x2 x3 x3)
-                  (* x2 x2 x3)
-                  (* 2 x1 x1 x2 x3)
-                  (* x1 x3)))
-          d4 (->poly
-              '(+ (* x1 x1 x4 x4)
-                  (* x2 x2 x3 x4)
-                  (* x1 x1 x2 x4)
-                  (* x2 x4)
-                  (* x1 x1 x2 x3)))]
+                  (* 2 x1)))]
       (is (= (p/make [0
                       (p/make [2 1])
                       (p/make [0 0 2])])

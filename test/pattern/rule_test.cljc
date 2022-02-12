@@ -23,7 +23,6 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [pattern.match :as m]
-            [pattern.consequence :as c]
             [pattern.rule :as r :refer [=> !=>]
              #?@(:cljs [:include-macros true])]
             [sicmutils.ratio]))

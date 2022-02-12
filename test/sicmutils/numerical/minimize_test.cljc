@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.minimize-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.value :as v]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]

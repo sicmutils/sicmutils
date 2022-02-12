@@ -23,7 +23,7 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.env :as e :refer [+ - * / zero?
-                                         D d partial
+                                         D d
                                          up down exp
                                          point chart wedge
                                          R2-rect R2-polar R3-rect

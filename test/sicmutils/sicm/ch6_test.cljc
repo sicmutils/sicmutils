@@ -65,9 +65,10 @@
                                 ((solution0 alpha beta) delta-t)
                                 (C-inv alpha beta epsilon order)))))]
     (is (e/zero?
-         (simplify ((+ ((e/Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
-                       (H1 'beta))
-                    a-state))))
+         (simplify
+          ((+ ((e/Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
+              (H1 'beta))
+           a-state))))
 
     (is (= '((/ (* (/ 1 2) (expt p_theta 2)) α)
              0

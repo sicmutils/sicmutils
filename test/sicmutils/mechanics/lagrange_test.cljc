@@ -30,8 +30,6 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def ^:private near? (v/within 1e-8))
-
 (def simplify
   (comp v/freeze g/simplify))
 

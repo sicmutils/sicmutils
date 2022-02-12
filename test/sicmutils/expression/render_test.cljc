@@ -240,11 +240,11 @@
          (->TeX '(>= 4 (+ 2 2) (+ 1 3)))))
 
   (testing "infix symbols"
-    (= "sin(π) + sin(Π) + cos(ο) + atan(Α) + ..."
-       (->infix
-        '(+ (sin pi) (sin Pi)
-            (cos omicron) (atan Alpha)
-            ldots))))
+    (is (= "sin(π) + sin(Π) + cos(ο) + atan(Α) + ..."
+           (->infix
+            '(+ (sin pi) (sin Pi)
+                (cos omicron) (atan Alpha)
+                ldots)))))
 
   (testing "unicode->tex"
     (is (= (str "\\begin{pmatrix}"

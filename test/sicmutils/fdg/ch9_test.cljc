@@ -23,7 +23,7 @@
                                          square sin expt zero?
                                          compose D partial
                                          up
-                                         point chart
+                                         point
                                          R2-rect R3-rect
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]
@@ -181,7 +181,7 @@
 (def spacetime-rect-basis
   (e/coordinate-system->basis spacetime-rect))
 
-(defn Newton-metric [M G c V]
+(defn Newton-metric [_ _ c V]
   (let [a (+ 1 (* (/ 2 (square c))
                   (compose V (up x y z))))]
     (fn g [v1 v2]

@@ -30,8 +30,7 @@
             [sicmutils.generic-test :as gt]
             [sicmutils.generators :as sg]
             [sicmutils.laws :as l]
-            [sicmutils.value :as v]
-            [sicmutils.numbers :as n]))
+            [sicmutils.value :as v]))
 
 (deftest ratio-value-implementation
   (testing "v/freeze"

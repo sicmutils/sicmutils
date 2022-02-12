@@ -55,12 +55,13 @@
                      (api/token-node 'let)
                      (api/vector-node
                       (concat
-                       (mapcat quotify system-names)
+                       (interleave system-names c-systems)
                        (mapcat quotify coord-names)
                        (mapcat quotify vf-names)
                        (mapcat quotify ff-names)))
+                     (api/vector-node
+                      (concat system-names coord-names vf-names ff-names))
                      body))]
-      (prn new-node)
       {:node new-node})))
 
 (defn using-coordinates [{:keys [node]}]
@@ -86,7 +87,8 @@
         new-node (api/list-node
                   (concat
                    [(api/token-node 'do)
-                    (->def sys-name)]
+                    (api/list-node
+                     [(api/token-node 'def) sys-name system])]
                    (map ->def coord-names)
                    (map ->def vf-names)
                    (map ->def ff-names)))]

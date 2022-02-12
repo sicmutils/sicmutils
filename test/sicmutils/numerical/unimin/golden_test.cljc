@@ -88,7 +88,7 @@
               (let [f (f offset)
                     upper (if (= lower upper) (inc lower) upper)
                     {:keys [lo hi]} (bracket-fn f {:xa lower :xb upper})
-                    {:keys [result value converged? iterations fncalls] :as m}
+                    {:keys [result iterations fncalls]}
                     (optimizer f lo hi
                                {:fn-tolerance 1e-10
                                 :callback (fn [[xa] [xl] [xr] [xb] _]

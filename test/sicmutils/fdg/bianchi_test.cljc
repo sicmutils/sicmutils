@@ -20,7 +20,7 @@
 (ns sicmutils.fdg.bianchi-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * /]]
+            [sicmutils.env :as e :refer [+ -]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
@@ -49,11 +49,10 @@
   [coordsys]
   (let [C (e/symmetrize-Cartan
            (e/literal-Cartan 'C coordsys))
-        del (e/covariant-derivative C)
-        R (e/Riemann del)]
+        del (e/covariant-derivative C)]
     (check-bianchi
      coordsys
-     (fn [omega X Y Z _]
+     (fn [omega X Y _ _]
        (((e/torsion del) omega X Y)
         (e/typical-point coordsys))))))
 
@@ -106,12 +105,11 @@
     (check-bianchi
      coordsys
      (fn [omega X Y Z V]
-       (let [R (e/Riemann del)]
-         (((cyclic-sum
-            (fn [x y z]
-              (((del x) R) omega V y z)))
-           X Y Z)
-          (e/typical-point coordsys)))))))
+       (((cyclic-sum
+          (fn [x y z]
+            (((del x) R) omega V y z)))
+         X Y Z)
+        (e/typical-point coordsys))))))
 
 (defn Bianchi2-general
   "[Bianchi's second
@@ -121,9 +119,7 @@
   (let [C   (e/literal-Cartan 'C coordsys)
         del (e/covariant-derivative C)
         R   (e/Riemann del)
-        T   (e/torsion-vector del)
-        TT  (fn [omega x y]
-              (omega (T x y)))]
+        T   (e/torsion-vector del)]
     (check-bianchi
      coordsys
      (fn [omega X Y Z V]

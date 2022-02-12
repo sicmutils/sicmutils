@@ -214,7 +214,9 @@
       (is (=  '(+ (* g l m (sin (θ t)))
                   (* (expt l 2) m (((expt D 2) θ) t))
                   (* l m (sin (θ t)) (((expt D 2) y_s) t)))
-              (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
+              (simplify
+               (((Lagrange-equations
+                  (pendulum/L 'm 'l 'g (up (fn [_] 0) y_s))) θ) 't))))
 
       ;; p. 61
       (let [Lf (fn [m g]

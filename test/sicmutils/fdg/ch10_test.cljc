@@ -25,7 +25,6 @@
                                          wedge
                                          down up
                                          point
-                                         S2-spherical
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.value :as v]

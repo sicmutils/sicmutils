@@ -38,8 +38,8 @@
 
 (deftest trapezoid-tests
   (testing "triangles work!"
-    (= (* 0.5 10 10)
-       ((qt/trapezoid-sum identity 0.0 10.0) 10)))
+    (is (= (* 0.5 10 10)
+           ((qt/trapezoid-sum identity 0.0 10.0) 10))))
 
   (testing "the trapezoid method is identical to the average of the left and
   right riemann sums"

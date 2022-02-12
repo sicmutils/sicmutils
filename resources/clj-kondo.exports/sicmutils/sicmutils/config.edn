@@ -1,6 +1,8 @@
 {:lint-as {sicmutils.numerical.quadrature.common/defintegrator clojure.core/def
            sicmutils.util.def/import-vars potemkin/import-vars
            sicmutils.util.def/defgeneric clojure.core/defmulti}
+
+
  :hooks
  {:analyze-call
   {sicmutils.abstract.function/with-literal-functions
@@ -15,11 +17,20 @@
    sicmutils.calculus.coordinate/using-coordinates
    hooks.let-coordinates/using-coordinates
 
-   sicmutils.env/with-literal-functions
-   hooks.literal-functions/with-literal-functions
+   sicmutils.env/define-coordinates
+   hooks.let-coordinates/define-coordinates
+
+   sicmutils.env/let-coordinates
+   hooks.let-coordinates/let-coordinates
+
+   sicmutils.env/using-coordinates
+   hooks.let-coordinates/using-coordinates
 
    sicmutils.env/literal-function
    hooks.literal-functions/literal-function
+
+   sicmutils.env/with-literal-functions
+   hooks.literal-functions/with-literal-functions
 
    sicmutils.util.def/import-def
    hooks.import-def/import-def

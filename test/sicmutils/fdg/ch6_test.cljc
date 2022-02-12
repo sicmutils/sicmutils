@@ -20,10 +20,10 @@
 (ns sicmutils.fdg.ch6-test
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * / zero?
-                                         d partial compose
+            [sicmutils.env :as e :refer [- zero?
+                                         d compose
                                          literal-function
-                                         up down
+                                         up
                                          point chart
                                          R1-rect R2-rect R3-rect
                                          S2-spherical

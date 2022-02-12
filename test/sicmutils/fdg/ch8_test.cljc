@@ -20,8 +20,8 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * / sin zero?
-                                         D d freeze partial
-                                         up down
+                                         D partial
+                                         up
                                          point chart
                                          R2-rect R2-polar
                                          define-coordinates]
@@ -123,11 +123,11 @@
                     u (e/literal-vector-field 'u-coord coordsys)
                     w (e/literal-vector-field 'w-coord coordsys)
                     v (e/literal-vector-field 'v-coord coordsys)
-                    f (e/literal-manifold-function 'f-coord coordsys)]
-                (let [nabla (e/covariant-derivative Cartan)]
-                  (simplify
-                   (- (((((curvature-from-transport Cartan) w v) u) f) m)
-                      (((((e/Riemann-curvature nabla) w v) u) f) m))))))]
+                    f (e/literal-manifold-function 'f-coord coordsys)
+                    nabla (e/covariant-derivative Cartan)]
+                (simplify
+                 (- (((((curvature-from-transport Cartan) w v) u) f) m)
+                    (((((e/Riemann-curvature nabla) w v) u) f) m)))))]
       (is (zero?
            (run-test R2-rect general-Cartan-2)))
 
@@ -185,7 +185,7 @@
                    ((dphi ((nabla T) ((nabla T) U))) m))))
 
         (letfn [(delta [R]
-                  (fn [phi theta Delta-phi]
+                  (fn [_ theta Delta-phi]
                     (* R (sin theta) Delta-phi)))]
           (is (= '(* Delta-phi R (cos theta0))
                  (v/freeze

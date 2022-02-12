@@ -18,7 +18,7 @@
 ;;
                                         ;
 (ns sicmutils.operator-test
-  (:refer-clojure :exclude [+ - * /  partial])
+  (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
@@ -28,10 +28,10 @@
             [sicmutils.function :refer [I arity]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generators :as sg]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ - *]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :refer [down]]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)

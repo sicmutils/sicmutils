@@ -25,7 +25,6 @@
             [sicmutils.numerical.quadrature.romberg :as qr]
             [sicmutils.numerical.quadrature.simpson :as qs]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.generic :as g]
             [sicmutils.numsymb]
             [sicmutils.util :as u]))
 

@@ -20,12 +20,12 @@
 (ns sicmutils.fdg.ch5-test
   (:refer-clojure :exclude [+ - * / = partial zero?])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * / = zero?
+            [sicmutils.env :as e :refer [+ - * = zero?
                                          d simplify partial compose
                                          literal-function
                                          literal-manifold-function
                                          literal-vector-field
-                                         up down
+                                         up
                                          point chart wedge
                                          R2-rect
                                          define-coordinates]

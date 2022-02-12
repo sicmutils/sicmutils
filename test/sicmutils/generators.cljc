@@ -7,12 +7,9 @@
                            symbol core-symbol}
                   #?@(:cljs [:exclude [bigint double long symbol]]))
   (:require [clojure.test.check.generators :as gen]
-            [same :refer [zeroish?]]
             [same.ish :as si]
-            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.differential :as d]
-            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.modint :as mi]
