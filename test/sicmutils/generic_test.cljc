@@ -24,7 +24,6 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
-            [sicmutils.laws :as l]
             [sicmutils.value :as v]))
 
 (defmulti s* v/argument-kind)

@@ -19,15 +19,15 @@
 
 (ns sicmutils.examples.driven-pendulum-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [deftest is testing use-fixtures]]
-            [sicmutils.env :as e :refer [up + - * /]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
+            [sicmutils.env :as e :refer [up /]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
 (deftest equations
-  (e/with-literal-functions [θ y]
+  (e/with-literal-functions [θ]
     (is (= '(+ (* -1 a l m (expt ω 2) (sin (θ t)) (cos (* t ω)))
                (* g l m (sin (θ t)))
                (* (expt l 2) m (((expt D 2) θ) t)))

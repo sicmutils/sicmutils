@@ -362,8 +362,8 @@
                (simplify (((g/expt D 3) fff) 'x 'y 'z))))))
 
     (testing "derivative of constant == 0 whatever the arity."
-      (is (= 0 ((D (fn [x] 0)) 'x)))
-      (is (= 0 ((D (fn [& xs] 0)) 'x))))))
+      (is (= 0 ((D (fn [_x] 0)) 'x)))
+      (is (= 0 ((D (fn [& _xs] 0)) 'x))))))
 
 (deftest literal-function-tests
   (af/with-literal-functions [f [g [0 0] 0]]

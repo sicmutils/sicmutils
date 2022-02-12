@@ -23,11 +23,8 @@
             [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.expression.compile :as c]
-            [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]))
-
-(def ^:private near (v/within 1e-6))
+            [sicmutils.generic :as g :refer [+ - *]]
+            [sicmutils.structure :refer [up down]]))
 
 (deftest compile-fn-test
   (let [f          (fn [x] (+ 1 (g/square (g/sin x))))

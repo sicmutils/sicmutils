@@ -25,13 +25,10 @@
                                                   using-coordinates]]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar
                                                        R3-rect R3-cyl]]
-            [sicmutils.calculus.form-field :as ff]
-            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :refer [compose]]
-            [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.operator :as o]
+            [sicmutils.generic :as g :refer [+ * /]]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :refer [up]]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -72,20 +69,19 @@
                (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))
     (let-coordinates [[x y] R2-rect
                       [r theta] R2-polar]
-      (let [R2-rect-chi (m/chart R2-rect)
-            R2-rect-chi-inverse (m/point R2-rect)
-            R2-polar-chi (m/chart R2-polar)
+      (let [R2-rect-chi-inverse  (m/point R2-rect)
             R2-polar-chi-inverse (m/point R2-polar)
-            R2-rect-point (R2-rect-chi-inverse (up 'x0 'y0))
+            R2-rect-point  (R2-rect-chi-inverse (up 'x0 'y0))
+            R2-polar-point (R2-polar-chi-inverse (up 'r0 'theta0))
             h (+ (* x (g/square r)) (g/cube y))]
         (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
                    (* (expt r0 3) (cos theta0)))
-               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))
+               (simplify (h R2-polar-point))))
         (is (= 'x0 (simplify (x (R2-rect-chi-inverse (up 'x0 'y0))))))
-        (is (= '(* r0 (cos theta0)) (simplify (x (R2-polar-chi-inverse (up 'r0 'theta0))))))
-        (is (= 'r0 (simplify (r (R2-polar-chi-inverse (up 'r0 'theta0))))))
-        (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
-        (is (= '(atan y0 x0) (simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))))))
+        (is (= '(* r0 (cos theta0)) (simplify (x R2-polar-point))))
+        (is (= 'r0 (simplify (r R2-polar-point))))
+        (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r R2-rect-point))))
+        (is (= '(atan y0 x0) (simplify (theta R2-rect-point))))))))
 
 (deftest literal-tests
   ;; These come from the bottom of manifold.scm.

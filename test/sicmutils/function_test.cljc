@@ -136,7 +136,7 @@
 (defn should-be-between-one-two
   "Arities behave differently for def'd functions vs anonymous fns."
   ([x] x)
-  ([x y] x))
+  ([x _] x))
 
 (deftest multiple-arities-test
   (is (= [:between 1 3]

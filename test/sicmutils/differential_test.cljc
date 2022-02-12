@@ -29,7 +29,7 @@
             [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :refer [D-numeric]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.util :as u]
+            #?(:cljs [sicmutils.util :as u])
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -171,9 +171,9 @@
       (testing "equality, comparison"
         (checking "g/negative?, g/infinite?" 100 [x sg/real]
                   (let [elem (d/bundle-element x 1 0)]
-                    (= (g/negative? x)
-                       (g/negative? elem)
-                       "negative? operates on finite-part only.")
+                    (is (= (g/negative? x)
+                           (g/negative? elem))
+                        "negative? operates on finite-part only.")
 
                     (is (not (g/infinite? elem))
                         "infinite? is always false for real finite parts.")))
@@ -213,10 +213,10 @@
                   (is (not (d/eq n (d/bundle-element n 1 0)))
                       "eq is FALSE with a tangent, bundle on right")
 
-                  (is (= (d/eq (d/bundle-element n 1 0) (d/bundle-element n 1 0)))
+                  (is (d/eq (d/bundle-element n 1 0) (d/bundle-element n 1 0))
                       "d/eq handles equality")
 
-                  (is (= (d/eq (d/bundle-element n 1 0) (d/bundle-element n 2 0)))
+                  (is (not (d/eq (d/bundle-element n 1 0) (d/bundle-element n 2 0)))
                       "d/eq is false for [[Differential]]s with diff tags"))
 
         (checking "compare ignores tangent parts" 100
@@ -239,7 +239,7 @@
                     (is (zero? (v/compare l (d/bundle-element l r 0))))))
 
         (checking "compare-full takes tags into account" 100
-                  [l sg/real, r sg/real]
+                  [l sg/real]
                   (is (pos? (d/compare-full (d/bundle-element l 1 0) l))
                       "a [[Differential]] with a positive tangent is ALWAYS
                     greater than a non-[[Differential]] whatever the tangent.")
@@ -360,12 +360,10 @@
           -dx    (d/from-terms {[0] -1})
           dy     (d/from-terms {[1] 1})
           dz     (d/from-terms {[2] 1})
-          dx+dx  (d/from-terms {[0] 2})
           dxdy   (d/from-terms {[0 1] 1})
           dxdydz (d/from-terms {[0 1 2] 1})
           dx+dy  (d/from-terms {[0] 1, [1] 1})
-          dx+dz  (d/from-terms {[0] 1, [2] 1})
-          =      d/eq]
+          dx+dz  (d/from-terms {[0] 1, [2] 1})]
       (testing "d:+ is commutative"
         (is (d/eq dx+dy
                   (d/d:+ dx dy)
@@ -496,7 +494,7 @@
 
     (checking "max-order-tag picks from the greatest of SOME term's tags" 100
               [diff real-diff-gen]
-              (if-let [tags (seq (all-tags diff))]
+              (if (seq (all-tags diff))
                 (let [top-tags (into #{} (map (comp peek #'d/tags)
                                               (#'d/->terms diff)))]
                   (is (contains?

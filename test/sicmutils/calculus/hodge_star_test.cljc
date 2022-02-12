@@ -134,9 +134,9 @@
       (is (= '(up (/ (* -1 b)
                      (sqrt (+ (* (expt a 2) d) (* -1 a (expt b 2)))))
                   (/ a (sqrt (+ (* (expt a 2) d) (* -1 a (expt b 2)))))
-                  0))
-          (simplify
-           (second results))))))
+                  0)
+             (simplify
+              (second results)))))))
 
 (deftest hodge-star-tests
   (let-coordinates [[x y] m/R2-rect]
@@ -167,7 +167,7 @@
       (is (= '(+ (* (V↑0 (up x y)) (W↑1 (up x y)))
                  (* -1 (W↑0 (up x y)) (V↑1 (up x y))))
              (simplify
-              (((E2-star (fn [pt] 1))
+              (((E2-star (fn [_pt] 1))
                 (vf/literal-vector-field 'V R2-rect)
                 (vf/literal-vector-field 'W R2-rect))
                ((m/point R2-rect) (up 'x 'y)))))))))
@@ -176,7 +176,6 @@
   (testing "First, some simple tests on 3-dimensional Euclidean space."
     (let-coordinates [[x y z] m/R3-rect]
       (let [R3-point ((m/point R3-rect) (up 'x0 'y0 'z0))
-            R3-basis (b/coordinate-system->basis R3-rect)
             E3-metric (fn [v1 v2]
                         (+ (* (dx v1) (dx v2))
                            (* (dy v1) (dy v2))
@@ -193,7 +192,7 @@
                       (-> (simplify expr)
                           (x/substitute '(up x0 y0 z0) 'p)))]
         (is (= 0 (simplify
-                  (((- (E3-star (fn [pt] 1))
+                  (((- (E3-star (fn [_pt] 1))
                        (ff/wedge dx dy dz))
                     (vf/literal-vector-field 'u R3-rect)
                     (vf/literal-vector-field 'v R3-rect)
@@ -310,7 +309,6 @@
   (testing "Now for a 2+1 Minkowski space with c=1."
     (let-coordinates [[t x y] m/R3-rect]
       (let [R3-point ((m/point R3-rect) (up 't0 'x0 'y0))
-            R3-basis (b/coordinate-system->basis R3-rect)
             L3-metric (fn [u v]
                         (+ (* -1 (dt u) (dt v))
                            (* (dx u) (dx v))
@@ -319,7 +317,7 @@
         (is (= -1 ((L3-metric d:dt d:dt) R3-point)))
 
         (is (= 0 (simplify
-                  (((- (L3-star (fn [m] 1))
+                  (((- (L3-star (fn [_m] 1))
                        (ff/wedge dx dy dt))
                     (vf/literal-vector-field 'U R3-rect)
                     (vf/literal-vector-field 'V R3-rect)
@@ -379,7 +377,7 @@
           (is (= '(+ (* (u↑0 (up t0 x0)) (v↑1 (up t0 x0)))
                      (* -1 (v↑0 (up t0 x0)) (u↑1 (up t0 x0))))
                  (simplify
-                  (((L2-Hodge-star (fn [x] 1))
+                  (((L2-Hodge-star (fn [_x] 1))
                     (vf/literal-vector-field 'u R2-rect)
                     (vf/literal-vector-field 'v R2-rect))
                    R2-point)))
@@ -390,7 +388,7 @@
           (is (= '(+ (* c (u↑0 (up t0 x0)) (v↑1 (up t0 x0)))
                      (* -1 c (v↑0 (up t0 x0)) (u↑1 (up t0 x0))))
                  (simplify
-                  (((L2-Hodge-star (fn [x] 1))
+                  (((L2-Hodge-star (fn [_x] 1))
                     (vf/literal-vector-field 'u R2-rect)
                     (vf/literal-vector-field 'v R2-rect))
                    R2-point)))
@@ -433,7 +431,7 @@
             (is (= '(+ (* c (u↑0 (up t0 x0)) (v↑1 (up t0 x0)))
                        (* -1 c (v↑0 (up t0 x0)) (u↑1 (up t0 x0))))
                    (simplify
-                    (((L2-Hodge-star (fn [x] 1))
+                    (((L2-Hodge-star (fn [_x] 1))
                       (vf/literal-vector-field 'u R2-rect)
                       (vf/literal-vector-field 'v R2-rect))
                      R2-point)))
@@ -467,7 +465,6 @@
   (testing "next example"
     (let-coordinates [[x y] m/R2-rect]
       (let [R2-point ((m/point R2-rect) (up 'x0 'y0))
-            R2-basis (b/coordinate-system->basis R2-rect)
             g-R2 (fn [g_00 g_01 g_11]
                    (fn [u v]
                      (+ (* g_00 (dx u) (dx v))
@@ -481,7 +478,7 @@
         (is (= '(sqrt (+ (* a c)
                          (* -1 (expt b 2))))
                (simplify
-                (((R2-star (fn [x] 1)) d:dx d:dy)
+                (((R2-star (fn [_x] 1)) d:dx d:dy)
                  R2-point))))
 
         (is (= '(/ b (sqrt (+ (* a c) (* -1 (expt b 2)))))
@@ -600,7 +597,6 @@
     (let [SR m/R4-rect]
       (let-coordinates [[t x y z] SR]
         (let [c 'c
-              SR-basis (b/coordinate-system->basis SR)
               an-event ((m/point SR) (up 't0 'x0 'y0 'z0))
               g-Lorentz (fn [u v]
                           (+ (* (dx u) (dx v))

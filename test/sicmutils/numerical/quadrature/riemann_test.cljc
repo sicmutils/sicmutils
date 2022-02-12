@@ -32,7 +32,7 @@
 (deftest windowed-sum-tests
   (testing "windowed-sum makes for inefficient integrals, but they're
   conceptually nice and simple."
-    (let [area-fn   (fn [l r] 2)
+    (let [area-fn   (fn [_l _r] 2)
           estimator (qr/windowed-sum area-fn 0 10)]
       (is (= 20.0 (estimator 10)) "10 blocks of 2 == 20.")
       (is (= 40.0 (estimator 20)) "20 blocks of 2 == 40.")))

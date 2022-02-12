@@ -59,8 +59,8 @@
           estimates [1000 100 10 10]
           slim-estimate 3.14
           integrate (qc/make-integrator-fn
-                     (fn [f a b] slim-estimate)
-                     (fn [f a b opts] estimates))]
+                     (fn [_ _ _] slim-estimate)
+                     (fn [_ _ _ _] estimates))]
       (is (= {:converged? true
               :terms-checked 4
               :result 10}

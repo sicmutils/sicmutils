@@ -22,7 +22,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?] #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
-            [sicmutils.env :as e :refer [+ - * / zero? partial ref
+            [sicmutils.env :as e :refer [+ * /  partial ref
                                          complex
                                          freeze
                                          simplify

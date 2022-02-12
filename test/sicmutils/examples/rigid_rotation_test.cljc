@@ -19,8 +19,8 @@
 
 (ns sicmutils.examples.rigid-rotation-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [deftest is testing use-fixtures]]
-            [sicmutils.env :as e :refer [up + - * /]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
+            [sicmutils.env :as e :refer [up]]
             [sicmutils.examples.rigid-rotation :as rigid-rotation]
             [sicmutils.mechanics.rigid :as rigid]
             [sicmutils.polynomial.gcd :as pg]

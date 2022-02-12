@@ -56,16 +56,12 @@
     (let-coordinates [[x y z]        R3-rect
                       [r theta zeta] R3-cyl]
       (let [R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))
-            R3-cyl-point ((point R3-cyl) (up 'r0 'theta0 'zeta0))
 
             w (ff/literal-oneform-field 'w R3-rect)
-            u (ff/literal-oneform-field 'u R3-rect)
-            v (ff/literal-oneform-field 'v R3-rect)
 
             X (vf/literal-vector-field 'X R3-rect)
             Y (vf/literal-vector-field 'Y R3-rect)
             Z (vf/literal-vector-field 'Z R3-rect)
-            W (vf/literal-vector-field 'W R3-rect)
 
             f (man/literal-scalar-field 'f R3-rect)
             present (fn [expr]
@@ -175,7 +171,6 @@
 
             vector-basis (down e_0 e_1)
             oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
-            basis (b/make-basis vector-basis oneform-basis)
 
             Yi (oneform-basis Y)]
         (is (= 0 (simplify
@@ -262,7 +257,6 @@
 
             vector-basis (down e_0 e_1)
             oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
-            basis (b/make-basis vector-basis oneform-basis)
 
             Deltai_j (fn [v]
                        (oneform-basis
@@ -377,8 +371,7 @@
   ;; So to test the operation on a vector field we must construct a
   ;; (1,0) tensor field that behaves like a vector field, but acts on
   ;; oneform fields rather than manifold functions.
-  (let [basis (b/coordinate-system->basis R4-rect)
-        V (vf/literal-vector-field 'V R4-rect)
+  (let [V (vf/literal-vector-field 'V R4-rect)
         TV (-> (fn [oneform] (oneform V))
                (ci/with-argument-types [::ff/oneform-field]))
         m (man/typical-point R4-rect)
@@ -524,10 +517,7 @@
 
   (let-coordinates [[x y]     R2-rect
                     [r theta] R2-polar]
-    (let [rect-chi (chart R2-rect)
-          rect-chi-inverse (point R2-rect)
-          polar-chi (chart R2-polar)
-          polar-chi-inverse (point R2-polar)
+    (let [rect-chi-inverse (point R2-rect)
           m2 (rect-chi-inverse (up 'x0 'y0))
           zero man/zero-manifold-function
           rect-Christoffel (cov/make-Christoffel
@@ -755,7 +745,7 @@
           ;; equations of a free particle constrained to the surface
           ;; of the sphere:
           Lfree (fn [m]
-                  (fn [[t q v]]
+                  (fn [[_ _ v]]
                     (* (/ 1 2) m (g/square v))))
           ;; F is really the embedding map, from the coordinates on the sphere
           ;; to the 3-space coordinates in the embedding manifold.
@@ -848,11 +838,12 @@
           ;; These are correct Christoffel symbols...
           )))))
 
-(defn CD [CF chart]
-  "Computation of Covariant derivatives by difference quotient. [[CD]] is
-  parallel in definition to the Lie Derivative. Does not seem to depend on a
-  derivative of basis vectors, in fact the derivative of the basis vectors is
-  multiplied by zero in the product rule output."
+(defn CD
+  "Computation of Covariant derivatives by difference quotient. [[CD]] is parallel
+  in definition to the Lie Derivative. Does not seem to depend on a derivative
+  of basis vectors, in fact the derivative of the basis vectors is multiplied by
+  zero in the product rule output."
+  [CF chart]
   (let [chi (man/chart chart)
         chi-inv (man/point chart)
         basis (cov/Cartan->basis CF)

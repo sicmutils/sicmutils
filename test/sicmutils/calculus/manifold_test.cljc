@@ -29,9 +29,9 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f :refer [compose]]
             [sicmutils.generators :as sg]
-            [sicmutils.generic :as g :refer [cos sin * - / +]]
+            [sicmutils.generic :as g :refer [cos sin * - +]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :refer [up]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 

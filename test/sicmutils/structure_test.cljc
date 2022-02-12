@@ -769,9 +769,8 @@
                        (g/* (g/* (s/transpose-outer inner) l) r))))))
 
   (checking "cols=0 transpose-outer law produces incompatible sides" 100
-            [[rows [l inner r]] (gen/let [rows (gen/choose 1 5)]
-                                  (gen/tuple (gen/return rows)
-                                             (<l|:inner:|r> rows 0)))]
+            [[l inner r] (gen/let [rows (gen/choose 1 5)]
+                           (<l|:inner:|r> rows 0))]
             (is (v/zero?
                  (g/* l (g/* inner r)))
                 "the left side is a structure of zeros")

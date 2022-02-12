@@ -74,7 +74,7 @@
                    (simpson38-step f a b))))
             "Both methods are equivalent!"))))
 
-  (testing "Simpson's method is identical to the average of the left and
+  (testing "Simpson's 3/8 method is identical to the average of the left and
   right riemann sums"
     ;; Reference: The derivation at the [Simpson's Rule Wikipedia
     ;; page](https://en.wikipedia.org/wiki/Simpson%27s_rule#Averaging_the_midpoint_and_the_trapezoidal_rules)

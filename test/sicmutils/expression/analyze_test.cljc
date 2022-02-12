@@ -39,7 +39,6 @@
     (let [backend poly/analyzer
           gensym (a/monotonic-symbol-generator "-s-")
           pa (a/make-analyzer backend gensym)
-          new-analysis! (a/initializer pa)
           simplify (a/expression-simplifier pa)
           simplify-and-reset (a/default-simplifier pa)
           analyze (a/expression-analyzer pa)

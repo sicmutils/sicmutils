@@ -25,7 +25,6 @@
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.map :as m]
             [sicmutils.calculus.manifold :as man
@@ -33,7 +32,7 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ - *]]
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
 
@@ -149,7 +148,7 @@ and the differentials of coordinate functions."
                   (((nth edual 0)
                     (vf/procedure->vector-field
                      (fn [f]
-                       (fn [m]
+                       (fn [_]
                          ((((m/differential μ) d:dt) f)
                           ((man/point R1-rect) 'τ))))))
                    R2-rect-point))))))))
@@ -255,8 +254,7 @@ and the differentials of coordinate functions."
 
     (let-coordinates [[x y] R2-rect
                       t     R1-rect]
-      (let [m   ((man/point R2-rect) (up 3 4))
-            phi (f/compose (man/point R2-rect)
+      (let [phi (f/compose (man/point R2-rect)
 	                         (up g/square g/cube)
 	                         (man/chart R1-rect))
             psi (f/compose (man/point R1-rect)
@@ -278,7 +276,6 @@ and the differentials of coordinate functions."
       (let [R3-rect-chi (man/chart R3-rect)
             R3-rect-chi-inverse (man/point R3-rect)
             R3-rect->R '(-> (UP Real Real Real) Real)
-            m3 ((man/point R3-rect) (up 'x0 'y0 'z0))
 
             alpha (af/literal-function 'alpha R3-rect->R)
             beta (af/literal-function 'beta R3-rect->R)
@@ -290,7 +287,6 @@ and the differentials of coordinate functions."
                (* (f/compose gamma R3-rect-chi) dz))
 
             R2-chi (man/chart R2-rect)
-            R2-chi-inverse (man/point R2-rect)
             R2-rect->R '(-> (UP Real Real) Real)
             X2 (vf/literal-vector-field 'X R2-rect)
             Y2 (vf/literal-vector-field 'Y R2-rect)

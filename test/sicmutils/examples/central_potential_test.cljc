@@ -19,14 +19,14 @@
 
 (ns sicmutils.examples.central-potential-test
   (:refer-clojure :exclude [+ - * / partial])
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is]]
             [sicmutils.env :as e :refer [up + - * / partial]]
             [sicmutils.examples.central-potential :as central]
             [sicmutils.value :as v]))
 
 (deftest equations
   (e/with-literal-functions
-    [m M x y X Y]
+    [x y]
     (let [state (up 't (up 'x 'y 'X 'Y) (up 'dx 'dy 'dX 'dY))]
       (is (= '(+ (* (/ 1 2) (expt dX 2) m2)
                  (* (/ 1 2) (expt dY 2) m2)
