@@ -57,8 +57,8 @@
 
   (testing "series division"
     (let [series (i/->series [0 0 0 4 3 2 1])]
-      (= [1 0 0 0 0]
-         (take 5 (i/div series series)))))
+      (is (= [1 0 0 0 0]
+             (take 5 (i/div series series))))))
 
   (testing "sequence invert"
     (let [series (iterate inc 3)]

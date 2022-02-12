@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.generic :as g :refer [+ - * /]]
@@ -97,7 +97,7 @@
   ;; To move further into Hamiltonian mechanics, we will need
   ;; literal functions mapping structures to structures.
 
-  (f/with-literal-functions [x y v_x v_y p_x p_y [V [1 2] 3]]
+  (f/with-literal-functions [x y p_x p_y [V [1 2] 3]]
     (is (= '(V x y) (simplify (V 'x 'y))))
     (is (= '(up 0 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
                 (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t))) (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
@@ -119,7 +119,8 @@
                (* (/ 1 2) m (expt v_y 2))
                (* -1 (V x y)))
            (v/freeze
-            (simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y)))))))
+            (simplify
+             ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y)))))))
 
     (is (= '(/ (+ (* m (V x y))
                   (* (/ 1 2) (expt p_x 2))
@@ -148,13 +149,12 @@
                 (* (/ 1 2) (expt p_r 2) (expt r 2))
                 (* (/ 1 2) (expt p_phi 2)))
              (* m (expt r 2)))
-         (f/with-literal-functions [[V [0 1] 2]]
-           (simplify
-            ((H/Lagrangian->Hamiltonian
-              (L/L-central-polar 'm (f/literal-function 'V)))
-             (H/->H-state 't
-                          (L/coordinate-tuple 'r 'phi)
-                          (H/momentum-tuple 'p_r 'p_phi)))))))
+         (simplify
+          ((H/Lagrangian->Hamiltonian
+            (L/L-central-polar 'm (f/literal-function 'V)))
+           (H/->H-state 't
+                        (L/coordinate-tuple 'r 'phi)
+                        (H/momentum-tuple 'p_r 'p_phi))))))
   (is (= '(up 0
               (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
                   (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))

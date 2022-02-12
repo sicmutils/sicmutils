@@ -19,13 +19,11 @@
 
 (ns sicmutils.sicm.ch6-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D simplify compose
-                     up down
-                     sin cos square exp]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.util :as u]))
+             :refer [+ - * / simplify compose
+                     up sin cos square exp]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

@@ -90,7 +90,7 @@
   (testing "Exponentially decaying upper endpoint"
     (let [f (fn [x] (Math/exp (- x)))]
       (is (ish? {:converged? true
-                 :terms-checked 5
-                 :result 0.6321205588285578}
+                 :terms-checked 2
+                 :result 1.0}
                 ((qs/exponential-upper qr/open-integral) f 0 ##Inf))
           "Calculation converges."))))

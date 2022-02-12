@@ -22,7 +22,6 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.generators :as sg]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative]

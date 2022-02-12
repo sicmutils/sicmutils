@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D zero? partial
+             :refer [+ - * / D zero?
                      up down
                      literal-function]
              #?@(:cljs [:include-macros true])]

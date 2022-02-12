@@ -30,11 +30,9 @@
             [sicmutils.generators :as sg]
             [sicmutils.laws :as sl]
             [sicmutils.generic :as g]
-            [sicmutils.mechanics.rotation :as mr]
             [sicmutils.simplify]
             [sicmutils.structure :as s]
             [sicmutils.quaternion :as q]
-            [sicmutils.util :as u]
             [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
 
@@ -151,10 +149,11 @@
   (testing "calculus works! IPerturbed tests."
     (letfn [(f [x]
               (fn [y]
-                #sicm/quaternion [(g/* x y)
-                                  (g/* x x y)
-                                  (g/* x x y y)
-                                  x]))]
+                (q/make
+                 (g/* x y)
+                 (g/* x x y)
+                 (g/* x x y y)
+                 x)))]
       (is (= #sicm/quaternion
              ['y '(* 2 x y) '(* 2 x (expt y 2)) 1]
              (g/simplify
@@ -256,16 +255,16 @@
         anyway. (it is also not a unit quaternion.)"))
 
   (checking "predicates" 100 [x (sg/quaternion)]
-            (is (= (q/real? (q/make (q/real-part x))))
+            (is (q/real? (q/make (q/real-part x)))
                 "a quaternion is 'real' if it contains ONLY the real part of the
                 original quaternion.")
 
-            (is (= (q/pure? (q/make 0 (q/three-vector x))))
+            (is (q/pure? (q/make 0 (q/three-vector x)))
                 "a quaternion is 'pure' if it contains ONLY the imaginary part
                 of the original quaternion."))
 
   (checking "eq, equality between types" 100
-            [[r i j k :as v] (gen/vector sg/real 4)]
+            [[r i :as v] (gen/vector sg/real 4)]
             (let [q (q/make v)]
               (is (v/= q q)
                   "quaternion equality is reflexive")

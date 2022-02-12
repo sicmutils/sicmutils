@@ -4,10 +4,22 @@
  :hooks
  {:analyze-call
   {sicmutils.abstract.function/with-literal-functions
-   hooks.with-literal-functions/with-literal-functions
+   hooks.literal-functions/with-literal-functions
+
+   sicmutils.calculus.coordinate/define-coordinates
+   hooks.let-coordinates/define-coordinates
+
+   sicmutils.calculus.coordinate/let-coordinates
+   hooks.let-coordinates/let-coordinates
+
+   sicmutils.calculus.coordinate/using-coordinates
+   hooks.let-coordinates/using-coordinates
 
    sicmutils.env/with-literal-functions
-   hooks.with-literal-functions/with-literal-functions
+   hooks.literal-functions/with-literal-functions
+
+   sicmutils.env/literal-function
+   hooks.literal-functions/literal-function
 
    sicmutils.util.def/import-def
    hooks.import-def/import-def
