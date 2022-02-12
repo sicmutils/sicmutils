@@ -121,7 +121,8 @@
             (core= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
-  ([f domain range] `(af/literal-function ~f ~domain ~range)))
+  ([f domain range]
+   `(af/literal-function ~f ~domain ~range)))
 
 (defmacro with-literal-functions [& args]
   `(af/with-literal-functions ~@args))

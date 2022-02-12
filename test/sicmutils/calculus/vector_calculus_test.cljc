@@ -137,7 +137,7 @@
                                            (dphi v1) (dphi v2))))))
 
             spherical-Gamma (cov/make-Christoffel
-                             (let [O (fn [x] 0)]
+                             (let [O (fn [_x] 0)]
                                (down
                                 (down (up O O O)
                                       (up O (/ 1 r) O)

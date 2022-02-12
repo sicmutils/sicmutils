@@ -625,13 +625,10 @@
   (testing "structure as matrix"
     (let [A (s/up (s/up 1 2)
                   (s/up 3 4))
-          B (s/down (s/up 1 2 3)
-                    (s/up 3 4 5))
           C (s/down (s/up 1 2 3)
                     (s/up 0 4 5)
                     (s/up 1 0 6))
           D (s/up (s/down 3))
-          E (s/up 1)
           F (s/down (s/up 1 2)
                     (s/up 3 4))
           G (s/down (s/up 4 0 0 0)
