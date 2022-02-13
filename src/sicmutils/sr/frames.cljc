@@ -90,6 +90,7 @@
 ;; ### The background frame
 
 (defn base-frame-point [_ this-frame _]
+  #_{:clj-kondo/ignore [:redundant-fn-wrapper]}
   (fn [coords]
     {:pre [(SR-coordinates? coords)
            (= this-frame (cf/frame-owner coords))]}

@@ -99,7 +99,7 @@
     (is (= (* (cos (* 2 'u)) 2)
            ((D #(sin (* 2 %))) 'u)))
 
-    (let [s (fn [t] (g/sqrt t))
+    (let [s g/sqrt
           u (fn [t] (g/expt (- (* 3 (s t)) 1) (/ 2 3)))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is (ish? (/ -1 18)
@@ -120,7 +120,7 @@
 
 (deftest derivative-return-tests
   (testing "Series, PowerSeries"
-    (let [series-D ((D (fn [x] (series/exp-series x))) 'x)]
+    (let [series-D ((D series/exp-series) 'x)]
       (is (series/series? series-D)
           "we get a proper series back out")
 

@@ -4,6 +4,7 @@
 
  :linters
  {:unsorted-required-namespaces {:level :warning}
+  :redundant-fn-wrapper {:level :warning}
   :single-key-in {:level :warning}}
 
  :lint-as {clojure.test.check.clojure-test/defspec clojure.test/deftest

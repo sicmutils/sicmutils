@@ -116,10 +116,10 @@
      (is (= [1] (f/exposed-arities (fn [x] (* x x)))))
      (is (= [1 3] (f/exposed-arities (fn ([x] (* x x)) ([x y _z] (+ x y))))))))
 
+#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (deftest arities
   (is (= [:exactly 2] (f/arity g/partial-derivative))
       "generic multimethod responds correctly to f/arity.")
-
   (is (= [:exactly 0] (f/arity (fn [] 42))))
   (is (= [:exactly 1] (f/arity (fn [x] (+ x 1)))))
   (is (= [:exactly 2] (f/arity (fn [x y] (+ x y)))))
@@ -502,6 +502,7 @@
                   (is (= (g/solve-linear r l)
                          ((passthrough g/solve-linear) r l))))))
 
+    #_{:clj-kondo/ignore [:redundant-fn-wrapper]}
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
             g (fn [x y] (* x y))

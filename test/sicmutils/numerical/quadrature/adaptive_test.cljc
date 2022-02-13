@@ -34,7 +34,7 @@
 
 (deftest adaptive-tests
   (with-comparator (v/within 1e-10)
-    (let [inverse (fn [x] (/ x))]
+    (let [inverse /]
       (testing "inverse function"
         (let [real-answer (- (Math/log 100)
                              (Math/log 0.01))
