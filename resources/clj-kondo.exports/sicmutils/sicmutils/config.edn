@@ -2,7 +2,6 @@
            sicmutils.util.def/import-vars potemkin/import-vars
            sicmutils.util.def/defgeneric clojure.core/defmulti}
 
-
  :hooks
  {:analyze-call
   {sicmutils.abstract.function/with-literal-functions
@@ -38,7 +37,15 @@
    potemkin/import-def
    hooks.import-def/import-def
 
+   pattern.rule/consequence hooks.rule/consequence
+
    pattern.rule/pattern hooks.rule/pattern
+
+   pattern.rule/rule hooks.rule/rule
+
+   pattern.rule/ruleset hooks.rule/ruleset
+
+   pattern.rule/template hooks.rule/template
 
    com.gfredericks.test.chuck.clojure-test/checking
    hooks.chuck/checking}}}

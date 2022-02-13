@@ -1082,7 +1082,7 @@
                         ;; tags `b` with `0`
                         (exp (+ b 3)))]
           ;; extract `0` tag on the way out
-          (inner-f (+ [5, (1,0)] 3)))
+          (inner-f (+ [5, '(1,0)] 3)))
 
         ;; final substitution (remember that when you "tag" a dual number
         ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag ==
@@ -1090,7 +1090,7 @@
 
         ;; extract `0` tag on the way out
         ;; extract `0` tag on the way out
-        (exp (+ [(+ 5 3), (2, 0)] 3))
+        (exp (+ [(+ 5 3), '(2, 0)] 3))
 
         ;; At this point it doesn't even matter what's going on inside the
         ;; function. the double "extract 0" is the problem here, and also the
@@ -1103,23 +1103,23 @@
                         ;; tags `b` with `1`
                         (exp (+ b 3)))]
           ;; extract `0` tag on the way out
-          (inner-f (+ [(+ 5 3), (1,0)] 3)))
+          (inner-f (+ [(+ 5 3), '(1,0)] 3)))
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp (+ [[(+ 5 3), (1,0)], (1, 1)] 3))
+        (exp (+ [[(+ 5 3), '(1,0)], '(1, 1)] 3))
 
         ;; group the perturbations:
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp (+ [(+ 5 3) (+ (1,0) (1, 1))] 3))
+        (exp (+ [(+ 5 3) (+ '(1,0) '(1, 1))] 3))
 
         ;; add:
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp [(+ 5 3 3) (+ (1,0) (1, 1))])
+        (exp [(+ 5 3 3) (+ '(1,0) '(1, 1))])
 
         ;; derivative of `(exp x)` is, conveniently, `(exp x)`:
 

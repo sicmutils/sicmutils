@@ -78,7 +78,7 @@
     n
     (api/list-node [(api/token-node 'quote) n])]))
 
-(defn define-coordinates [{:keys [node]}]
+(defn define-coordinates [{:keys [node] :as m}]
   (let [[_ prototype system] (:children node)
         sys-name    (api/token-node (symbol (name (:value system))))
         coord-names (symbols-from-prototype prototype)

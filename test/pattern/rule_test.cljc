@@ -91,7 +91,7 @@
   (testing "simple3"
     (let [R (r/rule (+ (? a)) => (? a))
           notR (r/rule (+ (? a)) !=> (? a))
-          evenR (r/rule (+ (? a)) #(even? ('a %)) (? a))]
+          evenR (r/rule (+ (? a)) (comp even? 'a) (? a))]
       (is (= 3 (R '(+ 3))))
       (is (r/failed? (notR '(+ 3))))
       (is (r/failed? (notR '(+ 8))))
@@ -157,13 +157,13 @@
           R (r/rule
              (~(m/eq '+) () ~(m/match-when odd? (m/bind '?a))
               ?a ??b)
-             => (* ~@(z) ?a ??b))]
+             => (* ~@[z] ?a ??b))]
       (is (= '(* 2 3 y z)
              (R '(+ () 3 3 y z)))))
 
     (let [z 2
           R (r/rule
-             (~(m/eq '+) () ?a ?a ??b) => (* ~@(z) ?a ??b))]
+             (~(m/eq '+) () ?a ?a ??b) => (* ~@[z] ?a ??b))]
       (is (= '(* 2 x y z)
              (R '(+ () x x y z)))
           "testing unquote, unquoting in an actual matcher vs a literal, and empty

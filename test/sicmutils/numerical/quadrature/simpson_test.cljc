@@ -85,12 +85,12 @@
   (testing "Simpson's Method converges, and the interface works properly."
     (let [pi-test (fn [x] (/ 4 (+ 1 (* x x))))]
       (is (ish? {:converged? true
-                 :terms-checked 13
-                 :result 3.141592643655686}
-                (qt/integral pi-test 0 1)))
+                 :terms-checked 5
+                 :result 3.1415926535528365}
+                (qs/integral pi-test 0 1)))
 
       (is (ish? {:converged? false
                  :terms-checked 4
-                 :result 3.138988494491089}
-                (qt/integral pi-test 0 1 {:maxterms 4}))
+                 :result 3.1415926512248222}
+                (qs/integral pi-test 0 1 {:maxterms 4}))
           "options get passed through."))))
