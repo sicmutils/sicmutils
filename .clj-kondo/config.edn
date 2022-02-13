@@ -3,7 +3,8 @@
  :output {:exclude-files ["src/data_readers.clj"]}
 
  :linters
- {:unsorted-required-namespaces {:level :warning}}
+ {:unsorted-required-namespaces {:level :warning}
+  :single-key-in {:level :warning}}
 
  :lint-as {clojure.test.check.clojure-test/defspec clojure.test/deftest
            clojure.test.check.generators/let clojure.core/let
