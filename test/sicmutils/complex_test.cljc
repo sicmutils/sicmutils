@@ -24,12 +24,12 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
             [sicmutils.laws :as l]
+            [sicmutils.numbers]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]

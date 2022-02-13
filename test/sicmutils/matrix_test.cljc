@@ -19,11 +19,11 @@
 
 (ns sicmutils.matrix-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.clojure-test :as ct :refer [defspec]]
             [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :as ct :refer [defspec]]
             [same :refer [ish?]]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]

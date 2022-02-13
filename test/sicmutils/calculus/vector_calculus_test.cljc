@@ -20,13 +20,13 @@
 (ns sicmutils.calculus.vector-calculus-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-calculus :as vc]
-            [sicmutils.abstract.function :as af]
             [sicmutils.generic :as g :refer [+ - * / sin cos]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]

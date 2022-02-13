@@ -22,6 +22,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.env :as e :refer [+ - * / zero?
                                          D d
                                          up down exp
@@ -30,10 +31,9 @@
                                          R1-rect S2-spherical
                                          let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.operator :as o]
-            [sicmutils.value :as v]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

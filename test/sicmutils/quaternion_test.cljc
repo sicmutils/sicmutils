@@ -28,11 +28,11 @@
             [sicmutils.complex :as sc]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
-            [sicmutils.laws :as sl]
             [sicmutils.generic :as g]
+            [sicmutils.laws :as sl]
+            [sicmutils.quaternion :as q]
             [sicmutils.simplify]
             [sicmutils.structure :as s]
-            [sicmutils.quaternion :as q]
             [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
 

@@ -21,8 +21,8 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.romberg :as qr]
+            [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.substitute :as qs]
             [sicmutils.value :as v]))
 

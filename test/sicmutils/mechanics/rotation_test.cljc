@@ -21,9 +21,9 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.generic :as g :refer [- * cos sin]]
+            [sicmutils.mechanics.rotation :as r]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up]]
-            [sicmutils.mechanics.rotation :as r]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)

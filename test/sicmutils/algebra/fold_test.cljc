@@ -22,9 +22,9 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numbers]
             [sicmutils.algebra.fold :as af
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.numbers]))
 
 (deftest fold-tests
   (is (= 45 (af/generic-sum-fold

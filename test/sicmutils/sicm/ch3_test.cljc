@@ -27,8 +27,8 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.top :as top]
-            [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
+            [sicmutils.mechanics.lagrange :as L]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

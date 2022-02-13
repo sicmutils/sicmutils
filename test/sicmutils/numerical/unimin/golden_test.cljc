@@ -25,9 +25,9 @@
             [same :refer [ish? zeroish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as b]
-            [sicmutils.numerical.unimin.golden :as ug]))
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.value :as v]))
 
 (deftest golden-ratio-tests
   (testing "constants work as defined"

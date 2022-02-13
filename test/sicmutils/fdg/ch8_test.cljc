@@ -19,6 +19,7 @@
 (ns sicmutils.fdg.ch8-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.env :as e :refer [+ - * / sin zero?
                                          D partial
                                          up
@@ -26,10 +27,9 @@
                                          R2-rect R2-polar
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.operator :as o]
-            [sicmutils.value :as v]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

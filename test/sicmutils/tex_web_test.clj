@@ -20,16 +20,16 @@
 (ns sicmutils.tex-web-test
   (:refer-clojure :exclude [+ - * / = compare ref partial zero?
                             numerator denominator])
-  (:require [hiccup.page :refer [html5 include-css include-js]]
-            [clojure.string :as s]
+  (:require [clojure.string :as s]
+            [hiccup.page :refer [html5 include-css include-js]]
             [sicmutils.env :refer [+ * /
                                    ->TeX simplify
                                    D
                                    up down taylor-series
                                    tan expt series:sum exp literal-function]]
-            [sicmutils.examples.driven-pendulum :as driven]
+            [sicmutils.examples.central-potential :as central]
             [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.examples.central-potential :as central])
+            [sicmutils.examples.driven-pendulum :as driven])
   (:gen-class))
 
 (defn generate-page

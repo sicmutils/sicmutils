@@ -20,14 +20,14 @@
 (ns sicmutils.numerical.quadrature.riemann-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 (deftest windowed-sum-tests
   (testing "windowed-sum makes for inefficient integrals, but they're

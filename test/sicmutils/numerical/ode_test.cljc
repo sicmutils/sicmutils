@@ -22,8 +22,8 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numerical.ode :as o]
             [sicmutils.generic :as g :refer [- * /]]
+            [sicmutils.numerical.ode :as o]
             [sicmutils.structure :refer [up]]
             [sicmutils.value :as v]))
 

@@ -22,8 +22,8 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.adaptive :as qa]
-            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 

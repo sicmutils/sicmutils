@@ -24,12 +24,12 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
-            [sicmutils.ratio :as r]
-            [sicmutils.util :as u]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.generators :as sg]
             [sicmutils.laws :as l]
+            [sicmutils.ratio :as r]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
 (deftest ratio-value-implementation

@@ -25,8 +25,8 @@
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
-            [sicmutils.simplify.rules :as r]
             [sicmutils.simplify :as s]
+            [sicmutils.simplify.rules :as r]
             [sicmutils.value :as v]))
 
 (deftest algebraic-tests

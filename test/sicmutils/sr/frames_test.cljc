@@ -22,9 +22,9 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.frame :as cf]
             [sicmutils.calculus.manifold :as m]
-            [sicmutils.sr.frames :as sf]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.sr.frames :as sf]
             [sicmutils.structure :as s :refer [up]]
             [sicmutils.value :as v]))
 

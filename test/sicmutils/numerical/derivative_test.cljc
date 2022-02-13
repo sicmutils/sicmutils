@@ -22,9 +22,9 @@
             [same :refer [ ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as cd]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :as d]
             [sicmutils.polynomial.richardson :as r]
-            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))

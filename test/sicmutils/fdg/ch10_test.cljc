@@ -27,8 +27,8 @@
                                          point
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.value :as v]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

@@ -1,8 +1,10 @@
 {:config-in-comment {:linters {:unresolved-symbol {:level :off}}}
  :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"]
  :output {:exclude-files ["src/data_readers.clj"]}
+
  :linters
  {:unsorted-required-namespaces {:level :warning}}
+
  :lint-as {clojure.test.check.clojure-test/defspec clojure.test/deftest
            clojure.test.check.generators/let clojure.core/let
            clojure.test.check.properties/for-all clojure.core/let}}

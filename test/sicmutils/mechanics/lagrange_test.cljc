@@ -22,11 +22,11 @@
             [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.generic :as g]
-            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.matrix :as m]
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]
-            [sicmutils.mechanics.lagrange :as L]))
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

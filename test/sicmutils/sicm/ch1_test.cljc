@@ -28,11 +28,11 @@
                      coordinate velocity
                      Rx Ry Rz]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.value :as v :refer [within]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.pendulum :as pendulum]
-            [sicmutils.examples.driven-pendulum :as driven]))
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v :refer [within]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

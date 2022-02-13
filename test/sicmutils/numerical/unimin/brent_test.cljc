@@ -24,12 +24,12 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish? zeroish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.generic :as g]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.unimin.bracket :as brack]
-            [sicmutils.numerical.unimin.brent :as b]))
+            [sicmutils.numerical.unimin.brent :as b]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest brent-tests
   (with-comparator (v/within 1e-8)

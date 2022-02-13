@@ -27,9 +27,9 @@
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.function]
             [sicmutils.generic :as g]
+            [sicmutils.numerical.unimin.bracket :as b]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.value :as v]
-            [sicmutils.numerical.unimin.bracket :as b]))
+            [sicmutils.value :as v]))
 
 (def point
   ;; Generator of [x, (f x)] points.

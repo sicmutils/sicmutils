@@ -25,11 +25,11 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
-            [sicmutils.util :as u]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.generators :as sg]
             [sicmutils.laws :as l]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
 (def near (v/within 1e-12))

@@ -24,8 +24,8 @@
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g :refer [+ - *]]

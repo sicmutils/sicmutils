@@ -19,9 +19,9 @@
 
 (ns sicmutils.euclid-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.numbers]
             [sicmutils.euclid :as e]
-            [sicmutils.generic :as g]))
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]))
 
 (defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned

@@ -18,8 +18,8 @@
 ;;
 
 (ns sicmutils.expression.analyze-test
-  (:require [clojure.test :refer [is deftest testing]]
-            [clojure.string :as cs]
+  (:require [clojure.string :as cs]
+            [clojure.test :refer [is deftest testing]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.polynomial :as poly]))
 
