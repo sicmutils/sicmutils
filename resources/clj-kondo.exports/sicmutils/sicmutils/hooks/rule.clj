@@ -1,11 +1,37 @@
 (ns hooks.rule
   (:require [clj-kondo.hooks-api :as api]))
 
-(defn extract-unquotes [node]
-  (let [coll-node? (some-fn api/list-node? api/vector-node? api/map-node?)
-        atom? (some-fn api/token-node? api/string-node? api/keyword-node?)
-        tree (tree-seq coll-node? :children node)]
-    (remove (some-fn coll-node? atom?) tree)))
+;; TODO this is dumb because we are using the Same code here to syntax check
+;; inputs and outputs of rules.
+;;
+;; it would be super helpful to tell people the rules with the linter.
+;;
+;; - you are only allowed to have a single function in the consequence ? or ?? spot
+;; - lint all restrictions...
+;;
+;; etc
+
+(defn restriction
+  [node]
+  (let [[sym binding & restriction] (:children node)
+        restriction (if (api/token-node? binding)
+                      restriction
+                      (cons binding restriction))]
+    (when (and (#{'? '??} (:value sym))
+               (seq restriction))
+      [(api/vector-node restriction)])))
+
+(defn extract-unquotes
+  ([node]
+   (let [coll-node? (some-fn api/list-node? api/vector-node? api/map-node?)
+         atom? (some-fn api/token-node? api/string-node? api/keyword-node?)
+         tree (tree-seq coll-node? :children node)]
+     (mapcat (fn [x]
+               (or (restriction x)
+                   (if (or (atom? x) (coll-node? x))
+                     []
+                     [x])))
+             tree))))
 
 (defn pattern [{:keys [node]}]
   (let [[_ form pred] (:children node)]
@@ -34,8 +60,8 @@
     2 (let [[pattern consequent-fn] args]
         (api/vector-node
          (list*
-          [(api/list-node
-            [consequent-fn (api/map-node {})])]
+          (api/list-node
+           [consequent-fn (api/map-node {})])
           (extract-unquotes pattern))))
 
     3 (let [[pattern pred skel] args]
@@ -47,11 +73,6 @@
           (extract-unquotes skel))))
 
     (throw (ex-info "wrong number of arguments for rule" {}))))
-
-;; TODO in all of these fuckers we DO want to also keep items that are past the
-;; first two items in `(? x ....)` and `(?? x ...)` for later. The restrictions.
-;;
-;; TODO then we have to get the namespace working in the other one, to kill redefined var.
 
 (defn rule [{:keys [node]}]
   {:node (process-rule

@@ -21,8 +21,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / simplify compose
-                     up sin cos square exp]]
+             :refer [+ * / simplify up sin cos square exp]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -43,27 +42,13 @@
         L (e/Lie-derivative (W 'α 'β))
         H (H-pendulum-series 'α 'β 'ε)
         E (((exp (* 'ε L)) H) a-state)
-        solution0 (fn [alpha beta]
-                    (fn [t]
-                      (fn [[t0 theta0 ptheta0]]
-                        (up t
-                            (+ theta0 (/ (* (- t t0) ptheta0) alpha))
-                            ptheta0))))
         C (fn [alpha beta epsilon order]
             (fn [state]
               (e/series:sum
                (((e/Lie-transform (W alpha beta) epsilon)
                  identity)
                 state)
-               order)))
-        C-inv (fn [alpha beta epsilon order]
-                (C alpha beta (- epsilon) order))
-        solution (fn [epsilon order]
-                   (fn [alpha beta]
-                     (fn [delta-t]
-                       (compose (C alpha beta epsilon order)
-                                ((solution0 alpha beta) delta-t)
-                                (C-inv alpha beta epsilon order)))))]
+               order)))]
     (is (e/zero?
          (simplify
           ((+ ((e/Lie-derivative (W 'alpha 'beta)) (H0 'alpha))

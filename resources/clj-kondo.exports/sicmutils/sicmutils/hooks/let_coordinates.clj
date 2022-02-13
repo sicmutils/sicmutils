@@ -78,12 +78,12 @@
     n
     (api/list-node [(api/token-node 'quote) n])]))
 
-(defn define-coordinates [{:keys [node] :as m}]
+(defn define-coordinates [{:keys [node ns]}]
   (let [[_ prototype system] (:children node)
-        sys-name    (api/token-node (symbol (name (:value system))))
+        sys-name (api/token-node (symbol (name (:value system))))
         coord-names (symbols-from-prototype prototype)
-        vf-names    (map coordinate-name->vf-name coord-names)
-        ff-names    (map coordinate-name->ff-name coord-names)
+        vf-names (map coordinate-name->vf-name coord-names)
+        ff-names (map coordinate-name->ff-name coord-names)
         new-node (api/list-node
                   (concat
                    [(api/token-node 'do)

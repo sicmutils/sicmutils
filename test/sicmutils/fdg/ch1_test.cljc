@@ -62,6 +62,7 @@
     (let [e (e/coordinate-system->vector-basis coordsys)]
       ((L2 mass metric) ((point coordsys) x) (* e v)))))
 
+
 (define-coordinates t e/R1-rect)
 
 (deftest chapter-one-tests
