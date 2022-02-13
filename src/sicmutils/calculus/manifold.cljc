@@ -35,11 +35,11 @@
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
+            [sicmutils.mechanics.rotation
+             :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
-            [sicmutils.mechanics.rotation
-             :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
             [taoensso.timbre :as log]))
 
 ;; # Disclaimer (from @sritchie)

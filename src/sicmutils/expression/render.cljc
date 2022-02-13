@@ -20,9 +20,9 @@
 (ns sicmutils.expression.render
   "Functions and utilities for rendering symbolic expressions to various backends
   like LaTeX, infix or Javascript."
-  (:require [clojure.zip :as z]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
             [clojure.string :as s]
+            [clojure.zip :as z]
             [pattern.rule :as R :refer [=>] #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.expression.compile :as compile]

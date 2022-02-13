@@ -26,10 +26,10 @@
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
-            [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.logic :as ul]))
+            [sicmutils.util.logic :as ul]
+            [sicmutils.value :as v]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>

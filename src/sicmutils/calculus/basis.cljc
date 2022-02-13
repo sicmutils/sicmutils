@@ -18,12 +18,12 @@
 ;;
 
 (ns sicmutils.calculus.basis
-  (:require [sicmutils.generic :as g]
-            [sicmutils.structure :as s]
+  (:require [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
-            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
+            [sicmutils.structure :as s]
             [sicmutils.value :as v]))
 
 (defn coordinate-system->basis

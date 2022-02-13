@@ -23,10 +23,10 @@
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.numsymb]
             [sicmutils.operator :as o]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.numsymb]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Associative

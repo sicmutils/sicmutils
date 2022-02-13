@@ -21,8 +21,8 @@
   "This namespace contains a discussion of rational function interpolation, and
   different methods for fitting rational functions to `N` points and evaluating
   them at some value `x`."
-  (:require [sicmutils.generic :as g]
-            [sicmutils.algebra.fold :as af]
+  (:require [sicmutils.algebra.fold :as af]
+            [sicmutils.generic :as g]
             [sicmutils.polynomial.interpolate :as pi]
             [taoensso.timbre :as log]))
 

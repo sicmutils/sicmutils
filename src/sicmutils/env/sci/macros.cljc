@@ -26,9 +26,9 @@
             [sicmutils.abstract.function :as af]
             [sicmutils.algebra.fold :as fold]
             [sicmutils.calculus.coordinate :as cc]
+            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.calculus.form-field :as ff]
             [sicmutils.util :as u]))
 
 ;; ## Pattern Matching Macros

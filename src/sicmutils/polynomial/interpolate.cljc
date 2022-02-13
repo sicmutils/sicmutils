@@ -21,8 +21,8 @@
   "This namespace contains a discussion of polynomial interpolation, and different
   methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
   that polynomial at some different `x`."
-  (:require [sicmutils.generic :as g]
-            [sicmutils.algebra.fold :as af]
+  (:require [sicmutils.algebra.fold :as af]
+            [sicmutils.generic :as g]
             [sicmutils.util.aggregate :as ua]))
 
 (defn lagrange

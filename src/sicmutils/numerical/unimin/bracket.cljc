@@ -19,8 +19,8 @@
 
 (ns sicmutils.numerical.unimin.bracket
   (:require [sicmutils.generic :as g]
-            [sicmutils.util :as u]
-            [sicmutils.numerical.unimin.golden :as ug]))
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.util :as u]))
 
 (def ^:private epsilon 1e-21)
 

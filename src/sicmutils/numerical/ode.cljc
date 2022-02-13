@@ -20,10 +20,10 @@
 (ns sicmutils.numerical.ode
   "ODE solvers for working with initial value problems."
   (:require [sicmutils.expression.compile :as c]
-            [sicmutils.util.stopwatch :as us]
             #?(:cljs [sicmutils.util :as u])
-            [sicmutils.structure :as struct]
             #?(:cljs [sicmutils.value :as v])
+            [sicmutils.structure :as struct]
+            [sicmutils.util.stopwatch :as us]
             [taoensso.timbre :as log]
             #?(:cljs ["odex" :as o]))
   #?(:clj

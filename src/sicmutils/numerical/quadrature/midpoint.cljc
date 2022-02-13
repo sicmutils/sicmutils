@@ -18,11 +18,11 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.midpoint
-  (:require [sicmutils.polynomial.richardson :as pr]
+  (:require [sicmutils.generic :as g]
             [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
-            [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]))
 

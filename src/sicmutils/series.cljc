@@ -41,8 +41,8 @@
   (:refer-clojure :exclude [identity])
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
-            [sicmutils.series.impl :as i]
             [sicmutils.generic :as g]
+            [sicmutils.series.impl :as i]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj

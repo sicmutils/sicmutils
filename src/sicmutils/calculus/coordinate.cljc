@@ -18,9 +18,9 @@
 ;;
 
 (ns sicmutils.calculus.coordinate
-  (:require [sicmutils.calculus.manifold :as m]
+  (:require [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.calculus.form-field :as ff]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.def :as ud]))

@@ -29,9 +29,9 @@
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.util.logic :as ul]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
+            [sicmutils.util.logic :as ul]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn Associative

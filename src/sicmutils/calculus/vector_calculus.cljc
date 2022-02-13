@@ -25,8 +25,8 @@
   metric and basis."
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.covariant :as cov]
+            [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.hodge-star :as hs]
             [sicmutils.calculus.manifold :as cm]

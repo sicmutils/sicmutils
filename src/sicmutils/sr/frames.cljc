@@ -21,8 +21,8 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.frame :as cf]
             [sicmutils.calculus.manifold :as m]
-            [sicmutils.sr.boost :as b]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.sr.boost :as b]
             [sicmutils.structure :as s]))
 
 ;; ## Special-relativity frames

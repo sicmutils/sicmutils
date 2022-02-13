@@ -26,10 +26,10 @@
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
   (:refer-clojure :exclude [/ + - * divide infinite? abs])
-  (:require [sicmutils.value :as v]
-            [sicmutils.util :as u]
+  (:require [sicmutils.util :as u]
             [sicmutils.util.def :refer [defgeneric]
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.value :as v]))
 
 ;; ## Generic Numerics
 ;;

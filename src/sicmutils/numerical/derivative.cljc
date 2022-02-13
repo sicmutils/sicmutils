@@ -34,8 +34,8 @@
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.expression.render :refer [->infix]]
-            [sicmutils.polynomial.richardson :as r]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as r]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))

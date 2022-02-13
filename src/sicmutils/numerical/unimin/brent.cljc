@@ -22,10 +22,10 @@
   minimum of a real-valued function."
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as ub]
-            [sicmutils.numerical.unimin.golden :as ug])
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v])
   #?(:clj
      (:import (org.apache.commons.math3.optim.univariate
                BrentOptimizer

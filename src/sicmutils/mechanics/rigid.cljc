@@ -20,12 +20,12 @@
 (ns sicmutils.mechanics.rigid
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.generic :as g :refer [sin cos + * /]]
-            [sicmutils.structure :refer [up]]
-            [sicmutils.matrix :as matrix]
             [sicmutils.function :as f]
+            [sicmutils.generic :as g :refer [sin cos + * /]]
+            [sicmutils.matrix :as matrix]
             [sicmutils.mechanics.lagrange :as L]
-            [sicmutils.mechanics.rotation :as r]))
+            [sicmutils.mechanics.rotation :as r]
+            [sicmutils.structure :refer [up]]))
 
 (defn antisymmetric->column-matrix
   "Given an antisymmetric matrix-structure of dimension 3,

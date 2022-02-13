@@ -19,9 +19,9 @@
 
 (ns sicmutils.numerical.minimize
   "Entrypoint for univariate and multivariate minimization routines."
-  (:require [sicmutils.util :as u]
+  (:require [sicmutils.numerical.multimin.nelder-mead :as nm]
             [sicmutils.numerical.unimin.brent :as b]
-            [sicmutils.numerical.multimin.nelder-mead :as nm]))
+            [sicmutils.util :as u]))
 
 (defn minimize
   "Find the minimum of the function `f: R -> R` in the interval `[a, b]`.

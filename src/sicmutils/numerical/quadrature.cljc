@@ -18,12 +18,12 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  (:require [sicmutils.generic :as g]
-            [sicmutils.expression.compile :as c]
+  (:require [sicmutils.expression.compile :as c]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.boole :as boole]
-            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.infinite :as qi]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.milne :as milne]

@@ -21,8 +21,8 @@
   "Richardson interpolation is a special case of polynomial interpolation; knowing
   the ratios of successive `x` coordinates in the point sequence allows a more
   efficient calculation."
-  (:require [sicmutils.generic :as g]
-            [sicmutils.algebra.fold :as af]
+  (:require [sicmutils.algebra.fold :as af]
+            [sicmutils.generic :as g]
             [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
