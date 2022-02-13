@@ -130,7 +130,7 @@
            f' (fn [t] (* (Math/pow t gamma-pow)
                         (f (t->t' t))))]
        (-> (integrate f' a' b' opts)
-           (update-in [:result] (partial * inner-pow)))))))
+           (update :result (partial * inner-pow)))))))
 
 (defn inverse-power-law-lower
   "Implements a change of variables to address a power law singularity at the
@@ -186,7 +186,7 @@
     ([f a b opts]
      (let [f' (fn [t] (* t (f (+ a (* t t)))))]
        (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-           (update-in [:result] (partial * 2)))))))
+           (update :result (partial * 2)))))))
 
 (defn inverse-sqrt-upper
   "Implements a change of variables to address an inverse square root singularity
@@ -201,7 +201,7 @@
     ([f a b opts]
      (let [f' (fn [t] (* t (f (- b (* t t)))))]
        (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-           (update-in [:result] (partial * 2)))))))
+           (update :result (partial * 2)))))))
 
 ;; ## Exponentially Diverging Endpoints
 

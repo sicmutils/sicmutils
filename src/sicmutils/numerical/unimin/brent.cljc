@@ -293,7 +293,7 @@
   [f a b opts]
   (let [-f (comp g/negate f)]
     (-> (brent-min -f a b opts)
-        (update-in [:value] g/negate))))
+        (update :value g/negate))))
 
 #?(:clj
    (defn brent-min-commons
@@ -356,4 +356,4 @@
      ([f a b opts]
       (let [-f (comp g/negate f)]
         (-> (brent-min-commons -f a b opts)
-            (update-in [:value] g/negate))))))
+            (update :value g/negate))))))

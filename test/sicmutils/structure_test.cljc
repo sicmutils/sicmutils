@@ -272,9 +272,9 @@
                  (nth (s/up 4 5 6) 4))
         "out of bounds"))
 
-  (testing "get-in works natively"
-    (is (= 5 (get-in (s/up 4 5 6) [1])))
-    (is (= 4 (get-in (s/up 4 5 6) [0])))
+  (testing "get, get-in work natively"
+    (is (= 5 (get (s/up 4 5 6) 1)))
+    (is (= 4 (get (s/up 4 5 6) 0)))
     (is (= 4 (get-in (s/down (s/up 1 2) (s/up 3 4)) [1 1])))
     (is (= 2 (get-in (s/down (s/up 1 2) (s/up 3 4)) [0 1]))))
 

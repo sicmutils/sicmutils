@@ -243,4 +243,4 @@ larger-sized golden ratio piece."}
   ([f xa xb opts]
    (let [-f (comp g/negate f)]
      (-> (golden-section-min -f xa xb opts)
-         (update-in [:value] g/negate)))))
+         (update :value g/negate)))))

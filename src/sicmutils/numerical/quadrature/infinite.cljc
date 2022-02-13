@@ -135,7 +135,7 @@
 
               [(:or [_ ##-Inf] [##Inf _])]
               (-> (rec f b a opts)
-                  (update-in [:result] -))
+                  (update :result -))
 
               ;; Break the region up into three pieces: a central closed core
               ;; and two open endpoints where we create a change of variables,
