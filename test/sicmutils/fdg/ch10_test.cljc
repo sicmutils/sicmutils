@@ -35,11 +35,11 @@
 (def simplify
   (comp v/freeze e/simplify))
 
-(def spherical e/R3-rect)
-(define-coordinates [r theta phi] spherical)
+(let [spherical e/R3-rect]
+  (define-coordinates [r theta phi] spherical))
 
-(def SR e/R4-rect)
-(define-coordinates [ct x y z] SR)
+(let [SR e/R4-rect]
+  (define-coordinates [ct x y z] SR))
 
 (deftest ch10-tests
   (testing "spherical coordinates, p156"
