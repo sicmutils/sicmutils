@@ -1,4 +1,4 @@
-(ns hooks.import-def
+(ns hooks.sicmutils.util.def
   (:require [clj-kondo.hooks-api :as api]))
 
 (defn import-def [{:keys [node]}]

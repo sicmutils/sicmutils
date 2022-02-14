@@ -1,4 +1,4 @@
-(ns hooks.literal-functions
+(ns hooks.sicmutils.abstract.function
   (:require [clj-kondo.hooks-api :as api]))
 
 (defn arrow-form? [signature]
@@ -6,14 +6,6 @@
        (= '-> (:value
                (first
                 (:children signature))))))
-
-;; TODO
-;; - better rules one
-;; - bootstrap-repl!
-;; - tidy and document all of these, check with borkdude
-;; - review PR
-;; - probably fix differential test namespace?
-;; - add the github actions
 
 (defn literal-function
   "from sicmutils.env."
@@ -45,13 +37,13 @@
                (ex-info
                 "unknown literal function type, TODO note about required format" {}))))
 
-(defn with-literal-functions [{:keys [node]}]
-  (let [[_ binding-vec & body] (:children node)
-        bindings (mapcat binding-pair
-                         (:children binding-vec))
-        new-node (api/list-node
-                  (list*
-                   (api/token-node 'let)
-                   (api/vector-node bindings)
-                   body))]
-    {:node new-node}))
+/(defn with-literal-functions [{:keys [node]}]
+   (let [[_ binding-vec & body] (:children node)
+         bindings (mapcat binding-pair
+                          (:children binding-vec))
+         new-node (api/list-node
+                   (list*
+                    (api/token-node 'let)
+                    (api/vector-node bindings)
+                    body))]
+     {:node new-node}))

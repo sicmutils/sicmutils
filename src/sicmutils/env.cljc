@@ -114,6 +114,8 @@
                :refer
                (into [] (keys (ns-publics 'sicmutils.env)))]))
 
+(defn example [x])
+
 (defmacro literal-function
   ([f] `(af/literal-function ~f))
   ([f sicm-signature]

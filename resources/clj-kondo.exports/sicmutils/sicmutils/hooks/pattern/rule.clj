@@ -1,7 +1,7 @@
-(ns hooks.rule
+(ns hooks.pattern.rule
   (:require [clj-kondo.hooks-api :as api]))
 
-;; TODO this is dumb because we are using the Same code here to syntax check
+;; TODO this is dumb because we are using the same code here to syntax check
 ;; inputs and outputs of rules.
 ;;
 ;; it would be super helpful to tell people the rules with the linter.

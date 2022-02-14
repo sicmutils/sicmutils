@@ -1,4 +1,4 @@
-(ns hooks.let-coordinates
+(ns hooks.sicmutils.calculus.coordinate
   (:require [clj-kondo.hooks-api :as api]))
 
 ;; from coordinate
@@ -72,13 +72,12 @@
                        (api/vector-node [prototype system])
                        body))})))
 
-(defn ->def [n]
+(defn ->declare [n]
   (api/list-node
-   [(api/token-node 'def)
-    n
-    (api/list-node [(api/token-node 'quote) n])]))
+   [(api/token-node 'declare)
+    n]))
 
-(defn define-coordinates [{:keys [node ns]}]
+(defn define-coordinates [{:keys [node]}]
   (let [[_ prototype system] (:children node)
         sys-name (api/token-node (symbol (name (:value system))))
         coord-names (symbols-from-prototype prototype)
@@ -88,8 +87,10 @@
                   (concat
                    [(api/token-node 'do)
                     (api/list-node
-                     [(api/token-node 'def) sys-name system])]
-                   (map ->def coord-names)
-                   (map ->def vf-names)
-                   (map ->def ff-names)))]
+                     [(api/token-node 'declare) sys-name])]
+                   (map ->declare coord-names)
+                   (map ->declare vf-names)
+                   (map ->declare ff-names)))]
     {:node new-node}))
+
+;; TODO end with a list of all of these to kill the "not used" warning!
