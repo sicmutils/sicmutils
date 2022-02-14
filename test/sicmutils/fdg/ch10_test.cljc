@@ -41,8 +41,6 @@
 (def SR e/R4-rect)
 (define-coordinates [ct x y z] SR)
 
-(define-coordinates [x1 y1] R2-rect)
-
 (deftest ch10-tests
   (testing "spherical coordinates, p156"
     (let [R3-spherical-point ((point spherical) (up 'r0 'theta0 'phi0))

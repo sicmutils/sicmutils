@@ -83,14 +83,13 @@
         coord-names (symbols-from-prototype prototype)
         vf-names (map coordinate-name->vf-name coord-names)
         ff-names (map coordinate-name->ff-name coord-names)
+        syms (concat [sys-name] coord-names vf-names ff-names)
         new-node (api/list-node
                   (concat
                    [(api/token-node 'do)
-                    (api/list-node
-                     [(api/token-node 'declare) sys-name])]
+                    (->declare sys-name)]
                    (map ->declare coord-names)
                    (map ->declare vf-names)
-                   (map ->declare ff-names)))]
+                   (map ->declare ff-names)
+                   [(api/vector-node syms)]))]
     {:node new-node}))
-
-;; TODO end with a list of all of these to kill the "not used" warning!
