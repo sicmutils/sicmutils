@@ -31,4 +31,4 @@ jobs:
 
       - name: Run clj-kondo
         run: |
-          clj-kondo --lint src --lint test --dependencies --config '{:output {:pattern "::{{level}} file={{filename}},line={{row}},col={{col}}::{{message}}"}}'
+          clj-kondo --lint src --lint test --config '{:output {:pattern "::{{level}} file={{filename}},line={{row}},col={{col}}::{{message}}"}}'
