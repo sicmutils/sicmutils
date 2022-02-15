@@ -20,15 +20,16 @@
 (ns sicmutils.numsymb
   "Implementations of the generic operations for numeric types that have
   optimizations available, and for the general symbolic case."
+  (:refer-clojure :exclude [abs])
   (:require [sicmutils.complex :as c]
             [sicmutils.euclid]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
-            [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.logic :as ul]))
+            [sicmutils.util.logic :as ul]
+            [sicmutils.value :as v]))
 
 (def ^{:dynamic true
        :doc "When bound to a simplifier (a function from symbolic expression =>
@@ -582,7 +583,7 @@
 
 (defn- sym:=
   ([] true)
-  ([x] true)
+  ([_] true)
   ([x y] (sym:bin= x y))
   ([x y & more]
    (let [xs    (cons x (cons y more))

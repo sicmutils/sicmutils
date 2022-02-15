@@ -28,12 +28,12 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
-            [sicmutils.function :as f]
             [sicmutils.expression :as x]
+            [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
-            [sicmutils.structure :as s]
             [sicmutils.operator :as o]
+            [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
@@ -272,9 +272,9 @@
                  (nth (s/up 4 5 6) 4))
         "out of bounds"))
 
-  (testing "get-in works natively"
-    (is (= 5 (get-in (s/up 4 5 6) [1])))
-    (is (= 4 (get-in (s/up 4 5 6) [0])))
+  (testing "get, get-in work natively"
+    (is (= 5 (get (s/up 4 5 6) 1)))
+    (is (= 4 (get (s/up 4 5 6) 0)))
     (is (= 4 (get-in (s/down (s/up 1 2) (s/up 3 4)) [1 1])))
     (is (= 2 (get-in (s/down (s/up 1 2) (s/up 3 4)) [0 1]))))
 
@@ -378,14 +378,14 @@
       (is (= 1 (g/dimension 99)))))
 
   (checking "s:count, s:nth for reals" 100 [n sg/real]
-            (is (= 1 (@#'s/s:count n)))
-            (is (= n (@#'s/s:nth n 0))))
+            (is (= 1 (s/s:count n)))
+            (is (= n (s/s:nth n 0))))
 
   (checking "s:count, s:nth for structures" 100
             [s (sg/structure sg/real 5)
              n (gen/choose 0 4)]
-            (is (= (count s) (@#'s/s:count s)))
-            (is (= (get s n) (@#'s/s:nth s n))))
+            (is (= (count s) (s/s:count s)))
+            (is (= (get s n) (s/s:nth s n))))
 
   (checking "up*==up, down*==down" 100
             [vs (gen/vector sg/real 1 20)]
@@ -769,9 +769,8 @@
                        (g/* (g/* (s/transpose-outer inner) l) r))))))
 
   (checking "cols=0 transpose-outer law produces incompatible sides" 100
-            [[rows [l inner r]] (gen/let [rows (gen/choose 1 5)]
-                                  (gen/tuple (gen/return rows)
-                                             (<l|:inner:|r> rows 0)))]
+            [[l inner r] (gen/let [rows (gen/choose 1 5)]
+                           (<l|:inner:|r> rows 0))]
             (is (v/zero?
                  (g/* l (g/* inner r)))
                 "the left side is a structure of zeros")

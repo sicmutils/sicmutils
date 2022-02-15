@@ -43,40 +43,12 @@
                            = core=}
                   :exclude [+ - * / zero? compare divide
                             numerator denominator
-                            #?@(:cljs [= partial infinite?])])
+                            infinite? abs
+                            #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.abstract.number :as an]
+            [sicmutils.abstract.number]
             [sicmutils.algebra.fold]
-            [sicmutils.complex]
-            [sicmutils.expression :as x]
-            [sicmutils.expression.render :as render]
-            [sicmutils.function :as f]
-            [sicmutils.generic :as g]
-            [sicmutils.modint]
-            [sicmutils.operator :as o]
-            [sicmutils.polynomial.factor :as pf]
-            [sicmutils.ratio]
-            [sicmutils.simplify]
-            [sicmutils.structure :as structure]
-            [sicmutils.value :as v]
-            [sicmutils.matrix :as matrix]
-            [sicmutils.quaternion]
-            [sicmutils.series :as series]
-            [sicmutils.util.aggregate]
-            [sicmutils.util.def :as util.def
-             #?@(:cljs [:refer [import-def import-vars]
-                        :include-macros true])]
-            [sicmutils.util.permute]
-            [sicmutils.util.stream :as us]
-            [sicmutils.numerical.derivative]
-            [sicmutils.numerical.minimize]
-            [sicmutils.numerical.ode]
-            [sicmutils.numerical.quadrature]
-            [sicmutils.mechanics.lagrange]
-            [sicmutils.mechanics.hamilton]
-            [sicmutils.mechanics.rigid]
-            [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.connection]
             [sicmutils.calculus.coordinate :as cc]
@@ -88,14 +60,46 @@
             [sicmutils.calculus.hodge-star]
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold]
-            [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.map]
+            [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.vector-calculus]
             [sicmutils.calculus.vector-field]
+            [sicmutils.complex]
+            [sicmutils.expression]
+            [sicmutils.expression.render :as render]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.mechanics.hamilton]
+            [sicmutils.mechanics.lagrange]
+            [sicmutils.mechanics.rigid]
+            [sicmutils.mechanics.rotation]
+            [sicmutils.modint]
+            [sicmutils.numerical.derivative]
+            [sicmutils.numerical.minimize]
+            [sicmutils.numerical.multimin.nelder-mead]
+            [sicmutils.numerical.ode]
+            [sicmutils.numerical.quadrature]
+            [sicmutils.numerical.unimin.brent]
+            [sicmutils.numerical.unimin.golden]
+            [sicmutils.operator :as o]
+            [sicmutils.polynomial.factor]
+            [sicmutils.quaternion]
+            [sicmutils.ratio]
+            [sicmutils.series :as series]
+            [sicmutils.simplify]
             [sicmutils.special.elliptic]
             [sicmutils.special.factorial]
             [sicmutils.sr.boost]
-            [sicmutils.sr.frames]))
+            [sicmutils.sr.frames]
+            [sicmutils.structure :as structure]
+            [sicmutils.util]
+            [sicmutils.util.aggregate]
+            #?(:cljs [sicmutils.util.def
+                      :refer-macros [import-def import-vars]])
+            [sicmutils.util.permute]
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 (defmacro bootstrap-repl!
   "Bootstraps a repl or Clojure namespace by requiring all public vars
@@ -117,7 +121,8 @@
             (core= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
-  ([f domain range] `(af/literal-function ~f ~domain ~range)))
+  ([f domain range]
+   `(af/literal-function ~f ~domain ~range)))
 
 (defmacro with-literal-functions [& args]
   `(af/with-literal-functions ~@args))

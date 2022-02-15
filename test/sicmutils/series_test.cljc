@@ -22,7 +22,6 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.generators :as sg]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative]
@@ -221,10 +220,10 @@
 
     (testing "division"
       (let [series (s/series 0 0 0 4 3 2 1)]
-        (= [1 0 0 0 0]
-           (take 5 (g/div series series))
-           (take 5 (g/solve-linear series series))
-           (take 5 (g/solve-linear-right series series)))))
+        (is (= [1 0 0 0 0]
+               (take 5 (g/div series series))
+               (take 5 (g/solve-linear series series))
+               (take 5 (g/solve-linear-right series series))))))
 
     (testing "constant division"
       (is (= [4 -8 4 0 0 0]

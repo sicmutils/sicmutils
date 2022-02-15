@@ -20,18 +20,16 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
-            [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.generators :as sg]
             [sicmutils.laws :as l]
+            [sicmutils.numbers]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]

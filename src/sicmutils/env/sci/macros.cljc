@@ -26,9 +26,9 @@
             [sicmutils.abstract.function :as af]
             [sicmutils.algebra.fold :as fold]
             [sicmutils.calculus.coordinate :as cc]
+            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.calculus.form-field :as ff]
             [sicmutils.util :as u]))
 
 ;; ## Pattern Matching Macros
@@ -121,7 +121,7 @@
         coordinate-names              (mapcat cc/symbols-from-prototype prototypes)
         coordinate-vector-field-names (map vf/coordinate-name->vf-name coordinate-names)
         coordinate-form-field-names   (map ff/coordinate-name->ff-name coordinate-names)]
-    `(let [[~@c-systems :as c-systems#]
+    `(let [[~@system-names :as c-systems#]
            (mapv m/with-coordinate-prototype
                  ~(into [] c-systems)
                  ~(mapv cc/quotify-coordinate-prototype prototypes))

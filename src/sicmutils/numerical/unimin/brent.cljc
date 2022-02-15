@@ -22,10 +22,10 @@
   minimum of a real-valued function."
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as ub]
-            [sicmutils.numerical.unimin.golden :as ug])
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v])
   #?(:clj
      (:import (org.apache.commons.math3.optim.univariate
                BrentOptimizer
@@ -35,14 +35,12 @@
               (org.apache.commons.math3.analysis
                UnivariateFunction)
               (org.apache.commons.math3.optim.nonlinear.scalar
-               GoalType
-               ObjectiveFunction)
+               GoalType)
               (org.apache.commons.math3.optim
                MaxEval
                MaxIter
                OptimizationData
-               ConvergenceChecker
-               PointValuePair))))
+               ConvergenceChecker))))
 
 (defn- terminate?
   "Brent's method terminates (ie converges) when `a` and `b` are narrow enough
@@ -295,7 +293,7 @@
   [f a b opts]
   (let [-f (comp g/negate f)]
     (-> (brent-min -f a b opts)
-        (update-in [:value] g/negate))))
+        (update :value g/negate))))
 
 #?(:clj
    (defn brent-min-commons
@@ -322,7 +320,7 @@
                relative-threshold
                absolute-threshold
                (reify ConvergenceChecker
-                 (converged [_ iter previous current]
+                 (converged [_ iter _ current]
                    (callback iter
                              (.getPoint ^UnivariatePointValuePair current)
                              (.getValue ^UnivariatePointValuePair current))
@@ -337,15 +335,15 @@
                          (MaxIter. maxiter)
                          (SearchInterval. a b)
                          GoalType/MINIMIZE])
-            p (.optimize o args)]
-        (let [xx (.getPoint p)
-              fx (.getValue p)]
-          (callback (.getIterations o) xx fx)
-          {:result xx
-           :value fx
-           :iterations (.getIterations o)
-           :converged? true
-           :fncalls @f-counter})))))
+            p  (.optimize o args)
+            xx (.getPoint p)
+            fx (.getValue p)]
+        (callback (.getIterations o) xx fx)
+        {:result xx
+         :value fx
+         :iterations (.getIterations o)
+         :converged? true
+         :fncalls @f-counter}))))
 
 #?(:clj
    (defn brent-max-commons
@@ -358,4 +356,4 @@
      ([f a b opts]
       (let [-f (comp g/negate f)]
         (-> (brent-min-commons -f a b opts)
-            (update-in [:value] g/negate))))))
+            (update :value g/negate))))))

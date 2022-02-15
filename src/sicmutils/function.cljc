@@ -213,7 +213,7 @@
     (if-let [m (get-method f [Keyword])]
       (m :name)
       (core-get @v/object-name-map f f)))
-  (kind [o] ::v/function)
+  (kind [_] ::v/function)
 
   #?(:clj AFunction :cljs function)
   (zero? [_] false)

@@ -23,14 +23,14 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.mechanics.rotation :as mr]
-            [sicmutils.sr.boost :as sb]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [-]]
+            [sicmutils.mechanics.rotation :as mr]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.sr.boost :as sb]
+            [sicmutils.structure :as s :refer [up]]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)

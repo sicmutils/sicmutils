@@ -22,11 +22,9 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
-            [sicmutils.numbers]
             [sicmutils.algebra.fold :as af]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.numbers]
+            [sicmutils.util.aggregate :as ua]))
 
 (deftest sum-tests
   (is (= [0.0 1.0 5.0 14.0 30.0]
@@ -121,21 +119,18 @@
              (ua/sum [[1] [2]]))))))
 
 (deftest monoid-group-tests
-  (let [plus (ua/monoid (fn [a b] (+ a b)) 0)]
+  (let [plus (ua/monoid + 0)]
     (checking "monoid" 100 [xs (gen/vector gen/nat)]
               (is (= (apply + xs)
                      (apply plus xs))
                   "monoid version built out of binary `+` matches built-in `+`"))
 
     (testing "* monoid bails early"
-      (let [mul (ua/monoid (fn [a b] (* a b)) 1 zero?)]
+      (let [mul (ua/monoid * 1 zero?)]
         (is (= 6 (mul 1 2 3)))
         (is (= 0 (mul 1 2 0 :keyword))))))
 
-  (let [minus (ua/group (fn [a b] (- a b))
-                        (fn [a b] (+ a b))
-                        (fn [b] (- b))
-                        0)]
+  (let [minus (ua/group - + - 0)]
     (checking "group" 100 [xs (gen/vector gen/nat)]
               (if (seq xs)
                 (is (= (apply - xs)

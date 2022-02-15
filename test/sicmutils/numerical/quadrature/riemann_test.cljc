@@ -20,19 +20,19 @@
 (ns sicmutils.numerical.quadrature.riemann-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 (deftest windowed-sum-tests
   (testing "windowed-sum makes for inefficient integrals, but they're
   conceptually nice and simple."
-    (let [area-fn   (fn [l r] 2)
+    (let [area-fn   (fn [_l _r] 2)
           estimator (qr/windowed-sum area-fn 0 10)]
       (is (= 20.0 (estimator 10)) "10 blocks of 2 == 20.")
       (is (= 40.0 (estimator 20)) "20 blocks of 2 == 40.")))

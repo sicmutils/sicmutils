@@ -28,9 +28,9 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ *]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [up]]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)

@@ -24,12 +24,10 @@
 
   This namespace implements the [[literal-number]] constructor and installs the
   underlying type into the generic arithmetic system."
-  (:require [sicmutils.complex :as c]
-            [sicmutils.expression :as x]
+  (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
             [sicmutils.simplify :as ss]
-            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Symbol))))
@@ -39,13 +37,13 @@
   (numerical? [_] true)
 
   v/Value
-  (zero? [o] false)
+  (zero? [_] false)
   (one? [_] false)
   (identity? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (exact? [sym] false)
+  (exact? [_] false)
   (freeze [o] o)
   (kind [_] Symbol))
 

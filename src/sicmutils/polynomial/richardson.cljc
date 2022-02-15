@@ -21,8 +21,8 @@
   "Richardson interpolation is a special case of polynomial interpolation; knowing
   the ratios of successive `x` coordinates in the point sequence allows a more
   efficient calculation."
-  (:require [sicmutils.generic :as g]
-            [sicmutils.algebra.fold :as af]
+  (:require [sicmutils.algebra.fold :as af]
+            [sicmutils.generic :as g]
             [sicmutils.polynomial.interpolate :as pi]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -84,19 +84,19 @@
 ;; I don't have a nice way of embedding the sequence in a notebook, but the
 ;; following code will print the first 20 terms:
 
-#_
-(us/pprint 20 archimedean-pi-sequence)
+(comment
+  (us/pprint 20 archimedean-pi-sequence))
 
 ;; Unfortunately (for Archimedes, by hand!), as the paper notes, it takes 26
 ;; iterations to converge to machine precision:
 
-#_
-(= (-> archimedean-pi-sequence
-       (us/seq-limit {:tolerance v/machine-epsilon}))
+(comment
+  (= (-> archimedean-pi-sequence
+         (us/seq-limit {:tolerance v/machine-epsilon}))
 
-   {:converged? true
-    :terms-checked 26
-    :result 3.1415926535897944})
+     {:converged? true
+      :terms-checked 26
+      :result 3.1415926535897944}))
 
 ;; Enter Sussman: "Imagine poor Archimedes doing the arithmetic by hand: square
 ;; roots without even the benefit of our place value system! He would be
@@ -270,13 +270,13 @@
 ;; general-purpose tool that takes elements from a sequence until they
 ;; converge), to see how much acceleration we can get:
 
-#_
-(= (-> (richardson-sequence archimedean-pi-sequence 2 2 2)
-       (us/seq-limit {:tolerance v/machine-epsilon}))
+(comment
+  (= (-> (richardson-sequence archimedean-pi-sequence 2 2 2)
+         (us/seq-limit {:tolerance v/machine-epsilon}))
 
-   {:converged? true
-    :terms-checked 7
-    :result 3.1415926535897936})
+     {:converged? true
+      :terms-checked 7
+      :result 3.1415926535897936}))
 
 ;; Much faster!
 ;;
@@ -381,18 +381,18 @@
 ;; Let's confirm that polynomial extrapolation to 0 gives the same result, if we
 ;; generate squared $x$ values:
 
-#_
-(let [h**2 (fn [i]
-             ;; (1/t^{i + 1})^2
-             (-> (/ 1 (Math/pow 2 (inc i)))
-                 (Math/pow 2)))
-      xs (map-indexed (fn [i fx] [(h**2 i) fx])
-                      archimedean-pi-sequence)]
-  (= (us/seq-limit
-      (richardson-sequence archimedean-pi-sequence 4 1 1))
+(comment
+  (let [h**2 (fn [i]
+               ;; (1/t^{i + 1})^2
+               (-> (/ 1 (Math/pow 2 (inc i)))
+                   (Math/pow 2)))
+        xs (map-indexed (fn [i fx] [(h**2 i) fx])
+                        archimedean-pi-sequence)]
+    (= (us/seq-limit
+        (richardson-sequence archimedean-pi-sequence 4 1 1))
 
-     (us/seq-limit
-      (pi/modified-neville xs 0.0))))
+       (us/seq-limit
+        (pi/modified-neville xs 0.0)))))
 
 ;; Success!
 ;;

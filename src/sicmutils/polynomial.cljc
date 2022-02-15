@@ -18,13 +18,13 @@
 ;;
 
 (ns sicmutils.polynomial
-  (:refer-clojure :exclude [extend divide identity])
+  (:refer-clojure :exclude [extend divide identity abs])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.collection]
             [sicmutils.differential :as sd]
-            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.modint :as mi]
@@ -32,8 +32,8 @@
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as i]
             [sicmutils.polynomial.interpolate :as pi]
-            [sicmutils.special.factorial :as sf]
             [sicmutils.series :as series]
+            [sicmutils.special.factorial :as sf]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -1265,8 +1265,7 @@
   (if (or (not (polynomial? p))
           (< n 0))
     p
-    (let [a (bare-arity p)
-          new-arity (inc (max a n))]
+    (let [a (bare-arity p)]
       (if (> n a)
         (->Polynomial (inc n) (bare-terms p) (meta p))
         (map-exponents #(xpt/raise % n 0)

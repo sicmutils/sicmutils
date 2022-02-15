@@ -19,12 +19,12 @@
 
 (ns sicmutils.numerical.ode-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.generic :as g :refer [- * /]]
             [sicmutils.numerical.ode :as o]
-            [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :refer [up]]
             [sicmutils.value :as v]))
 
 (def ^:private near? (v/within 1e-8))
@@ -90,8 +90,9 @@
 
   (testing "with sd-integrator"
     (with-comparator (v/within 1e-5)
-      (let [state-derivative (fn [] (fn [[t y]] [1 y]))
-            output (o/integrate-state-derivative state-derivative [] (up 0 1) 1 (/ 1 10))
+      (let [state-derivative (fn [] (fn [[_ y]] [1 y]))
+            output (o/integrate-state-derivative
+                    state-derivative [] (up 0 1) 1 (/ 1 10))
             expected [[0.0 1.0]
                       [0.1 1.1051709179235594]
                       [0.2 1.2214027531002876]
@@ -105,8 +106,9 @@
                       [1.0 2.718281812371165]]]
         (is (ish? expected output)))
 
-      (let [state-derivative (fn [] (fn [[t y]] [1 (* 2 y)]))
-            output (o/integrate-state-derivative state-derivative [] (up 0 1) 1 (/ 1 10))
+      (let [state-derivative (fn [] (fn [[_ y]] [1 (* 2 y)]))
+            output (o/integrate-state-derivative
+                    state-derivative [] (up 0 1) 1 (/ 1 10))
             expected [[0.0 1.0],
                       [0.1 1.2214027581601699],
                       [0.2 1.4918246976412703],

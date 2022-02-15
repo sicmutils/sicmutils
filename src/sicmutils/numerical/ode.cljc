@@ -20,10 +20,10 @@
 (ns sicmutils.numerical.ode
   "ODE solvers for working with initial value problems."
   (:require [sicmutils.expression.compile :as c]
-            [sicmutils.util.stopwatch :as us]
-            [sicmutils.util :as u]
+            #?(:cljs [sicmutils.util :as u])
+            #?(:cljs [sicmutils.value :as v])
             [sicmutils.structure :as struct]
-            [sicmutils.value :as v]
+            [sicmutils.util.stopwatch :as us]
             [taoensso.timbre :as log]
             #?(:cljs ["odex" :as o]))
   #?(:clj
@@ -31,17 +31,19 @@
               (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
               (org.apache.commons.math3.ode.sampling StepHandler))))
 
-(def ^:private near? (v/within 1e-8))
+#?(:cljs
+   (def ^:private near? (v/within 1e-8)))
 
-(defn- round-up
-  "Returns `n` rounded up to the nearest multiple of `step-size`. the returned
+#?(:clj
+   (defn- round-up
+     "Returns `n` rounded up to the nearest multiple of `step-size`. the returned
   value will always equal `0`, mod `step-size`"
-  [n step-size]
-  (let [offset (mod n step-size)]
-    (if (pos? offset)
-      (-> (- n offset)
-          (+ step-size))
-      n)))
+     [n step-size]
+     (let [offset (mod n step-size)]
+       (if (pos? offset)
+         (-> (- n offset)
+             (+ step-size))
+         n))))
 
 #?(:clj
    (defn step-handler
@@ -171,7 +173,7 @@
           (call initial-state step-size t {}))
          ([initial-state step-size t {:keys [observe] :as opts}]
           (us/start total-time)
-          (let [{:keys [integrator equations dimension stopwatch counter]}
+          (let [{:keys [integrator equations stopwatch counter]}
                 (integration-opts state-derivative derivative-args initial-state opts)
                 initial-state-array (into-array
                                      (flatten initial-state))
@@ -181,16 +183,16 @@
                                 (.grid integrator step-size
                                        (fn [t y]
                                          (reset! latest t)
-                                         (observe t (array->state y)))))]
-            (let [output (.solve integrator equations 0 initial-state-array t observe-fn)
-                  ret    (array->state (.-y output))]
-              (when (and observe (not (near? t @latest)))
-                (observe t ret))
-              (us/stop total-time)
-              (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
-              (us/reset total-time)
-              (reset! latest 0)
-              ret)))))
+                                         (observe t (array->state y)))))
+                output (.solve integrator equations 0 initial-state-array t observe-fn)
+                ret    (array->state (.-y output))]
+            (when (and observe (not (near? t @latest)))
+              (observe t ret))
+            (us/stop total-time)
+            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+            (us/reset total-time)
+            (reset! latest 0)
+            ret))))
 
      :clj
      (let [total-time (us/stopwatch :started? false)]

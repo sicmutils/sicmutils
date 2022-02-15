@@ -29,9 +29,9 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f :refer [compose]]
             [sicmutils.generators :as sg]
-            [sicmutils.generic :as g :refer [cos sin * - / +]]
+            [sicmutils.generic :as g :refer [cos sin * - +]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :refer [up]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -222,13 +222,14 @@
 (defn run-S2-tests
   [prefix S2-spherical S2-tilted S2-Riemann S2-gnomonic S2-stereographic]
   (testing prefix
-    (testing "tilted->spherical"
-      (let [point (m/coords->point m/S2p-spherical (up 'theta 'phi))]
-        (is (= '(up (* (cos phi) (sin theta))
-                    (* (sin theta) (sin phi))
-                    (cos theta))
-               (v/freeze
-                (m/manifold-point-representation point))))
+    (testing "S2-spherical"
+      (let [point (m/coords->point S2-spherical (up 'theta 'phi))]
+        (is (= (up 0 0 0)
+               (g/simplify
+                (g/- (up (g/* (g/cos 'phi) (g/sin 'theta))
+                         (g/* (g/sin 'theta) (g/sin 'phi))
+                         (g/cos 'theta))
+                     (m/manifold-point-representation point)))))
 
         (testing "sample points roundtrip through cache, non-cache"
           (roundtrips? S2-spherical (up 1 0))
@@ -239,6 +240,27 @@
             the right result.")
 
         (is (= (up 0 0) (cacheless-rt S2-spherical (up 0 1)))
+            "Even though this point is singular, the cache takes care of getting
+            the right result.")))
+
+    (testing "S2-tilted"
+      (let [point (m/coords->point S2-tilted (up 'theta 'phi))]
+        (is (= (up 0 0 0)
+               (g/simplify
+                (g/- (up (g/* (g/cos 'phi) (g/sin 'theta))
+                         (g/* -1 (g/cos 'theta))
+                         (g/* (g/sin 'phi) (g/sin 'theta)))
+                     (m/manifold-point-representation point)))))
+
+        (testing "sample points roundtrip through cache, non-cache"
+          (roundtrips? S2-tilted (up 1 0))
+          (roundtrips? S2-tilted (up 'theta 'phi)))
+
+        (is (= (up 0 1) (rt S2-tilted (up 0 1)))
+            "Even though this point is singular, the cache takes care of getting
+            the right result.")
+
+        (is (= (up 0 0) (cacheless-rt S2-tilted (up 0 1)))
             "Even though this point is singular, the cache takes care of getting
             the right result.")))
 

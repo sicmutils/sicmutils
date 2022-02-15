@@ -20,9 +20,10 @@
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.env :as e :refer [abs square up + - * /]]
-            #?(:clj [taoensso.timbre :as log])
-            #?(:clj [hiccup.core :refer :all])
-            #?(:clj [hiccup.page :refer :all])))
+            #?@(:clj
+                [[taoensso.timbre :as log]
+                 [hiccup.core :refer [html]]
+                 [hiccup.page :refer [html5]]])))
 
 (defn- pairs
   "Return a sequence of pairs of different elements from the given sequence."
@@ -89,7 +90,7 @@
                    (up 'x_0 'y_0 'x_1 'y_1)
                    (up 'xdot_0 'ydot_0 'xdot_1 'ydot_1)))))
 
-(defn ^:private to-svg
+(defn ^:no-doc to-svg
   [evolution]
   [:svg {:width 480 :height 480}
    [:rect {:width 480 :height 480 :fill "#330033"}]

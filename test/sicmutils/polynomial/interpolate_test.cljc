@@ -19,7 +19,7 @@
 
 (ns sicmutils.polynomial.interpolate-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [zeroish? ish? with-comparator]
+            [same :refer [ish?]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]
@@ -65,7 +65,7 @@
         (let [points [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3] ['x_4 'y_4]]
               diffs  (map diff
                           (lagrange-incremental points 'x)
-                          (pi/neville-incremental* points 'x))]
+                          (pi/neville-incremental points 'x))]
           (is (v/= [0 0 0 0] diffs)))))))
 
 (deftest performance-tests
@@ -80,7 +80,7 @@
       (is (ish? (last expected) (pi/neville-recursive points 1.2))
           "Non-incremental neville.")
 
-      (is (ish? expected (pi/neville-incremental* points 1.2))
+      (is (ish? expected (pi/neville-incremental points 1.2))
           "This is the initial, unabstracted version.")
 
       (is (ish? expected (pi/neville points 1.2))

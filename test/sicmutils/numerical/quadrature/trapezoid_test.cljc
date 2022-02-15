@@ -20,14 +20,14 @@
 (ns sicmutils.numerical.quadrature.trapezoid-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.generic :as g]
             [sicmutils.numsymb]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 ;; The tests on Pi estimation come from Sussman's ["Abstraction in Numerical
 ;; Methods"](https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2).
@@ -38,8 +38,8 @@
 
 (deftest trapezoid-tests
   (testing "triangles work!"
-    (= (* 0.5 10 10)
-       ((qt/trapezoid-sum identity 0.0 10.0) 10)))
+    (is (= (* 0.5 10 10)
+           ((qt/trapezoid-sum identity 0.0 10.0) 10))))
 
   (testing "the trapezoid method is identical to the average of the left and
   right riemann sums"

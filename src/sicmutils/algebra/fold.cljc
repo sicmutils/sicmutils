@@ -319,9 +319,9 @@
 ;;
 ;; Here is the naive way to add up a list of numbers:
 
-#_
-(defn naive-sum [xs]
-  (apply g/+ xs))
+(comment
+  (defn naive-sum [xs]
+    (apply g/+ xs)))
 
 ;; Simple! But watch it "break":
 

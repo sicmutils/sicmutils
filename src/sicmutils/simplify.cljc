@@ -18,9 +18,8 @@
 ;;
 
 (ns sicmutils.simplify
-  (:require [sicmutils.expression.analyze :as a]
-            [sicmutils.expression :as x]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.factor :as factor]
             [sicmutils.rational-function :as rf]

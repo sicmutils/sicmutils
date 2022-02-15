@@ -136,7 +136,7 @@
              :else (v/= this other)))
 
      IPrintWithWriter
-     (-pr-writer [x writer opts]
+     (-pr-writer [x writer _]
        (write-all
         writer
         "#sicm/complex "

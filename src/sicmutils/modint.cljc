@@ -25,7 +25,7 @@
 
   [[sicmutils.modint]] also extends many SICMUtils generic operations
   to the [[ModInt]] datatype."
-  (:require [sicmutils.euclid :as e]
+  (:require #?(:cljs [sicmutils.euclid :as e])
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -177,7 +177,7 @@
 (defmethod v/= [::modint ::v/number] [l r] (mod:= l r))
 
 (defmethod g/integer-part [::modint] [a] (residue a))
-(defmethod g/fractional-part [::modint] [a] 0)
+(defmethod g/fractional-part [::modint] [_] 0)
 (defmethod g/floor [::modint] [a] a)
 (defmethod g/ceiling [::modint] [a] a)
 (defmethod g/add [::modint ::modint] [a b] (add a b))

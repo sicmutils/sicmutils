@@ -20,14 +20,13 @@
 (ns sicmutils.calculus.vector-calculus-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-calculus :as vc]
-            [sicmutils.abstract.function :as af]
             [sicmutils.generic :as g :refer [+ - * / sin cos]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
@@ -135,23 +134,6 @@
                                      (+ (* (dtheta v1) (dtheta v2))
                                         (* (g/expt (sin theta) 2)
                                            (dphi v1) (dphi v2))))))
-
-            spherical-Gamma (cov/make-Christoffel
-                             (let [O (fn [x] 0)]
-                               (down
-                                (down (up O O O)
-                                      (up O (/ 1 r) O)
-                                      (up O O (/ 1 r)))
-                                (down (up O (/ 1 r) O)
-                                      (up (* -1 r) O O)
-                                      (up O O (/ (cos theta) (sin theta))))
-                                (down (up O O (/ 1 r))
-                                      (up O O (/ (cos theta) (sin theta)))
-                                      (up (* -1 r (g/expt (sin theta) 2))
-                                          (* -1 (sin theta) (cos theta))
-                                          O))))
-                             (b/coordinate-system->basis spherical))
-            spherical-Cartan (cov/Christoffel->Cartan spherical-Gamma)
 
             ;; normalized spherical basis
             e_0 d:dr

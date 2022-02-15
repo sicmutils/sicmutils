@@ -19,17 +19,17 @@
 (ns sicmutils.fdg.ch9-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.env :as e :refer [+ - * /
                                          square sin expt zero?
                                          compose D partial
                                          up
-                                         point chart
+                                         point
                                          R2-rect R3-rect
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
-            [sicmutils.value :as v]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
@@ -181,7 +181,7 @@
 (def spacetime-rect-basis
   (e/coordinate-system->basis spacetime-rect))
 
-(defn Newton-metric [M G c V]
+(defn Newton-metric [_ _ c V]
   (let [a (+ 1 (* (/ 2 (square c))
                   (compose V (up x y z))))]
     (fn g [v1 v2]

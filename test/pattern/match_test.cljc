@@ -423,7 +423,7 @@
   (testing "predicates can return new bindings"
     (is (= {'x '+, :y 'z}
            (m/match (m/sequence (m/bind 'x))
-                    (fn [m] {:y 'z})
+                    (fn [_] {:y 'z})
                     ['+]))
         "We can add new bindings to the map."))
 

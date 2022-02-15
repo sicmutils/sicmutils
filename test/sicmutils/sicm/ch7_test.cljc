@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / = partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / = D I simplify compose
+             :refer [+ - * = D I simplify compose
                      literal-function
                      up down
                      sin cos square cube exp]
@@ -47,31 +47,30 @@
            (simplify ((compose (literal-function 'f) (literal-function 'g)) 'x))))))
 
 (deftest section-2
-  (let [g (literal-function 'g)]
-    (testing "literal functions"
-      (is (= '(g x y) (simplify ((literal-function 'g [0 0] 0) 'x 'y)))))
+  (testing "literal functions"
+    (is (= '(g x y) (simplify ((literal-function 'g [0 0] 0) 'x 'y)))))
 
-    (testing "structured arguments"
-      (let [s (up 't (up 'x 'y) (down 'p_x 'p_y))
-            H (literal-function 'H (up 0 (up 0 0) (down 0 0)) 0)]
-        (is (= '(H (up t (up x y) (down p_x p_y)))
-               (simplify (H s))))
-        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                     (H (up 0 (up 1 2) (down 1 2 3)))))
+  (testing "structured arguments"
+    (let [s (up 't (up 'x 'y) (down 'p_x 'p_y))
+          H (literal-function 'H (up 0 (up 0 0) (down 0 0)) 0)]
+      (is (= '(H (up t (up x y) (down p_x p_y)))
+             (simplify (H s))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (H (up 0 (up 1 2) (down 1 2 3)))))
 
-        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                     (H (up 0 (up 1) (down 1 2)))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (H (up 0 (up 1) (down 1 2)))))
 
-        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                     (H (up (up 1 2) (up 1 2) (down 1 2)))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (H (up (up 1 2) (up 1 2) (down 1 2)))))
 
-        (is (= '(down (((partial 0) H) (up t (up x y) (down p_x p_y)))
-                      (down (((partial 1 0) H) (up t (up x y) (down p_x p_y)))
-                            (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
-                      (up (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
-                          (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
-               (e/freeze
-                (simplify ((D H) s)))))))))
+      (is (= '(down (((partial 0) H) (up t (up x y) (down p_x p_y)))
+                    (down (((partial 1 0) H) (up t (up x y) (down p_x p_y)))
+                          (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
+                    (up (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
+                        (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
+             (e/freeze
+              (simplify ((D H) s))))))))
 
 (deftest section-3
   (let [derivative-of-sine (D sin)]

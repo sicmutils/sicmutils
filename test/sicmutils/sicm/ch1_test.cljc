@@ -28,11 +28,11 @@
                      coordinate velocity
                      Rx Ry Rz]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.value :as v :refer [within]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.pendulum :as pendulum]
-            [sicmutils.examples.driven-pendulum :as driven]))
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v :refer [within]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
@@ -91,8 +91,6 @@
              (v/freeze
               (simplify ((compose (L/L-free-particle 'm) (e/Gamma q)) 't)))))
 
-      ;; at this point in the text we should be able to show-expression
-      ;; in TeX form XXX.
       ;; p. 20
       (is (= 435.0 (e/Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0)))
 
@@ -216,7 +214,9 @@
       (is (=  '(+ (* g l m (sin (θ t)))
                   (* (expt l 2) m (((expt D 2) θ) t))
                   (* l m (sin (θ t)) (((expt D 2) y_s) t)))
-              (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
+              (simplify
+               (((Lagrange-equations
+                  (pendulum/L 'm 'l 'g (up (fn [_] 0) y_s))) θ) 't))))
 
       ;; p. 61
       (let [Lf (fn [m g]

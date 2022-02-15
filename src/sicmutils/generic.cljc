@@ -25,11 +25,11 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :exclude [/ + - * divide #?@(:cljs [infinite?])])
-  (:require [sicmutils.value :as v]
-            [sicmutils.util :as u]
+  (:refer-clojure :exclude [/ + - * divide infinite? abs])
+  (:require [sicmutils.util :as u]
             [sicmutils.util.def :refer [defgeneric]
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.value :as v]))
 
 ;; ## Generic Numerics
 ;;
@@ -381,7 +381,7 @@
   a compound number (complex or quaterion, for example) with some infinite
   component.")
 
-(defmethod infinite? :default [a] false)
+(defmethod infinite? :default [_] false)
 
 (defgeneric abs 1)
 
@@ -978,7 +978,7 @@ defaults to `ln((1 + sqrt(1+x^2)) / x)`."
 (defmethod transpose [::v/scalar] [a] a)
 (defmethod trace [::v/scalar] [a] a)
 (defmethod determinant [::v/scalar] [a] a)
-(defmethod dimension [::v/scalar] [a] 1)
+(defmethod dimension [::v/scalar] [_] 1)
 (defmethod dot-product [::v/scalar ::v/scalar] [l r] (mul l r))
 
 ;; Scalars include complex numbers, but for the purposes of dot/inner-products

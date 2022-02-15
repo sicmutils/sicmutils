@@ -28,7 +28,7 @@
             [pattern.syntax :as ps]
             [sicmutils.util :as u]
             #?(:cljs
-               [sicmutils.util.def :as util.def
+               [sicmutils.util.def
                 :refer-macros [import-def]])))
 
 ;; ## Rules
@@ -127,7 +127,7 @@
 
   ```clojure
   (let [x 10]
-    (template (+ ~x y z ~@(4 5))))
+    (template (+ ~x y z ~@[4 5])))
   ;;=> (+ 10 y z 4 5)
   ```
 
@@ -145,11 +145,11 @@
 
   ```clojure
   (let [m {'?x 10 '?y 12 '??z [1 2 3]}]
-    (template m (+ ?x ?y ??z ~m ~@(1 2))))
+    (template m (+ ?x ?y ??z ~m ~@[1 2])))
   ;;=> (+ 10 12 1 2 3 {?x 10, ?y 12, ??z [1 2 3]} 1 2)
   ```"
   ([form]
-   (c/compile-skeleton (gensym) form))
+   (c/compile-skeleton {} form))
   ([m form]
    (let [sym (gensym)]
      `(let [~sym ~m]
@@ -197,7 +197,6 @@
   fail. To successfully return `nil` or `false`, wrap the result in [[succeed]].
 
   Notes for the 3-argument case:
-
 
   - If the predicate returns `nil`, `false` or `failure`, the rule fails.
 

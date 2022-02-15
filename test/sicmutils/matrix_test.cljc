@@ -19,11 +19,11 @@
 
 (ns sicmutils.matrix-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.clojure-test :as ct :refer [defspec]]
             [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :as ct :refer [defspec]]
             [same :refer [ish?]]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
@@ -625,13 +625,10 @@
   (testing "structure as matrix"
     (let [A (s/up (s/up 1 2)
                   (s/up 3 4))
-          B (s/down (s/up 1 2 3)
-                    (s/up 3 4 5))
           C (s/down (s/up 1 2 3)
                     (s/up 0 4 5)
                     (s/up 1 0 6))
           D (s/up (s/down 3))
-          E (s/up 1)
           F (s/down (s/up 1 2)
                     (s/up 3 4))
           G (s/down (s/up 4 0 0 0)

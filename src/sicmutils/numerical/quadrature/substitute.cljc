@@ -27,7 +27,7 @@
   The strategies currently implemented were each described by Press, et al. in
   section 4.4 of ['Numerical
   Recipes'](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)."
-  (:require [clojure.core.match :refer [match]]
+  (:require [sicmutils.generic :as g]
             [sicmutils.numerical.quadrature.common :as qc]))
 
 ;; ## Infinite Endpoints
@@ -68,13 +68,13 @@
     ([f a b] (call f a b {}))
     ([f a b opts]
      {:pre [(not
-             (and (qc/infinite? a)
-                  (qc/infinite? b)))]}
+             (and (g/infinite? a)
+                  (g/infinite? b)))]}
      (let [f' (fn [t]
                 (/ (f (/ 1.0 t))
                    (* t t)))
-           a' (if (qc/infinite? b) 0.0 (/ 1.0 b))
-           b' (if (qc/infinite? a) 0.0 (/ 1.0 a))
+           a' (if (g/infinite? b) 0.0 (/ 1.0 b))
+           b' (if (g/infinite? a) 0.0 (/ 1.0 a))
            opts (qc/update-interval opts qc/flip)]
        (integrate f' a' b' opts)))))
 
@@ -130,7 +130,7 @@
            f' (fn [t] (* (Math/pow t gamma-pow)
                         (f (t->t' t))))]
        (-> (integrate f' a' b' opts)
-           (update-in [:result] (partial * inner-pow)))))))
+           (update :result (partial * inner-pow)))))))
 
 (defn inverse-power-law-lower
   "Implements a change of variables to address a power law singularity at the
@@ -186,7 +186,7 @@
     ([f a b opts]
      (let [f' (fn [t] (* t (f (+ a (* t t)))))]
        (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-           (update-in [:result] (partial * 2)))))))
+           (update :result (partial * 2)))))))
 
 (defn inverse-sqrt-upper
   "Implements a change of variables to address an inverse square root singularity
@@ -201,7 +201,7 @@
     ([f a b opts]
      (let [f' (fn [t] (* t (f (- b (* t t)))))]
        (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-           (update-in [:result] (partial * 2)))))))
+           (update :result (partial * 2)))))))
 
 ;; ## Exponentially Diverging Endpoints
 
@@ -211,7 +211,7 @@
 ;;
 ;; $$\exp{-x} dx$$
 ;;
-;; into +- $dt$ (with the sign chosen to keep the upper limit of the new
+;; into $\pm dt$ (with the sign chosen to keep the upper limit of the new
 ;; variable larger than the lower limit)."
 ;;
 ;; The required identity is:
@@ -226,8 +226,8 @@
   (fn call
     ([f a b] (call f a b {}))
     ([f a b opts]
-     {:pre [(qc/infinite? b)]}
-     (let [f' (fn [t] (* (- (Math/log t))
+     {:pre [(g/infinite? b)]}
+     (let [f' (fn [t] (* (f (- (Math/log t)))
                         (/ 1 t)))
            opts (qc/update-interval opts qc/flip)]
-       (integrate f 0 (Math/exp (- a)) opts)))))
+       (integrate f' 0 (Math/exp (- a)) opts)))))

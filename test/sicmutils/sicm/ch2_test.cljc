@@ -20,10 +20,10 @@
 (ns sicmutils.sicm.ch2-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * / zero? ref D partial simplify
-                                         compose up down]]
-            [sicmutils.mechanics.rotation :refer [Euler->M]]
+            [sicmutils.env :as e :refer [- / zero? ref partial simplify
+                                         compose up]]
             [sicmutils.mechanics.rigid :as r]
+            [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.util :as u]

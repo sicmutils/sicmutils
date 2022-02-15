@@ -22,16 +22,16 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
             [pattern.rule :as rule :refer [=>]
              #?@(:cljs [:include-macros true])]
+            [same :refer [ish?]]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.ratio :as r]
+            #?(:cljs [sicmutils.ratio :as r])
             [sicmutils.simplify :as simpl]
             [sicmutils.value :as v]))
 
@@ -150,10 +150,10 @@
                  (is (not (v/real? wrapped)))
                  (is (v/real? (.valueOf wrapped)))
                  (if (r/ratio? n)
-                   (do (is (not= n (.valueOf wrapped))
-                           "ratios turn into doubles when you call valueOf, so
+                   (is (not= n (.valueOf wrapped))
+                       "ratios turn into doubles when you call valueOf, so
                            the passthrough valueOf on literal-number kills
-                           equality."))
+                           equality.")
                    (is (= n (.valueOf wrapped))
                        "other real numbers respond the same way."))
 
@@ -479,9 +479,9 @@
 
   (checking "- constructor optimizations" 100
             [x gen/symbol]
-            (is (= (g/negate 'x) (g/sub 0 'x)))
-            (is (v/= 'x (g/sub 'x 0)))
-            (is (v/= 0 (g/sub 'x 'x))))
+            (is (= (g/negate x) (g/sub 0 x)))
+            (is (v/= x (g/sub x 0)))
+            (is (v/= 0 (g/sub x x))))
 
   (testing "+/- with symbols"
     (is (= (g/+ 15 'x) (g/+ 10 3 2 'x)))
@@ -503,10 +503,10 @@
 
   (checking "* constructor optimizations" 100
             [x gen/symbol]
-            (is (v/= 0 (g/mul 0 'x)))
-            (is (v/= 0 (g/mul 'x 0)))
-            (is (v/= 'x (g/mul 1 'x)))
-            (is (v/= 'x (g/mul 'x 1))))
+            (is (v/= 0 (g/mul 0 x)))
+            (is (v/= 0 (g/mul x 0)))
+            (is (v/= x (g/mul 1 x)))
+            (is (v/= x (g/mul x 1))))
 
   (testing "* with symbols"
     (is (= (g/* 60 'x) (g/* 10 3 2 'x)))

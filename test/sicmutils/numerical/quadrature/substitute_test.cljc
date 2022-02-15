@@ -21,8 +21,8 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.romberg :as qr]
+            [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.substitute :as qs]
             [sicmutils.value :as v]))
 
@@ -90,7 +90,7 @@
   (testing "Exponentially decaying upper endpoint"
     (let [f (fn [x] (Math/exp (- x)))]
       (is (ish? {:converged? true
-                 :terms-checked 5
-                 :result 0.6321205588285578}
+                 :terms-checked 2
+                 :result 1.0}
                 ((qs/exponential-upper qr/open-integral) f 0 ##Inf))
           "Calculation converges."))))

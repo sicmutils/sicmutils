@@ -20,17 +20,13 @@
 (ns sicmutils.calculus.connection
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.covariant :as cov]
-            [sicmutils.calculus.coordinate :as cc]
-            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.metric :as metric]
-            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.util :as u]))
 
 ;; A metric induces a torsion-free connection.
 
@@ -145,7 +141,6 @@
 
 (defn metric->connection-1 [metric basis]
   (let [vector-basis (b/basis->vector-basis basis)
-        oneform-basis (b/basis->oneform-basis basis)
         half (g// 1 2)]
     (cov/make-Christoffel
      (s/mapr

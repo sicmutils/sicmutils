@@ -31,8 +31,7 @@
                             IPersistentVector
                             IPersistentMap
                             IPersistentSet
-                            ISeq
-                            LazySeq))))
+                            ISeq))))
 
 ;; ## Vector Implementations
 ;;
@@ -81,6 +80,7 @@
 (defmethod g/simplify [v/seqtype] [a]
   (map g/simplify a))
 
+#_{:clj-kondo/ignore [:redundant-do]}
 (#?@(:clj [do] :cljs [doseq [klass [Cons IndexedSeq LazySeq List Range]]])
  (extend-type #?(:clj ISeq :cljs klass)
    v/Value
@@ -90,7 +90,7 @@
    (zero-like [xs] (map v/zero-like xs))
    (one-like [xs] (u/unsupported (str "one-like: " xs)))
    (identity-like [xs] (u/unsupported (str "identity-like: " xs)))
-   (exact? [xs] false)
+   (exact? [_] false)
    (freeze [xs] (map v/freeze xs))
    (kind [xs] (type xs))
 
@@ -175,6 +175,7 @@
   (u/map-vals #(g/partial-derivative % selectors)
               m))
 
+#_{:clj-kondo/ignore [:redundant-do]}
 (#?@(:clj [do] :cljs [doseq [klass [PersistentHashMap PersistentArrayMap PersistentTreeMap]]])
  (extend-type #?(:clj IPersistentMap :cljs klass)
    v/Value
@@ -220,6 +221,7 @@
 (defmethod g/add [::set ::set] [a b]
   (cs/union a b))
 
+#_{:clj-kondo/ignore [:redundant-do]}
 (#?@(:clj [do] :cljs [doseq [klass [PersistentHashSet PersistentTreeSet]]])
  (extend-type #?(:clj IPersistentSet :cljs klass)
    v/Value

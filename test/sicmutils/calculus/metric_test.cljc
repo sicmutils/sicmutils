@@ -29,10 +29,10 @@
             [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :refer [compose]]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ *]]
             [sicmutils.matrix :as matrix]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [up]]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
@@ -89,8 +89,7 @@
 
   (testing "Example: general metric on R↑2"
     (let-coordinates [[x y] m/R2-rect]
-      (let [R2-basis (b/coordinate-system->basis R2-rect)
-            g-R2 (fn [g_00 g_01 g_11]
+      (let [g-R2 (fn [g_00 g_01 g_11]
                    (fn [u v]
                      (+ (* g_00 (dx u) (dx v))
                         (* g_01 (+ (* (dx u) (dy v))

@@ -25,15 +25,15 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :refer [D partial]]
-            [sicmutils.generic :as g]
             [sicmutils.generators :as sg]
+            [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
-            [sicmutils.value :as v :refer [=]]
             [sicmutils.series :as series]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [literal-up
                                                literal-down
                                                up down]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.value :as v :refer [=]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

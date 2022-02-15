@@ -22,14 +22,11 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
-            [sicmutils.numerical.quadrature.midpoint :as qm]
-            [sicmutils.numerical.quadrature.simpson :as qs]
+            [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numerical.quadrature.simpson38 :as qs38]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -74,31 +71,15 @@
                    (simpson38-step f a b))))
             "Both methods are equivalent!"))))
 
-  (testing "Simpson's method is identical to the average of the left and
-  right riemann sums"
-    ;; Reference: The derivation at the [Simpson's Rule Wikipedia
-    ;; page](https://en.wikipedia.org/wiki/Simpson%27s_rule#Averaging_the_midpoint_and_the_trapezoidal_rules)
-    (let [points (us/powers 2 1)
-          f       (fn [x] (/ 4 (+ 1 (* x x))))
-          [a b]   [0 1]
-          mid-estimates  (qm/midpoint-sequence f a b {:n points})
-          trap-estimates (qt/trapezoid-sequence f a b {:n points})]
-      (ish? (take 10 (qs/simpson-sequence f a b))
-            (take 10 (map (fn [mid trap]
-                            (/ (+ (* 2 mid) trap)
-                               3))
-                          mid-estimates
-                          trap-estimates)))))
-
-  (testing "Simpson's Method converges, and the interface works properly."
+  (testing "Simpson's 3/8 Method converges, and the interface works properly."
     (let [pi-test (fn [x] (/ 4 (+ 1 (* x x))))]
       (is (ish? {:converged? true
-                 :terms-checked 13
-                 :result 3.141592643655686}
-                (qt/integral pi-test 0 1)))
+                 :terms-checked 4
+                 :result 3.141592653589161}
+                (qs38/integral pi-test 0 1)))
 
       (is (ish? {:converged? false
-                 :terms-checked 4
-                 :result 3.138988494491089}
-                (qt/integral pi-test 0 1 {:maxterms 4}))
+                 :terms-checked 3
+                 :result 3.141592653128903}
+                (qs38/integral pi-test 0 1 {:maxterms 3}))
           "options get passed through."))))

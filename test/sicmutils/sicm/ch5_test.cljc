@@ -176,6 +176,7 @@
                (simplify (- (omega zeta1 zeta2)
                             (omega (* DCs zeta1) (* DCs zeta2)))))))))
 
+#_{:clj-kondo/ignore [:unused-binding]}
 (deftest section-5-7
   (let [shift-t (fn [delta-t]
                   (fn [[t q p]]

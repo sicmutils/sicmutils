@@ -21,13 +21,10 @@
   "test.check laws useful for checking the algebraic properties of different types
   that implement the sicmutils.generic operations, and the additive and
   multiplicative options in sicmutils.value.Value."
-  (:require [clojure.test :refer [is deftest testing]]
-            [clojure.test.check :as tc]
-            [clojure.test.check.generators :as gen]
-            [clojure.test.check.properties :as prop]
+  (:require [clojure.test :refer [is]]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish? zeroish?]]
+            [same :refer [ish?]]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 

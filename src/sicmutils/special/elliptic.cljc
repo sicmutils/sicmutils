@@ -401,6 +401,8 @@
   Calls the supplied continuation `cont` with `sn`, `cn` and `dn` as defined
   below.
 
+  If no `cont` is supplied, returns a three-vector of `sn`, `cn` and `dn`.
+
   Comments from Press, page 261:
 
   The Jacobian elliptic function sn is defined as follows: instead of
@@ -429,52 +431,55 @@
 
   The function calls the continuation with all three functions $sn$, $cn$, and
   $dn$ since computing all three is no harder than computing any one of them."
-  [u k cont]
-  (let [eps v/sqrt-machine-epsilon
-        emc (- 1. (* k k))]
-    (if (= emc 0.0)
-      (let [cn (/ 1.0 (Math/cosh u))]
-        (cont (Math/tanh u) cn cn))
-      (let [[bo emc u d] (emc-u-d emc u 1.0)]
-        (loop [a   1.0
-               emc emc
-               i   1
-               em  []
-               en  []]
-          (let [emc (Math/sqrt emc)
-                c   (* 0.5 (+ a emc))]
-            (if (and (> (Math/abs (- a emc))
-                        (* eps a))
-                     (< i 13))
-              (recur c (* a emc)
-                     (+ i 1)
-                     (cons a em)
-                     (cons emc en))
-              ;; label 1
-              (let [u (* c u)
-                    sn (Math/sin u)
-                    cn (Math/cos u)
-                    [a sn cn dn] (if-not (= sn 0.0)
-                                   (loop [em em
-                                          en en
-                                          a  (/ cn sn)
-                                          c  (* a c)
-                                          dn 1.0]
-                                     (if (and (not (empty? em))
-                                              (not (empty? en)))
-                                       (let [b (first em)
-                                             [a c dn] (let [a  (* c a)
-                                                            c  (* dn c)
-                                                            dn (/ (+ (first en) a) (+ a b))
-                                                            a  (/ c b)]
-                                                        [a c dn])]
-                                         (recur (rest em) (rest en) a c dn))
-                                       (let [a' (/ 1.0 (Math/sqrt (+ 1. (* c c))))
-                                             [sn cn] (let [sn (if (< sn 0.0) (- a') a')
-                                                           cn (* c sn)]
-                                                       [sn cn])]
-                                         [a sn cn dn]))))]
+  ([u k]
+   (jacobi-elliptic-functions u k vector))
+  ([u k cont]
+   (let [eps v/sqrt-machine-epsilon
+         emc (- 1. (* k k))]
+     (if (= emc 0.0)
+       (let [cn (/ 1.0 (Math/cosh u))]
+         (cont (Math/tanh u) cn cn))
+       (let [[bo emc u d] (emc-u-d emc u 1.0)]
+         (loop [a   1.0
+                emc emc
+                i   1
+                em  []
+                en  []]
+           (let [emc (Math/sqrt emc)
+                 c   (* 0.5 (+ a emc))]
+             (if (and (> (Math/abs (- a emc))
+                         (* eps a))
+                      (< i 13))
+               (recur c (* a emc)
+                      (+ i 1)
+                      (cons a em)
+                      (cons emc en))
+               ;; label 1
+               (let [u (* c u)
+                     sn (Math/sin u)
+                     cn (Math/cos u)
+                     [a sn cn dn] (if (= sn 0.0)
+                                    [a sn cn 1.0]
+                                    (loop [em em
+                                           en en
+                                           a  (/ cn sn)
+                                           c  (* a c)
+                                           dn 1.0]
+                                      (if (and (seq em)
+                                               (seq en))
+                                        (let [b (first em)
+                                              [a c dn] (let [a  (* c a)
+                                                             c  (* dn c)
+                                                             dn (/ (+ (first en) a) (+ a b))
+                                                             a  (/ c b)]
+                                                         [a c dn])]
+                                          (recur (rest em) (rest en) a c dn))
+                                        (let [a' (/ 1.0 (Math/sqrt (+ 1. (* c c))))
+                                              [sn cn] (let [sn (if (< sn 0.0) (- a') a')
+                                                            cn (* c sn)]
+                                                        [sn cn])]
+                                          [a sn cn dn]))))]
 
-                (if bo
-                  (cont (/ sn d) a cn)
-                  (cont sn cn dn))))))))))
+                 (if bo
+                   (cont (/ sn d) a cn)
+                   (cont sn cn dn)))))))))))

@@ -24,13 +24,12 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish? zeroish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.generic :as g]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.unimin.bracket :as brack]
             [sicmutils.numerical.unimin.brent :as b]
-            [sicmutils.numerical.unimin.golden-test :as gt]))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest brent-tests
   (with-comparator (v/within 1e-8)
@@ -42,7 +41,8 @@
               (let [f (fn [x] (g/square (- x offset)))
                     upper (if (= lower upper) (inc lower) upper)
                     {:keys [lo hi]} (brack/bracket-min f {:xa lower :xb upper})
-                    {:keys [result value converged? iterations fncalls] :as m}
+                    {:keys [result value converged? iterations fncalls]
+                     :as #?(:clj m :cljs _m)}
                     (b/brent-min f (first lo) (first hi))]
 
                 (is converged? "The result converges to the supplied offset.")

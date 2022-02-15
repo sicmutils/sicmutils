@@ -34,8 +34,8 @@
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.expression.render :refer [->infix]]
-            [sicmutils.polynomial.richardson :as r]
             [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as r]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -80,14 +80,14 @@
 
 ;; Use `show` to print out its infix representation:
 
-#_
-(show fx+h)
+(comment
+  (show fx+h))
 ;; => "1/24 h⁴ D⁴f(x) + 1/6 h³ D³f(x) + 1/2 h² D²f(x) + h Df(x) + f(x)"
 
 ;; We can solve this for $Df(x)$ by subtracting $f(x)$ and dividing out $h$:
 
-#_
-(show (g// (g/- fx+h (func 'x)) 'h))
+(comment
+  (show (g// (g/- fx+h (func 'x)) 'h)))
 
 ;; => "1/24 h³ D⁴f(x) + 1/6 h² D³f(x) + 1/2 h D²f(x) + Df(x)"
 ;;
@@ -122,13 +122,14 @@
   (->> (d/taylor-series func 'x (g/negate 'h))
        (transduce (take 5) g/+)))
 
-#_
-(show fx-h)
+(comment
+  (show fx-h))
 ;; => "1/24 h⁴ D⁴f(x) -1/6 h³ D³f(x) + 1/2 h² D²f(x) - h Df(x) + f(x)"
 
 ;; and solve for $Df(x)$:
-#_
-(show (g// (g/- (func 'x) fx-h) 'h))
+
+(comment
+  (show (g// (g/- (func 'x) fx-h) 'h)))
 ;; => "-1/24 h³ D⁴f(x) + 1/6 h² D³f(x) -1/2 h D²f(x) + Df(x)"
 ;;
 ;; To get a similar method, called the "backward difference" formula. Here's the
@@ -159,15 +160,15 @@
 ;; with $h$, an odd-powered term... so subtracting $f(x-h)$ should double that
 ;; term, not erase it. Let's see:
 
-#_
-(show (g/- fx+h fx-h))
+(comment
+  (show (g/- fx+h fx-h)))
 ;; => "1/3 h³ D³f(x) + 2 h Df(x)"
 ;;
 ;; Amazing! Now solve for $Df(x)$:
 
-#_
-(show (g// (g/- fx+h fx-h)
-           (g/* 2 'h)))
+(comment
+  (show (g// (g/- fx+h fx-h)
+             (g/* 2 'h))))
 ;; => "1/6 h² D³f(x) + Df(x)"
 ;;
 ;; We're left with $Df(x) + O(h^2)$, a quadratic error term in $h$. (Of course
@@ -194,17 +195,17 @@
 ;; sign. If we add the two series, these odd terms should all cancel out. Let's
 ;; see:
 
-#_
-(show (g/+ fx-h fx+h))
+(comment
+  (show (g/+ fx-h fx+h)))
 ;; => "1/12 h⁴ D⁴f(x) + h² D²f(x) + 2 f(x)"
 
 ;; Interesting. The $Df(x)$ term is gone. Remember that we have $f(x)$
 ;; available; the first unknown term in the series is now $D^2 f(x)$. Solve for
 ;; that term:
 
-#_
-(show (g// (g/- (g/+ fx-h fx+h) (g/* 2 (func 'x)))
-           (g/square 'h)))
+(comment
+  (show (g// (g/- (g/+ fx-h fx+h) (g/* 2 (func 'x)))
+             (g/square 'h))))
 ;; => "1/12 h² D⁴f(x) + D²f(x)"
 
 ;; This is the "central difference" approximation to the /second/ derivative of
@@ -245,8 +246,8 @@
 
 ;; The error here is not great, even for a simple function:
 
-#_
-((make-derivative-fn g/square) 3)
+(comment
+  ((make-derivative-fn g/square) 3))
 ;;=> 6.000000000039306
 
 ;; Let's experiment instead with letting $h \to 0$. This next function takes a
@@ -260,10 +261,10 @@
 
 ;; Let's print 20 of the first 60 terms (taking every 3 so we see any pattern):
 
-#_
-(->> (central-diff-stream g/sqrt 1 0.1)
-     (take-nth 3)
-     (us/pprint 20))
+(comment
+  (->> (central-diff-stream g/sqrt 1 0.1)
+       (take-nth 3)
+       (us/pprint 20)))
 
 ;; 0.5006277505981893
 ;; 0.5000097662926306
@@ -378,27 +379,27 @@
 ;; How many terms are we allowed to examine for an estimate of the derivative of
 ;; $f(x) = \sqrt(x)$, with an initial $h = 0.1$?
 
-#_
-(let [f         g/sqrt
-      x         1
-      h         0.1
-      tolerance 1e-13
-      ratio     (/ (f x)
-                   (- (f (+ x h))
-                      (f (- x h))))]
-  (terms-before-roundoff ratio tolerance))
+(comment
+  (let [f         g/sqrt
+        x         1
+        h         0.1
+        tolerance 1e-13
+        ratio     (/ (f x)
+                     (- (f (+ x h))
+                        (f (- x h))))]
+    (terms-before-roundoff ratio tolerance)))
 ;; => 6
 
 ;; 6 terms, or 5 halvings, down to $h = {0.1} \over {2^5} = 0.003125$. How many
 ;; terms does the sequence take to converge?
 
-#_
-(= (-> (central-diff-stream g/sqrt 1 0.1)
-       (us/seq-limit {:tolerance 1e-13}))
+(comment
+  (= (-> (central-diff-stream g/sqrt 1 0.1)
+         (us/seq-limit {:tolerance 1e-13}))
 
-   {:converged? true
-    :terms-checked 15
-    :result 0.5000000000109139})
+     {:converged? true
+      :terms-checked 15
+      :result 0.5000000000109139}))
 
 ;; 15 is far beyond the level where roundoff error has rendered our results
 ;; untrustworthy.

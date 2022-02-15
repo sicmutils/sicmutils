@@ -22,9 +22,9 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numbers]
             [sicmutils.algebra.fold :as af
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.numbers]))
 
 (deftest fold-tests
   (is (= 45 (af/generic-sum-fold
@@ -58,12 +58,15 @@
             ([[sum n]] (/ sum n))
             ([[sum n] x]
              [(+ sum x) (inc n)]))]
-    (let [sum (af/fold->sum-fn average)
+    (let [sum  (af/fold->sum-fn average)
           scan (af/fold->scan-fn average)
           xs (range 1 10)]
-      (is (= 4.5 (sum (range 10)))
+      (is (= 5.0 (sum xs))
           "the average fold does the right thing, with intermediate state built
-          up.")))
+          up.")
+
+      (is (= [1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0]
+             (scan xs)))))
 
   (testing "join and primitive tests"
     (let [fold (af/join af/generic-sum-fold

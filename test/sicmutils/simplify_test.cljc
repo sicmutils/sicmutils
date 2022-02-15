@@ -21,7 +21,6 @@
   (:refer-clojure :exclude [=])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
-            [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
@@ -195,18 +194,17 @@
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
 (deftest matrix-tests
-  "Tests that use g/simplify, moved here from sicmutils.matrix-test"
-  (let [M (m/by-rows '[a b] '[c d])
-        S (m/by-rows '[e f] '[g h])]
-    (is (= '(matrix-by-rows
-             (up (+ (* a e) (* b g)) (+ (* a f) (* b h)))
-             (up (+ (* c e) (* d g)) (+ (* c f) (* d h))))
-           (v/freeze
-            (g/simplify (g/* M S))))))
+  (testing "Tests that use g/simplify, moved here from sicmutils.matrix-test"
+    (let [M (m/by-rows '[a b] '[c d])
+          S (m/by-rows '[e f] '[g h])]
+      (is (= '(matrix-by-rows
+               (up (+ (* a e) (* b g)) (+ (* a f) (* b h)))
+               (up (+ (* c e) (* d g)) (+ (* c f) (* d h))))
+             (v/freeze
+              (g/simplify (g/* M S)))))))
 
   (testing "div"
     (let [M (m/by-rows '[a b] '[c d])
-          d (s/down 'x 'y)
           u (s/up 'x 'y)]
       (is (= '(up
                (/ (+ (* -1 b y) (* d x)) (+ (* a d) (* -1 b c)))

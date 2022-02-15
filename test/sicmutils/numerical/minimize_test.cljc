@@ -18,11 +18,11 @@
 ;;
 
 (ns sicmutils.numerical.minimize-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.value :as v]
+  (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.numerical.minimize :as m]))
+            [sicmutils.numerical.minimize :as m]
+            [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1e-5))
 

@@ -99,7 +99,7 @@
     (is (= (* (cos (* 2 'u)) 2)
            ((D #(sin (* 2 %))) 'u)))
 
-    (let [s (fn [t] (g/sqrt t))
+    (let [s g/sqrt
           u (fn [t] (g/expt (- (* 3 (s t)) 1) (/ 2 3)))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is (ish? (/ -1 18)
@@ -120,17 +120,15 @@
 
 (deftest derivative-return-tests
   (testing "Series, PowerSeries"
-    (let [series-D ((D (fn [x] (series/exp-series x))) 'x)]
+    (let [series-D ((D series/exp-series) 'x)]
       (is (series/series? series-D)
           "we get a proper series back out")
 
       (is (not (series/power-series? series-D))
           "the result is NOT a power series! It's already been applied.")
 
-      (is (= '(0 1 x (* (/ 1 2) (expt x 2)))
-             (v/freeze
-              (simplify (take 4 series-D))))
-          "which is why the first element is 0.")
+      (is (= '(1 x (* (/ 1 2) (expt x 2)) (* (/ 1 6) (expt x 3)))
+             (simplify (take 4 series-D))))
 
       (is (series/power-series? (D series/exp-series))
           "Derivative of a [[series/PowerSeries]] returns a
@@ -362,8 +360,8 @@
                (simplify (((g/expt D 3) fff) 'x 'y 'z))))))
 
     (testing "derivative of constant == 0 whatever the arity."
-      (is (= 0 ((D (fn [x] 0)) 'x)))
-      (is (= 0 ((D (fn [& xs] 0)) 'x))))))
+      (is (= 0 ((D (fn [_x] 0)) 'x)))
+      (is (= 0 ((D (fn [& _xs] 0)) 'x))))))
 
 (deftest literal-function-tests
   (af/with-literal-functions [f [g [0 0] 0]]
@@ -593,8 +591,7 @@
                (s/up 'dx 'dy))
               (take 4)
               (reduce +)
-              (simplify)
-              (v/freeze))))
+              (simplify))))
 
   (testing "eq. 5.291"
     (let [V  (fn [[xi eta]]
@@ -697,9 +694,8 @@
                (up 0 m1 0 0)
                (up 0 0 m2 0)
                (up 0 0 0 m2))
-             (v/freeze
-              (simplify
-               (matrix/s->m vs (((g/expt D 2) L1) vs) vs))))))))
+             (simplify
+              (matrix/s->m vs (((g/expt D 2) L1) vs) vs)))))))
 
 (deftest moved-from-matrix
   (testing "s->m->s"
@@ -741,9 +737,8 @@
                    (((partial 1 1) C↑2_1) (up t (up x y) (down px py)))
                    (((partial 2 0) C↑2_1) (up t (up x y) (down px py)))
                    (((partial 2 1) C↑2_1) (up t (up x y) (down px py)))))
-             (v/freeze
-              (simplify
-               ((as-matrix (D C-general)) s))))))))
+             (simplify
+              ((as-matrix (D C-general)) s)))))))
 
 (deftest taylor-moved-from-series
   (let [simp4 (fn [x] (simplify (take 4 x)))
@@ -767,21 +762,19 @@
              (* (/ -1 2) (expt dx 2) (sin x))
              (* dx (cos x))
              (sin x))
-         (v/freeze
-          (simplify
-           (-> (d/taylor-series g/sin 'x 'dx)
-               (series/sum 4))))))
+         (simplify
+          (-> (d/taylor-series g/sin 'x 'dx)
+              (series/sum 4)))))
   (is (= '(1
            (* (/ 1 2) dx)
            (* (/ -1 8) (expt dx 2))
            (* (/ 1 16) (expt dx 3))
            (* (/ -5 128) (expt dx 4))
            (* (/ 7 256) (expt dx 5)))
-         (v/freeze
-          (simplify
-           (take 6 (d/taylor-series
-                    (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                    0 'dx)))))))
+         (simplify
+          (take 6 (d/taylor-series
+                   (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                   0 'dx))))))
 
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(af/literal-function 'f) (af/literal-function 'g)]
@@ -789,23 +782,20 @@
     (is (= '(matrix-by-rows
              (up (f t) (g t))
              (up (h t) (k t)))
-           (v/freeze
-            (simplify (M 't)))))
+           (simplify (M 't))))
 
     (is (= '(matrix-by-rows
              (up ((D f) t) ((D g) t))
              (up ((D h) t) ((D k) t)))
-           (v/freeze
-            (simplify ((D M) 't)))))
+           (simplify ((D M) 't))))
 
     (is (= '(matrix-by-rows
              (up (+ (expt (f t) 2) (expt (h t) 2))
                  (+ (* (f t) (g t)) (* (h t) (k t))))
              (up (+ (* (f t) (g t)) (* (h t) (k t)))
                  (+ (expt (g t) 2) (expt (k t) 2))))
-           (v/freeze
-            (simplify
-             ((* (g/transpose M) M) 't)))))
+           (simplify
+            ((* (g/transpose M) M) 't))))
 
     (is (= '(matrix-by-rows
              (up (+ (* 2 (f t) ((D f) t))
@@ -820,9 +810,8 @@
                     (* (k t) ((D h) t)))
                  (+ (* 2 (g t) ((D g) t))
                     (* 2 (k t) ((D k) t)))))
-           (v/freeze
-            (simplify
-             ((D (* (g/transpose M) M)) 't)))))))
+           (simplify
+            ((D (* (g/transpose M) M)) 't))))))
 
 (deftest derivatives-as-values
   (let [cs0 (fn [x] (sin (cos x)))
@@ -854,7 +843,7 @@
 (deftest refman-tests
   (testing "o/expn expansion of `D`"
     (let [f     (af/literal-function 'f)
-          ->seq (comp v/freeze simplify #(take 10 %))]
+          ->seq (comp simplify #(take 10 %))]
       (is (= (->seq ((series/->function (((o/exp D) f) 'x)) 'dx))
              (->seq (((o/exp (g/* 'dx D)) f) 'x)))
           "Multiplying (* dx D) is identical to NOT doing that, and then
@@ -1082,7 +1071,7 @@
                         ;; tags `b` with `0`
                         (exp (+ b 3)))]
           ;; extract `0` tag on the way out
-          (inner-f (+ [5, (1,0)] 3)))
+          (inner-f (+ [5, '(1,0)] 3)))
 
         ;; final substitution (remember that when you "tag" a dual number
         ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag ==
@@ -1090,7 +1079,7 @@
 
         ;; extract `0` tag on the way out
         ;; extract `0` tag on the way out
-        (exp (+ [(+ 5 3), (2, 0)] 3))
+        (exp (+ [(+ 5 3), '(2, 0)] 3))
 
         ;; At this point it doesn't even matter what's going on inside the
         ;; function. the double "extract 0" is the problem here, and also the
@@ -1103,23 +1092,23 @@
                         ;; tags `b` with `1`
                         (exp (+ b 3)))]
           ;; extract `0` tag on the way out
-          (inner-f (+ [(+ 5 3), (1,0)] 3)))
+          (inner-f (+ [(+ 5 3), '(1,0)] 3)))
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp (+ [[(+ 5 3), (1,0)], (1, 1)] 3))
+        (exp (+ [[(+ 5 3), '(1,0)], '(1, 1)] 3))
 
         ;; group the perturbations:
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp (+ [(+ 5 3) (+ (1,0) (1, 1))] 3))
+        (exp (+ [(+ 5 3) (+ '(1,0) '(1, 1))] 3))
 
         ;; add:
 
         ;; extract `0` tag on the way out
         ;; extract `1` tag on the way out
-        (exp [(+ 5 3 3) (+ (1,0) (1, 1))])
+        (exp [(+ 5 3 3) (+ '(1,0) '(1, 1))])
 
         ;; derivative of `(exp x)` is, conveniently, `(exp x)`:
 

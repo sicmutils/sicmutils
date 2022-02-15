@@ -19,12 +19,12 @@
 
 (ns sicmutils.numerical.derivative-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [zeroish? ish? with-comparator]
+            [same :refer [ ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as cd]
+            [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :as d]
             [sicmutils.polynomial.richardson :as r]
-            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -42,12 +42,12 @@
         precision."))
 
   (testing "eventually the sequence converges"
-    (= (-> (@#'d/central-diff-stream g/sqrt 1 0.1)
-           (us/seq-limit {:tolerance 1e-13}))
+    (is (= (-> (@#'d/central-diff-stream g/sqrt 1 0.1)
+               (us/seq-limit {:tolerance 1e-13}))
 
-       {:converged? true
-        :terms-checked 15
-        :result 0.5000000000109139}))
+           {:converged? true
+            :terms-checked 15
+            :result 0.5000000000109139})))
 
   (testing "richardson-sequence makes it converge much faster."
     (is (= {:converged? true

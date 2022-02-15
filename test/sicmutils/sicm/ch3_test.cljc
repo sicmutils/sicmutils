@@ -21,14 +21,14 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D zero? partial
+             :refer [+ zero?
                      up down
                      literal-function]
              #?@(:cljs [:include-macros true])]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.top :as top]
-            [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
+            [sicmutils.mechanics.lagrange :as L]
             [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

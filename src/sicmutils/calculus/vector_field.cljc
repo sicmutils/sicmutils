@@ -25,8 +25,8 @@
   manifold and produces a new function on the manifold which computes the
   directional derivative of the given function at each point of the manifold."
   (:require [sicmutils.abstract.function :as af]
-            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.derivative :as deriv :refer [D]]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
@@ -144,7 +144,7 @@
   "Returns a vector field that returns, for any supplied function `f`, a manifold
   function [[manifold/zero-manifold-function]] that maps every input manifold
   `point` to the scalar value 0."
-  [f]
+  [_]
   m/zero-manifold-function)
 
 (defn- vf:zero-like

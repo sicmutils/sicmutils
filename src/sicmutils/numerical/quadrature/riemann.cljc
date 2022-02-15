@@ -20,9 +20,7 @@
 (ns sicmutils.numerical.quadrature.riemann
   (:require [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
-            [sicmutils.generic :as g]
             [sicmutils.polynomial.richardson :as pr]
-            [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
 
@@ -102,11 +100,11 @@
 ;; back an estimate (from the function returned by `windowed-sum`) of 2x the
 ;; number of slices:
 
-#_
-(let [area-fn   (fn [l r] 2)
-      estimator (windowed-sum area-fn 0 10)]
-  (and (= 20.0 (estimator 10))
-       (= 40.0 (estimator 20))))
+(comment
+  (let [area-fn   (fn [_ _] 2)
+        estimator (windowed-sum area-fn 0 10)]
+    (and (= 20.0 (estimator 10))
+         (= 40.0 (estimator 20)))))
 ;; => true
 
 ;; Now, let's implement the four classic ["Riemann
@@ -120,6 +118,7 @@
 ;;
 ;; `left-sum` is simple to implement, given `windowed-sum`:
 
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn- left-sum* [f a b]
   (-> (fn [l r] (* (f l) (- r l)))
       (windowed-sum a b)))
@@ -145,6 +144,7 @@
 ;; `right-sum` is almost identical, except that it uses $f(x_r)$ as the
 ;; estimate of each rectangle's height:
 
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn- right-sum* [f a b]
   (-> (fn [l r] (* (f r) (- r l)))
       (windowed-sum a b)))
@@ -206,30 +206,30 @@
 ;; function of `n` across this sequence to obtain successively better estimates
 ;; for $\int_0^{10} x^2$. The true value is $10^3 \over 3 = 333.333...$:
 
-#_
-(let [f              (fn [x] (* x x))
-      left-estimates  (map (left-sum f 0 10)
-                           (us/powers 2))
-      right-estimates (map (right-sum f 0 10)
-                           (us/powers 2))]
-  (and (= [0.0 125.0 218.75 273.4375 302.734375]
-          (take 5 left-estimates))
+(comment
+  (let [f              (fn [x] (* x x))
+        left-estimates  (map (left-sum f 0 10)
+                             (us/powers 2))
+        right-estimates (map (right-sum f 0 10)
+                             (us/powers 2))]
+    (and (= [0.0 125.0 218.75 273.4375 302.734375]
+            (take 5 left-estimates))
 
-       (= [1000.0 625.0 468.75 398.4375 365.234375]
-          (take 5 right-estimates))))
+         (= [1000.0 625.0 468.75 398.4375 365.234375]
+            (take 5 right-estimates)))))
 
 ;; Both estimates are bad at 32 slices and don't seem to be getting better. Even
 ;; up to $2^16 = 65,536$ slices we haven't converged, and are still far from the
 ;; true estimate:
 
-#_
-(= {:converged? false
-    :terms-checked 16
-    :result 333.31807469949126}
-   (let [f (fn [x] (* x x))]
-     (-> (map (left-sum f 0 10)
-              (us/powers 2))
-         (us/seq-limit {:maxterms 16}))))
+(comment
+  (= {:converged? false
+      :terms-checked 16
+      :result 333.31807469949126}
+     (let [f (fn [x] (* x x))]
+       (-> (map (left-sum f 0 10)
+                (us/powers 2))
+           (us/seq-limit {:maxterms 16})))))
 
 ;; This bad convergence behavior is why common wisdom states that you should
 ;; never use left and right Riemann sums for real work.
@@ -256,16 +256,16 @@
 ;;
 ;; Does Richardson extrapolation help?
 
-#_
-(= {:converged? true
-    :terms-checked 4
-    :result 333.3333333333333}
+(comment
+  (= {:converged? true
+      :terms-checked 4
+      :result 333.3333333333333}
 
-   (let [f (fn [x] (* x x))]
-     (-> (map (left-sum f 0 10)
-              (us/powers 2))
-         (pr/richardson-sequence 2)
-         (us/seq-limit))))
+     (let [f (fn [x] (* x x))]
+       (-> (map (left-sum f 0 10)
+                (us/powers 2))
+           (pr/richardson-sequence 2)
+           (us/seq-limit)))))
 
 ;; We now converge to the actual, true value of the integral in 4 terms!
 ;;
@@ -298,16 +298,16 @@
 
 ;; Check that this works:
 
-#_
-(= {:converged? true
-    :terms-checked 4
-    :result 333.3333333333333}
+(comment
+  (= {:converged? true
+      :terms-checked 4
+      :result 333.3333333333333}
 
-   (let [f (fn [x] (* x x))]
-     (-> (map (left-sum f 0 10)
-              (us/powers 2))
-         (accelerate {:accelerate? true})
-         (us/seq-limit))))
+     (let [f (fn [x] (* x x))]
+       (-> (map (left-sum f 0 10)
+                (us/powers 2))
+           (accelerate {:accelerate? true})
+           (us/seq-limit)))))
 
 ;; Excellent!
 ;;
@@ -388,11 +388,11 @@
 ;; Verify that this function returns an equivalent sequence of estimates to the
 ;; non-incremental `left-sum`, when mapped across powers of 2:
 
-#_
-(let [f (fn [x] (* x x))]
-  (= (take 10 (left-sequence* f 0 10 1))
-     (take 10 (map (left-sum f 0 10)
-                   (us/powers 2 1)))))
+(comment
+  (let [f (fn [x] (* x x))]
+    (= (take 10 (left-sequence* f 0 10 1))
+       (take 10 (map (left-sum f 0 10)
+                     (us/powers 2 1))))))
 
 ;; ## Generalizing the Incremental Approach
 ;;
@@ -426,6 +426,7 @@
 
 ;; And another version of `left-sequence`, implemented using the new function:
 
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn- left-sequence**
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking left-Riemann sums with

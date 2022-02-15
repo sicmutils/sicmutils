@@ -22,8 +22,8 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.adaptive :as qa]
-            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -34,7 +34,7 @@
 
 (deftest adaptive-tests
   (with-comparator (v/within 1e-10)
-    (let [inverse (fn [x] (/ x))]
+    (let [inverse /]
       (testing "inverse function"
         (let [real-answer (- (Math/log 100)
                              (Math/log 0.01))

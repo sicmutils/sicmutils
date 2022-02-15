@@ -20,8 +20,6 @@
 (ns sicmutils.polynomial.gcd-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec]]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
@@ -340,15 +338,15 @@
                       [[1 0 2 1 1 0 0 0 1 1] -2]])
         v (p/make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
                       [[2 0 1 2 1 1 0 0 0 0] 2]
-                      [[4 0 1 0 1 1 0 0 0 0] 1]])]
-    (let [t (fn []
-              (let [g (g/gcd u v)]
-                (pg/gcd-stats)
-                g))]
-      (is (= (p/make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
-      ;; for profiling
-      (binding [pg/*poly-gcd-cache-enable* false]
-        (dotimes [_ 0] (t))))))
+                      [[4 0 1 0 1 1 0 0 0 0] 1]])
+        t (fn []
+            (let [g (g/gcd u v)]
+              (pg/gcd-stats)
+              g))]
+    (is (= (p/make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
+    ;; for profiling
+    (binding [pg/*poly-gcd-cache-enable* false]
+      (dotimes [_ 0] (t)))))
 
 (deftest ^:long troublesome-gcd
   (let [u (p/make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
@@ -424,10 +422,10 @@
       (gcd-test "K2" d p q))))
 
 (deftest ^:benchmark some-interesting-small-examples
-  "Clojure.test.check's awesome problem-shrinking feature found some
-  small examples of polynomials whose GCD is difficult to compute with
-  this code (at the time of this writing). Recording them here as they
-  should provide excellent examples for performance experiments."
+  ;; Clojure.test.check's awesome problem-shrinking feature found some small
+  ;; examples of polynomials whose GCD is difficult to compute with this
+  ;; code (at the time of this writing). Recording them here as they should
+  ;; provide excellent examples for performance experiments.
   (testing "ex1"
     (let [u (p/make 3 {[0 0 0] -1, [0 0 3] 1})
           v (p/make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})]
@@ -450,13 +448,13 @@
           v (p/make 1 {{} 1
                        {0 1} (u/long 21)})
           d (p/make 1 {{} (u/long 4571)
-                       {0 1} (u/long 597)})]
-      (let [ud (g/* u d)
-            vd (g/* v d)
-            g (g/gcd ud vd)]
-        (is (g/exact-divide ud g))
-        (is (g/exact-divide vd g))
-        (is (g/exact-divide g d))))))
+                       {0 1} (u/long 597)})
+          ud (g/* u d)
+          vd (g/* v d)
+          g (g/gcd ud vd)]
+      (is (g/exact-divide ud g))
+      (is (g/exact-divide vd g))
+      (is (g/exact-divide g d)))))
 
 ;; Currently we only do GCD testing of univariate polynomials, because we find
 ;; that unfortunately clojure.test.check is very good at finding polynomials

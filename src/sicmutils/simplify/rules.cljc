@@ -608,14 +608,14 @@ For example:
        (* ??u (sqrt ?x) ??v)))))
 
 (defn non-negative-factors!
-  "Takes a `simplify` function, two simplified expressions `x` and `y` and a symbolic
-  identifier `id` and registers an assumption that both sides are
-  non-negative (just one side if they end up equal after simplification).
+  "Takes one or two simplified expressions `x` and `y` and a symbolic identifier
+  `id` and registers an assumption that both sides are non-negative.
 
-  Returns the conjuction of both assumptions."
-  ([simplify x id]
+  Returns the conjuction of both assumptions in the two argument case, or the
+  single assumption in the one-argument case."
+  ([x id]
    (ul/assume! `(~'non-negative? ~x) id (fn [] false)))
-  ([simplify x y id]
+  ([x y id]
    (and (ul/assume! `(~'non-negative? ~x) id (fn [] false))
         (ul/assume! `(~'non-negative? ~y) id (fn [] false)))))
 
@@ -633,8 +633,8 @@ For example:
               (let [xs (simplify x)
                     ys (simplify y)]
                 (if (v/= xs ys)
-                  (non-negative-factors! simplify xs label)
-                  (non-negative-factors! simplify xs ys label)))))]
+                  (non-negative-factors! xs label)
+                  (non-negative-factors! xs ys label)))))]
     (r/attempt
      (r/guard
       (fn [_] *sqrt-factor-simplify?*)
@@ -657,73 +657,72 @@ For example:
         (/ (sqrt ?x) (sqrt (* ?y ??ys)))))))))
 
 (defn sqrt-contract [simplify]
-  (let [non-negative! (partial non-negative-factors! simplify)]
-    (rule-simplifier
-     (r/ruleset*
-      (r/rule
-       (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
-       (fn [{x '?x y '?y :as m}]
-         (let [xs (simplify x)
-               ys (simplify y)]
-           (if (v/= xs ys)
-             (and (non-negative! xs 'c1)
-                  (r/template
-                   m (* ??a ~xs ??b ??c)))
-             (and (non-negative! xs ys 'c1)
-                  (r/template
-                   m (* ??a (sqrt (* ~xs ~ys)) ??b ??c)))))))
+  (rule-simplifier
+   (r/ruleset*
+    (r/rule
+     (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
+     (fn [{x '?x y '?y :as m}]
+       (let [xs (simplify x)
+             ys (simplify y)]
+         (if (v/= xs ys)
+           (and (non-negative-factors! xs 'c1)
+                (r/template
+                 m (* ??a ~xs ??b ??c)))
+           (and (non-negative-factors! xs ys 'c1)
+                (r/template
+                 m (* ??a (sqrt (* ~xs ~ys)) ??b ??c)))))))
 
-      (r/rule
-       (/ (sqrt ?x) (sqrt ?y))
-       (fn [{x '?x y '?y}]
-         (let [xs (simplify x)
-               ys (simplify y)]
-           (if (v/= xs ys)
-             (and (non-negative! xs 'c2)
-                  1)
-             (and (non-negative! xs ys 'c2)
-                  (r/template (sqrt (/ ~xs ~ys))))))))
+    (r/rule
+     (/ (sqrt ?x) (sqrt ?y))
+     (fn [{x '?x y '?y}]
+       (let [xs (simplify x)
+             ys (simplify y)]
+         (if (v/= xs ys)
+           (and (non-negative-factors! xs 'c2)
+                1)
+           (and (non-negative-factors! xs ys 'c2)
+                (r/template (sqrt (/ ~xs ~ys))))))))
 
-      (r/rule
-       (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
-       (fn [{x '?x y '?y :as m}]
-         (let [xs (simplify x)
-               ys (simplify y)]
-           (if (v/= xs ys)
-             (and (non-negative! xs 'c3)
-                  (r/template m (* ??a ??b)))
-             (and (non-negative! xs ys 'c3)
-                  (r/template
-                   m (* ??a (sqrt (/ ~xs ~ys)) ??b)))))))
+    (r/rule
+     (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
+     (fn [{x '?x y '?y :as m}]
+       (let [xs (simplify x)
+             ys (simplify y)]
+         (if (v/= xs ys)
+           (and (non-negative-factors! xs 'c3)
+                (r/template m (* ??a ??b)))
+           (and (non-negative-factors! xs ys 'c3)
+                (r/template
+                 m (* ??a (sqrt (/ ~xs ~ys)) ??b)))))))
 
-      (r/rule
-       (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
-       (fn [{x '?x y '?y :as m}]
-         (let [xs (simplify x)
-               ys (simplify y)]
-           (if (v/= xs ys)
-             (and (non-negative! xs 'c4)
-                  (r/template m (/ 1 (* ??a ??b))))
-             (and (non-negative! xs ys 'c4)
-                  (r/template
-                   m (/ (sqrt (/ ~xs ~ys))
-                        (* ??a ??b))))))))
+    (r/rule
+     (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
+     (fn [{x '?x y '?y :as m}]
+       (let [xs (simplify x)
+             ys (simplify y)]
+         (if (v/= xs ys)
+           (and (non-negative-factors! xs 'c4)
+                (r/template m (/ 1 (* ??a ??b))))
+           (and (non-negative-factors! xs ys 'c4)
+                (r/template
+                 m (/ (sqrt (/ ~xs ~ys))
+                      (* ??a ??b))))))))
 
-      (r/rule
-       (/ (* ??a (sqrt ?x) ??b)
-          (* ??c (sqrt ?y) ??d))
-       (fn [{x '?x y '?y :as m}]
-         (let [xs (simplify x)
-               ys (simplify y)]
-           (if (v/= xs ys)
-             (and (non-negative! xs 'c5)
-                  (r/template
-                   m (/ (* ??a ??b)
-                        (* ??c ??d))))
-             (and (non-negative! xs ys 'c5)
-                  (r/template
-                   m (/ (* ??a (sqrt (/ ~xs ~ys)) ??b)
-                        (* ??c ??d))))))))))))
+    (r/rule
+     (/ (* ??a (sqrt ?x) ??b)
+        (* ??c (sqrt ?y) ??d))
+     (fn [{x '?x y '?y :as m}]
+       (let [xs (simplify x)
+             ys (simplify y)]
+         (if (v/= xs ys)
+           (and (non-negative-factors! xs 'c5)
+                (r/template
+                 m (/ (* ??a ??b)
+                      (* ??c ??d))))
+           (and (non-negative-factors! xs ys 'c5)
+                (r/template
+                 m (/ (* ??a (sqrt (/ ~xs ~ys)) ??b)
+                      (* ??c ??d)))))))))))
 
 ;; ## Log / Exp
 
@@ -1010,8 +1009,8 @@ For example:
         sym:div (sym/symbolic-operator '/)]
     (letfn [(zero-mod-pi? [x]
               (or (sym/zero-mod-pi? x)
-                  (or (v/integral?
-                       (simplify (sym:div x 'pi))))))
+                  (v/integral?
+                   (simplify (sym:div x 'pi)))))
 
             (pi-over-2-mod-2pi? [x]
               (or (sym/pi-over-2-mod-2pi? x)
@@ -1591,8 +1590,8 @@ out of the first term of the argument."}
     (* (? #(g/invert (% '?d))) ?n))))
 
 (defn ^:no-doc occurs-in? [syms all]
-  (not
-   (empty?
+  (boolean
+   (seq
     (cs/intersection syms all))))
 
 (defn universal-reductions
@@ -1605,7 +1604,6 @@ out of the first term of the argument."}
         sim-root (simplify-square-roots simplify)]
     (fn [expr]
       (let [syms     (x/variables-in expr)
-            logexp?  (occurs-in? #{'log 'exp} syms)
             sincos?  (occurs-in? #{'sin 'cos} syms)
             invtrig? (occurs-in? #{'asin 'acos 'atan} syms)
             logexp?  (occurs-in? #{'log 'exp} syms)

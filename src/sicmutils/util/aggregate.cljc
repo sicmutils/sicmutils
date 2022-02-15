@@ -19,8 +19,8 @@
 
 (ns sicmutils.util.aggregate
   "Namespace with algorithms for aggregating sequences in various ways."
-  (:require [sicmutils.generic :as g]
-            [sicmutils.algebra.fold :as af]))
+  (:require [sicmutils.algebra.fold :as af]
+            [sicmutils.generic :as g]))
 
 (def ^{:doc "Sums either:
 

@@ -18,8 +18,8 @@
 ;;
 
 (ns sicmutils.expression.analyze-test
-  (:require [clojure.test :refer [is deftest testing]]
-            [clojure.string :as cs]
+  (:require [clojure.string :as cs]
+            [clojure.test :refer [is deftest testing]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.polynomial :as poly]))
 
@@ -39,7 +39,6 @@
     (let [backend poly/analyzer
           gensym (a/monotonic-symbol-generator "-s-")
           pa (a/make-analyzer backend gensym)
-          new-analysis! (a/initializer pa)
           simplify (a/expression-simplifier pa)
           simplify-and-reset (a/default-simplifier pa)
           analyze (a/expression-analyzer pa)

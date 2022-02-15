@@ -25,7 +25,6 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.exponent :as xpt]
             [sicmutils.polynomial.impl :as pi]
-            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stopwatch :as us]

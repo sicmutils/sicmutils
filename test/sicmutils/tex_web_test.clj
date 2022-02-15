@@ -20,13 +20,16 @@
 (ns sicmutils.tex-web-test
   (:refer-clojure :exclude [+ - * / = compare ref partial zero?
                             numerator denominator])
-  (:require [hiccup.core :refer :all]
-            [hiccup.page :refer :all]
-            [clojure.string :as s]
-            [sicmutils.env :refer :all]
-            [sicmutils.examples.driven-pendulum :as driven]
+  (:require [clojure.string :as s]
+            [hiccup.page :refer [html5 include-css include-js]]
+            [sicmutils.env :refer [+ * /
+                                   ->TeX simplify
+                                   D
+                                   up down taylor-series
+                                   tan expt series:sum exp literal-function]]
+            [sicmutils.examples.central-potential :as central]
             [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.examples.central-potential :as central])
+            [sicmutils.examples.driven-pendulum :as driven])
   (:gen-class))
 
 (defn generate-page
@@ -42,7 +45,8 @@
      (include-js "http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js")]
     [:body
      (for [[name eqn]
-           [["series" (simplify (series:sum (((exp (* 'epsilon D)) (literal-function 'g)) 'x) 5))]
+           [["series" (simplify
+                       (series:sum (((exp (* 'epsilon D)) (literal-function 'g)) 'x) 5))]
             ["accents" (simplify (+ 'x
                                     'ydot
                                     'rhodotdot
@@ -75,4 +79,5 @@
                            (s/escape t {\\ "\\\\"})
                            name)]]))])))
 
-;; (generate-page)
+(comment
+  (generate-page))

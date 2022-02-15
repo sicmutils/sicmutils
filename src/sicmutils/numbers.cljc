@@ -31,19 +31,17 @@
                            * core-times}
                   #?@(:cljs [:exclude [zero? / + - *]]))
   (:require [sicmutils.complex :refer [complex]]
-            [sicmutils.ratio :as r]
+            #?(:cljs [sicmutils.ratio :as r])
 
             ;; Required to enable the generic gcd implementation.
             [sicmutils.euclid]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            #?(:cljs [goog.math.Long :as Long])
-            #?(:cljs [goog.math.Integer :as Integer]))
+            [sicmutils.value :as v])
   #?(:cljs
      (:import (goog.math Long Integer))
      :clj
-     (:import (clojure.lang BigInt Ratio)
+     (:import (clojure.lang BigInt)
               (java.math BigInteger)
               (org.apache.commons.math3.util ArithmeticUtils))))
 
@@ -72,7 +70,7 @@
   #?(:clj (long a)
      :cljs (Math/trunc a)))
 
-(defmethod g/infinite? [::v/integral] [a] false)
+(defmethod g/infinite? [::v/integral] [_] false)
 (defmethod g/infinite? [::v/real] [a]
   #?(:clj (or (= a ##Inf)
               (= a ##-Inf))
@@ -80,7 +78,7 @@
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
-(defmethod g/imag-part [::v/real] [a] 0)
+(defmethod g/imag-part [::v/real] [_] 0)
 
 (defmethod g/angle [::v/real] [a]
   (if (neg? a)
@@ -208,7 +206,7 @@
   (exact-divide b a))
 
 (defmethod g/integer-part [::v/integral] [a] a)
-(defmethod g/fractional-part [::v/integral] [a] 0)
+(defmethod g/fractional-part [::v/integral] [_] 0)
 (defmethod g/floor [::v/integral] [a] a)
 (defmethod g/ceiling [::v/integral] [a] a)
 
@@ -322,7 +320,7 @@
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
-     (defmethod g/magnitude [js/BigInt] [a b]
+     (defmethod g/magnitude [js/BigInt] [a]
        (if (neg? a) (core-minus a) a))
 
      (defmethod g/div [js/BigInt js/BigInt] [a b]

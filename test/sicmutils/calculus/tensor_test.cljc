@@ -19,16 +19,15 @@
 
 (ns sicmutils.calculus.tensor-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.calculus.connection :as conn]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.curvature :as curv]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ - *]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [up down]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 

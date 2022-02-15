@@ -22,8 +22,8 @@
 
   - code to wrap a sequence of progressively better estimates in a common `integrator` interface
   - data structures implementing various integration intervals."
-  #?(:cljs (:refer-clojure :exclude [infinite?]
-                           :rename {infinite? core-infinite?}))
+  (:refer-clojure :exclude [infinite?]
+                  :rename {infinite? core-infinite?})
   (:require [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 
@@ -56,9 +56,6 @@
 (def open-closed [::open ::closed])
 (def closed-open [::closed ::open])
 (def infinities #{##Inf ##-Inf})
-(def infinite?
-  #?(:cljs core-infinite?
-     :clj (comp boolean infinities)))
 
 (defn closed?
   "Returns true if the argument represents an explicit `closed` interval, false

@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.examples.pendulum-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :refer [up simplify]]
             [sicmutils.examples.pendulum :as p]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]

@@ -18,14 +18,13 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.midpoint
-  (:require [sicmutils.polynomial.richardson :as pr]
+  (:require [sicmutils.generic :as g]
             [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
-            [sicmutils.generic :as g]
+            [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
-            [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.aggregate :as ua]))
 
 ;; ## Midpoint Method
 ;;
@@ -74,9 +73,9 @@
 
 ;; Let's integrate a triangle!
 
-#_
-(= (* 0.5 10 10)
-   ((midpoint-sum* identity 0.0 10.0) 10))
+(comment
+  (= (* 0.5 10 10)
+     ((midpoint-sum* identity 0.0 10.0) 10)))
 ;; => true
 
 ;; ## Efficient Midpoint Method
@@ -88,9 +87,9 @@
 ;;
 ;; We can check our implementation against `qr/midpoint-sum`:
 
-#_
-(= ((midpoint-sum* identity 0.0 100.0) 10)
-   ((qr/midpoint-sum identity 0.0 100.0) 10))
+(comment
+  (= ((midpoint-sum* identity 0.0 100.0) 10)
+     ((qr/midpoint-sum identity 0.0 100.0) 10)))
 
 ;; We'll use `qr/midpoint-sum` in the upcoming functions.
 
@@ -177,17 +176,17 @@
 ;; only performs 253 function evaluations, vs the 315 of the non-incremental
 ;; `(midpoint-sum f2 0 1)` mapped across the points.
 
-#_
-(let [f (fn [x] (/ 4 (+ 1 (* x x))))
-      [counter1 f1] (u/counted f)
-      [counter2 f2] (u/counted f)
-      n-seq (interleave
-             (iterate (fn [x] (* 2 x)) 2)
-             (iterate (fn [x] (* 2 x)) 3))]
-  (dorun (take 12 (midpoint-sequence f1 0 1 {:n n-seq})))
-  (dorun (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
-  (= [253 315]
-     [@counter1 @counter2]))
+(comment
+  (let [f (fn [x] (/ 4 (+ 1 (* x x))))
+        [counter1 f1] (u/counted f)
+        [counter2 f2] (u/counted f)
+        n-seq (interleave
+               (iterate (fn [x] (* 2 x)) 2)
+               (iterate (fn [x] (* 2 x)) 3))]
+    (dorun (take 12 (midpoint-sequence f1 0 1 {:n n-seq})))
+    (dorun (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
+    (= [253 315]
+       [@counter1 @counter2])))
 
 ;; ## Final Midpoint API
 ;;

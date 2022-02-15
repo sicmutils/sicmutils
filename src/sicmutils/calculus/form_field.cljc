@@ -28,13 +28,13 @@
   The namespace also contains two definitions of the [[wedge]]
   product ([[alt-wedge]] is the second), plus the [[exterior-derivative]]."
   (:require [sicmutils.abstract.function :as af]
-            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
-            [sicmutils.operator :as o]
-            [sicmutils.structure :as s]
+            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.operator :as o]
             [sicmutils.special.factorial :refer [factorial]]
+            [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.permute :as permute]
@@ -53,7 +53,7 @@
   "Returns a form field that returns, for any supplied vector field `vf`, a
   manifold function [[manifold/zero-manifold-function]] that maps every input
   manifold `point` to the scalar value 0."
-  [vf]
+  [_]
   m/zero-manifold-function)
 
 (defn get-rank

@@ -20,9 +20,9 @@
 (ns sicmutils.fdg.ch1-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * /
-                                         D compose
-                                         up down
+            [sicmutils.env :as e :refer [- * /
+                                         compose
+                                         up
                                          sin cos square
                                          R2-rect
                                          chart point
@@ -38,12 +38,12 @@
 
 (defn Lfree
   [mass]
-  (fn [[t q v]]
+  (fn [[_ _ v]]
     (* (/ 1 2) mass (square v))))
 
 (defn sphere->R3
   [R]
-  (fn [[t [theta phi] v]]
+  (fn [[_ [theta phi]]]
     (up (* R (sin theta) (cos phi))                         ; x
         (* R (sin theta) (sin phi))                         ; y
         (* R (cos theta)))))                                ; z
@@ -61,6 +61,7 @@
   (fn [[_ x v]]
     (let [e (e/coordinate-system->vector-basis coordsys)]
       ((L2 mass metric) ((point coordsys) x) (* e v)))))
+
 
 (define-coordinates t e/R1-rect)
 

@@ -22,15 +22,15 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
+            [sicmutils.calculus.connection :as conn]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.covariant :as cov]
-            [sicmutils.calculus.connection :as conn]
             [sicmutils.calculus.curvature :as curv]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :refer [compose]]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
             [sicmutils.value :as v]))
@@ -239,10 +239,7 @@
   (testing "MTW p205 spherical flat lorentz"
     (let [spherical-Lorentz m/R4-rect]
       (let-coordinates [[t r theta phi] spherical-Lorentz]
-        (let [spherical-Lorentz-basis
-              (b/coordinate-system->basis spherical-Lorentz)
-
-              spherical-Lorentz-metric
+        (let [spherical-Lorentz-metric
               (fn [c-2]
                 (fn [v1 v2]
                   (+ (* -1 c-2 (* (dt v1) (dt v2)))

@@ -24,11 +24,11 @@
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.expression :as x]
-            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.generic :as g :refer [+ - *]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
@@ -115,8 +115,7 @@
 
   (testing "to and from oneform-field bases"
     (let-coordinates [[x y] R2-rect]
-      (let [vb  (vf/coordinate-system->vector-basis R2-rect)
-            ofb (ff/coordinate-system->oneform-basis R2-rect)
+      (let [ofb (ff/coordinate-system->oneform-basis R2-rect)
             off (ff/coordinate-basis-oneform-field R2-rect 'f)
             vf  (vf/literal-vector-field 'vf R2-rect)
             R2-point ((m/point R2-rect) (up 'x0 'y0))
@@ -140,7 +139,6 @@
     (let-coordinates [[x y] R2-rect]
       (let [vb  (vf/coordinate-system->vector-basis R2-rect)
             ofb (ff/coordinate-system->oneform-basis R2-rect)
-            off (ff/coordinate-basis-oneform-field R2-rect 'f)
             R2-point ((m/point R2-rect) (up 'x0 'y0))
             components (down d:dx d:dy)
             rt-components (-> components
@@ -291,8 +289,7 @@
 
           X (vf/literal-vector-field 'X R3-rect)
           Y (vf/literal-vector-field 'Y R3-rect)
-          Z (vf/literal-vector-field 'Z R3-rect)
-          W (vf/literal-vector-field 'W R3-rect)]
+          Z (vf/literal-vector-field 'Z R3-rect)]
 
       (testing "wedge tests"
         (is (= '(+ (* (w_0 (up x0 y0 z0)) (X↑0 (up x0 y0 z0)))
@@ -337,8 +334,6 @@
             R3-cyl-point  ((m/point R3-cyl) (up 'r0 'theta0 'zeta0))
 
             w (ff/literal-oneform-field 'w R3-rect)
-            u (ff/literal-oneform-field 'u R3-rect)
-            v (ff/literal-oneform-field 'v R3-rect)
 
             X (vf/literal-vector-field 'X R3-rect)
             Y (vf/literal-vector-field 'Y R3-rect)

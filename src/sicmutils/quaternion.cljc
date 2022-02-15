@@ -29,13 +29,12 @@
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.util.logic :as ul]
-            [sicmutils.matrix :as m]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
+            [sicmutils.util.logic :as ul]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn Associative Counted
+     (:import (clojure.lang AFn Associative
                             MapEntry
                             IObj IFn IReduce IKVReduce
                             Indexed Sequential
@@ -151,14 +150,14 @@
   (one? [this] (one? this))
   (identity? [this] (one? this))
 
-  (zero-like [this]
+  (zero-like [_]
     (Quaternion. (v/zero-like r) 0 0 0 m))
-  (one-like [o]
+  (one-like [_]
     (Quaternion. (v/one-like r) 0 0 0 m))
-  (identity-like [o]
+  (identity-like [_]
     (Quaternion. (v/one-like r) 0 0 0 m))
 
-  (exact? [this]
+  (exact? [_]
     (and (v/exact? r)
          (v/exact? i)
          (v/exact? j)
@@ -197,7 +196,7 @@
        (entryAt [this k]
                 (when-let [v (.valAt ^Associative this k nil)]
                   (MapEntry. k v)))
-       (cons [_ o]
+       (cons [_ _]
              (throw
               (UnsupportedOperationException.
                (str "cons not suported on Quaternion instances. convert to"
@@ -215,7 +214,7 @@
                   3 k
                   not-found)
                 not-found))
-       (empty [this] (Quaternion. 0 0 0 0 m))
+       (empty [_] (Quaternion. 0 0 0 0 m))
        (equiv [this that] (.equals this that))
 
        Indexed
@@ -307,7 +306,7 @@
        (-empty [_] (Quaternion. 0 0 0 0 m))
 
        ICollection
-       (-conj [coll o]
+       (-conj [_ _]
               (throw
                (js/Error.
                 (str "conj not suported on Quaternion instances. convert to"
@@ -346,7 +345,7 @@
                  (throw
                   (js/Error.
                    "Quaternion's key for assoc must be 0, 1, 2 or 3."))))
-       (-contains-key? [coll k]
+       (-contains-key? [_ k]
                        (boolean
                         (#{0 1 2 3} k)))
 
@@ -367,7 +366,7 @@
                        (f k 3)))
 
        IReversible
-       (-rseq [coll] (list k j i r))
+       (-rseq [_] (list k j i r))
 
        IIterable
        (-iterator [this] (ranged-iterator (vec this) 0 4))
@@ -418,6 +417,7 @@
        (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
                 (evaluate this (into [a b c d e f g h i j k l m n o p q r s t] rest)))]))
 
+#_{:clj-kondo/ignore [:redefined-var]}
 (do (ns-unmap 'sicmutils.quaternion '->Quaternion)
     (defn ->Quaternion
       "Positional factory function for [[Quaternion]].
@@ -1400,8 +1400,8 @@
   (partial-derivative q selectors))
 
 (defmethod g/cross-product [::quaternion ::quaternion] [a b] (cross-product a b))
-(defmethod g/cross-product [::quaternion ::v/scalar] [a b] ZERO)
-(defmethod g/cross-product [::v/scalar ::quaternion] [a b] ZERO)
+(defmethod g/cross-product [::quaternion ::v/scalar] [_ _] ZERO)
+(defmethod g/cross-product [::v/scalar ::quaternion] [_ _] ZERO)
 (defmethod g/cross-product [::quaternion ::sc/complex] [a b]
   (let [i2 (sc/imaginary b)]
     (make 0 0

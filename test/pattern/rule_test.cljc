@@ -23,7 +23,6 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [pattern.match :as m]
-            [pattern.consequence :as c]
             [pattern.rule :as r :refer [=> !=>]
              #?@(:cljs [:include-macros true])]
             [sicmutils.ratio]))
@@ -49,7 +48,21 @@
 
   (is (= '(+ 10 12)
          ((r/consequence (+ ?b ?a)) {'?b 10 '?a 12}))
-      "consequences build functions."))
+      "consequences build functions.")
+
+  (let [z '?x]
+    (is (= '(+ 1 2 3)
+           ((r/consequence (+ (? ~z) ?y (? y)))
+            {'?x 1 '?y 2 'y 3}))
+        "consequence can splice in a matching symbol")))
+
+(deftest template-tests
+  ;; `f` is here to check the linter.
+  (let [f identity]
+    (is (= '(+ 1 {})
+           (r/template (+ 1 (? (fn [m] (f m))))))
+        "one-arg template works even with a binding form inside expecting a map.
+        In this case the map will ALWAYS be equal to {}")))
 
 (deftest rule-tests
   (testing "pattern* builds a matcher"
@@ -73,6 +86,23 @@
             (is (r/failed? (r/fail x)))
             (is (r/failed? ((r/rule ?x !=> ?x) x))))
 
+  (testing "pattern with spliced bindings"
+    (let [z 'x]
+      (is (= {'x [1 2], 'z 3}
+             ((r/pattern (+ (?? ~z) (? z odd?)))
+              '(+ 1 2 3)))
+          "binding attaches to `'x`, since the symbol is spliced in"))
+
+    (let [z ['z odd?]]
+      (is (= {'x [1 2], 'z 3}
+             ((r/pattern (+ (?? x) (? ~@z)))
+              '(+ 1 2 3))))
+
+      (is (r/failed?
+           ((r/pattern (+ (?? x) (? ~@z)))
+            '(+ 1 2 4)))
+          "the pattern doesn't end on an `odd?`, so it fails.")))
+
   (testing "simple rule test"
     (let [R (r/rule ((? a) (? b) (?? cs))
                     =>
@@ -92,7 +122,7 @@
   (testing "simple3"
     (let [R (r/rule (+ (? a)) => (? a))
           notR (r/rule (+ (? a)) !=> (? a))
-          evenR (r/rule (+ (? a)) #(even? ('a %)) (? a))]
+          evenR (r/rule (+ (? a)) (comp even? 'a) (? a))]
       (is (= 3 (R '(+ 3))))
       (is (r/failed? (notR '(+ 3))))
       (is (r/failed? (notR '(+ 8))))
@@ -158,13 +188,13 @@
           R (r/rule
              (~(m/eq '+) () ~(m/match-when odd? (m/bind '?a))
               ?a ??b)
-             => (* ~@(z) ?a ??b))]
+             => (* ~@[z] ?a ??b))]
       (is (= '(* 2 3 y z)
              (R '(+ () 3 3 y z)))))
 
     (let [z 2
           R (r/rule
-             (~(m/eq '+) () ?a ?a ??b) => (* ~@(z) ?a ??b))]
+             (~(m/eq '+) () ?a ?a ??b) => (* ~@[z] ?a ??b))]
       (is (= '(* 2 x y z)
              (R '(+ () x x y z)))
           "testing unquote, unquoting in an actual matcher vs a literal, and empty

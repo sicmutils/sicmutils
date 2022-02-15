@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * / zero?
-                                         D partial
+                                         D
                                          literal-manifold-function
                                          literal-vector-field
                                          up down
@@ -31,8 +31,7 @@
                                          Euler-angles
                                          let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.manifold :as m]
-            [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
+            [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-z-matrix]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

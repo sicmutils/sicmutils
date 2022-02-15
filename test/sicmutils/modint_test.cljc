@@ -24,7 +24,6 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.generic-test :as gt]
             [sicmutils.modint :as m]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))

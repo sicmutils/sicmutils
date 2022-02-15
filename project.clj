@@ -54,7 +54,7 @@
               :dependencies [[org.clojure/test.check "1.1.0"]
                              [cider/piggieback "0.5.0"]
                              [com.taoensso/tufte "2.2.0"]
-                             [com.gfredericks/test.chuck "0.2.10"]
+                             [com.gfredericks/test.chuck "0.2.13"]
                              [nrepl "0.7.0"]
                              [same/ish "0.1.4"]
                              [thheller/shadow-cljs "2.11.6"]]}}

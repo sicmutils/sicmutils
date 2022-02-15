@@ -20,13 +20,12 @@
 (ns sicmutils.fdg.ch3-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * /
-                                         D compose partial
+            [sicmutils.env :as e :refer [+ - *
                                          literal-function
                                          literal-manifold-function
                                          literal-vector-field
                                          up down
-                                         sin cos square exp
+                                         square exp
                                          point chart
                                          define-coordinates]
              #?@(:cljs [:include-macros true])]

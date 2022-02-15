@@ -1,0 +1,54 @@
+{:linters
+ {:sicmutils.pattern/binding-sym {:level :error}
+  :sicmutils.pattern/ignored-restriction {:level :warning}
+  :sicmutils.pattern/consequence-restriction {:level :error}
+  :sicmutils.pattern/ruleset-args {:level :error}
+
+  :sicmutils.abstract.function/invalid-binding {:level :error}
+
+  :sicmutils.calculus.coordinate/invalid-binding {:level :error}}
+
+ :lint-as
+ {sicmutils.numerical.quadrature.common/defintegrator clojure.core/def
+  sicmutils.util.def/import-vars potemkin/import-vars
+  sicmutils.util.def/defgeneric clojure.core/defmulti}
+
+ :hooks
+ {:analyze-call
+  {sicmutils.abstract.function/with-literal-functions
+   hooks.sicmutils.abstract.function/with-literal-functions
+
+   sicmutils.calculus.coordinate/define-coordinates
+   hooks.sicmutils.calculus.coordinate/define-coordinates
+
+   sicmutils.calculus.coordinate/let-coordinates
+   hooks.sicmutils.calculus.coordinate/let-coordinates
+
+   sicmutils.calculus.coordinate/using-coordinates
+   hooks.sicmutils.calculus.coordinate/using-coordinates
+
+   sicmutils.env/define-coordinates
+   hooks.sicmutils.calculus.coordinate/define-coordinates
+
+   sicmutils.env/let-coordinates
+   hooks.sicmutils.calculus.coordinate/let-coordinates
+
+   sicmutils.env/using-coordinates
+   hooks.sicmutils.calculus.coordinate/using-coordinates
+
+   sicmutils.env/bootstrap-repl!
+   hooks.sicmutils.env/bootstrap-repl!
+
+   sicmutils.env/literal-function
+   hooks.sicmutils.abstract.function/literal-function
+
+   sicmutils.env/with-literal-functions
+   hooks.sicmutils.abstract.function/with-literal-functions
+
+   sicmutils.util.def/import-def hooks.sicmutils.util.def/import-def
+
+   pattern.rule/consequence hooks.pattern.rule/consequence
+   pattern.rule/pattern hooks.pattern.rule/pattern
+   pattern.rule/rule hooks.pattern.rule/rule
+   pattern.rule/ruleset hooks.pattern.rule/ruleset
+   pattern.rule/template hooks.pattern.rule/template}}}

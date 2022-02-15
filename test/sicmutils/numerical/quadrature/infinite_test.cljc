@@ -19,12 +19,11 @@
 
 (ns sicmutils.numerical.quadrature.infinite-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? zeroish? with-comparator]
+            [same :refer [ish? zeroish?]
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
-            [sicmutils.numerical.quadrature.infinite :as qi]
-            [sicmutils.value :as v]))
+            [sicmutils.numerical.quadrature.infinite :as qi]))
 
 (def ^:private integrator
   (qa/adaptive bs/open-integral

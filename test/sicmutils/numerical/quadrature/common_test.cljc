@@ -31,11 +31,6 @@
     (is (not (qc/open? qc/closed)))
     (is (qc/open? "face") "Anything not closed is open."))
 
-  (testing "infinities"
-    (is (qc/infinite? ##Inf))
-    (is (qc/infinite? ##-Inf))
-    (is (not (qc/infinite? 10))))
-
   (testing "interval changing functions"
     (is (qc/closed? (qc/close-l qc/open-closed)))
     (is (qc/closed? (qc/close-r qc/closed-open)))
@@ -64,8 +59,8 @@
           estimates [1000 100 10 10]
           slim-estimate 3.14
           integrate (qc/make-integrator-fn
-                     (fn [f a b] slim-estimate)
-                     (fn [f a b opts] estimates))]
+                     (fn [_ _ _] slim-estimate)
+                     (fn [_ _ _ _] estimates))]
       (is (= {:converged? true
               :terms-checked 4
               :result 10}

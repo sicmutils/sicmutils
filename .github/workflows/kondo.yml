@@ -1,0 +1,34 @@
+name: Linter
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install clj-kondo
+        run: sudo ./bin/install-clj-kondo
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Cache kondo directory
+        uses: actions/cache@v2
+        with:
+          path: ~/.clj-kondo/.cache
+          key: ${{ runner.os }}-kondo
+          restore-keys: ${{ runner.os }}-kondo
+
+      - name: Run clj-kondo
+        run: |
+          clj-kondo --lint src test --config '{:output {:pattern "::{{level}} file={{filename}},line={{row}},col={{col}}::{{message}}"}}'

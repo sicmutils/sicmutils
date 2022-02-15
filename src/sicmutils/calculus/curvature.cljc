@@ -19,16 +19,13 @@
 
 (ns sicmutils.calculus.curvature
   (:require [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
-            [sicmutils.structure :as s]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.structure :as s]))
 
 ;; Riemann curvature "tensor" is pretty easy
 

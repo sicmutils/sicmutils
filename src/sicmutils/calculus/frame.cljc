@@ -18,8 +18,7 @@
 ;;
 
 (ns sicmutils.calculus.frame
-  (:require [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+  (:require [sicmutils.util :as u]))
 
 ;; ## Reference Frames, from frame_maker.scm.
 ;;

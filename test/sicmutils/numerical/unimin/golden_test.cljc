@@ -25,9 +25,9 @@
             [same :refer [ish? zeroish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as b]
-            [sicmutils.numerical.unimin.golden :as ug]))
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.value :as v]))
 
 (deftest golden-ratio-tests
   (testing "constants work as defined"
@@ -88,7 +88,7 @@
               (let [f (f offset)
                     upper (if (= lower upper) (inc lower) upper)
                     {:keys [lo hi]} (bracket-fn f {:xa lower :xb upper})
-                    {:keys [result value converged? iterations fncalls] :as m}
+                    {:keys [result iterations fncalls]}
                     (optimizer f lo hi
                                {:fn-tolerance 1e-10
                                 :callback (fn [[xa] [xl] [xr] [xb] _]

@@ -20,12 +20,11 @@
 (ns sicmutils.fdg.ch2-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ - * /
+            [sicmutils.env :as e :refer [+ - *
                                          D compose
                                          literal-function
                                          literal-manifold-function
-                                         up down
-                                         sin cos square cube sqrt atan
+                                         up cos square cube sqrt atan
                                          point chart
                                          S2-spherical S2-Riemann
                                          define-coordinates]

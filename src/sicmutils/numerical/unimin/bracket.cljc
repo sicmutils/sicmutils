@@ -19,8 +19,8 @@
 
 (ns sicmutils.numerical.unimin.bracket
   (:require [sicmutils.generic :as g]
-            [sicmutils.util :as u]
-            [sicmutils.numerical.unimin.golden :as ug]))
+            [sicmutils.numerical.unimin.golden :as ug]
+            [sicmutils.util :as u]))
 
 (def ^:private epsilon 1e-21)
 
@@ -76,7 +76,7 @@
   :grow-limit is the maximum factor that the parabolic interpolation can jump
   the function."
   [f {:keys [grow-limit] :or {grow-limit 110.0}}]
-  (fn [[xa fa :as a]
+  (fn [a
       [xb fb :as b]
       [xc fc :as c]]
     (let [;; If f(c) is < f(b) the minimum of the parabola will be far
@@ -173,11 +173,11 @@
        :as opts}]
    (let [[f-counter f] (u/counted f)
          step (bracket-step-fn f opts)
-         stop-fn (fn [[xa fa :as a] [xb fb :as b] [xc fc :as c] iteration]
+         stop-fn (fn [_ [_ fb] [_ fc] iteration]
                    (or (> iteration maxiter)
                        (> @f-counter maxfun)
                        (<= fb fc)))
-         complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
+         complete (fn [[xa :as a] b [xc :as c] iterations]
                     (let [m {:lo a
                              :mid b
                              :hi c
@@ -225,10 +225,10 @@
             step 10
             maxiter 1000}}]
    (let [[f-counter f] (u/counted f)
-         stop-fn (fn [[_ fa :as a] [_ fb :as b] [_ fc :as c] iteration]
+         stop-fn (fn [[_ fa] [_ fb] [_ fc] iteration]
                    (or (> iteration maxiter)
                        (<= fb (min fa fc))))
-         complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
+         complete (fn [[xa :as a] b [xc :as c] iterations]
                     (let [m {:lo a
                              :mid b
                              :hi c
@@ -238,14 +238,14 @@
                       (if (< xc xa)
                         (assoc m :lo c :hi a)
                         m)))
-         run (fn [[xa fa :as a] [xb fb :as b] [xc fc :as c] iter]
+         run (fn [[xa :as a] b [xc :as c] iter]
                (if (stop-fn a b c iter)
                  (complete a b c iter)
                  (let [xd (+ xc (- xc xa))]
                    (recur b c [xd (f xd)] (inc iter)))))
-         [[xb :as b] [xa :as a]] (ascending-by f start (+ start step))]
-     (let [xc (+ xb (- xb xa))]
-       (run a b [xc (f xc)] 0)))))
+         [[xb :as b] [xa :as a]] (ascending-by f start (+ start step))
+         xc (+ xb (- xb xa))]
+     (run a b [xc (f xc)] 0))))
 
 (defn bracket-max-scmutils
   "Identical to bracket-min-scmutils, except brackets a maximum of the supplied

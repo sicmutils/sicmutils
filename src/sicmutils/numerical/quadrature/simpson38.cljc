@@ -75,12 +75,12 @@
   NOTE: the Trapezoid method is able to reuse function evaluations as its
   windows narrow /only/ when increasing the number of integration slices by 2.
   Simpson's 3/8 rule increases the number of slices geometrically by a factor of
-  2 each time, so it will never hit the incremental path. You may want to
+  3 each time, so it will never hit the incremental path. You may want to
   memoize your function before calling `simpson38-sequence`."
   ([f a b] (simpson38-sequence f a b {:n 1}))
   ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}
-   (-> (qt/trapezoid-sequence f a b (us/powers 3 n))
+   (-> (qt/trapezoid-sequence f a b {:n (us/powers 3 n)})
        (pr/richardson-column 1 3 2 2))))
 
 (qc/defintegrator integral

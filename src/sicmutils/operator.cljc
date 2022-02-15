@@ -101,7 +101,7 @@
   #?@(:clj
       [ILookup
        (valAt [this k] (op:get this k))
-       (valAt [this k not-found]
+       (valAt [_ _ _]
               (u/illegal "Operators don't support the not-found arity of get!"))])
 
   Object
@@ -132,7 +132,7 @@
 
        ILookup
        (-lookup [this k] (op:get this k))
-       (-lookup [this k not-found]
+       (-lookup [_ _ _]
                 (u/illegal "Operators don't support the not-found arity of get!"))
 
        IFn

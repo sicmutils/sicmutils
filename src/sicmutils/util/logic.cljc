@@ -35,7 +35,7 @@
   that this is possible, and fail if it's provably false."
   ([assumption context]
    (assume! assumption context nil))
-  ([assumption context if-false]
+  ([assumption context _if-false]
    (when *log-assumptions?*
      (log/warn
       (str "Assuming " assumption " in " context)))

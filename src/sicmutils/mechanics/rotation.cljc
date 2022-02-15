@@ -19,9 +19,9 @@
 
 (ns sicmutils.mechanics.rotation
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.generic :as g :refer [cos sin + - * /]]
+  (:require [sicmutils.generic :as g :refer [cos sin + - *]]
             [sicmutils.matrix :as matrix]
-            [sicmutils.structure :as s :refer [up down]]))
+            [sicmutils.structure :as s :refer [up]]))
 
 (defn- rotate-x-matrix-2 [c s]
   (matrix/by-rows [1 0 0]

@@ -19,7 +19,7 @@
 
 (ns sicmutils.util.def
   #?(:clj
-     (:import (clojure.lang RT))))
+     (:import (clojure.lang Keyword RT))))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -76,7 +76,7 @@
         [attr options] (if (map? (first options))
                          [(first options) (next options)]
                          [{} options])
-        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)
+        kwd-klass (fork :clj Keyword :cljs 'cljs.core/Keyword)
         attr (assoc attr
                     :arity arity
                     :name (:name attr `'~f))]
@@ -146,7 +146,7 @@
   (In Clojurescript, only forms like `(def ~sym ~form)` are emitted, since the
   compiler does not currently error in case 2 and already handles emitting the
   warning for us.)"
-  [ns]
+  [#?(:clj ns :cljs _)]
   #?(:cljs
      (fn [sym form]
        `(def ~sym ~form))

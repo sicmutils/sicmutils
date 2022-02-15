@@ -128,8 +128,8 @@
   returns a predicate that only returns true if all of the predicates pass for
   its input, false otherwise.
 
-  If `pattern` has no restrictions or is some other input type, returns a else
-  returns a predicate that will always return `true`."
+  If `pattern` has no restrictions or is some other input type, returns a
+  predicate that will always return `true`."
   [pattern]
   (let [no-constraint (fn [_] true)]
     (if (simple-symbol? pattern)
@@ -213,9 +213,11 @@
   Changes:
 
   - `(? x) => (list '? 'x)`
-  - any unquoted symbol is quoted
-  - Any form unquoted like `~x` is left UNquoted
-  - Any form marked `~@(1 2 3)` is spliced in directly
+  - any bare symbol is quoted
+  - Any form unquoted like `~x` is left UNquoted, even in the symbol spot of `(?
+    ~sym ...)`
+  - Any form marked `~@[1 2 3]` is spliced in directly, EVEN in the symbol spot
+    of `(? ~@sym ...)`
 
   These rules proceed recursively down into map, vector and sequential data
   structures. (Recursion only pushes down into values for map-shaped patterns.)"
@@ -238,7 +240,12 @@
                   (segment? pattern)
                   (reverse-segment? pattern))
             (let [[k sym & preds] pattern]
-              `(list '~k '~sym ~@preds))
+              (if (unquote-splice? sym)
+                `(list* '~k (concat ~(unquoted-form sym) [~@preds]))
+                (let [sym (if (unquote? sym)
+                            (unquoted-form sym)
+                            `(quote ~sym))]
+                  `(list '~k ~sym ~@preds))))
             (compile-sequential pattern))
 
           (map? pattern)

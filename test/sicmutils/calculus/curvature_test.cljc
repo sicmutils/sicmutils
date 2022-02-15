@@ -26,15 +26,15 @@
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.covariant :as cov]
-            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.curvature :as c]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.mechanics.lagrange :refer [osculating-path]]
             [sicmutils.expression :as x]
             [sicmutils.function :refer [compose]]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.mechanics.lagrange :refer [osculating-path]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
@@ -405,7 +405,7 @@
 (comment
   (defn solve
     "Unimplemented."
-    [a b c])
+    [_a _b _c])
 
   (deftest hidden-solve-tests
     (testing "these tests depend on a solve function that we don't have yet.
@@ -534,13 +534,7 @@
   (let [R4 (m/make-manifold m/Rn 4)
         states (m/coordinate-system-at R4 :rectangular :origin)]
     (let-coordinates [[theta phi w0 w1] states]
-      (let [initial-state-d:dphi
-            ((m/point states) (up 'theta0 'phi0 0 1))
-
-            initial-state-d:dtheta
-            ((m/point states) (up 'theta0 'phi0 1 0))
-
-            ;; Assuming that the paths are integral curves of a vector field v,
+      (let [;; Assuming that the paths are integral curves of a vector field v,
             ;; we supply the vector field:
             G (fn [v]
                 (let [alphadot (dtheta v)
@@ -596,13 +590,7 @@
     ;; differential equation is a vector field on this manifold.
     (let-coordinates [[theta phi] M-rect
                       [Theta Phi w0 w1] states]
-      (let [initial-state-d:dphi
-            ((m/point states) (up 'theta0 'phi0 0 1))
-
-            initial-state-d:dtheta
-            ((m/point states) (up 'theta0 'phi0 1 0))
-
-            ;; Assuming that the paths are integral curves of a vector field v,
+      (let [;; Assuming that the paths are integral curves of a vector field v,
             ;; we supply the vector field:
             G (fn [v]
                 (let [alphadot (dTheta v)

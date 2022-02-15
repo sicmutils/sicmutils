@@ -19,13 +19,13 @@
 
 (ns sicmutils.calculus.basis-test
   (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.abstract.function :refer [literal-function]]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
              #?(:clj :refer :cljs :refer-macros) [let-coordinates]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.abstract.function :refer [literal-function]]
             [sicmutils.generic :as g]
             [sicmutils.structure :as s :refer [up down]]
             [sicmutils.value :as v]))
