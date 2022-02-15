@@ -1,5 +1,7 @@
 {:config-in-comment
- {:linters {:unresolved-symbol {:level :off}}}
+ {:linters
+  {:unresolved-symbol {:level :off}
+   :sicmutils.pattern/ruleset-args {:level :warning}}}
 
  :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"
                 "com.gfredericks/test.chuck"]

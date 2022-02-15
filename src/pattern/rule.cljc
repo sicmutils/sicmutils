@@ -578,3 +578,11 @@
   "Alias for [[rule-simplifier]]."
   [& rules]
   (apply rule-simplifier rules))
+
+;; Here's a repro. Neither the following form, nor the config change, seem to
+;; affect the custom linter.
+
+#_{:clj-kondo/ignore [:sicmutils.rule/ruleset-args]}
+(ruleset
+ (+ (? x) (? y))
+ (fn [m] (- ('?x m) ('?y m))))
