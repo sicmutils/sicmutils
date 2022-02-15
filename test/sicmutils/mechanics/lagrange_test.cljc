@@ -111,6 +111,17 @@
             (simplify
              (m/s->m vs (((g/expt D 2) L1) vs) vs)))))))
 
+(deftest action-tests
+  (letfn [(path
+            [t]
+            (s/up (s/+ (s/* 1 t) 7)
+                  (s/+ (s/* 3 t) 5)
+                  (s/+ (s/* 2 t) 1)))]
+    (is (= 210 (L/Lagrangian-action
+                (L/L-free-particle 3) path 0 10))
+        "Fixes a bug where non-compiled functions in CLJS would kick out
+        BigInts, or some other non-quadrature-compatible numeric type.")))
+
 (deftest lagrange-equations
   (testing "moved-from-simplify"
     (let [xy (up (f/literal-function 'x) (f/literal-function 'y))
