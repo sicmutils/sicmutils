@@ -1,7 +1,6 @@
 (ns hooks.sicmutils.calculus.coordinate
   (:require [clj-kondo.hooks-api :as api]))
 
-;; from coordinate
 (defn ^:no-doc symbols-from-prototype
   "Generates a list of symbols from the supplied argument prototype. The
   prototype is allowed to be a vector, a list like `(up x y)` or a bare symbol.

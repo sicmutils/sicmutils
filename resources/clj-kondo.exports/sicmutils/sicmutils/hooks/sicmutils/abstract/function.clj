@@ -1,7 +1,10 @@
 (ns hooks.sicmutils.abstract.function
   (:require [clj-kondo.hooks-api :as api]))
 
-(defn arrow-form? [signature]
+(defn- arrow-form?
+  "Returns true if the supplied node is a list node of the form `(-> ...)`, false
+  otherwise."
+  [signature]
   (and (api/list-node? signature)
        (= '-> (:value
                (first

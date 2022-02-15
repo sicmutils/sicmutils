@@ -4,6 +4,18 @@
 ;; TODO this is dumb because we are using the same code here to syntax check
 ;; inputs and outputs of rules.
 ;;
+;; TODO add linting of
+
+#_
+((rule (+ (? (fn [x] x)) 10) => 12) '(+ 12 11))
+
+;; check that, if we have a binding form on the LEFT side of the rule, that only
+;; a simple symbol is allowed in the first position.
+;;
+;; On the RIGHT side, in a consequence, we want to check that there is only ONE
+;; item in there; and that we leave it OUT if it's a symbol, leave it in
+;; otherwise.
+;;
 ;; it would be super helpful to tell people the rules with the linter.
 ;;
 ;; - you are only allowed to have a single function in the consequence ? or ?? spot
