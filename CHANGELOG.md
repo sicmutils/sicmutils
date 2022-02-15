@@ -7,6 +7,8 @@
   - patterns can now handle spliced and unquote-spliced inputs in their symbol
     position.
 
+  - `clj-kondo` config
+
 - #474:
 
   - `g/quotient` now supports inexact inputs, as LONG as the inputs are equal up

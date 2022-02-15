@@ -1,7 +1,12 @@
 {:linters
  {:sicmutils.pattern/binding-sym {:level :error}
   :sicmutils.pattern/ignored-restriction {:level :warning}
-  :sicmutils.pattern/consequence-restriction {:level :error}}
+  :sicmutils.pattern/consequence-restriction {:level :error}
+  :sicmutils.pattern/ruleset-args {:level :error}
+
+  :sicmutils.abstract.function/invalid-binding {:level :error}
+
+  :sicmutils.calculus.coordinate/invalid-binding {:level :error}}
 
  :lint-as
  {sicmutils.numerical.quadrature.common/defintegrator clojure.core/def

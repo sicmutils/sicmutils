@@ -1,15 +1,13 @@
 {:config-in-comment
  {:linters {:unresolved-symbol {:level :off}}}
 
- :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"]
+ :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"
+                "com.gfredericks/test.chuck"]
 
  :output {:exclude-files ["src/data_readers.clj"]}
 
  :hooks
- {:analyze-call {com.gfredericks.test.chuck.clojure-test/checking
-                 hooks.chuck/checking
-
-                 potemkin/import-def
+ {:analyze-call {potemkin/import-def
                  hooks.sicmutils.util.def/import-def}}
  :linters
  {:unsorted-required-namespaces {:level :warning}

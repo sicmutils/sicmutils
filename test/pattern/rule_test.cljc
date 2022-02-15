@@ -56,6 +56,14 @@
             {'?x 1 '?y 2 'y 3}))
         "consequence can splice in a matching symbol")))
 
+(deftest template-tests
+  ;; `f` is here to check the linter.
+  (let [f identity]
+    (is (= '(+ 1 {})
+           (r/template (+ 1 (? (fn [m] (f m))))))
+        "one-arg template works even with a binding form inside expecting a map.
+        In this case the map will ALWAYS be equal to {}")))
+
 (deftest rule-tests
   (testing "pattern* builds a matcher"
     (is (= {'?x 10} ((r/pattern* '?x) 10)))

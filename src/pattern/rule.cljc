@@ -121,9 +121,6 @@
     `(fn [~sym]
        ~(c/compile-skeleton sym form))))
 
-(let [f odd?]
-  (consequence (+ 1 (? (fn [m] (f ('x m)))))))
-
 (defmacro template
   "Provided with a single `form`, [[template]] is similar to Clojure's `unquote`
   facility, except that symbols are not prefixed by namespace. For example:
@@ -152,7 +149,7 @@
   ;;=> (+ 10 12 1 2 3 {?x 10, ?y 12, ??z [1 2 3]} 1 2)
   ```"
   ([form]
-   (c/compile-skeleton (gensym) form))
+   (c/compile-skeleton {} form))
   ([m form]
    (let [sym (gensym)]
      `(let [~sym ~m]
@@ -200,7 +197,6 @@
   fail. To successfully return `nil` or `false`, wrap the result in [[succeed]].
 
   Notes for the 3-argument case:
-
 
   - If the predicate returns `nil`, `false` or `failure`, the rule fails.
 

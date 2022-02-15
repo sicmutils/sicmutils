@@ -1,9 +1,6 @@
 (ns hooks.sicmutils.env
-  (:require [clj-kondo.hooks-api :as api]))
-
-(defn- ->declare [n]
-  (api/list-node
-   [(api/token-node 'declare) n]))
+  (:require [clj-kondo.hooks-api :as api]
+            [hooks.sicmutils.calculus.coordinate :as coord]))
 
 (defn bootstrap-repl!
   "Generates a form that looks like
@@ -18,7 +15,7 @@
         entries  (into (:clj analysis) (:cljs analysis))
         xform    (comp (filter
                         (comp #{'sicmutils.env} :ns val))
-                       (map (comp ->declare api/token-node key)))
+                       (map (comp coord/->declare api/token-node key)))
         declares (into [] xform entries)
         new-node (api/list-node
                   (list*
