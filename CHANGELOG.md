@@ -2,6 +2,11 @@
 
 ## [0.21.0]
 
+- new:
+
+  - patterns can now handle spliced and unquote-spliced inputs in their symbol
+    position.
+
 - #474:
 
   - `g/quotient` now supports inexact inputs, as LONG as the inputs are equal up

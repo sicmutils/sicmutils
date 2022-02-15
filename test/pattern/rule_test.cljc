@@ -48,7 +48,13 @@
 
   (is (= '(+ 10 12)
          ((r/consequence (+ ?b ?a)) {'?b 10 '?a 12}))
-      "consequences build functions."))
+      "consequences build functions.")
+
+  (let [z '?x]
+    (is (= '(+ 1 2 3)
+           ((r/consequence (+ (? ~z) ?y (? y)))
+            {'?x 1 '?y 2 'y 3}))
+        "consequence can splice in a matching symbol")))
 
 (deftest rule-tests
   (testing "pattern* builds a matcher"
@@ -71,6 +77,23 @@
             [x gen/any-equatable]
             (is (r/failed? (r/fail x)))
             (is (r/failed? ((r/rule ?x !=> ?x) x))))
+
+  (testing "pattern with spliced bindings"
+    (let [z 'x]
+      (is (= {'x [1 2], 'z 3}
+             ((r/pattern (+ (?? ~z) (? z odd?)))
+              '(+ 1 2 3)))
+          "binding attaches to `'x`, since the symbol is spliced in"))
+
+    (let [z ['z odd?]]
+      (is (= {'x [1 2], 'z 3}
+             ((r/pattern (+ (?? x) (? ~@z)))
+              '(+ 1 2 3))))
+
+      (is (r/failed?
+           ((r/pattern (+ (?? x) (? ~@z)))
+            '(+ 1 2 4)))
+          "the pattern doesn't end on an `odd?`, so it fails.")))
 
   (testing "simple rule test"
     (let [R (r/rule ((? a) (? b) (?? cs))

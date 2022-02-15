@@ -1,4 +1,9 @@
-{:lint-as
+{:linters
+ {:sicmutils.pattern/binding-sym {:level :error}
+  :sicmutils.pattern/ignored-restriction {:level :warning}
+  :sicmutils.pattern/consequence-restriction {:level :error}}
+
+ :lint-as
  {sicmutils.numerical.quadrature.common/defintegrator clojure.core/def
   sicmutils.util.def/import-vars potemkin/import-vars
   sicmutils.util.def/defgeneric clojure.core/defmulti}

@@ -121,13 +121,16 @@
     `(fn [~sym]
        ~(c/compile-skeleton sym form))))
 
+(let [f odd?]
+  (consequence (+ 1 (? (fn [m] (f ('x m)))))))
+
 (defmacro template
   "Provided with a single `form`, [[template]] is similar to Clojure's `unquote`
   facility, except that symbols are not prefixed by namespace. For example:
 
   ```clojure
   (let [x 10]
-    (template (+ ~x y z ~@(4 5))))
+    (template (+ ~x y z ~@[4 5])))
   ;;=> (+ 10 y z 4 5)
   ```
 
@@ -145,7 +148,7 @@
 
   ```clojure
   (let [m {'?x 10 '?y 12 '??z [1 2 3]}]
-    (template m (+ ?x ?y ??z ~m ~@(1 2))))
+    (template m (+ ?x ?y ??z ~m ~@[1 2])))
   ;;=> (+ 10 12 1 2 3 {?x 10, ?y 12, ??z [1 2 3]} 1 2)
   ```"
   ([form]
