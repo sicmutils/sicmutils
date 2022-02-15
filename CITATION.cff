@@ -8,6 +8,5 @@ authors:
   orcid: "https://orcid.org/0000-0002-0545-6360"
 title: "SICMUtils: Functional Computer Algebra in Clojure"
 version: 0.21.0
-doi: 10.5281/zenodo.1234
 date-released: 2016-04-01
 url: "https://github.com/sicmutils/sicmutils"
