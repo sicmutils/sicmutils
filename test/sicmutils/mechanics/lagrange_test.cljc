@@ -114,9 +114,9 @@
 (deftest action-tests
   (letfn [(path
             [t]
-            (s/up (s/+ (s/* 1 t) 7)
-                  (s/+ (s/* 3 t) 5)
-                  (s/+ (s/* 2 t) 1)))]
+            (up (g/+ (g/* 1 t) 7)
+                (g/+ (g/* 3 t) 5)
+                (g/+ (g/* 2 t) 1)))]
     (is (= 210 (L/Lagrangian-action
                 (L/L-free-particle 3) path 0 10))
         "Fixes a bug where non-compiled functions in CLJS would kick out
