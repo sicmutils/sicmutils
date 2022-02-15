@@ -130,7 +130,9 @@ forms (`:unquote` or `:unquote-splicing`, false otherwise.)"}
   pattern using [[lint-binding-form!]]"
   [{:keys [node]}]
   (let [[_ form pred] (:children node)
-        to-check (pattern-unquotes form lint-binding-form!)]
+        to-check (walk-node
+                  (some-fn lint-binding-form! restrictions unquotes)
+                  form)]
     {:node
      (api/vector-node
       (if pred
