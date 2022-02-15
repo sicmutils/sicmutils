@@ -200,25 +200,31 @@ experimentation and collaboration with them in modern environments.
 
 ## Citing SICMUtils
 
-To cite this repository:
+To cite this repository, see the "Cite this Repository" link on the top right of
+the Github page. Citation information is generated from
+[`CITATION.cff`](CITATION.cff).
+
+Here is the generated BibTeX entry:
 
 ```
-@software{sicmutils2016github,
-  author = {Colin Smith and Sam Ritchie},
-  title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
-  url = {http://github.com/sicmutils/sicmutils},
-  version = {0.21.0},
-  year = {2016},
+@software{Ritchie_SICMUtils_Functional_Computer_2016,
+author = {Ritchie, Sam and Smith, Colin},
+license = {GPL-3.0},
+month = {4},
+title = {{SICMUtils: Functional Computer Algebra in Clojure}},
+url = {https://github.com/sicmutils/sicmutils},
+version = {0.21.0},
+year = {2016}
 }
 ```
 
-In the above bibtex entry, the version number is intended to be that from
+In the above BibTeX entry, the version number is intended to be that from
 [project.clj](./project.clj), and the year corresponds to the project's
 open-source release.
 
 ## License
 
-GPL v3.
+[GPL v3](LICENSE).
 
 [CLJDOCS]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
