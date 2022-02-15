@@ -2,12 +2,60 @@
 
 ## [0.21.0]
 
-- new:
+- #477:
 
-  - patterns can now handle spliced and unquote-spliced inputs in their symbol
-    position.
+  - Adds tight integration with the
+    [`clj-kondo`](https://github.com/clj-kondo/clj-kondo) linter via an exported
+    clj-kondo configuration in the `resources` directory. All macros in the
+    library now offer pleasant linting to users. This is especially helpful for
+    the macros in `pattern.rule`, which now can offer live feedback to
+    pattern-matching authors.
 
-  - `clj-kondo` config
+    See `doc/linting.md` for details on various warnings reported, and
+    installation instructions for the clj-kondo config.
+
+    Thanks to @borkdude for all of his help getting this working, and making
+    this amazing project!
+
+  - All linter errors and warnings are now addressed, fixed and silenced for the
+    entire codebase, both `test` and `src` directories.
+
+  - A new Github Action will run the linter for every PR and push to master, and
+    annotate PRs with linter warnings and errors.
+
+  - `com.gfredericks/test.chuck` dev dependency upgraded to `0.2.13` to grab its
+    clj-kondo exported config.
+
+  - I found the following bugs with the help of the linter:
+
+    - Deleted the unused `sicmutils.differential/d:apply`.
+
+    - Fixed a bug with `sicmutils.expression.render/->JavaScript` not using the
+      second argument to `remainder`.
+
+    - deleted `sicmutils.numerical.quadrature.common` in favor of
+      `sicmutils.generic/infinite?`
+
+    - Fixed a broken integrator in `sicmutils.numerical.quadrature.simpson38`,
+      and fixed the tests to actually stress this code.
+
+    - Fixed a bug where
+      `sicmutils.numerical.quadrature.substitute/exponential-upper` was not
+      actually using its input function!
+
+    - unused `simplify` argument removed from
+      `sicmutils.simplify.rules/non-negative-factors!` and all uses.
+
+    - Bug fix in `sicmutils.special.elliptic/jacobi-elliptic-functions`; deep in
+      the gnarly fn, one of the branches returned nil instead of its required
+      values. Thank you, linter!
+
+    - `pattern.rule` patterns can now handle spliced and unquote-spliced inputs in
+      their symbol position.
+
+    - `sicmutils.pattern/template` will no longer error in the 1-arity case when
+      some form contains a binding entry like `(? (fn [m] ...))`. Instead, the
+      function will be passed an empty map.
 
 - #474:
 

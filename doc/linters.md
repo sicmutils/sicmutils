@@ -14,7 +14,6 @@ For all available linters offered by
 
 - [Linters](#linters)
     - [Installation](#installation)
-    - [Customizing Linters](#customizing-linters)
 - [Linter Directory](#linter-directory)
     - [Invalid Pattern Binding Symbol](#invalid-pattern-binding-symbol)
     - [Ignored Segment Restriction](#ignored-segment-restriction)
