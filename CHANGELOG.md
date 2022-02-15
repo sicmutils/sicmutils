@@ -2,12 +2,10 @@
 
 ## [0.21.0]
 
-- #
-
-  - `sicmutils.numerical.quadrature/definite-integral` now coerces the result of
-    non-compiled integrands in cljs to double. This prevents the @kloimhardt bug
-    where certain paths would produce `BigInt` instances and fail in quadrature
-    calls.
+- #480: `sicmutils.numerical.quadrature/definite-integral` now coerces the
+  result of non-compiled integrands in cljs to double. This prevents the
+  @kloimhardt bug where certain paths would produce `BigInt` instances and fail
+  in quadrature calls.
 
 - #477:
 
