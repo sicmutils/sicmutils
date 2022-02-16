@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.21.0]
+## [0.21.1]
 
 - #481:
 
@@ -70,6 +70,8 @@
     - `sicmutils.pattern/template` will no longer error in the 1-arity case when
       some form contains a binding entry like `(? (fn [m] ...))`. Instead, the
       function will be passed an empty map.
+
+## [0.21.0]
 
 - #474:
 
