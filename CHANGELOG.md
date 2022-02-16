@@ -2,6 +2,15 @@
 
 ## [0.21.0]
 
+- #
+
+  - fixes a long-standing (test-only) bug in `sicmutils.polynomial-test` around
+    palindromic polynomials
+
+  - Adds a new `x-degree` argument to `sicmutils.polynomial/univariate->dense`,
+    for padding the result with zeros in the case that you want to guarantee a
+    certain dense degree in the result.
+
 - #477:
 
   - Adds tight integration with the
