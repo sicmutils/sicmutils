@@ -856,7 +856,7 @@
   ([x] (univariate->dense x (degree x)))
   ([x x-degree]
    (if (coeff? x)
-     (into [x] (repeat (dec degree) 0))
+     (into [x] (repeat x-degree 0))
      (do (assert (univariate? x))
          (let [d (degree x)]
            (loop [terms (bare-terms x)
