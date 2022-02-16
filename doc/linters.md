@@ -39,8 +39,9 @@ To install the exported linter configuration:
    are using `deps.edn`, add the project to the map under `:deps`:
 
 ```clj
+;; See https://clojars.org/sicmutils to pick an explicit version!
 {:deps
- {sicmutils/sicmutils {:mvn/version "0.21.0"}}
+ {sicmutils/sicmutils {:mvn/version "RELEASE"}}
 ```
 
 2. Install clj-kondo using [these
