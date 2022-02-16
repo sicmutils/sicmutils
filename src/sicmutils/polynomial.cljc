@@ -848,26 +848,33 @@
   ;;=> [1 0 0 2 3 4]
   ```
 
+  Supplying the second argument `x-degree` will pad the right side of the
+  returning coefficient vector to be the max of `x-degree` and `(degree x)`.
+
   NOTE use [[lower-arity]] to generate a univariate polynomial in the first
   indeterminate, given a multivariate polynomial."
-  [x]
-  {:pre [(univariate? x)]}
-  (let [d (degree x)]
-    (loop [terms (bare-terms x)
-           acc (transient [])
-           i 0]
-      (if (> i d)
-        (persistent! acc)
-        (let [t  (first terms)
-              e  (i/exponents t)
-              md (xpt/monomial-degree e 0)]
-          (if (= md i)
-            (recur (rest terms)
-                   (conj! acc (i/coefficient t))
-                   (inc i))
-            (recur terms
-                   (conj! acc 0)
-                   (inc i))))))))
+  ([x] (univariate->dense x (degree x)))
+  ([x x-degree]
+   (if (coeff? x)
+     (into [x] (repeat x-degree 0))
+     (do (assert (univariate? x))
+         (let [d (degree x)]
+           (loop [terms (bare-terms x)
+                  acc (transient [])
+                  i 0]
+             (if (> i d)
+               (into (persistent! acc)
+                     (repeat (- x-degree d) 0))
+               (let [t  (first terms)
+                     e  (i/exponents t)
+                     md (xpt/monomial-degree e 0)]
+                 (if (= md i)
+                   (recur (rest terms)
+                          (conj! acc (i/coefficient t))
+                          (inc i))
+                   (recur terms
+                          (conj! acc 0)
+                          (inc i)))))))))))
 
 (defn ->power-series
   "Given a univariate polynomial `p`, returns a [[series/PowerSeries]]

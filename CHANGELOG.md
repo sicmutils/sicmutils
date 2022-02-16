@@ -2,6 +2,15 @@
 
 ## [0.21.0]
 
+- #481:
+
+  - fixes a long-standing (test-only) bug in `sicmutils.polynomial-test` around
+    palindromic polynomials
+
+  - Adds a new `x-degree` argument to `sicmutils.polynomial/univariate->dense`,
+    for padding the result with zeros in the case that you want to guarantee a
+    certain dense degree in the result.
+
 - #480: `sicmutils.numerical.quadrature/definite-integral` now coerces the
   result of non-compiled integrands in cljs to double. This prevents the
   @kloimhardt bug where certain paths would produce `BigInt` instances and fail

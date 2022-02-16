@@ -396,16 +396,47 @@
                 "mapping the power product promotes the constant to a
  polynomial."))
 
-  (checking "reciprocal polynomials" 100
-            [p (sg/polynomial)]
-            (let [p+p* (p/add p (p/reciprocal p))
-                  p-p* (p/sub p (p/reciprocal p))]
-              (is (v/= p+p* (p/reciprocal p+p*))
-                  "p+p* is palindromic")
+  (checking "univariate->dense with coeff" 100
+            [x sg/small-integral]
+            (is (= [x] (p/univariate->dense x))))
 
-              (is (v/= (g/negate p-p*)
-                       (p/reciprocal p-p*))
-                  "p+p* is anti-palindromic")))
+  (testing "univariate->dense unit"
+    (is (= [1] (p/univariate->dense 1 0)))
+    (is (= [1 0] (p/univariate->dense 1 1))))
+
+  (checking "univariate->dense with coeff" 100
+            [x (sg/polynomial :arity (gen/return 1))
+             n gen/nat]
+            (is (= (inc (max n (p/degree x)))
+                   (count (p/univariate->dense x n)))
+                "univariate->dense pads the resulting vector to make it
+                represent a polynomial of at least degree n.")
+
+            (is (= (inc n)
+                   (count
+                    (p/univariate->dense 1 n)))
+                "converting a constant to dense of degree n has n entries (1
+                extra for the constant)"))
+
+  (checking "reciprocal polynomials" 100
+            [p (sg/polynomial :arity (gen/return 1))]
+            (let [p+p*   (p/add p (p/reciprocal p))
+                  coeffs (p/univariate->dense p+p* (p/degree p))]
+              (is (= coeffs (rseq coeffs))
+                  "p+p* is palindromic"))
+
+            (let [p-p*   (p/sub p (p/reciprocal p))
+                  coeffs (p/univariate->dense p-p* (p/degree p))]
+              (is (= (g/negate coeffs) (rseq coeffs))
+                  "p-p* is anti-palindromic")))
+
+  (testing "reciprocal unit"
+    (let [x      (p/identity)
+          p      (g/+ (g/square x) x -1)
+          p+p*   (p/add p (p/reciprocal p))
+          coeffs (p/univariate->dense p+p* (p/degree p))]
+      (is (= coeffs (rseq coeffs))
+          "p+p* is palindromic for p(x) = x^2+x-1")))
 
   (checking "reciprocal of a constant acts as identity" 100
             [x sg/number]
