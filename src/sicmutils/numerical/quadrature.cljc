@@ -185,7 +185,10 @@
                 info? false}
            :as opts}]
    (if-let [[integrate m] (get-integrator method a b opts)]
-     (let [f      (if compile? (c/compile-fn f 1) f)
+     (let [f      (if compile?
+                    (c/compile-fn f 1)
+                    #?(:cljs (comp u/double f)
+                       :clj f))
            result (integrate f a b m)]
        (if info? result (:result result)))
      (u/illegal (str "Unknown method: " method
