@@ -309,26 +309,27 @@
   arguments; the new frame and the remaining elements in `xs`. This is a
   different contract than all other matchers, making `segment` appropriate for
   use inside `sequence`."
-  [sym]
-  (as-segment-matcher
-   (fn segment-match [frame xs succeed]
-     (let [xs (core:or xs [])]
-       (when (sequential? xs)
-         (if-let [binding (core:and
-                           (core:not (s/wildcard? sym))
-                           (frame sym))]
-           (let [binding-count (count binding)]
-             (when (= (take binding-count xs) binding)
-               (succeed frame (drop binding-count xs))))
-           (loop [prefix []
-                  suffix xs]
-             (let [new-frame (if (s/wildcard? sym)
-                               frame
-                               (assoc frame sym prefix))]
-               (core:or (succeed new-frame suffix)
-                        (core:and (seq suffix)
-                                  (recur (conj prefix (first suffix))
-                                         (next suffix))))))))))))
+  ([sym] (segment sym (constantly true)))
+  ([sym pred]
+   (as-segment-matcher
+    (fn segment-match [frame xs succeed]
+      (let [xs (core:or xs [])]
+        (when (sequential? xs)
+          (if-let [binding (core:and
+                            (core:not (s/wildcard? sym))
+                            (frame sym))]
+            (let [binding-count (count binding)]
+              (when (= (take binding-count xs) binding)
+                (succeed frame (drop binding-count xs))))
+            (loop [prefix []
+                   suffix xs]
+              (let [new-frame (if (s/wildcard? sym)
+                                frame
+                                (assoc frame sym prefix))]
+                (core:or (succeed new-frame suffix)
+                         (core:and (seq suffix)
+                                   (recur (conj prefix (first suffix))
+                                          (next suffix)))))))))))))
 
 (defn- entire-segment
   "Similar to [[segment]], but matches the entire remaining sequential argument
@@ -339,17 +340,25 @@
   introduces NO new bindings.
 
   Calls its continuation with the new frame and `nil`, always."
-  [sym]
-  (as-segment-matcher
-   (fn entire-segment-match [frame xs succeed]
-     (let [xs (core:or xs [])]
-       (when (sequential? xs)
-         (if (s/wildcard? sym)
-           (succeed frame nil)
-           (if-let [binding (frame sym)]
-             (when (= xs binding)
-               (succeed frame nil))
-             (succeed (assoc frame sym xs) nil))))))))
+  ([sym] (entire-segment sym (constantly true)))
+  ([sym pred]
+   ;; can we do predicate pred in there, as segment matcher?
+   (as-segment-matcher
+    (fn entire-segment-match [frame xs succeed]
+      (let [xs (core:or xs [])]
+        (when (sequential? xs)
+          (if (core:and (s/wildcard? sym) (pred xs))
+            (succeed frame nil)
+            (if-let [binding (frame sym)]
+              (when (core:and (= xs binding) (pred xs))
+                (succeed frame nil))
+              (when (pred xs)
+                (succeed (assoc frame sym xs) nil))))))))))
+
+;; test that predicates applied to multiple instances all stack up.
+#_
+((rule (+ (? x odd?) (? x #{1})) => (+ 2))
+ '(+ 1 1))
 
 (defn reverse-segment
   "Returns a matcher that takes a binding variable `sym`, and succeeds if it's
@@ -439,7 +448,8 @@
               (s/restriction pattern))
 
         (s/segment? pattern)
-        (segment (s/variable-name pattern))
+        (segment (s/variable-name pattern)
+                 (s/restriction pattern))
 
         (s/reverse-segment? pattern)
         (reverse-segment (s/reverse-segment-name pattern))
@@ -454,7 +464,9 @@
            (concat (map pattern->combinators (butlast pattern))
                    (let [p (last pattern)]
                      [(if (s/segment? p)
-                        (entire-segment (s/variable-name p))
+                        (entire-segment
+                         (s/variable-name p)
+                         (s/restriction p))
                         (pattern->combinators p))]))))
 
         :else (eq pattern)))
@@ -520,7 +532,7 @@
    (let [match (pattern->combinators pattern)
          success (fn [frame]
                    (when-let [m (pred frame)]
-                     (when (and m (not (failed? m)))
+                     (when (core:and m (not (failed? m)))
                        (if (map? m)
                          (merge frame m)
                          frame))))]
