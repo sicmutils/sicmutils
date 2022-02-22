@@ -2,8 +2,8 @@
 
 ## unreleased
 
-- Add `sicmutils.polynomial/from-power-series`, for generating a polynomial
-  instance from some prefix of a (univariate) power series.
+- #484 adds `sicmutils.polynomial/from-power-series`, for generating a
+  polynomial instance from some prefix of a (univariate) power series.
 
 ## [0.21.1]
 
