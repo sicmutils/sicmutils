@@ -308,6 +308,24 @@
                        (take (count coeffs) series))
                     "series values are correct"))))
 
+  (checking "power-series round trip" 100
+            [p (sg/polynomial :arity 1)]
+            (let [d (p/degree p)
+                  rt (-> (p/->power-series p)
+                         (p/from-power-series d))]
+              (is (= p rt)
+                  "polynomial round trips through power series")))
+
+  (testing "from-power-series unit"
+    (is (= '(+ (* (/ 1 24) (expt x 4))
+               (* (/ 1 6) (expt x 3))
+               (* (/ 1 2) (expt x 2))
+               x
+               1)
+           (v/freeze
+            (g/simplify
+             ((p/from-power-series ss/exp-series 4) 'x))))))
+
   (checking "p/make returns zero only if first entry is zero" 100
             [arity gen/nat
              x sg/number]
