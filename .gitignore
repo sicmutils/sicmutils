@@ -16,3 +16,4 @@ node_modules
 package-lock.json
 public/
 .clj-kondo/.cache
+.clerk/cache

@@ -24,7 +24,7 @@
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
-                 [org.clojure/clojurescript "1.10.773" :scope "provided"]
+                 [org.clojure/clojurescript "1.11.4" :scope "provided"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [borkdude/sci "0.2.7"]
@@ -48,16 +48,19 @@
                    :benchmark :benchmark}
   :profiles {:dev
              {:plugins [[lein-cloverage "1.2.1"]]
+              :source-paths ["dev"]
               :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
               :repl-options {:nrepl-middleware
                              [cider.piggieback/wrap-cljs-repl]}
               :dependencies [[org.clojure/test.check "1.1.0"]
-                             [cider/piggieback "0.5.0"]
+                             [cider/piggieback "0.5.3"]
                              [com.taoensso/tufte "2.2.0"]
                              [com.gfredericks/test.chuck "0.2.13"]
-                             [nrepl "0.7.0"]
+                             [io.github.nextjournal/clerk "0.5.346"
+                              :exclusions [org.clojure/tools.deps.alpha]]
+                             [nrepl "0.9.0"]
                              [same/ish "0.1.4"]
-                             [thheller/shadow-cljs "2.11.6"]]}}
+                             [thheller/shadow-cljs "2.17.4"]]}}
   :deploy-repositories [["clojars"
                          {:url "https://repo.clojars.org"
                           :username :env/clojars_username
