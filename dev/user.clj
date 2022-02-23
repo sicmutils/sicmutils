@@ -1,7 +1,6 @@
-(ns user)
-#_#_(ns user
-      (:require [nextjournal.clerk :as clerk]
-                [sicmutils.env]))
+(ns user
+  (:require [nextjournal.clerk :as clerk]
+            [sicmutils.env]))
 
 (clerk/serve!
  {:browse? true :port 7778})

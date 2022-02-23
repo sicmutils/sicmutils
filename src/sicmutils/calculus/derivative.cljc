@@ -49,20 +49,20 @@
 ;;
 ;; How do we interpret the case where `((D f) x)` produces a _function_?
 ;;
-;; [Manzyuk et al. 2019](https://arxiv.org/pdf/1211.4892.pdf) extends =D= to
-;; functions =f= of type $\mathbb{R}^n \rightarrow \alpha$, where
+;; [Manzyuk et al. 2019](https://arxiv.org/pdf/1211.4892.pdf) extends `D` to
+;; functions `f` of type $\mathbb{R}^n \rightarrow \alpha$, where
 ;;
 ;; $$\alpha::=\mathbb{R}^m \mid \alpha_{1} \rightarrow \alpha_{2}$$
 ;;
 ;; By viewing
 ;;
-;; - =f= as a (maybe curried) multivariable function that /eventually/ must
+;; - `f` as a (maybe curried) multivariable function that _eventually_ must
 ;;   produce an $\mathbb{R}^m$
-;; - The derivative =(D f)= as the partial derivative with respect to the first
-;;   argument of =f=
+;; - The derivative `(D f)` as the partial derivative with respect to the first
+;;   argument of `f`
 ;;
-;; A 3-level nest of functions will respond to =D= just like the flattened,
-;; non-higher-order version would respond to =(partial 0)=. In other words,
+;; A 3-level nest of functions will respond to `D` just like the flattened,
+;; non-higher-order version would respond to `(partial 0)`. In other words,
 ;; these two forms should evaluate to equivalent results:
 
 (comment
@@ -70,12 +70,14 @@
             (fn [y]
               (fn [z]
                 (g/* x y z))))]
-    ((((D f) 'x) 'y) 'z)))
-;;=> (* y z)
+    ((((D f) 'x) 'y) 'z))
+  ;;=> (* y z)
+  )
 
 (comment
-  (((partial 0) g/*) 'x 'y 'z))
-;;=> (* y z)
+  (((partial 0) g/*) 'x 'y 'z)
+  ;;=> (* y z)
+  )
 
 ;; To `extract-tangent` from a function, we need to compose the
 ;; `extract-tangent` operation with the returned function.
@@ -109,12 +111,12 @@
 ;; instances meet (multiply, say) - should final return value treat them as the
 ;; /same/ instance?
 ;;
-;; Manzyuk et al. says /NO!/. If `((D f) x)` returns a function, that function
+;; Manzyuk et al. says _NO!_. If `((D f) x)` returns a function, that function
 ;; closes over:
 ;;
 ;; - the value of `x`
 ;; - an _intention_ to start the derivative-taking process on that isolated copy
-;;   of =x= once the final argument is supplied.
+;;   of `x` once the final argument is supplied.
 ;;
 ;; How does the implementation keep the values separate?
 ;;

@@ -34,7 +34,7 @@
             [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v]))
 
-;; Differentials, Dual Numbers and Automatic Differentiation
+;; ## Differentials, Dual Numbers and Automatic Differentiation
 ;;
 ;; This namespace develops an implementation of a type called [[Differential]].
 ;; A [[Differential]] is a generalization of a type called a ["dual
@@ -165,7 +165,7 @@
 ;; series expansion of $f$, the $\varepsilon$ multiplication rule will erase all
 ;; higher-order terms, leaving us with:
 ;;
-;; $$f(x+x'\varepsilon, y+y'\varepsilon) = f(x,y) + \[\partial_1 f(x,y)x' + \partial_2 f(x,y)y'\]\varepsilon$$
+;; $$f(x+x'\varepsilon, y+y'\varepsilon) = f(x,y) + \left[\partial_1 f(x,y)x' + \partial_2 f(x,y)y'\right]\varepsilon$$
 ;;
 ;; NOTE: See [[lift-2]] for an implementation of this idea.
 ;;
@@ -197,7 +197,7 @@
 ;; $$
 ;; \begin{aligned}
 ;; (x+ x'\varepsilon)*(y+y'\epsilon) &= xy+(xy')\varepsilon+(x'y)\varepsilon+(x'y')\epsilon^2 \\
-;; &= xy+(xy'+y'x)\varepsilon
+;; &= xy+(xy'+x'y)\varepsilon
 ;; \end{aligned}
 ;; $$
 ;;
@@ -240,8 +240,8 @@
 ;; the `x` received by `inner-d` will ALREADY be a dual number $x+\varepsilon$!
 ;; This will cause two immediate problems:
 ;;
-;; - `(make-dual x 1)` will return $(x+\varepsilon)+\varepsilon =
-;;   x+2\varepsilon$, which is not what we we want
+;; - `(make-dual x 1)` will return $(x+\varepsilon)+\varepsilon = x+2\varepsilon$,
+;;    which is not what we we want
 
 ;; - The `extract-tangent` call inside `inner-d` will return the `Df(x)`
 ;;   component of the dual number... which, remember, is no longer a dual
@@ -310,18 +310,20 @@
         (g (+ x offset))))))
 
 ;; `(derivative offset-fn)` here returns a function! Manzyuk et al. 2019 makes
-;; the reasonable claim that, if =(f x)= returns a function, then =(derivative
-;; f)= should treat =f= as a multi-argument function with its first argument
+;; the reasonable claim that, if `(f x)` returns a function, then `(derivative
+;; f)` should treat `f` as a multi-argument function with its first argument
 ;; curried.
 ;;
-;; Let's say =f= takes a number =x= and returns a function =g= that maps number
-;; => number. =(((derivative f) x) y)= should act just like the partial
+;; Let's say `f` takes a number `x` and returns a function `g` that maps number
+;; => number. `(((derivative f) x) y)` should act just like the partial
 ;; derivative of the equivalent multi-argument function, with respect to the
 ;; first argument:
 ;;
-;; =(((partial 0) f-flattened) x y)=
+;;```clj
+;;(((partial 0) f-flattened) x y)
+;;```
 ;;
-;; In other words, =(derivative offset-fn)= should act just like:
+;; In other words, `(derivative offset-fn)` should act just like:
 
 (comment
   (derivative
