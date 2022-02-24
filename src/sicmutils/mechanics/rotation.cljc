@@ -145,6 +145,7 @@
 (def rotate-y Ry)
 (def rotate-z Rz)
 
+;; TODO should move to `rigid` probably.
 (defn Euler->M
   "Compute the rotation matrix from a set of Euler angles."
   [[θ φ ψ]]
