@@ -13,6 +13,11 @@
     "npm": "6.14.8"
   },
   "devDependencies": {
+    "markdown-it": "12.2.0",
+    "markdown-it-block-image": "0.0.3",
+    "markdown-it-sidenote": "github:gerwitz/markdown-it-sidenote",
+    "markdown-it-texmath": "0.9.1",
+    "markdown-it-toc-done-right": "4.2.0",
     "source-map-support": "^0.5.20"
   }
 }
