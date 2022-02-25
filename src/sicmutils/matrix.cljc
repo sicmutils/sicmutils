@@ -559,7 +559,7 @@
   [m c]
   (fmap #(g/* % c) m))
 
-(defn- elementwise
+(defn ^:no-doc elementwise
   "Applies `f` elementwise between the matrices `a` and `b`. Throws if `a` and `b`
   don't have the same dimensions."
   [f a b]
