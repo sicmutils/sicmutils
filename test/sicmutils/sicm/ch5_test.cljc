@@ -57,7 +57,10 @@
                 (F->CT p->r)
                 (H/H-central 'm (literal-function 'V)))
                (up 't
+                   ;; TODO coordinate-tuple 'r 'phi
                    (up 'r 'phi)
+
+                   ;; TODO momentum-tuple 'r 'phi
                    (down 'p_r 'p_phi))))))
       (is (= '(up 0 0 0)
              (simplify
@@ -178,16 +181,7 @@
 
 #_{:clj-kondo/ignore [:unused-binding]}
 (deftest section-5-7
-  (let [shift-t (fn [delta-t]
-                  (fn [[t q p]]
-                    (up (+ t delta-t) q p)))
-        C->Cp (fn [C]
-                (fn [delta-t]
-                  (compose (C delta-t) (shift-t (- delta-t)))))
-        H->Hp (fn [delta-t]
-                (fn [H]
-                  (compose H (shift-t (- delta-t)))))
-        ;; going further means solving exercise 5.22.
+  (let [;; going further means solving exercise 5.22.
         ;; XXX at the moment, nothing below is tested, because we have to think
         ;; harder about this exercise
         C (fn [alpha omega omega0]

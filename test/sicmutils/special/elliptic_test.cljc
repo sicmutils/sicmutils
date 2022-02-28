@@ -253,41 +253,15 @@
       (is (near 2.510197 (period 1.80)))
       (is (near 2.624447 (period 1.95))))))
 
-;; Note from `scmutils` to accompany the following ports: "older definition of
-;; the complete elliptic integrals, probably from A&Stegun"
-
-(defn elliptic-integrals
-  "Computes the first and second complete elliptic integrals at once, and passes
-  them to the supplied continuation as args `K` and `E`."
-  [k continue]
-  (if (= k 1)
-    (continue ##Inf 1.0)
-    (loop [a        1.0
-           b        (Math/sqrt (- 1.0 (* k k)))
-           c        k
-           d        0.0
-           powers-2 1.0]
-      (if (< (Math/abs c) v/machine-epsilon)
-        (let [first-elliptic-integral (/ (/ Math/PI 2) a)]
-          (continue first-elliptic-integral
-                    (* first-elliptic-integral
-                       (- 1.0 (/ d 2.0)))))
-        (recur (/ (+ a b) 2.0)
-               (Math/sqrt (* a b))
-               (/ (- a b) 2.0)
-               (+ d (* (* c c) powers-2))
-               (* powers-2 2.0))))))
-
 (defn first-elliptic-integral
   "Complete elliptic integral of the first kind - see Press, 6.11.18."
   [k]
-  (elliptic-integrals k (fn [K _] K)))
-
+  (e/elliptic-integrals k (fn [K _] K)))
 
 (defn second-elliptic-integral
   "Complete elliptic integral of the second kind - see Press, 6.11.18."
   [k]
-  (elliptic-integrals k (fn [_ E] E)))
+  (e/elliptic-integrals k (fn [_ E] E)))
 
 (deftest elliptic-deriv-tests
   (checking "first-elliptic-integral-and-deriv" 100

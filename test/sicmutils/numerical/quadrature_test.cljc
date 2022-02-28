@@ -28,12 +28,16 @@
 
 (def ^:private near (v/within 1e-6))
 
-(def ^:private natural-log (partial q/definite-integral / 1.))
+(def ^:private natural-log
+  (partial q/definite-integral / 1.))
 
-(def ^:private sine (partial q/definite-integral #(Math/cos %) 0.))
+(def ^:private sine
+  (partial q/definite-integral #(Math/cos %) 0.))
 
 (defn bessel-j0 [x]
-  (/ (q/definite-integral #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
+  (/ (q/definite-integral
+       #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI)
+     Math/PI))
 
 (deftest basic-integral-tests
   (testing "default settings can handle easy integrals"

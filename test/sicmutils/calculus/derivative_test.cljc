@@ -608,6 +608,7 @@
 
 (deftest moved-from-structure-and-matrix
   (testing "as-matrix, D-as-matrix"
+    ;; TODO change this to use the Hamiltonian function sig stuff!
     (let [Hamiltonian2 '(-> (UP Real
                                 (UP Real Real)
                                 (DOWN Real Real))

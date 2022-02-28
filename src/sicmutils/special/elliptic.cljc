@@ -341,6 +341,31 @@
              (* (* sk sk)
                 (/ (carlson-rd cc q 1.0) 3.0)))))))
 
+;; Note from `scmutils` to accompany the following port: "older definition of
+;; the complete elliptic integrals, probably from A&Stegun"
+
+(defn elliptic-integrals
+  "Computes the first and second complete elliptic integrals at once, and passes
+  them to the supplied continuation as args `K` and `E`."
+  [k continue]
+  (if (= k 1)
+    (continue ##Inf 1.0)
+    (loop [a        1.0
+           b        (Math/sqrt (- 1.0 (* k k)))
+           c        k
+           d        0.0
+           powers-2 1.0]
+      (if (< (Math/abs c) v/machine-epsilon)
+        (let [first-elliptic-integral (/ (/ Math/PI 2) a)]
+          (continue first-elliptic-integral
+                    (* first-elliptic-integral
+                       (- 1.0 (/ d 2.0)))))
+        (recur (/ (+ a b) 2.0)
+               (Math/sqrt (* a b))
+               (/ (- a b) 2.0)
+               (+ d (* (* c c) powers-2))
+               (* powers-2 2.0))))))
+
 (defn k-and-deriv
   "Returns a pair of:
 
@@ -351,11 +376,11 @@
   [k]
   (if (= k 0.0)
     [(/ Math/PI 2) 0.0]
-    (let [Kk  (elliptic-k k)
-          Ek  (elliptic-e k)
-          DKk (/ (- (/ Ek (- 1 (* k k))) Kk)
-                 k)]
-      [Kk DKk])))
+    (letfn [(cont [Kk Ek]
+              (let [DKk (/ (- (/ Ek (- 1 (* k k))) Kk)
+                           k)]
+                [Kk DKk]))]
+      (elliptic-integrals k cont))))
 
 (defn elliptic-pi
   "The two-arity call returns the complete elliptic integral of the third kind -
@@ -383,7 +408,7 @@
 ;; ## Jacobi Elliptic Functions
 
 (defn- emc-u-d
-  "Internal helper to set constants for `Jacobi-elliptic-functions.`
+  "Internal helper to set constants for [[Jacobi-elliptic-functions]].
   "[emc u d]
   (let [bo (< emc 0.0)]
     (if bo
