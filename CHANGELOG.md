@@ -2,6 +2,14 @@
 
 ## unreleased
 
+- #489:
+
+  - Installs `g/log` and `g/exp` for `js/BigInt` instances, enabling `g/log2` and
+    `g/log10` in the mix.
+
+  - Removes most `js*` calls using `coercive-=` and `js-mod`. This form is
+    internal and should be avoided.
+
 - #484 adds `sicmutils.polynomial/from-power-series`, for generating a
   polynomial instance from some prefix of a (univariate) power series.
 
