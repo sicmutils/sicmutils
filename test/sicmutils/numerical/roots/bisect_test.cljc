@@ -22,6 +22,7 @@
             [same :refer [ish?]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
+            [sicmutils.numbers]
             [sicmutils.numerical.roots.bisect :as bi]
             [sicmutils.value :as v]))
 
@@ -92,4 +93,12 @@
         (let [[evals result] (kepler 0.99 0.01)]
           (is (= 25 evals))
           (is (ish? 0.3422703164917752
-                    result)))))))
+                    result))))))
+
+  (testing "search-for-roots"
+    (letfn [(poly [x] (* (- x 1) (- x 2) (- x 3)))]
+      (let [eps 1e-15
+            dx 2]
+        (is (ish? [1 2 3]
+                  (bi/search-for-roots poly -10 10 eps dx))
+            "search-for-roots finds all roots.")))))
