@@ -2,7 +2,7 @@
 
 ## unreleased
 
-- PR:
+- #489:
 
   - Installs `g/log` and `g/exp` for `js/BigInt` instances, enabling `g/log2` and
     `g/log10` in the mix.
