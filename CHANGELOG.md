@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- Add bisect.cljc
+
 - #484 adds `sicmutils.polynomial/from-power-series`, for generating a
   polynomial instance from some prefix of a (univariate) power series.
 
