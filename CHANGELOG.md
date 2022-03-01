@@ -10,6 +10,10 @@
   `sicmutils.numeric.{unimin, multimin}` namespaces. As more root-finding
   methods come online this should all standardize nicely.
 
+- #491 adds `sicmutils.mechanics.rotation/M->Euler`, for converting from a
+  rotation matrix to a triple of Euler angles. Now we can successfully round
+  trip.
+
 - #489:
 
   - Installs `g/log` and `g/exp` for `js/BigInt` instances, enabling `g/log2` and
