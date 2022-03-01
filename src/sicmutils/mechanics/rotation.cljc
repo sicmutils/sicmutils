@@ -147,27 +147,33 @@
 (def rotate-y Ry)
 (def rotate-z Rz)
 
-(defn Euler->M
-  "Compute the rotation matrix from a set of Euler angles."
-  [[θ φ ψ]]
-  (* (rotate-z-matrix φ)
-     (rotate-x-matrix θ)
-     (rotate-z-matrix ψ)))
-
 (defn wcross->w [A]
   (up (get-in A [1 2])
       (get-in A [2 0])
       (get-in A [0 1])))
 
+;; ## Rotation Matrix to Euler Angles
 
-;; RotationMatrix->EulerAngles.scm
+(defn Euler->M
+  "Compute the rotation matrix from a 3-vector of Euler angles.
 
-;;   Rotation Matrix to Euler Angles -- GJS, 28 Sept 2020
+  Our Euler Angle convention:
 
-;; Our Euler Angle convention:
-;;   M(theta, phi, psi) = R_z(phi)*R_x(theta)*R_z(psi)
+  M(theta, phi, psi) = R_z(phi)*R_x(theta)*R_z(psi)"
+  [[theta phi psi]]
+  (* (rotate-z-matrix phi)
+     (rotate-x-matrix theta)
+     (rotate-z-matrix psi)))
+
+;; Ported from code added to scmutils by GJS, 28 Sept 2020.
 
 (defn M->Euler
+  "Given a 3x3 rotation matrix, returns a [[sicmutils.structure/up]] of the
+  corresponding Euler angles.
+
+  Our Euler Angle convention:
+
+  M(theta, phi, psi) = R_z(phi)*R_x(theta)*R_z(psi)"
   ([M]
    (M->Euler M nil))
   ([M tolerance-in-ulps]
