@@ -296,10 +296,10 @@
    ;; These definitions are required for the protocol implementation below.
    (do
      (defmethod = [::native-integral js/BigInt] [l r]
-       (js*  "~{} == ~{}" l r))
+       (coercive-= l r))
 
      (defmethod = [js/BigInt ::native-integral] [l r]
-       (js*  "~{} == ~{}" l r))
+       (coercive-= l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
                           [::native-integral goog.math.Integer u/int]
@@ -342,7 +342,7 @@
      (-equiv [this o]
        (let [other (.valueOf o)]
          (if (u/bigint? other)
-           (js*  "~{} == ~{}" this other)
+           (coercive-= this other)
            (= this other))))
 
      IPrintWithWriter
@@ -412,9 +412,9 @@
 
      (extend-protocol Value
        js/BigInt
-       (zero? [x] (js*  "~{} == ~{}" big-zero x))
-       (one? [x] (js*  "~{} == ~{}" big-one x))
-       (identity? [x] (js*  "~{} == ~{}" big-one x))
+       (zero? [x] (coercive-= big-zero x))
+       (one? [x] (coercive-= big-one x))
+       (identity? [x] (coercive-= big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
        (identity-like [_] big-one)

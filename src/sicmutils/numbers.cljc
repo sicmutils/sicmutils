@@ -257,9 +257,9 @@
              (bigint-gcd [a b]
                (loop [a (abs a)
                       b (abs b)]
-                 (if (js* "~{} == ~{}" b 0)
+                 (if (coercive-= b 0)
                    a
-                   (recur b (js* "~{} % ~{}" a b)))))]
+                   (recur b (js-mod a b)))))]
 
        ;; The following GCD implementations use native operations to get more
        ;; speed than the generic implementation in `sicmutils.euclid`.
@@ -312,19 +312,14 @@
          (g/invert (js* "~{} ** ~{}" a (core-minus b)))
          (js* "~{} ** ~{}" a b)))
 
-     ;; Not ideal; TODO find a better way to calculate this without the
-     ;; downcast.
-     (defmethod g/sqrt [js/BigInt] [a]
-       (Math/sqrt (js/Number a)))
-
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
-     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
+     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js-mod a b))
      (defmethod g/magnitude [js/BigInt] [a]
        (if (neg? a) (core-minus a) a))
 
      (defmethod g/div [js/BigInt js/BigInt] [a b]
-       (let [rem (js* "~{} % ~{}" a b)]
+       (let [rem (js-mod a b)]
          (if (v/zero? rem)
            (core-div a b)
            (r/rationalize a b))))
@@ -347,12 +342,12 @@
 
      ;; BigInt can't handle these operations natively, so we override with a
      ;; downcast to number for now.
-
      (doseq [op [g/cos g/sin g/tan
                  g/asin g/acos g/atan
                  g/cosh g/sinh g/tanh
                  g/asinh g/acosh g/acosh
-                 g/cot g/sec g/csc g/sech g/csch]]
+                 g/cot g/sec g/csc g/sech g/csch
+                 g/log g/exp g/sqrt]]
        (defmethod op [js/BigInt] [a]
          (op (js/Number a))))
 
