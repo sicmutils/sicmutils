@@ -18,206 +18,200 @@
 ;;
 
 (ns sicmutils.numerical.roots.bisect
-  (:require [sicmutils.util.stream :as us]))
+  "This namespace contains implementations of a number of methods for root-finding
+  on real-valued functions of one argument.
+
+  NOTE: This namespace is not yet stable: Expect these functions to change as
+  new root-finding methods are added. "
+  (:require [sicmutils.util :as u]
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 ;; ## Root finding by successive bisection
-
-(def ^{:dynamic true
-       :doc "If `true` the functions in this namespace will throw an error when
-  encountering bounds of the same sign (in which no root is guaranteed.) If
-  `false`, functions will return false.
-
-  `false` by default."}
-  *bisect-error?* false)
-
-(def ^{:dynamic true
-       :doc "If bound to some function `f`, [[bisect]] will pass each vector `[x0,
-  x1]` it encounters during search to `f`."}
-  *bisect-tap* false)
+;;
+;; The [[bisect]] function below is really a combination of three methods of
+;; root-finding; bisection search, the [Secant
+;; method](https://en.wikipedia.org/wiki/Secant_method) and a mixed method found
+;; in scmutils.
+;;
+;; NOTE: As we bring in methods like `zbrent` it could be that the shell below
+;; should be shared for ALL root finding methods.
 
 (def ^{:dynamic true
        :doc "Controls the default behavior of [[bisect]]'s search.
   See [[bisect]]'s docstring for more info."}
   *bisect-break* 60)
 
-;; ### Simple bisection search
-;;
-;; Note from GJS: "In IEEE 754 binary floating point I think this will always
-;; converge to full precision, but I have not proved it."
+(def ^{:doc "Set of all methods allowed as `:method` options to [[bisect]]."}
+  all-methods
+  #{:bisection :secant :mixed})
 
-(defn bisect-1
-  "Given a smooth function `f` and (inclusive) lower and upper bounds `x0` and
-  `x1` on the domain, attempts to find a root of `f`, ie, a value `x` for
-  which `(f x)` is equal to 0.
+;; ## Success / Failure Utilities
 
-  [[bisect-1]] works by successively bisecting the range until it's not possible
-  to distinguish neighboring values.
+(defn- succeed
+  "Given some point `x` and its value `fx`, the number of `iterations` of the
+  root-finding algorithm, and the total number of calls `fncalls` of the
+  function `f`, returns a data structure representing successful completion."
+  [x fx iterations fncalls]
+  {:result     x
+   :value      fx
+   :iterations iterations
+   :converged? true
+   :fncalls    fncalls})
 
-  Errors if the bounds `x0` and `x1` do not contain a root."
-  [f x0 x1]
-  (let [fx0 (f x0)
-        fx1 (f x1)]
-    (if (> (* fx0 fx1) 0.0)
-      (if *bisect-error?*
-        (throw
-         (ex-info "root not bounded"
-                  {:x0 x0 :x1 x1 :fx0 fx0 :fx1 fx1}))
-        false)
-      (loop [x0 x0 fx0 fx0 x1 x1 fx1 fx1]
-        (cond (zero? fx0) x0
-              (zero? fx1) x1
-              :else
-              (let [xm (/ (+ x0 x1) 2.0)]
-                (cond (= x0 xm) x0
-                      (= x1 xm) x1
-                      :else
-                      (let [fxm (f xm)]
-                        (if (< (* fx1 fxm) 0.0)
-                          (recur xm fxm x1 fx1)
-                          (recur x0 fx0 xm fxm))))))))))
+(defn- fail
+  "Generates a 'failure'-type message."
+  [message a fa b fb iterations fncalls]
+  {:error message
+   :bounds
+   {:lower a :f-lower fa
+    :upper b :f-upper fb}
+   :iterations iterations
+   :converged? false
+   :fncalls fncalls})
 
-(defn bisect-2
-  "Given a smooth function `f` and (inclusive) lower and upper bounds `x0` and
-  `x1` on the domain, attempts to find a root of `f`, ie, a value `x` for
-  which `(f x)` is equal to 0.
+(defn ^:no-doc midpoint
+  "Implements the midpoint lookup given endpoints `a` and `b` of a range. Used in
+  the implementation of the [Bisection
+  method](https://en.wikipedia.org/wiki/Bisection_method#Iteration_tasks)"
+  [a b]
+  (* 0.5 (+ a b)))
 
-  Like [[bisect-1]], [[bisect-2]] successively bisects the domain of `f` in its
-  search for a root. Unlike [[bisect-1]], [[bisect-2]] terminates (and returns
-  the midpoint) when the down search narrows down to a bound less than `eps`
-  wide.
+(defn ^:no-doc secant-root
+  "Given two endpoints `[a fa]` and `[b fb]`, returns the root of a line drawn
+  between the two endpoints. Used in the implementation of the
+  [Secant
+  method](https://en.wikipedia.org/wiki/Secant_method)
 
-  Errors if the bounds `x0` and `x1` do not contain a root."
-  [f x0 x1 eps]
-  (let [close? (us/close-enuf? eps)]
-    (loop [x0 x0 fx0 (f x0) x1 x1 fx1 (f x1)]
-      (cond (zero? fx0) x0
-            (zero? fx1) x1
-            :else
-            (if (> (* fx1 fx0) 0.0)
-              (if *bisect-error?*
-                (throw
-                 (ex-info "root not bounded"
-                          {:x0 x0 :x1 x1 :fx0 fx0 :fx1 fx1}))
-                false)
-              (let [xm (/ (+ x0 x1) 2.0)]
-                (if (close? x0 x1)
-                  xm
-                  (let [fxm (f xm)]
-                    (if (< (* fx1 fxm) 0.0)
-                      (recur xm fxm x1 fx1)
-                      (recur x0 fx0 xm fxm))))))))))
+  NOTE that the signs of `fa` and `fb` must be opposite for the result to make
+  sense in the context of the secant method."
+  [a fa b fb]
+  (/ (- (* fb a) (* fa b))
+     (- fb fa)))
 
-;; ### Bisection with interpolation
-
-(defn bisect-fp
-  "Given a smooth function `f` and (inclusive) lower and upper bounds `x0` and
-  `x1` on the domain, attempts to find a root of `f`, ie, a value `x` for
-  which `(f x)` is equal to 0.
-
-  [[bisect-fp]] chooses the split point for its searches by interpolating
-  between `(x0, f(x0))` and `(x1, f(x1))` during each cut.
-
-  [[bisect-fp]] terminates (and returns the midpoint) when the search narrows
-  down to a bound less than `eps` wide.
-
-  Errors if the bounds `x0` and `x1` do not contain a root."
-  [f x0 x1 eps]
-  (let [close? (us/close-enuf? eps)]
-    (loop [x0 x0 fx0 (f x0) x1 x1 fx1 (f x1)]
-      (cond (zero? fx0) x0
-            (zero? fx1) x1
-            :else
-            (if (> (* fx1 fx0) 0.0)
-              (if *bisect-error?*
-                (throw
-                 (ex-info "root not bounded"
-                          {:x0 x0 :x1 x1 :fx0 fx0 :fx1 fx1}))
-                false)
-              (let [xm (/ (- (* fx1 x0)
-                             (* fx0 x1))
-                          (- fx1 fx0))]
-                (if (close? x0 x1)
-                  xm
-                  (let [fxm (f xm)]
-                    (if (< (* fx1 fxm) 0.0)
-                      (recur xm fxm x1 fx1)
-                      (recur x0 fx0 xm fxm))))))))))
-
-;; ### Mixed strategy
+(defn- next-point-fn
+  "Given a [[bisect]] options map, returns a function of `a, fa, b, fb,
+  iterations` that will generate the next candidate point for a root-finding
+  method search."
+  [{:keys [method n-break]}]
+  (case (or method :mixed)
+    :bisection (fn [a _fa b _fb _iter]
+                 (midpoint a b))
+    :secant (fn [a fa b fb _iter]
+              (secant-root a fa b fb))
+    :mixed (let [n-break (or n-break *bisect-break*)]
+             (fn [a fa b fb iter]
+               (if (< iter n-break)
+                 (midpoint a b)
+                 (secant-root a fa b fb))))
+    (u/illegal
+     (str "Method not supported: " method))))
 
 (defn bisect
-  "Given a smooth function `f` and (inclusive) lower and upper bounds `x0` and
-  `x1` on the domain, attempts to find a root of `f`, ie, a value `x` for
+  "Given some function `f` and (inclusive) lower and upper bounds `a` and `b` on
+  the domain, attempts to find a root of `f` in that range, ie, a value `x` for
   which `(f x)` is equal to 0.
 
-  [[bisect]] uses a strategy mixed between that of [[bisect-2]]
-  and [[bisect-fp]]:
+  Supports the following optional keyword arguments:
 
-  - for iterations up to `n-break` uses midpoint
-  - for iterations after `n-break` uses linear interpolation
+  `:method`: can be `:bisection`, `:secant` or `:mixed`. See the Methods section
+  below for a description of each. Defaults to `:mixed`
 
-  `n-break` defaults to the dynamically bindable `*bisect-break*` (which
-  defaults to 60). Bind `*bisect-break*` to modify the behavior of [[bisect]]
-  when it's used inside a nested routine.
+  `:eps`: defaults to [[sicmutils.value/machine-epsilon]].
 
-  If `*bisect-tap*` is bound to a function, it will be called with the vector
-  `[x0 x1]` for each range investigated.
+  `:callback`: if supplied, the supplied `f` will be invoked at each
+  intermediate point with the iteration count and the values of x and f(x) at
+  each search step.
 
-    If `*bisect-error*` is bound to true, [[bisect]] will throw if the bounds
-  `x0` and `x1` do not contain a root. If bound to `false`, returns `false` if
-  no root is found."
-  ([f x0 x1 eps]
-   (bisect f x0 x1 eps *bisect-break*))
-  ([f x0 x1 eps n-break]
-   (let [done? (us/close-enuf? eps)]
-     (loop [x0 x0
-            fx0 (f x0)
-            x1 x1
-            fx1 (f x1)
-            iter 0]
-       (when *bisect-tap*
-         (*bisect-tap* [x0 x1]))
+  `:maxiter`: maximum number of iterations allowed for the minimizer. Defaults to
+  1000.
 
-       (cond (zero? fx0) x0
-             (zero? fx1) x1
+  `:maxfun` maximum number of times the function can be evaluated before
+  exiting. Defaults to `(inc maxiter)`.
 
-             (> (* fx1 fx0) 0.0)
-             (if *bisect-error?*
-               (throw
-                (ex-info "root not bounded"
-                         {:x0 x0 :x1 x1 :fx0 fx0 :fx1 fx1}))
-               false)
+  `:n-break` defaults to the dynamically bindable `*bisect-break*` (which
+  defaults to 60). Bind `*bisect-break*` to modify the behavior of the `:mixed`
+  method (see below) when it's used inside a nested routine. Ignored if method
+  is not `:mixed`.
+
+  ## Methods
+
+  - `:bisection` causes [[bisect]] to use the [Bisection
+    method](https://en.wikipedia.org/wiki/Bisection_method); at each iteration,
+    the midpoint between the bounds is chosen as the next point.
+
+  - `:secant` uses the [Secant
+    method](https://en.wikipedia.org/wiki/Secant_method); each candidate point is
+    chosen by taking the root of a line drawn between the two endpoints `[a (f
+    a)]` and `[b (f b)]`. This method is most useful when the bounds are close to
+    the root.
+
+  - `:mixed` uses `:bisection` up until `:n-break` iterations and `:secant`
+    beyond. This can be useful for narrowing down a very wide range close to the
+    root, and then switching in to a faster search method."
+  ([f a b] (bisect f a b {}))
+  ([f a b {:keys [eps
+                  maxiter
+                  maxfun
+                  callback]
+           :or {eps     v/machine-epsilon
+                maxiter 1000
+                callback (constantly nil)}
+           :as opts}]
+   (let [close?        (us/close-enuf? eps)
+         get-next-pt   (next-point-fn opts)
+         maxfun        (or maxfun (inc maxiter))
+         [a b]         [(min a b) (max a b)]
+         [f-counter f] (u/counted f)]
+     (loop [a a, fa (f a)
+            b b, fb (f b)
+            iteration 0]
+       (cond (zero? fa) (succeed a fa iteration @f-counter)
+             (zero? fb) (succeed b fb iteration @f-counter)
+
+             (pos? (* fa fb))
+             (fail "Root not bounded" a fa b fb iteration @f-counter)
+
+             (or (> iteration maxiter)
+                 (> @f-counter maxfun))
+             (fail "Iteration bounds exceeded" a fa b fb iteration @f-counter)
+
              :else
-             (let [xm (if (< iter n-break)
-                        (/ (+ x0 x1) 2.0)
-                        (/ (- (* fx1 x0) (* fx0 x1))
-                           (- fx1 fx0)))]
-               (if (done? x0 x1)
-                 xm
-                 (let [fxm (f xm)]
-                   (if (< (* fx1 fxm) 0.0)
-                     (recur xm fxm x1 fx1 (inc iter))
-                     (recur x0 fx0 xm fxm (inc iter)))))))))))
+             (let [mid  (get-next-pt a fa b fb iteration)
+                   fmid (f mid)]
+               (callback mid fmid iteration)
+               (if (close? a b)
+                 (succeed a fa iteration @f-counter)
+                 (if (pos? (* fb fmid))
+                   (recur a fa mid fmid (inc iteration))
+                   (recur mid fmid b fb (inc iteration))))))))))
 
 ;; If we don't know anything, it is usually a good idea to break the interval
 ;; into dx-sized pieces and look for roots in each interval.
 
 (defn search-for-roots
-  "Given a smooth function `f` and (inclusive) lower and upper bounds `x0` and
-  `x1` on the domain, attempts to find all roots of `f`, ie, a vector of values
+  "Given a smooth function `f` and (inclusive) lower and upper bounds `a` and
+  `b` on the domain, attempts to find all roots of `f`, ie, a vector of values
   `x_n` such that each `(f x_n)` is equal to 0.
 
-  [[search-for-roots]] first attempts to cut the (inclusive) range `[x0, x1]`
+  [[search-for-roots]] first attempts to cut the (inclusive) range `[a, b]`
   into pieces at most `dx` wide; then [[bisect]] is used to search each segment
-  for a root."
-  [f x0 x1 eps dx]
-  (letfn [(find-roots [x0 x1]
-            (let [f1 (f x1) f0 (f x0)]
-              (if (< (Math/abs (- x1 x0)) dx)
-                (if (< (* f0 f1) 0.0)
-                  [(bisect f x0 x1 eps)]
-                  [])
-                (let [xm (/ (+ x0 x1) 2.0)]
-                  (into (find-roots x0 xm)
-                        (find-roots xm x1))))))]
-    (find-roots x0 x1)))
+  for a root.
+
+  All `opts` supplied are passed on to [[bisect]]."
+  ([f a b dx]
+   (search-for-roots f a b dx {}))
+  ([f a b dx opts]
+   (letfn [(find-roots [a b]
+             (let [f1 (f b) f0 (f a)]
+               (if (< (Math/abs (- b a)) dx)
+                 (if (neg? (* f0 f1))
+                   (let [result (bisect f a b opts)]
+                     (if (:converged? result)
+                       [(:result result)]
+                       []))
+                   [])
+                 (let [m (midpoint a b)]
+                   (into (find-roots a m)
+                         (find-roots m b))))))]
+     (find-roots a b))))

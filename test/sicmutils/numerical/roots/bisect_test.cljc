@@ -27,78 +27,55 @@
             [sicmutils.value :as v]))
 
 (deftest bisect-tests
-  (testing "bisect-1"
-    (letfn [(kepler-1 [ecc m]
-              (let [evals (atom 0)
-                    result (bi/bisect-1
-                            (fn [e]
-                              (swap! evals inc)
-                              (- e (* ecc (g/sin e)) m))
-                            0.0
-                            v/twopi)]
-                [@evals result]))]
-      (testing "for example, this took 51 evaluations of f."
-        (let [[evals result] (kepler-1 0.99 0.01)]
-          (is (= 58 evals))
-          (is (ish? 0.34227031649177486
-                    result))))))
+  (doseq [method bi/all-methods]
+    (is (= {:result 0
+            :value 0
+            :iterations 0
+            :converged? true
+            :fncalls 2}
+           (bi/bisect g/square 0 1 {:method method}))
+        (str method "returns 0 at bounds"))
 
-  (testing "bisect-2"
-    (letfn [(kepler-2 [ecc m]
-              (let [evals (atom 0)
-                    result (bi/bisect-2
-                            (fn [e]
-                              (swap! evals inc)
-                              (- e (* ecc (g/sin e)) m))
-                            0.0
-                            v/twopi
-                            1e-15)]
-                [@evals result]))]
-      (testing "for example, this took 51 evaluations of f."
-        (let [[evals result] (kepler-2 0.99 0.01)]
-          (is (= 55 evals))
-          (is (ish? 0.34227031649177453
-                    result))))))
+    (is (= {:error "Root not bounded"
+            :bounds {:lower 2, :f-lower 4, :upper 3, :f-upper 9}
+            :iterations 0
+            :converged? false
+            :fncalls 2}
+           (bi/bisect g/square 2 3 {:method method}))
+        (str method " errors if no root's bounded")))
 
-  (testing "bisect-fp"
-    (letfn [(kepler-fp [ecc m]
-              (let [evals (atom 0)
-                    result (bi/bisect-fp
-                            (fn [e]
-                              (swap! evals inc)
-                              (- e (* ecc (g/sin e)) m))
-                            0.0
-                            v/twopi
-                            1e-15)]
-                [@evals result]))]
-      (testing "for example, this took 51 evaluations of f."
-        (let [[evals result] (kepler-fp 0.99 0.01)]
-          (is (= 542 evals))
-          (is (ish? 0.342270316491775
-                    result))))))
+  (letfn [(kepler [ecc m opts]
+            (bi/bisect
+             (fn [e]
+               (- e (* ecc (g/sin e)) m))
+             0.0 v/twopi opts))]
+    (is (ish? {:result 0.34227031649177475
+               :value 0.0
+               :fncalls 58
+               :iterations 55
+               :converged? true}
+              (kepler 0.99 0.01 {:method :bisection}))
+        "bisection method")
 
-  (testing "bisect"
-    (letfn [(kepler [ecc m]
-              (let [evals (atom 0)
-                    result (bi/bisect
-                            (fn [e]
-                              (swap! evals inc)
-                              (- e (* ecc (g/sin e)) m))
-                            0.0
-                            v/twopi
-                            1e-15
-                            20)]
-                [@evals result]))]
-      (testing "for example, this took 51 evaluations of f."
-        (let [[evals result] (kepler 0.99 0.01)]
-          (is (= 25 evals))
-          (is (ish? 0.3422703164917752
-                    result))))))
+    (is (ish? {:result 0.34227031649177486
+               :value 0.0
+               :iterations 540
+               :fncalls 543
+               :converged? true}
+              (kepler 0.99 0.01 {:method :secant}))
+        "secant method")
+
+    (is (ish? {:result 0.3422703164917748
+               :value 0.0
+               :iterations 20
+               :fncalls 23
+               :converged? true}
+              (kepler 0.99 0.01 {:method :mixed :n-break 10}))
+        "mixed method"))
 
   (testing "search-for-roots"
     (letfn [(poly [x] (* (- x 1) (- x 2) (- x 3)))]
-      (let [eps 1e-15
-            dx 2]
+      (let [dx 2]
         (is (ish? [1 2 3]
-                  (bi/search-for-roots poly -10 10 eps dx))
+                  (bi/search-for-roots poly -10 10 dx))
             "search-for-roots finds all roots.")))))
