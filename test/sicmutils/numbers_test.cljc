@@ -75,6 +75,19 @@
   (gt/integral-tests identity :exclusions #{:exact-divide})
   (gt/floating-point-tests identity :eq near)
 
+  (testing "log, exp works on bigint"
+    (is (ish? 59874.14171519782
+              (g/exp #sicm/bigint 11)))
+
+    (is (ish? 2.3978952727983707
+              (g/log #sicm/bigint 11)))
+
+    (is (ish? 3.4594316186372978
+              (g/log2 #sicm/bigint 11)))
+
+    (is (ish? 1.041392685158225
+              (g/log10 #sicm/bigint 11))))
+
   (testing "log converts to complex"
     (is (c/complex? (g/log -10)))
     (is (= (c/complex 0 Math/PI) (g/log -1))))
