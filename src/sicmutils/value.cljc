@@ -440,11 +440,11 @@
 
        goog.math.Long
        (zero? [x] (.isZero x))
-       (one? [x] (core= (.getOne goog.math.Long) x))
-       (identity? [x] (core= (.getOne goog.math.Long) x))
-       (zero-like [_] (.getZero goog.math.Long))
-       (one-like [_] (.getOne goog.math.Long))
-       (identity-like [_] (.getOne goog.math.Long))
+       (one? [x] (core= (goog.math.Long/getOne) x))
+       (identity? [x] (core= (goog.math.Long/getOne) x))
+       (zero-like [_] (goog.math.Long/getZero))
+       (one-like [_] (goog.math.Long/getOne))
+       (identity-like [_] (goog.math.Long/getOne))
        (freeze [x] x)
        (exact? [_] true)
        (kind [_] goog.math.Long))))

@@ -89,11 +89,11 @@
 
 (defn int [x]
   #?(:clj (core-int x)
-     :cljs (.fromNumber goog.math.Integer x)))
+     :cljs (goog.math.Integer/fromNumber x)))
 
 (defn long [x]
   #?(:clj (core-long x)
-     :cljs (.fromNumber goog.math.Long x)))
+     :cljs (goog.math.Long/fromNumber x)))
 
 (defn double [x]
   #?(:clj (core-double x)

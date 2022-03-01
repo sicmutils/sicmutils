@@ -369,7 +369,7 @@
      ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
      (letfn [(long-expt [base pow]
                (loop [^Long n pow
-                      ^Long y (.getOne Long)
+                      ^Long y (Long/getOne)
                       ^Long z base]
                  (let [t (not (.isOdd n))
                        n ^Long (.shiftRight n 1)]
@@ -387,10 +387,10 @@
      ;; number.
      (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
        (defmethod op [Long ::v/native-integral] [a b]
-         (op a (.fromNumber Long b)))
+         (op a (Long/fromNumber b)))
 
        (defmethod op [::v/native-integral Long] [a b]
-         (op (.fromNumber Long a) b))
+         (op (Long/fromNumber a) b))
 
        ;; If this type encounters a floating point type it should lose
        ;; precision.
@@ -429,10 +429,10 @@
      ;; number.
      (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
        (defmethod op [Integer ::v/native-integral] [a b]
-         (op a (.fromNumber Integer b)))
+         (op a (Integer/fromNumber b)))
 
        (defmethod op [::v/native-integral Integer] [a b]
-         (op (.fromNumber Integer a) b))
+         (op (Integer/fromNumber a) b))
 
        ;; If this type encounters a floating point type it should lose
        ;; precision.
@@ -445,10 +445,10 @@
        ;; When they encounter each other in binary operations, Long is coerced
        ;; to Integer.
        (defmethod op [Integer Long] [a b]
-         (op a (.fromNumber Integer b)))
+         (op a (Integer/fromNumber b)))
 
        (defmethod op [Long Integer] [a b]
-         (op (.fromNumber Integer a) b)))
+         (op (Integer/fromNumber a) b)))
 
      ;; These names are slightly different between the two types.
      (defmethod g/quotient [Long Long] [^Long a ^Long b] (.div a b))
