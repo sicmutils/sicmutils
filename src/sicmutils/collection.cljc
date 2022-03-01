@@ -81,7 +81,8 @@
   (map g/simplify a))
 
 #_{:clj-kondo/ignore [:redundant-do]}
-(#?@(:clj [do] :cljs [doseq [klass [Cons IndexedSeq LazySeq List Range]]])
+(#?@(:clj [do]
+     :cljs [doseq [klass [Cons IndexedSeq LazySeq List Range IntegerRange]]])
  (extend-type #?(:clj ISeq :cljs klass)
    v/Value
    (zero? [_] false)
