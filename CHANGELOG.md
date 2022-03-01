@@ -2,7 +2,13 @@
 
 ## unreleased
 
-- Add bisect.cljc
+- #490 adds `sicmutils.numerical.roots.bisect` with implementations of bisection
+  search, secant search and a mixed method found in `scmutils`. These all live
+  under a `bisect` function.
+
+  The data structure returned is similar to the minimization functions in the
+  `sicmutils.numeric.{unimin, multimin}` namespaces. As more root-finding
+  methods come online this should all standardize nicely.
 
 - #484 adds `sicmutils.polynomial/from-power-series`, for generating a
   polynomial instance from some prefix of a (univariate) power series.
