@@ -81,7 +81,7 @@
 ;; available ideas about relative and maximum tolerance so we can share (and
 ;; combine) them across different stream functions.
 
-(defn- close-enuf?
+(defn ^:no-doc close-enuf?
   "relative closeness, transitioning to absolute closeness when we get
   significantly smaller than 1."
   [tolerance]

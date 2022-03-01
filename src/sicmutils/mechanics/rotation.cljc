@@ -1,27 +1,29 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2022 Sam Ritchie.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.mechanics.rotation
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.generic :as g :refer [cos sin + - *]]
+  (:require [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.matrix :as matrix]
-            [sicmutils.structure :as s :refer [up]]))
+            [sicmutils.structure :as s :refer [up]]
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
 (defn- rotate-x-matrix-2 [c s]
   (matrix/by-rows [1 0 0]
@@ -145,14 +147,63 @@
 (def rotate-y Ry)
 (def rotate-z Rz)
 
-(defn Euler->M
-  "Compute the rotation matrix from a set of Euler angles."
-  [[θ φ ψ]]
-  (* (rotate-z-matrix φ)
-     (rotate-x-matrix θ)
-     (rotate-z-matrix ψ)))
-
 (defn wcross->w [A]
   (up (get-in A [1 2])
       (get-in A [2 0])
       (get-in A [0 1])))
+
+;; ## Rotation Matrix to Euler Angles
+
+(defn Euler->M
+  "Compute the rotation matrix from a 3-vector of Euler angles.
+
+  Our Euler Angle convention:
+
+  M(theta, phi, psi) = R_z(phi)*R_x(theta)*R_z(psi)"
+  [[theta phi psi]]
+  (* (rotate-z-matrix phi)
+     (rotate-x-matrix theta)
+     (rotate-z-matrix psi)))
+
+;; Ported from code added to scmutils by GJS, 28 Sept 2020.
+
+(defn M->Euler
+  "Given a 3x3 rotation matrix, returns a [[sicmutils.structure/up]] of the
+  corresponding Euler angles.
+
+  Our Euler Angle convention:
+
+  M(theta, phi, psi) = R_z(phi)*R_x(theta)*R_z(psi)"
+  ([M]
+   (M->Euler M nil))
+  ([M tolerance-in-ulps]
+   (let [tolerance (if (nil? tolerance-in-ulps)
+                     v/machine-epsilon
+                     (* tolerance-in-ulps v/machine-epsilon))
+         close? (us/close-enuf? tolerance)
+         cx (get-in M [2 2])
+         cx-number? (v/number? cx)]
+     (cond (and cx-number? (close? cx -1)) ;; Nonunique
+           (let [theta Math/PI
+                 phi (- (g/atan
+                         (- (get-in M [0 1]))
+                         (get-in M [0 0])))
+                 psi 0]
+             (up theta phi psi))
+
+           (and cx-number? (close? cx +1)) ;; Nonunique
+           (let [theta 0
+                 phi (g/atan
+                      (- (get-in M [0 1]))
+                      (get-in M [0 0]))
+                 psi 0]
+             (up theta phi psi))
+
+           :else
+           (let [theta (g/acos cx)
+                 sx (sin theta)
+                 phi (g/atan (/ (get-in M [0 2]) sx)
+                             (- (/ (get-in M [1 2]) sx)))
+                 psi (g/atan (/ (get-in M [2 0]) sx)
+                             (/ (get-in M [2 1]) sx))]
+             (up theta phi psi))))))
