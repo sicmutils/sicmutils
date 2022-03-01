@@ -2,8 +2,9 @@
   (:require [nextjournal.clerk :as clerk]
             [sicmutils.env]))
 
-(clerk/serve!
- {:browse? true :port 7778})
+(comment
+  (clerk/serve!
+   {:browse? true :port 7778}))
 
 (comment
   ;; call clerk/show on files to be rendered
