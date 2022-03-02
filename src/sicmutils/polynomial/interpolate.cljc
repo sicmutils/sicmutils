@@ -74,8 +74,8 @@
 ;; ## Neville's Algorithm
 ;;
 ;; Start the recursion with a single point. Any point $(x, f(x))$ has a unique
-;; 0th order polynomial passing through it - the constant function $P(x) =
-;; f(x)$. For points $x_a$, $x_b$, let's call this $P_a$, $P_b$, etc.
+;; 0th order polynomial passing through it - the constant function $P(x) = f(x)$.
+;; For points $x_a$, $x_b$, let's call this $P_a$, $P_b$, etc.
 ;;
 ;; $P_{ab}$ is the unique FIRST order polynomial (ie, a line) going through
 ;; points $x_a$ and $x_b$.
@@ -136,6 +136,7 @@
 ;; You can write these out these relationships in a "tableau" that grows to the
 ;; right from an initial left column:
 ;;
+;;```
 ;; p0
 ;;  \
 ;;  p01
@@ -153,6 +154,7 @@
 ;;  p34
 ;;  /
 ;; p4
+;;```
 
 ;; The next few functions will discuss "rows" and "columns" of the tableau. That
 ;; refers to the rows and columns of this representation;
