@@ -2,6 +2,10 @@
 
 ## unreleased
 
+- #492 updates the `clj-kondo` linters to emit custom warnings with _all_
+  metadata from the original token, not just `:row` and `:col`. This fixes the
+  ability to override or ignore individual warnings.
+
 - #490 adds `sicmutils.numerical.roots.bisect` with implementations of bisection
   search, secant search and a mixed method found in `scmutils`. These all live
   under a `bisect` function.

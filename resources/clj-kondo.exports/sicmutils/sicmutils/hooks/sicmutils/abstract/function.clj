@@ -45,16 +45,14 @@
           [sym (api/vector-node [domain range])])
 
         :else
-        (let [{:keys [row col]} (meta entry)]
-          (api/reg-finding!
-           {:message (str "Bindings must be either bare symbols or "
-                          "3-vectors of the form [sym domain range]. "
-                          "Received: "
-                          (pr-str (api/sexpr entry)))
-            :type :sicmutils.abstract.function/invalid-binding
-            :row row
-            :col col})
-          [])))
+        (do (api/reg-finding!
+             (assoc (meta entry)
+                    :message (str "Bindings must be either bare symbols or "
+                                  "3-vectors of the form [sym domain range]. "
+                                  "Received: "
+                                  (pr-str (api/sexpr entry)))
+                    :type :sicmutils.abstract.function/invalid-binding))
+            [])))
 
 (defn with-literal-functions
   "Converts a node representing an invocation of

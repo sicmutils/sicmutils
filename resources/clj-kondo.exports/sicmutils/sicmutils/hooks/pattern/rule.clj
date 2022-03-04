@@ -111,15 +111,13 @@ forms (`:unquote` or `:unquote-splicing`, false otherwise.)"}
   "This function is shared between binding and consequence checkers, with
   different guards in each case."
   [binding]
-  (let [{:keys [row col]} (meta binding)]
-    (api/reg-finding!
-     {:message
-      (str "Binding variable "
-           (pr-str (api/sexpr binding))
-           " must be a non-namespaced symbol or non-symbol form.")
-      :type :sicmutils.pattern/binding-sym
-      :row row
-      :col col})))
+  (api/reg-finding!
+   (assoc (meta binding)
+          :message
+          (str "Binding variable "
+               (pr-str (api/sexpr binding))
+               " must be a non-namespaced symbol or non-symbol form.")
+          :type :sicmutils.pattern/binding-sym)))
 
 (defn lint-binding-form!
   "If the supplied `node` is a [[binding-form?]], registers findings for invalid
@@ -135,15 +133,13 @@ forms (`:unquote` or `:unquote-splicing`, false otherwise.)"}
 
       (when (segment-marker? sym)
         (doseq [r restrictions]
-          (let [{:keys [row col]} (meta r)]
-            (api/reg-finding!
-             {:message
-              (str "Restrictions are (currently) ignored on "
-                   (:value sym) " binding forms: "
-                   (pr-str (api/sexpr r)))
-              :type :sicmutils.pattern/ignored-restriction
-              :row row
-              :col col})))))))
+          (api/reg-finding!
+           (assoc (meta r)
+                  :message
+                  (str "Restrictions are (currently) ignored on "
+                       (:value sym) " binding forms: "
+                       (pr-str (api/sexpr r)))
+                  :type :sicmutils.pattern/ignored-restriction)))))))
 
 (defn pattern-vec
   "Given a node representing a pattern form, (and, optionally, a node representing
@@ -204,16 +200,13 @@ forms (`:unquote` or `:unquote-splicing`, false otherwise.)"}
     (let [[_ binding & restrictions] (:children node)]
       (when (qualified-symbol? (:value binding))
         (reg-binding-sym! binding))
-
       (doseq [r restrictions]
-        (let [{:keys [row col]} (meta r)]
-          (api/reg-finding!
-           {:message
-            (str (str "Restrictions are not allowed in consequence bindings: "
-                      (pr-str (api/sexpr r))))
-            :type :sicmutils.pattern/consequence-restriction
-            :row row
-            :col col}))))))
+        (api/reg-finding!
+         (assoc (meta r)
+                :message
+                (str (str "Restrictions are not allowed in consequence bindings: "
+                          (pr-str (api/sexpr r))))
+                :type :sicmutils.pattern/consequence-restriction))))))
 
 (defn consequence-vec
   "Given a node representing a consequence form, (the right side of a rule),
@@ -303,14 +296,12 @@ forms (`:unquote` or `:unquote-splicing`, false otherwise.)"}
   [{:keys [node]}]
   (let [binding-count (dec (count (:children node)))]
     (when-not (zero? (mod binding-count 3))
-      (let [{:keys [row col]} (meta (first (:children node)))]
-        (api/reg-finding!
-         {:message
-          (str "ruleset requires bindings in groups of 3. Received "
-               binding-count " bindings.")
-          :type :sicmutils.pattern/ruleset-args
-          :row row
-          :col col}))))
+      (api/reg-finding!
+       (assoc (meta (first (:children node)))
+              :message
+              (str "ruleset requires bindings in groups of 3. Received "
+                   binding-count " bindings.")
+              :type :sicmutils.pattern/ruleset-args))))
   (let [inputs (partition 3 (rest (:children node)))
         rules  (map process-rule inputs)]
     {:node (api/vector-node rules)}))

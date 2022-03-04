@@ -19,16 +19,14 @@
         [p]
 
         :else
-        (let [{:keys [row col]} (meta p)]
-          (api/reg-finding!
-           {:message (str "Bindings must be either a vector or list "
-                          "(optionally beginning with `up` or `down`) "
-                          "or a bare symbol. Received: "
-                          (pr-str (api/sexpr p)))
-            :type :sicmutils.calculus.coordinate/invalid-binding
-            :row row
-            :col col})
-          [])))
+        (do (api/reg-finding!
+             (assoc (meta p)
+                    :message (str "Bindings must be either a vector or list "
+                                  "(optionally beginning with `up` or `down`) "
+                                  "or a bare symbol. Received: "
+                                  (pr-str (api/sexpr p)))
+                    :type :sicmutils.calculus.coordinate/invalid-binding))
+            [])))
 
 (defn coordinate-name->vf-name
   "Given a token-node of coordinate symbolic name, returns a token-node containing
