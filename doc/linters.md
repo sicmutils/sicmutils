@@ -78,6 +78,39 @@ Imported config to .clj-kondo/sicmutils/sicmutils. To activate, add "sicmutils/s
 
 6. Check the imported files into source control in your project.
 
+### Disabling Linters
+
+To disable or modify the warning level of any of the linters listed below, you
+have a few options. This section will highlight the two most common overrides.
+
+(For the full list, see the [config section of the clj-kondo
+docs](https://github.com/clj-kondo/clj-kondo/blob/master/doc/config.md#options).)
+
+You can place a specific override directly on a particular form:
+
+```clj
+;; Ignore any :sicmutils.pattern/ruleset-args warning emitted in the `(ruleset ...)` form:
+
+#_{:clj-kondo/ignore [:sicmutils.pattern/ruleset-args]}
+(ruleset
+ (+ (? x) (? y)) (fn [m] (- ('?x m) ('?y m))))
+```
+
+Or you can add an entry for any of the linters to a map under `:linters` keyword
+in your project's `.clj-kondo/config.edn`. For example, this config will disable
+the `:sicmutils.pattern/ruleset-args` error:
+
+```clj
+{:linters
+ {:sicmutils.pattern/ruleset-args {:level :off}}}
+```
+
+Other valid levels are `:warning` and `:error`.
+
+See the [config section of the clj-kondo
+docs](https://github.com/clj-kondo/clj-kondo/blob/master/doc/config.md#options)
+for more information.
+
 ## Linter Directory
 
 This section describes all of the custom warnings emitted by the SICMUtils clj-kondo config.

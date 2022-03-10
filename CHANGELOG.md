@@ -2,6 +2,18 @@
 
 ## unreleased
 
+- #492 updates the `clj-kondo` linters to emit custom warnings with _all_
+  metadata from the original token, not just `:row` and `:col`. This fixes the
+  ability to override or ignore individual warnings.
+
+- #490 adds `sicmutils.numerical.roots.bisect` with implementations of bisection
+  search, secant search and a mixed method found in `scmutils`. These all live
+  under a `bisect` function.
+
+  The data structure returned is similar to the minimization functions in the
+  `sicmutils.numeric.{unimin, multimin}` namespaces. As more root-finding
+  methods come online this should all standardize nicely.
+
 - #491 adds `sicmutils.mechanics.rotation/M->Euler`, for converting from a
   rotation matrix to a triple of Euler angles. Now we can successfully round
   trip.
