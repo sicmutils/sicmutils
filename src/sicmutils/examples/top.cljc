@@ -21,6 +21,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (:require [sicmutils.env :as e :refer [cos up - *]]
             [sicmutils.mechanics.rigid :as rigid]))
 
+;;## Axisymmetric Top
+
 (defn L
   [A B C gMR]
   (let [T (rigid/T-rigid-body A B C)

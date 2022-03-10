@@ -29,7 +29,10 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
             [sicmutils.polynomial.gcd :refer [gcd gcd-Dp]]
             [sicmutils.simplify.rules :as rules]
             [sicmutils.util.logic :as ul]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [taoensso.timbre :as log])
+  #?(:clj
+     (:import (java.util.concurrent TimeoutException))))
 
 (defn split-polynomial
   "Given a [[Polynomial]] `p`, returns a sequence of factors of in order of
@@ -111,6 +114,19 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
    (rules/constant-elimination '* 1)
    (r/rule (*) => 1)))
 
+(defn- unless-timeout
+  "Returns a function that invokes f, but catches TimeoutException;
+  if that exception is caught, then x is returned in lieu of (f x)."
+  [f]
+  (fn [x]
+    (try (f x)
+         (catch #?(:clj TimeoutException :cljs js/Error) _
+           (log/warn
+            (str "simplifier timed out: must have been a complicated expression"))
+           x))))
+
+(def split-memo (unless-timeout (memoize split-polynomial)))
+
 (defn poly->factored-expression
   "Given a polynomial `p`, and a sequence of variables `vars` (one for each
   indeterminate in `p`), returns a symbolic expression representing the product
@@ -121,12 +137,22 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   ([p vars]
    (poly->factored-expression p vars identity))
   ([p vars simplify]
-   (let [factors (map (fn [factor]
-                        (simplify
-                         (poly/->expression factor vars)))
-                      (split-polynomial p))]
-     (simplify-product
-      (factors->expression factors)))))
+   (try
+     (let [factors (map (fn [factor]
+                          (simplify
+                           (poly/->expression factor vars)))
+                        (split-polynomial p))]
+       (simplify-product
+        (factors->expression factors)))
+     (catch #?(:clj TimeoutException :cljs js/Error) _
+       (log/warn
+        (str "simplifier choked!"))
+       (simplify-product
+        (poly/->expression p vars))))))
+
+#?(:clj
+   (alter-var-root #'poly->factored-expression memoize))
+
 
 (defn factor-expression
   "Given some symbolic expression containing only polynomial operations, returns a

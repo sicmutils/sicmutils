@@ -16,6 +16,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
+^{:nextjournal.clerk/visibility #{:hide-ns}}
 (ns sicmutils.differential
   "This namespace contains an implementation of [[Differential]], a generalized
   dual number type that forms the basis for the forward-mode automatic

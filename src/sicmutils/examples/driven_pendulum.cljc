@@ -21,6 +21,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (:require [sicmutils.env :as e :refer [cos up + * /]]
             [sicmutils.examples.pendulum :as pendulum]))
 
+;; ## Driven Pendulum
+
 (defn vertical-periodic-drive
   [amplitude frequency phase]
   (fn [t]

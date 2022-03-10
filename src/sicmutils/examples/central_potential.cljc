@@ -16,53 +16,150 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
+^{:nextjournal.clerk/visibility #{:hide-ns}}
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [abs square up + - * /]]
-            #?@(:clj
-                [[taoensso.timbre :as log]
-                 [hiccup.core :refer [html]]
-                 [hiccup.page :refer [html5]]])))
+  (:require [nextjournal.clerk :as clerk]
+            [sicmutils.env :as e :refer [abs square up + - * /]]
+            [taoensso.timbre :as log]))
+
+;; ## Central Potential!!
+;;
+;; This notebook implements this paper: https://arxiv.org/pdf/math/0011268.pdf
+;;
+;; Using a variational method, we exhibit a surprisingly simple periodic orbit
+;; for the newtonian problem of three equal masses in the plane.
+
+;; ### Simó's initial data
+
+;; $$
+;; x_1= −x_2 = 0.97000436−0.24308753i, \\
+;; x3=0; \\
+;; \vec{V} = \dot{x}_3 = −2\dot{x}_1 = −2\dot{x}_2 = −0.93240737−0.86473146i \\
+;; \bar{T} =12T =6.32591398, I(0)=2, m_1 = m_2 = m_3 = 1
+;; $$
+
+;; Note that we could have used [[sicmutils.util.permute/combinations]].
+;;
+;; TODO get this running, actually animating, in MathBox. Can we freaking do
+;; that? How awesome would that be? I think it will be possible... by opting in
+;; to the JS stuff.
 
 (defn- pairs
-  "Return a sequence of pairs of different elements from the given sequence."
+  "Return a sequence of each distinct pairing of different elements from the given
+  sequence."
   [[x & xs]]
   (when xs
-    (concat
-     (for [y xs] [x y])
-     (pairs xs))))
+    (concat (for [y xs] [x y])
+            (pairs xs))))
+
+;; for V we want each distinct pair, funky way to do it:
 
 (defn V [& masses]
-  ;; for V we want each distinct pair
   (fn [[_ x _]]
-    (let [mass-position-pairs (->> (partition 2 x)
-                                   (map (fn [m [x y]] [m (up x y)])
-                                        masses)
-                                   (pairs))]
+    (let [mass-position-pairs
+          (->> (partition 2 x)
+               (map (fn [m [x y]] [m (up x y)])
+                    masses)
+               (pairs))]
       (reduce - 0 (map (fn [[[m1 p1] [m2 p2]]]
                          (/ (* m1 m2)
                             (abs (- p1 p2))))
                        mass-position-pairs)))))
 
-(defn T
-  [& masses]
+(defn T [& masses]
   (fn [[_ _ v]]
     (let [velocities (->> (partition 2 v)
                           (map (fn [[vx vy]]
                                  (up vx vy))))]
-      (reduce + (map (fn [m v]
-                       (* (/ 1 2) m (square v)))
-                     masses
-                     velocities)))))
+      (apply + (map (fn [m v]
+                      (* (/ 1 2) m (square v)))
+                    masses
+                    velocities)))))
 
 (def L (- T V))
 
-(defn state-derivative
+(def state-derivative
+  (comp e/Lagrangian->state-derivative L))
+
+(defn my-evolver
+  [kick {:keys [t dt]
+         :or {t 1 dt 1}}]
+  (let [initial-state (up 0.0
+                          (+ kick (up 0.97000436
+                                      -0.24308753
+                                      -0.97000436
+                                      0.24308753
+                                      0
+                                      0))
+                          (up (/ -0.93240737 -2)
+                              (/ -0.86473146 -2)
+                              (/ -0.93240737 -2)
+                              (/ -0.86473146 -2)
+                              -0.93240737
+                              -0.86473146))]
+    (e/integrate-state-derivative
+     state-derivative [1 1 1] initial-state t dt)))
+
+(defn equations
   [m M]
-  (e/Lagrangian->state-derivative (L m M)))
+  (e/->TeX
+   (e/simplify
+    ((state-derivative m M)
+     (up 't
+         (up 'x_0 'y_0 'x_1 'y_1)
+         (up 'xdot_0 'ydot_0 'xdot_1 'ydot_1))))))
+
+#_
+(clerk/tex
+ (equations 'm 'M))
+
+(defn ^:no-doc to-svg
+  ([evolution]
+   (to-svg evolution {}))
+  ([evolution {:keys [scale] :or {scale 1}}]
+   [:svg {:width 700 :height 480}
+    [:rect {:width 700 :height 480 :fill "#330033"}]
+    [:g {:transform
+         (str "translate(350,240) scale(" scale ")")}
+     (mapcat
+      (fn [[_ q]]
+        (map (fn [[x y] color]
+               [:circle {:fill color :stroke "none"
+                         :r (/ 1 scale)
+                         :cx x
+                         :cy y}])
+             (partition 2 q)
+             ["red" "green" "blue" "indigo" "violet"]))
+      evolution)]]))
+
+(clerk/html
+ (to-svg
+  (my-evolver (up 0.0 0.0 0.0 0.0 0.0 0.0) {:t 20 :dt 0.01})
+  {:scale 200}))
+
+(clerk/html
+ (to-svg
+  (my-evolver (up 0.002 0.0 0.0 0.0 0.0 0.0) {:t 20 :dt 0.01})
+  {:scale 200}))
+
+(clerk/html
+ (to-svg
+  (my-evolver (up 0.010 0.0 0.0 0.0 0.0 0.0) {:t 20 :dt 0.01})
+  {:scale 200}))
+
+(clerk/html
+ (to-svg
+  (my-evolver (up 0.010 0.0 0.0 0.01 0.01 0.0) {:t 20 :dt 0.01})
+  {:scale 200}))
+
+(clerk/html
+ (to-svg
+  (my-evolver (up 0.010 0.01 0.0 0.01 0.01 0.0) {:t 20 :dt 0.01})
+  {:scale 200}))
 
 (defn evolver
-  [{:keys [t dt m M x_0 y_0 xdot_0 ydot_0 observe]
+  [{:keys [t dt m M x_0 y_0 xdot_0 ydot_0]
     :or {t 1
          dt 1
          m 1
@@ -74,49 +171,26 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (let [initial-state (up 0.0
                           (up x_0    y_0    0 0)
                           (up xdot_0 ydot_0 0 0))]
-    ((e/evolve state-derivative m M)
-     initial-state
-     dt
-     t
-     {:compile? true
-      :epsilon 1.0e-6
-      :observe observe})))
+    (e/integrate-state-derivative
+     state-derivative
+     [m M] initial-state t dt)))
 
-(defn equations
-  []
-  (e/simplify ((state-derivative 'm 'M)
-               (up 't
-                   (up 'x_0 'y_0 'x_1 'y_1)
-                   (up 'xdot_0 'ydot_0 'xdot_1 'ydot_1)))))
+(defn ^:no-doc generate-svgs []
+  [:div
+   (for [dy (take 2 (range -10 -1 (/ 1 10)))]
+     (let [svg (to-svg
+                (evolver
+                 {:t 100
+                  :dt (/ 1 3)
+                  :M 500
+                  :m 500
+                  :x_0 50
+                  :y_0 50
+                  :xdot_0 0
+                  :ydot_0 dy}))]
+       (log/info (str "dy " dy))
+       svg))])
 
-(defn ^:no-doc to-svg
-  [evolution]
-  [:svg {:width 480 :height 480}
-   [:rect {:width 480 :height 480 :fill "#330033"}]
-   [:g {:transform "translate(240,240)"}
-    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 0}]
-    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 20 :cy 0}]
-    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 20}]
-    (for [[_ x y _ _] evolution]
-      [:circle {:fill "orange" :stroke "none" :r 1 :cx x :cy y}]
-      )
-    (for [[_ _ _ X Y] evolution]
-      [:circle {:fill "green" :stroke "none" :r 1 :cx X :cy Y}])]])
-
-;; Simó's initial data
-;; x_1=−x2=0.97000436−0.24308753i,x3=0; V~ = ˙x3=−2 ˙x_1=−2 ˙x2=−0.93240737−0.86473146i
-;; T =12T =6.32591398, I(0)=2, m1=m2=m3=1
-
-#?(:clj
-   (defn ^:no-doc -main
-     [& _]
-     (let [head [:head {:title "foo"}]
-           counter (atom 0)
-           body [:body
-                 (for [dy (range -10 -1 1/10)]
-                   (let [svg (to-svg (evolver {:t 100 :dt 1/3 :M 500 :m 500 :x_0 50 :y_0 50 :xdot_0 0 :ydot_0 dy}))]
-                     (log/info (str "dy " dy))
-                     (spit (format "%03d.svg" @counter) (html svg))
-                     (swap! counter inc)
-                     svg))]]
-       (println (html5 head body)))))
+(def runner
+  (clerk/html
+   (generate-svgs)))

@@ -158,11 +158,17 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   system is assumed to be a map from a structure to a structure of the
   same shape, as differentiating a function does not change its
   shape), and returns an integrator, which is a function of several
-  arguments: the initial state, an intermediate-state observation
-  function, the step size desired, the final time to seek, and an
-  error tolerance. If the observe function is not nil, it will be
-  invoked with the time as first argument and integrated state as the
-  second, at each intermediate step."
+  arguments:
+
+  - the initial state
+  - an intermediate-state observation function
+  - the step size desired
+  - the final time to seek, and
+  - an error tolerance.
+
+
+  If the `observe` function is not nil, it will be invoked with the time as
+  first argument and integrated state as the second, at each intermediate step."
   [state-derivative derivative-args]
   #?(:cljs
      (let [total-time (us/stopwatch :started? false)

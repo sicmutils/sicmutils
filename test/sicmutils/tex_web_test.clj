@@ -17,66 +17,78 @@ You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
 (ns sicmutils.tex-web-test
-  (:refer-clojure :exclude [+ - * / = compare ref partial zero?
-                            numerator denominator])
-  (:require [clojure.string :as s]
-            [hiccup.page :refer [html5 include-css include-js]]
-            [sicmutils.env :refer [+ * /
-                                   ->TeX simplify
-                                   D
-                                   up down taylor-series
-                                   tan expt series:sum exp literal-function]]
+  (:refer-clojure :exclude [+ - * / = compare ref partial zero? numerator denominator])
+  (:require [nextjournal.clerk :as clerk]
+            [sicmutils.env :as e]
             [sicmutils.examples.central-potential :as central]
             [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.examples.driven-pendulum :as driven])
-  (:gen-class))
+            [sicmutils.examples.driven-pendulum :as driven]))
 
-(defn generate-page
-  []
-  (spit
-   "test.html"
-   (html5
-    [:head
-     [:title "TeX rendering test"]
-     [:meta {:http-equiv "Content-Type"
-             :content "text/html; charset=UTF-8"}]
-     (include-css "http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.css")
-     (include-js "http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js")]
-    [:body
-     (for [[name eqn]
-           [["series" (simplify
-                       (series:sum (((exp (* 'epsilon D)) (literal-function 'g)) 'x) 5))]
-            ["accents" (simplify (+ 'x
-                                    'ydot
-                                    'rhodotdot
-                                    'sigmadotdotdot
-                                    'taudotdotdotdot
-                                    'Xihat
-                                    (expt 'ell 2)
-                                    'gammabar
-                                    'mubardot
-                                    'xivec
-                                    'Ftilde))]["driven-pendulum" (driven/equations)]
-            ["double-pendulum" (double/equations)]
-            ["central-potential" (central/equations)]
-            ["down-of-ups" (simplify (down (up 'a 'b) (up 'c 'd)))]
-            ["up-of-downs" (simplify (up (down 'a 'b) (down 'c 'd)))]
-            ["product" (simplify (* (down 'a 'b) (up 'c 'd)))]
-            ["expansion" (simplify
-                          (-> (taylor-series
-                               (literal-function 'f (up 0 0) 0)
-                               (up 'x 'y)
-                               (up 'dx 'dy))
-                              (series:sum 2)))]
+(e/bootstrap-repl!)
 
-            ["dcot" (simplify ((D (/ tan)) 'x))]]]
-       (let [t (->TeX eqn)]
-         [:div
-          [:h3 name]
-          [:div {:id name :class :eqn}]
-          [:script (format "katex.render(\"%s\", document.getElementById('%s'));"
-                           (s/escape t {\\ "\\\\"})
-                           name)]]))])))
+;; ## Showing Off Renderers
 
-(comment
-  (generate-page))
+(def ->tex
+  (comp nextjournal.clerk/tex ->TeX simplify))
+
+;; ## Series
+
+(->tex
+ (series:sum
+  (((exp (* 'epsilon D)) (literal-function 'g)) 'x) 5))
+
+;; ## Accents
+
+(->tex
+ (+ 'x
+    'ydot
+    'rhodotdot
+    'sigmadotdotdot
+    'taudotdotdotdot
+    'Xihat
+    (expt 'ell 2)
+    'gammabar
+    'mubardot
+    'xivec
+    'Ftilde))
+
+;; ## Driven Pendulum
+
+(->tex (driven/equations))
+
+;; ## Double Pendulum
+
+(->tex (double/equations))
+
+;; ## central-potential
+
+(->tex (central/equations 'm 'M))
+
+;; ## down-of-ups
+
+(->tex
+ (down (up 'a 'b) (up 'c 'd)))
+
+;; up-of-downs
+
+(->tex
+ (up (down 'a 'b) (down 'c 'd)))
+
+;; ## product
+
+(->tex
+ (* (down 'a 'b) (up 'c 'd)))
+
+;; ## expansion
+
+(->tex
+ (-> (taylor-series
+      (literal-function 'f (up 0 0) 0)
+      (up 'x 'y)
+      (up 'dx 'dy))
+     (series:sum 2)))
+
+;; ## dcot
+
+(->tex
+ ((D (/ tan)) 'x))

@@ -16,9 +16,15 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
+^{:nextjournal.clerk/visibility #{:hide-ns}}
 (ns sicmutils.examples.double-pendulum
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [up square cos + - * /]]))
+  (:require [nextjournal.clerk :as clerk]
+            [sicmutils.env :as e :refer [up square cos + - * /]]))
+
+;; ## Double Pendulum
+
+(def ->tex (comp clerk/tex e/->TeX))
 
 (defn V
   [m1 m2 l1 l2 g]
@@ -38,8 +44,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                           v2sq
                           (* 2 l1 l2 θdot φdot (cos (- θ φ)))))))))
 
-(def L
-  (- T V))
+(def L (- T V))
 
 (defn state-derivative [m1 m2 l1 l2 g]
   (e/Lagrangian->state-derivative
@@ -80,3 +85,41 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     (up 't
         (up 'θ_0 'φ_0)
         (up 'θdot_0 'φdot_0)))))
+
+
+;; Equations of motion:
+
+(->tex (equations))
+
+(defn ^:no-doc to-svg
+  ([evolution]
+   (to-svg evolution {}))
+  ([evolution {:keys [t-scale scale] :or {t-scale 1 scale 1}}]
+   [:svg {:width 700 :height 480}
+    [:rect {:width 700 :height 480 :fill "#330033"}]
+    [:g {:transform "translate(0,240)"}
+     (mapcat (fn [[t [theta phi]]]
+               [[:circle {:fill "red" :stroke "none"
+                          :r 1
+                          :cx (* t-scale t)
+                          :cy (* scale (- theta))}]
+                [:circle {:fill "blue" :stroke "none"
+                          :r 1
+                          :cx (* t-scale t)
+                          :cy (* scale (- phi))}]])
+             evolution)]]))
+
+(defn to-view []
+  (let [o (atom (transient []))
+        observe (fn [_ q] (swap! o conj! q))]
+    (evolver {:t 100 :dt (/ 1 60) :observe observe})
+    (let [result (persistent! @o)]
+      (to-svg result {:t-scale 10
+                      :scale 40}))))
+
+;; TODO: instead of generating an SVG, OBVIOUSLY what I want to do is use
+;; vega-lite to view this stuff. Generate the dataset once. In fact I already
+;; did that a while back.
+
+(clerk/html
+ (to-view))

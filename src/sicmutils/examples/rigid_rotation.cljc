@@ -20,6 +20,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (:require [sicmutils.env :as e :refer [up]]
             [sicmutils.mechanics.rigid :as r]))
 
+;; ## Rigid Rotation
+
 (defn evolver
   [t dt A B C θ0 φ0 ψ0 θdot0 φdot0 ψdot0]
   (let [state-history (atom [])
