@@ -62,7 +62,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
 ;; ## central-potential
 
-(->tex (central/equations 'm 'M))
+(->tex (central/equations))
 
 ;; ## down-of-ups
 
