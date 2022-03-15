@@ -1,21 +1,20 @@
-;;
-;; Copyright © 2017 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_
+"Copyright © 2017 Colin Smith.
+This work is based on the Scmutils system of MIT/GNU Scheme:
+Copyright © 2002 Massachusetts Institute of Technology
+
+This is free software;  you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at
+your option) any later version.
+
+This software is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this code; if not, see <http://www.gnu.org/licenses/>."
 
 (ns sicmutils.value
   "The home of most of the protocol-based extensible generic operations offered by
@@ -440,11 +439,11 @@
 
        goog.math.Long
        (zero? [x] (.isZero x))
-       (one? [x] (core= (.getOne goog.math.Long) x))
-       (identity? [x] (core= (.getOne goog.math.Long) x))
-       (zero-like [_] (.getZero goog.math.Long))
-       (one-like [_] (.getOne goog.math.Long))
-       (identity-like [_] (.getOne goog.math.Long))
+       (one? [x] (core= (goog.math.Long/getOne) x))
+       (identity? [x] (core= (goog.math.Long/getOne) x))
+       (zero-like [_] (goog.math.Long/getZero))
+       (one-like [_] (goog.math.Long/getOne))
+       (identity-like [_] (goog.math.Long/getOne))
        (freeze [x] x)
        (exact? [_] true)
        (kind [_] goog.math.Long))))

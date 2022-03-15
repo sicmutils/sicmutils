@@ -73,7 +73,7 @@ Imported config to .clj-kondo/sicmutils/sicmutils. To activate, add "sicmutils/s
 5. As instructed, either create or edit `.clj-kondo/config.edn` so that it contains a `:config-paths` entry with `"sicmutils/sicmutils"`:
 
 ```clj
-{:config-paths ["clj-kondo/claypoole"]}
+{:config-paths ["sicmutils/sicmutils"]}
 ```
 
 6. Check the imported files into source control in your project.

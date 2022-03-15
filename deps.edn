@@ -1,5 +1,11 @@
 {:aliases
- {:clj-kondo
+ {:dev
+  {:extra-paths ["dev"]
+   :extra-deps
+   {io.github.nextjournal/clerk
+    {:git/sha "a44f021a5f90defe877f3cfec81e164a844f7b39"}}}
+
+  :clj-kondo
   {:replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
    :main-opts ["-m" "clj-kondo.main"]}}
 
