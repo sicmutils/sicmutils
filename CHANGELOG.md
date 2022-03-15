@@ -2,6 +2,26 @@
 
 ## unreleased
 
+- #485:
+
+  - Bumps the JDK version for Github Actions to 17 from 8.
+
+  - Adds a development dependency on Nextjournal's
+    [Clerk](https://github.com/nextjournal/clerk) library, and begins the
+    process of massaging various namespaces into proper literate essays
+    display-able with Clerk. To run these, start a REPL and follow the
+    instructions in `dev/user.clj`.
+
+    - `sicmutils.calculus.derivative` and `sicmutils.differential` are now
+
+  - Bumps the shadow-cljs dependency to version `2.17.4`, and the included
+    `cljs` version to `1.11.4`. `sicmutils.collection` properly handles the new
+    cljs `IntegerRange` class.
+
+  - `sicmutils.polynomial.factor` now memoizes `poly->factored-expression` by
+    default. If polynomial GCD fails inside that function the computation now
+    proceeds with a warning instead of failing.
+
 - #492 updates the `clj-kondo` linters to emit custom warnings with _all_
   metadata from the original token, not just `:row` and `:col`. This fixes the
   ability to override or ignore individual warnings.
