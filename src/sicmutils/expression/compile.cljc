@@ -464,10 +464,17 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   - `params`: a seq of symbols equal in count to the original state function's
     args
   - `state-model`: a sequence of variables representing the structure of the
-    nested function returned by the state function"
-  [params state-model]
-  [(into [] (flatten state-model))
-   (into [] params)])
+    nested function returned by the state function
+  - `opts`, a dictionary of compilation options."
+  [params state-model {:keys [flatten? params?]
+                       :or {flatten? true
+                            params? true}}]
+  (let [state (into [] (if flatten?
+                         (into [] (flatten state-model))
+                         state-model))]
+    (if params?
+      [state (into [] params)]
+      [state])))
 
 ;; The following two functions compile state functions in either native or SCI
 ;; mode. The primary difference is that native compilation requires us to
@@ -507,9 +514,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  [params state-model body]
+  [params state-model body opts]
   (let [body (w/postwalk-replace sym->resolved-form body)]
-    `(fn ~(state-argv params state-model) ~body)))
+    `(fn ~(state-argv params state-model opts) ~body)))
 
 (defn- compile-state-native
   "Returns a natively-evaluated Clojure function that implements `body`, given:
@@ -519,9 +526,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  [params state-model body]
+  [params state-model body opts]
   (eval
-   (compile-state->source params state-model body)))
+   (compile-state->source params state-model body opts)))
 
 (defn- compile-state-sci
   "Returns a Clojure function evaluated using SCI. The returned fn implements
@@ -532,9 +539,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  ([params state-model body]
+  ([params state-model body opts]
    (sci-eval
-    (compile-state->source params state-model body))))
+    (compile-state->source params state-model body opts))))
 
 ;; ### State Fn Interface
 ;;
@@ -542,8 +549,17 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 ;; versions of the following function exist, one that uses the global cache
 ;; defined above and one that doesn't.
 
+(defn- state->argv
+  "Given a (structural) initial state, walks the structure and converts all
+  structures to vectors and all non-structural elements to gensymmed symbols."
+  [state]
+  (if (struct/structure? state)
+    (mapv state->argv state)
+    (gensym 'y)))
+
 (defn compile-state-fn*
-  "Returns a compiled, simplified function, given:
+  "Returns a compiled, simplified function with signature `(f state params)`,
+  given:
 
   - a state function that can accept a symbolic arguments
 
@@ -554,29 +570,42 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     by the fn returned by the state function `f`. Only the shape matters; the
     values are ignored.
 
-  The returned, compiled function expects `Double` (or `js/Number`) arguments.
-  The function body is simplified and all common subexpressions identified
-  during compilation are extracted and computed only once.
+  - an optional argument `opts`. Options accepted are:
+
+    - `:flatten?` if `true` (default), the returned function will have
+      signature `(f <flattened-state> [params])`. If `false`, the first arg of the
+      returned function will be expected to have the same shape as `initial-state`
+
+  - `:params?` if `true` (default), the returned function will take a second
+    argument for the parameters of the state derivative. If false, the returned
+    function will take a single argument.
+
+  The returned, compiled function expects all `Double` (or `js/Number`) for all
+  state primitives. The function body is simplified and all common
+  subexpressions identified during compilation are extracted and computed only
+  once.
 
   NOTE this function uses no cache. To take advantage of the global compilation
   cache, see `compile-state-fn`."
-  [f params initial-state]
-  (let [sw             (us/stopwatch)
-        generic-params (for [_ params] (gensym 'p))
-        generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
-        g              (apply f generic-params)
-        body           (-> (g generic-state)
-                           (g/simplify)
-                           (v/freeze)
-                           (cse-form)
-                           (apply-numeric-ops))
-        compiler       (case (compiler-mode)
-                         :source compile-state->source
-                         :native compile-state-native
-                         :sci compile-state-sci)
-        compiled-fn    (compiler generic-params generic-state body)]
-    (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
-    compiled-fn))
+  ([f params initial-state]
+   (compile-state-fn* f params initial-state {}))
+  ([f params initial-state opts]
+   (let [sw             (us/stopwatch)
+         generic-params (for [_ params] (gensym 'p))
+         generic-state  (state->argv initial-state)
+         g              (apply f generic-params)
+         body           (-> (g generic-state)
+                            (g/simplify)
+                            (v/freeze)
+                            (cse-form)
+                            (apply-numeric-ops))
+         compiler       (case (compiler-mode)
+                          :source compile-state->source
+                          :native compile-state-native
+                          :sci compile-state-sci)
+         compiled-fn    (compiler generic-params generic-state body opts)]
+     (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
+     compiled-fn)))
 
 ;; TODO: `compile-state-fn` should be more discerning in how it caches!
 
@@ -594,9 +623,20 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     by the fn returned by the state function `f`. Only the shape matters; the
     values are ignored.
 
-  The returned, compiled function expects `Double` (or `js/Number`) arguments.
-  The function body is simplified and all common subexpressions identified
-  during compilation are extracted and computed only once.
+  - an optional argument `opts`. Options accepted are:
+
+    - `:flatten?` if `true` (default), the returned function will have
+      signature `(f <flattened-state> [params])`. If `false`, the first arg of the
+      returned function will be expected to have the same shape as `initial-state`
+
+  - `:params?` if `true` (default), the returned function will take a second
+    argument for the parameters of the state derivative. If false, the returned
+    function will take a single argument.
+
+  The returned, compiled function expects `Double` (or `js/Number`) for all
+  state primitives. The function body is simplified and all common
+  subexpressions identified during compilation are extracted and computed only
+  once.
 
   NOTE that this function makes use of a global compilation cache, keyed by the
   value of `f`. Passing in the same `f` twice, even with different arguments for
