@@ -23,8 +23,6 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :as e :refer [D sin cos square + - * / ref]]))
 
-;; ## Pendulum
-
 (defn T
   [m l _ x]
   (let [v (D x)]
