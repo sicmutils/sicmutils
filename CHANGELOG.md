@@ -32,6 +32,10 @@
     call `eval` on this or call `sci-eval` to get an SCI-evaluated function with
     all proper bindings in place.
 
+  - `compile-state-fn` now takes an optional options map, with support for
+    `:flatten?` and `:generic-params?` keywords. These can be used to tune the
+    shape of the function returned by `compile-state-fn`.
+
 - #485:
 
   - Bumps the JDK version for Github Actions to 17 from 8.

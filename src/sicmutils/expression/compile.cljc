@@ -465,14 +465,17 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     args
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
-  - `opts`, a dictionary of compilation options."
-  [params state-model {:keys [flatten? params?]
+  - `opts`, a dictionary of compilation options.
+
+  See [[compile-state-fn*]] for a description of the options accepted in
+  `opts`."
+  [params state-model {:keys [flatten? generic-params?]
                        :or {flatten? true
-                            params? true}}]
+                            generic-params? true}}]
   (let [state (into [] (if flatten?
                          (into [] (flatten state-model))
                          state-model))]
-    (if params?
+    (if generic-params?
       [state (into [] params)]
       [state])))
 
@@ -550,12 +553,15 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 ;; defined above and one that doesn't.
 
 (defn- state->argv
-  "Given a (structural) initial state, walks the structure and converts all
-  structures to vectors and all non-structural elements to gensymmed symbols."
-  [state]
-  (if (struct/structure? state)
-    (mapv state->argv state)
-    (gensym 'y)))
+  "Given a (structural) initial `state` and a `gensym-fn` function from symbol =>
+  generated symbol walks the structure and converts all structures to vectors
+  and all non-structural elements to gensymmed symbols."
+  [state gensym-fn]
+  (letfn [(rec [s]
+            (if (struct/structure? s)
+              (mapv rec s)
+              (gensym-fn 'y)))]
+    (rec state)))
 
 (defn compile-state-fn*
   "Returns a compiled, simplified function with signature `(f state params)`,
@@ -576,9 +582,10 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
       signature `(f <flattened-state> [params])`. If `false`, the first arg of the
       returned function will be expected to have the same shape as `initial-state`
 
-  - `:params?` if `true` (default), the returned function will take a second
-    argument for the parameters of the state derivative. If false, the returned
-    function will take a single argument.
+    - `:generic-params?` if `true` (default), the returned function will take a
+      second argument for the parameters of the state derivative and keep params
+      generic. If false, the returned function will take a single state argument,
+      and the supplied params will be hardcoded.
 
   The returned, compiled function expects all `Double` (or `js/Number`) for all
   state primitives. The function body is simplified and all common
@@ -589,11 +596,16 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   cache, see `compile-state-fn`."
   ([f params initial-state]
    (compile-state-fn* f params initial-state {}))
-  ([f params initial-state opts]
+  ([f params initial-state {:keys [generic-params? gensym-fn]
+                            :or {generic-params? true
+                                 gensym-fn gensym}
+                            :as opts}]
    (let [sw             (us/stopwatch)
-         generic-params (for [_ params] (gensym 'p))
-         generic-state  (state->argv initial-state)
-         g              (apply f generic-params)
+         params         (if generic-params?
+                          (for [_ params] (gensym-fn 'p))
+                          params)
+         generic-state  (state->argv initial-state gensym-fn)
+         g              (apply f params)
          body           (-> (g generic-state)
                             (g/simplify)
                             (v/freeze)
@@ -603,53 +615,30 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                           :source compile-state->source
                           :native compile-state-native
                           :sci compile-state-sci)
-         compiled-fn    (compiler generic-params generic-state body opts)]
+         compiled-fn    (compiler params generic-state body opts)]
      (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
      compiled-fn)))
 
 ;; TODO: `compile-state-fn` should be more discerning in how it caches!
 
 (defn compile-state-fn
-  "Returns a compiled, simplified function with signature `(f state [params])`,
-  given:
-
-  - a state function, ie, a function of signature `(fn [& params] (fn [state]
-  ...))` that can accept a symbolic arguments
-
-  - `params`; really any sequence of count equal to the number of arguments
-    taken by `f`. The values are ignored.
-
-  - `initial-state`: Some structure of the same shape as the argument expected
-    by the fn returned by the state function `f`. Only the shape matters; the
-    values are ignored.
-
-  - an optional argument `opts`. Options accepted are:
-
-    - `:flatten?` if `true` (default), the returned function will have
-      signature `(f <flattened-state> [params])`. If `false`, the first arg of the
-      returned function will be expected to have the same shape as `initial-state`
-
-  - `:params?` if `true` (default), the returned function will take a second
-    argument for the parameters of the state derivative. If false, the returned
-    function will take a single argument.
-
-  The returned, compiled function expects `Double` (or `js/Number`) for all
-  state primitives. The function body is simplified and all common
-  subexpressions identified during compilation are extracted and computed only
-  once.
+  "Version of [[compile-state-fn*]] memoized on the `f` parameter only.
+  See that function's docs for more detail.
 
   NOTE that this function makes use of a global compilation cache, keyed by the
   value of `f`. Passing in the same `f` twice, even with different arguments for
   `param` and `initial-state` and different compilation modes, will return the
   cached value. See `compile-state-fn*` to avoid the cache."
-  [f params initial-state]
-  (if-let [cached (@fn-cache f)]
-    (do
-      (log/info "compiled state function cache hit")
-      cached)
-    (let [compiled (compile-state-fn* f params initial-state)]
-      (swap! fn-cache assoc f compiled)
-      compiled)))
+  ([f params initial-state]
+   (compile-state-fn f params initial-state {}))
+  ([f params initial-state opts]
+   (if-let [cached (@fn-cache f)]
+     (do
+       (log/info "compiled state function cache hit")
+       cached)
+     (let [compiled (compile-state-fn* f params initial-state opts)]
+       (swap! fn-cache assoc f compiled)
+       compiled))))
 
 ;; ## Non-State-Functions
 ;;
@@ -725,17 +714,10 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
      compiled)))
 
 (defn compile-fn
-  "Returns a compiled, simplified version of `f`, given a function `f` of arity
-  `n` (ie, able to accept `n` symbolic arguments).
-
-  `n` defaults to `([[f/arity]] f)`.
-
-  The returned, compiled function expects `n` `Double` (or `js/Number`)
-  arguments. The function body is simplified and all common subexpressions
-  identified during compilation are extracted and computed only once.
+  "Memoized version of [[compile-fn*]]. See that function's docs for more detail.
 
   NOTE: that this function makes use of a global compilation cache, keyed by the
-  vector `[f n mode]`. See `compile-fn*` to avoid the cache."
+  vector `[f n *mode*]`. See `compile-fn*` to avoid the cache."
   ([f] (let [[kwd n :as arity] (f/arity f)]
          (when-not (= kwd :exactly)
            (u/illegal

@@ -16,7 +16,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
-(ns sicmutils.expression.compile-test212
+(ns sicmutils.expression.compile-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
@@ -68,15 +68,47 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
         (testing "bind gensym to `identity` so we can check the result."
           (binding [c/*mode* :source]
-            (let [f-source (with-redefs [gensym identity]
-                             (c/compile-state-fn* f params initial-state))]
+            (let [f-source (c/compile-state-fn*
+                            f params initial-state
+                            {:gensym-fn identity})]
               (is (= `(fn [[~'y] [~'p]] (up (+ (* ~'p ~'y) (* 0.5 ~'p))))
                      f-source)
                   "source code!")
 
               (is (= expected ((c/sci-eval f-source)
                                initial-state params))
-                  "source compiles to SCI and gives us the desired result.")))))))
+                  "source compiles to SCI and gives us the desired result."))))))
+
+    (testing "compile-state-fn options"
+      (binding [c/*mode* :source]
+        (let [gensym-fn (fn []
+                          (let [i (atom 0)]
+                            (fn [x]
+                              (symbol
+                               (str x (swap! i inc))))))
+              f (fn [scale]
+                  (fn [[t]]
+                    (up (g/* scale (g/+ t (g// 1 2))))))
+              params [3]
+              initial-state (up 1 (down 2 (down 4 (up 1))))]
+
+          (is (= `(fn ~'[[y1 [y2 [y3 [y4]]]]]
+                    (up (+ (* 3.0 ~'y1) 1.5)))
+                 (c/compile-state-fn*
+                  f params initial-state
+                  {:flatten? false
+                   :generic-params? false
+                   :gensym-fn (gensym-fn)}))
+              "nested argument vector, no params.")
+
+          (is (= `(fn ~'[[y1 [y2 [y3 [y4]]]] [p5]]
+                    (up (+ (* ~'p5 ~'y1) (* 0.5 ~'p5))))
+                 (c/compile-state-fn*
+                  f params initial-state
+                  {:flatten? false
+                   :generic-params? true
+                   :gensym-fn (gensym-fn)}))
+              "nested argument vector, no params.")))))
 
   (testing "non-state-fns"
     (let [f (fn [x] (up (g/+ (g/cube x) (g/sin x))))
