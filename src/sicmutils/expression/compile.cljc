@@ -83,40 +83,40 @@
        library assumes that your function operates only on doubles (even though
        you wrote it with generic routines)."}
   compiled-fn-whitelist
-  {'up struct/up
-   'down struct/down
-   '+ +
-   '- -
-   '* *
-   '/ /
-   'expt #(Math/pow %1 %2)
-   'sqrt #(Math/sqrt %)
-   'abs #(Math/abs ^double %)
-   'log #(Math/log %)
-   'exp #(Math/exp %)
-   'cos #(Math/cos %)
-   'sin #(Math/sin %)
-   'tan #(Math/tan %)
-   'acos #(Math/acos %)
-   'asin #(Math/asin %)
-   'atan #(Math/atan %)
-   'cosh #(Math/cosh %)
-   'sinh #(Math/sinh %)
-   'tanh #(Math/tanh %)
-   'floor #(Math/floor %)
-   'ceiling #(Math/ceil %)
-   'modulo mod
-   'remainder rem
-   'quotient quot
-   'integer-part #?(:clj long
-                    :cljs #(Math/trunc %))
-   'fractional-part (fn [^double x]
-                      (- x (Math/floor x)))
+  {'up 'sicmutils.structure/up
+   'down 'sicmutils.structure/down
+   '+ 'clojure.core/+
+   '- 'clojure.core/-
+   '* 'clojure.core/*
+   '/ 'clojure.core//
+   'expt 'Math/pow
+   'sqrt 'Math/sqrt
+   'abs 'Math/abs
+   'log 'Math/log
+   'exp 'Math/exp
+   'cos 'Math/cos
+   'sin 'Math/sin
+   'tan 'Math/tan
+   'acos 'Math/acos
+   'asin 'Math/asin
+   'atan 'Math/atan
+   'cosh 'Math/cosh
+   'sinh 'Math/sinh
+   'tanh 'Math/tanh
+   'floor 'Math/floor
+   'ceiling 'Math/ceil
+   'modulo 'clojure.core/mod
+   'remainder 'clojure.core/rem
+   'quotient 'clojure.core/quot
+   'integer-part #?(:clj 'long
+                    :cljs 'Math/trunc)
+   'fractional-part '(fn [^double x]
+                       (- x (Math/floor x)))
    #?@(:cljs
        ;; JS-only entries.
-       ['acosh #(Math/acosh %)
-        'asinh #(Math/asinh %)
-        'atanh #(Math/atanh %)])})
+       ['acosh 'Math/acosh
+        'asinh 'Math/asinh
+        'atanh 'Math/atanh])})
 
 ;; ## Subexpression Elimination
 ;;
@@ -346,6 +346,19 @@
                  new-expression)))]
      (extract-common-subexpressions expr callback opts))))
 
+(defn apply-numeric-ops [body]
+  (w/postwalk
+   (fn [expr]
+     (if (sequential? expr)
+       (let [[f & xs] expr]
+         (if-let [op (and (every? number? xs)
+                          (compiled-fn-whitelist f))]
+           #?(:clj  (double (apply op xs))
+              :cljs (js/Number (apply op xs)))
+           expr))
+       expr))
+   body))
+
 ;; ### SCI vs Native Compilation
 ;;
 ;; Armed with the above compiler optimization we can move on to the actual
@@ -492,9 +505,11 @@
         generic-params (for [_ params] (gensym 'p))
         generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g              (apply f generic-params)
-        body           (cse-form
-                        (v/freeze
-                         (g/simplify (g generic-state))))
+        body           (-> (g generic-state)
+                           (g/simplify)
+                           (v/freeze)
+                           (cse-form)
+                           (apply-numeric-ops))
         compiler       (if (native?)
                          compile-state-native
                          compile-state-sci)
@@ -547,7 +562,7 @@
   `body` should of course make use of the symbols in `args`."
   [args body]
   (let [body (w/postwalk-replace compiled-fn-whitelist body)]
-    (eval `(fn ~(vec args) ~body))))
+    (eval `(fn [~@args] ~body))))
 
 (defn- compile-sci
   "Returns a Clojure function evaluated
@@ -556,7 +571,7 @@
 
   `body` should of course make use of the symbols in `args`."
   [args body]
-  (let [f `(fn ~(vec args) ~body)]
+  (let [f `(fn [~@args] ~body)]
     (sci/eval-form (sci/fork sci-context) f)))
 
 (defn- retrieve-arity [f]
@@ -566,6 +581,8 @@
       (u/illegal
        (str "`compile-fn` can only infer arity for functions with just one
            arity, not " arity ". Please pass an explicit `n`.")))))
+
+
 
 (defn compile-fn*
   "Returns a compiled, simplified version of `f`, given a function `f` of arity
@@ -583,9 +600,11 @@
   ([f n]
    (let [sw       (us/stopwatch)
          args     (repeatedly n #(gensym 'x))
-         body     (cse-form
-                   (v/freeze
-                    (g/simplify (apply f args))))
+         body     (-> (apply f args)
+                      (g/simplify)
+                      (v/freeze)
+                      (cse-form)
+                      (apply-numeric-ops))
          compiled (if (native?)
                     (compile-native args body)
                     (compile-sci args body))]
