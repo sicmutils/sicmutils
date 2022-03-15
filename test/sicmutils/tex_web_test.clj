@@ -16,15 +16,14 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this code; if not, see <http://www.gnu.org/licenses/>."
 
+#_{:clj-kondo/ignore [:refer-all]}
 (ns sicmutils.tex-web-test
   (:refer-clojure :exclude [+ - * / = compare ref partial zero? numerator denominator])
   (:require [nextjournal.clerk :as clerk]
-            [sicmutils.env :as e]
+            [sicmutils.env :as e :refer :all]
             [sicmutils.examples.central-potential :as central]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.examples.driven-pendulum :as driven]))
-
-(e/bootstrap-repl!)
 
 ;; ## Showing Off Renderers
 
