@@ -96,11 +96,12 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   compiled-fn-whitelist
   {'up {:sym 'sicmutils.structure/up
         :f struct/up}
-   'down {:sym 'sicmutils.structure/down}
-   '+ {:sym 'clojure.core/+ :f +}
-   '- {:sym 'clojure.core/- :f -}
-   '* {:sym 'clojure.core/* :f *}
-   '/ {:sym 'clojure.core// :f /}
+   'down {:sym 'sicmutils.structure/down
+          :f struct/down}
+   '+ {:sym `+ :f +}
+   '- {:sym `- :f -}
+   '* {:sym `* :f *}
+   '/ {:sym `/ :f /}
    'expt {:sym 'Math/pow :f #(Math/pow %1 %2)}
    'sqrt {:sym 'Math/sqrt :f #(Math/sqrt %)}
    'abs {:sym 'Math/abs :f #(Math/abs ^double %)}
@@ -121,14 +122,15 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
    'remainder {:sym 'clojure.core/rem :f rem}
    'quotient {:sym 'clojure.core/quot :f quot}
    'integer-part #?(:clj {:sym 'long :f long}
-                    :cljs {:sym 'Math/trunc :f #(Math/trunc %)})
+                    :cljs {:sym 'Math/trunc
+                           :f #(Math/trunc %)})
    ;; NOTE that the proper way to handle this substitution is to add a
    ;; simplification rule that does this transformation for us. If you hit this
    ;; and it's slow, consider opening a PR for that.
-   'fractional-part {:sym '(fn [^double x]
-                             (- x (Math/floor x)))
-                     :f (fn [^double x]
-                          (- x (Math/floor x)))}
+   'fractional-part {:sym `(fn [^double ~'x]
+                             (- ~'x (~'Math/floor ~'x)))
+                     :fn (fn [^double x]
+                           (- x (Math/floor x)))}
    #?@(:cljs
        ;; JS-only entries.
        ['acosh {:sym 'Math/acosh :f #(Math/acosh %)}
@@ -481,9 +483,15 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   see."}
   sci-context
   (sci/init
-   {:bindings (u/map-vals :f compiled-fn-whitelist)}))
+   {:classes {'Math #?(:cljs js/Math :clj java.lang.Math)}
 
-(defn source->sci-fn
+    ;; These are the only non-Math bindings introduced by the postwalk
+    ;; replacement.
+    :namespaces {'sicmutils.structure
+                 {'up struct/up
+                  'down struct/down}}}))
+
+(defn sci-eval
   "Given an unevaluated source code form `f-form` representing a function,
   evaluates `f-form` using the bindings in [[sci-context]].
 
@@ -500,7 +508,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
   [params state-model body]
-  `(fn ~(state-argv params state-model) ~body))
+  (let [body (w/postwalk-replace sym->resolved-form body)]
+    `(fn ~(state-argv params state-model) ~body)))
 
 (defn- compile-state-native
   "Returns a natively-evaluated Clojure function that implements `body`, given:
@@ -511,9 +520,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
   [params state-model body]
-  (let [body (w/postwalk-replace sym->resolved-form body)]
-    (eval
-     `(fn ~(state-argv params state-model) ~body))))
+  (eval
+   (compile-state->source params state-model body)))
 
 (defn- compile-state-sci
   "Returns a Clojure function evaluated using SCI. The returned fn implements
@@ -525,8 +533,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
   ([params state-model body]
-   (let [f `(fn ~(state-argv params state-model) ~body)]
-     (sci/eval-form (sci/fork sci-context) f))))
+   (sci-eval
+    (compile-state->source params state-model body))))
 
 ;; ### State Fn Interface
 ;;
@@ -573,9 +581,11 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 ;; TODO: `compile-state-fn` should be more discerning in how it caches!
 
 (defn compile-state-fn
-  "Returns a compiled, simplified function, given:
+  "Returns a compiled, simplified function with signature `(f state [params])`,
+  given:
 
-  - a state function that can accept a symbolic arguments
+  - a state function, ie, a function of signature `(fn [& params] (fn [state]
+  ...))` that can accept a symbolic arguments
 
   - `params`; really any sequence of count equal to the number of arguments
     taken by `f`. The values are ignored.
@@ -616,7 +626,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
   `body` should of course make use of the symbols in `args`."
   [args body]
-  `(fn [~@args] ~body))
+  (let [body (w/postwalk-replace sym->resolved-form body)]
+    `(fn [~@args] ~body)))
 
 (defn- compile-native
   "Returns a natively-evaluated Clojure function that implements `body`, given
@@ -624,8 +635,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
   `body` should of course make use of the symbols in `args`."
   [args body]
-  (let [body (w/postwalk-replace sym->resolved-form body)]
-    (eval `(fn [~@args] ~body))))
+  (eval
+   (compile->source args body)))
 
 (defn- compile-sci
   "Returns a Clojure function evaluated
@@ -634,8 +645,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
   `body` should of course make use of the symbols in `args`."
   [args body]
-  (let [f `(fn [~@args] ~body)]
-    (sci/eval-form (sci/fork sci-context) f)))
+  (sci-eval
+   (compile->source args body)))
 
 (defn- retrieve-arity [f]
   (let [[kwd n :as arity] (f/arity f)]

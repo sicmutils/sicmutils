@@ -29,8 +29,8 @@
     - `set-compiler-mode!` now actually works. It never did!
 
   - New `:source` compile mode that returns a source code form. You can either
-    call `eval` on this or call `source->sci-fn` to get an SCI-evaluated
-    function with all proper bindings in place.
+    call `eval` on this or call `sci-eval` to get an SCI-evaluated function with
+    all proper bindings in place.
 
 - #485:
 
