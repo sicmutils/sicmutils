@@ -21,11 +21,99 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
+            [same :refer [ish?]]
+            [sicmutils.abstract.number]
             [sicmutils.expression.compile :as c]
             [sicmutils.generic :as g :refer [+ - *]]
             [sicmutils.structure :refer [up down]]))
 
+(deftest mode-binding-test
+  (testing "set-compiler-mode! works"
+    (let [current-mode c/*mode*]
+      (doseq [mode c/valid-modes]
+        (c/set-compiler-mode! mode)
+        (is (= mode (c/compiler-mode))
+            "set-compiler-mode! works"))
+      (c/set-compiler-mode! current-mode)))
+
+  (doseq [mode c/valid-modes]
+    (binding [c/*mode* mode]
+      (is (= mode (c/compiler-mode))
+          "valid modes are all returned by compiler-mode.")))
+
+  (binding [c/*mode* :TOTALLY-INVALID]
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (c/compiler-mode))
+        "invalid modes throw.")))
+
 (deftest compile-fn-test
+  (testing "state-fn compilation"
+    (let [f (fn [scale]
+              (fn [[t]]
+                (up (g/* scale (g/+ t (g// 1 2))))))
+          params [10]
+          initial-state [3]
+          expected (up 31.5)]
+      (testing "compilation works in sci and native modes"
+        #?(:clj
+           (binding [c/*mode* :native]
+             (is (= expected
+                    ((c/compile-state-fn* f params initial-state) [10] [1])))))
+
+        (binding [c/*mode* :sci]
+          (is (= expected
+                 ((c/compile-state-fn* f params initial-state)
+                  params initial-state))))
+
+        (testing "bind gensym to `identity` so we can check the result."
+          (binding [c/*mode* :source]
+            (let [f-source (with-redefs [gensym identity]
+                             (c/compile-state-fn* f params initial-state))]
+              (is (= (list `fn '[[y] [p]] '(up (+ (* p y) (* 0.5 p))))
+                     f-source)
+                  "source code!")
+
+              (is (= expected ((c/source->sci-fn f-source) params initial-state))
+                  "source compiles to SCI and gives us the desired result.")))))))
+
+  (testing "non-state-fns"
+    (let [f (fn [x] (up (g/+ (g/cube x) (g/sin x))))
+          expected (up 999.4559788891106)]
+      (testing "compilation works in sci and native modes"
+        #?(:clj
+           (binding [c/*mode* :native]
+             (is (ish? expected
+                       ((c/compile-fn f) 10)))))
+
+        (binding [c/*mode* :sci]
+          (is (ish? expected
+                    ((c/compile-fn f) 10))))
+
+        (testing "bind gensym to `identity` so we can check the result."
+          (binding [c/*mode* :source]
+            (let [f-source (with-redefs [gensym identity]
+                             (c/compile-fn f))]
+              (is (= (list `fn '[x] '(up (+ (expt x 3.0) (sin x))))
+                     f-source)
+                  "source code!")
+
+              (is (= expected ((c/source->sci-fn f-source) 10))
+                  "source compiles to SCI and gives us the desired result."))
+
+            (with-redefs [gensym identity]
+              (is (= (list `fn '[x] '(+ (* -1.0 x) 28.0))
+                     (c/compile-fn
+                      (fn [x]
+                        (g/- (g/* 8 (g/+ (g// 1 2) 3))
+                             x))))
+                  "all remaining numerical literals are doubles.")
+
+              (is (= (list `fn '[x] '(+ x 0.5))
+                     (c/compile-fn
+                      (fn [x]
+                        (g/+ (g// 1 2) x))))
+                  "`(/ 1 2)` is resolved into 0.5 at compile time.")))))))
+
   (let [f          (fn [x] (+ 1 (g/square (g/sin x))))
         cf         (c/compile-fn f)
         cf2        (c/compile-fn f)

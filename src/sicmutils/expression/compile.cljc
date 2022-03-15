@@ -75,51 +75,71 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
 (def ^:private fn-cache (atom {}))
 
+;; The next two forms allow us to walk an expression tree, and either:
+;;
+;; - namespace-resolve whitelisted symbols, or
+;; - apply operations at compile time if all arguments are available (and
+;;   non-symbolic).
+;;
+;; If we were only dealing with Clojure here, we could get both of these pieces
+;; from a var. But forms like `Math/pow` make this tricky, so we go with the map
+;; described below.
+
 (def ^{:private true
-       :doc "Dict of symbol -> function body. The keys constitute the set of
-       operations allowed to appear within the body of the compiled function.
+       :doc "Dict of `<symbol> -> {:sym <symbolic-fn>, :f <evaluated-fn>}`. The
+       keys constitute the set of operations allowed to appear within the body
+       of the compiled function.
 
        If you're compiling a function for use with the numerical routines, the
        library assumes that your function operates only on doubles (even though
        you wrote it with generic routines)."}
   compiled-fn-whitelist
-  {'up 'sicmutils.structure/up
-   'down 'sicmutils.structure/down
-   '+ 'clojure.core/+
-   '- 'clojure.core/-
-   '* 'clojure.core/*
-   '/ 'clojure.core//
-   'expt 'Math/pow
-   'sqrt 'Math/sqrt
-   'abs 'Math/abs
-   'log 'Math/log
-   'exp 'Math/exp
-   'cos 'Math/cos
-   'sin 'Math/sin
-   'tan 'Math/tan
-   'acos 'Math/acos
-   'asin 'Math/asin
-   'atan 'Math/atan
-   'cosh 'Math/cosh
-   'sinh 'Math/sinh
-   'tanh 'Math/tanh
-   'floor 'Math/floor
-   'ceiling 'Math/ceil
-   'modulo 'clojure.core/mod
-   'remainder 'clojure.core/rem
-   'quotient 'clojure.core/quot
-   'integer-part #?(:clj 'long
-                    :cljs 'Math/trunc)
+  {'up {:sym 'sicmutils.structure/up
+        :f struct/up}
+   'down {:sym 'sicmutils.structure/down}
+   '+ {:sym 'clojure.core/+ :f +}
+   '- {:sym 'clojure.core/- :f -}
+   '* {:sym 'clojure.core/* :f *}
+   '/ {:sym 'clojure.core// :f /}
+   'expt {:sym 'Math/pow :f #(Math/pow %1 %2)}
+   'sqrt {:sym 'Math/sqrt :f #(Math/sqrt %)}
+   'abs {:sym 'Math/abs :f #(Math/abs ^double %)}
+   'log {:sym 'Math/log :f #(Math/log %)}
+   'exp {:sym 'Math/exp :f #(Math/exp %)}
+   'cos {:sym 'Math/cos :f #(Math/cos %)}
+   'sin {:sym 'Math/sin :f #(Math/sin %)}
+   'tan {:sym 'Math/tan :f #(Math/tan %)}
+   'acos {:sym 'Math/acos :f #(Math/acos %)}
+   'asin {:sym 'Math/asin :f #(Math/asin %)}
+   'atan {:sym 'Math/atan :f #(Math/atan %)}
+   'cosh {:sym 'Math/cosh :f #(Math/cosh %)}
+   'sinh {:sym 'Math/sinh :f #(Math/sinh %)}
+   'tanh {:sym 'Math/tanh :f #(Math/tanh %)}
+   'floor {:sym 'Math/floor :f #(Math/floor %)}
+   'ceiling {:sym 'Math/ceil :f #(Math/ceil %)}
+   'modulo {:sym 'clojure.core/mod :f mod}
+   'remainder {:sym 'clojure.core/rem :f rem}
+   'quotient {:sym 'clojure.core/quot :f quot}
+   'integer-part #?(:clj {:sym 'long :f long}
+                    :cljs {:sym 'Math/trunc :f #(Math/trunc %)})
    ;; NOTE that the proper way to handle this substitution is to add a
    ;; simplification rule that does this transformation for us. If you hit this
    ;; and it's slow, consider opening a PR for that.
-   'fractional-part '(fn [^double x]
-                       (- x (Math/floor x)))
+   'fractional-part {:sym '(fn [^double x]
+                             (- x (Math/floor x)))
+                     :f (fn [^double x]
+                          (- x (Math/floor x)))}
    #?@(:cljs
        ;; JS-only entries.
-       ['acosh 'Math/acosh
-        'asinh 'Math/asinh
-        'atanh 'Math/atanh])})
+       ['acosh {:sym 'Math/acosh :f #(Math/acosh %)}
+        'asinh {:sym 'Math/asinh :f #(Math/asinh %)}
+        'atanh {:sym 'Math/atanh :f #(Math/atanh %)}])})
+
+(def ^{:private true
+       :doc "Dict of `<symbol> -> <symbolic-fn>`. See [[compiled-fn-whitelist]]
+       for more detail."}
+  sym->resolved-form
+  (u/map-vals :sym compiled-fn-whitelist))
 
 ;; ## Subexpression Elimination
 ;;
@@ -349,17 +369,21 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                  new-expression)))]
      (extract-common-subexpressions expr callback opts))))
 
-(defn apply-numeric-ops [body]
+(defn ^:no-doc apply-numeric-ops
+  "Takes a function body and returns a new body with all numeric operations
+  like `(/ 1 2)` evaluated and all numerical literals converted to `double` or
+  `js/Number`."
+  [body]
   (w/postwalk
    (fn [expr]
-     (if (sequential? expr)
-       (let [[f & xs] expr]
-         (if-let [op (and (every? number? xs)
-                          (compiled-fn-whitelist f))]
-           #?(:clj  (double (apply op xs))
-              :cljs (js/Number (apply op xs)))
-           expr))
-       expr))
+     (cond (v/real? expr) (u/double expr)
+           (sequential? expr)
+           (let [[f & xs] expr]
+             (if-let [m (and (every? number? xs)
+                             (compiled-fn-whitelist f))]
+               (u/double (apply (:f m) xs))
+               expr))
+           :else expr))
    body))
 
 ;; ### SCI vs Native Compilation
@@ -383,19 +407,25 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
 (def ^{:doc "Set of all supported compilation modes."}
   valid-modes
-  #{:sci :native})
+  #{:sci :native :source})
 
 (defn set-compiler-mode!
   "Set the default compilation mode by supplying an entry from [[valid-modes]]."
   [mode]
-  (when-not (valid-modes mode)
+  (if (valid-modes mode)
+    #?(:cljs (set! *mode* mode)
+       :clj  (alter-var-root #'*mode* (constantly mode)))
     (u/illegal (str "Invalid compilation mode supplied: " mode
                     ". Please supply one of " valid-modes))))
 
-(defn- native?
-  "Returns true if native compilation mode is enabled, false otherwise."
+(defn compiler-mode
+  "Validates and returns the dynamically bound compilation [[*mode*]].
+  Throws on an invalid setting."
   []
-  (= *mode* :native))
+  (or (valid-modes *mode*)
+      (u/illegal (str "Invalid compilation mode bound: "
+                      *mode*
+                      ". Please supply one of " valid-modes))))
 
 ;; Native compilation works on the JVM, and on Clojurescript if you're running
 ;; in a self-hosted CLJS environment. Enable this mode by wrapping your call in
@@ -451,7 +481,26 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   see."}
   sci-context
   (sci/init
-   {:bindings compiled-fn-whitelist}))
+   {:bindings (u/map-vals :f compiled-fn-whitelist)}))
+
+(defn source->sci-fn
+  "Given an unevaluated source code form `f-form` representing a function,
+  evaluates `f-form` using the bindings in [[sci-context]].
+
+  Generate these forms by setting `*mode*` to `:source`."
+  [f-form]
+  (sci/eval-form (sci/fork sci-context) f-form))
+
+(defn- compile-state->source
+  "Returns a natively-evaluated Clojure function that implements `body`, given:
+
+  - `params`: a seq of symbols equal in count to the original state function's
+    args
+  - `state-model`: a sequence of variables representing the structure of the
+    nested function returned by the state function
+  - `body`: a function body making use of any symbol in the args above"
+  [params state-model body]
+  `(fn ~(state-argv params state-model) ~body))
 
 (defn- compile-state-native
   "Returns a natively-evaluated Clojure function that implements `body`, given:
@@ -462,7 +511,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
   [params state-model body]
-  (let [body (w/postwalk-replace compiled-fn-whitelist body)]
+  (let [body (w/postwalk-replace sym->resolved-form body)]
     (eval
      `(fn ~(state-argv params state-model) ~body))))
 
@@ -513,12 +562,15 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                            (v/freeze)
                            (cse-form)
                            (apply-numeric-ops))
-        compiler       (if (native?)
-                         compile-state-native
-                         compile-state-sci)
+        compiler       (case (compiler-mode)
+                         :source compile-state->source
+                         :native compile-state-native
+                         :sci compile-state-sci)
         compiled-fn    (compiler generic-params generic-state body)]
     (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
     compiled-fn))
+
+;; TODO: `compile-state-fn` should be more discerning in how it caches!
 
 (defn compile-state-fn
   "Returns a compiled, simplified function, given:
@@ -538,8 +590,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
   NOTE that this function makes use of a global compilation cache, keyed by the
   value of `f`. Passing in the same `f` twice, even with different arguments for
-  `param` and `initial-state`, will return the cached value. See
-  `compile-state-fn*` to avoid the cache."
+  `param` and `initial-state` and different compilation modes, will return the
+  cached value. See `compile-state-fn*` to avoid the cache."
   [f params initial-state]
   (if-let [cached (@fn-cache f)]
     (do
@@ -558,13 +610,21 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 ;; versions above; the function you pass in has to take `n` symbolic arguments,
 ;; that's it.
 
+(defn- compile->source
+  "Returns an unevaluated source code body function that implements `body`, given
+  some sequence `args` of argument symbols.
+
+  `body` should of course make use of the symbols in `args`."
+  [args body]
+  `(fn [~@args] ~body))
+
 (defn- compile-native
   "Returns a natively-evaluated Clojure function that implements `body`, given
   some sequence `args` of argument symbols.
 
   `body` should of course make use of the symbols in `args`."
   [args body]
-  (let [body (w/postwalk-replace compiled-fn-whitelist body)]
+  (let [body (w/postwalk-replace sym->resolved-form body)]
     (eval `(fn [~@args] ~body))))
 
 (defn- compile-sci
@@ -584,8 +644,6 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
       (u/illegal
        (str "`compile-fn` can only infer arity for functions with just one
            arity, not " arity ". Please pass an explicit `n`.")))))
-
-
 
 (defn compile-fn*
   "Returns a compiled, simplified version of `f`, given a function `f` of arity
@@ -608,9 +666,10 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                       (v/freeze)
                       (cse-form)
                       (apply-numeric-ops))
-         compiled (if (native?)
-                    (compile-native args body)
-                    (compile-sci args body))]
+         compiled (case (compiler-mode)
+                    :source (compile->source args body)
+                    :native (compile-native args body)
+                    :sci (compile-sci args body))]
      (log/info "compiled function of arity" n "in" (us/repr sw) "with mode" *mode*)
      compiled)))
 
@@ -625,7 +684,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   identified during compilation are extracted and computed only once.
 
   NOTE: that this function makes use of a global compilation cache, keyed by the
-  vector `[f n]`. See `compile-fn*` to avoid the cache."
+  vector `[f n mode]`. See `compile-fn*` to avoid the cache."
   ([f] (let [[kwd n :as arity] (f/arity f)]
          (when-not (= kwd :exactly)
            (u/illegal
@@ -633,10 +692,12 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
            arity, not " arity ". Please pass an explicit `n`.")))
          (compile-fn f n)))
   ([f n]
-   (if-let [cached (@fn-cache [f n])]
-     (do
-       (log/info "compiled function cache hit - arity " n)
-       cached)
-     (let [compiled (compile-fn* f n)]
-       (swap! fn-cache assoc [f n] compiled)
-       compiled))))
+   (let [mode *mode*]
+     (if-let [cached (@fn-cache [f n mode])]
+       (do
+         (log/info "compiled function cache hit - arity " n ", mode " mode)
+         cached)
+       (binding [*mode* mode]
+         (let [compiled (compile-fn* f n)]
+           (swap! fn-cache assoc [f n mode] compiled)
+           compiled))))))

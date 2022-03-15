@@ -2,10 +2,35 @@
 
 ## unreleased
 
-- #496 replaces the function values in `sicmutils.expression.compile` with
-  symbols; I hadn't realized before that substituting in symbolic `Math/sqrt`,
-  for example, was possible, vs a `#(Math/sqrt %)` function value. Compiled
-  functions are now faster!!
+- #496:
+
+  - replaces the function values in `sicmutils.expression.compile` with symbols;
+    I hadn't realized before that substituting in symbolic `Math/sqrt`, for
+    example, was possible, vs a `#(Math/sqrt %)` function value. Compiled
+    functions are now faster!
+
+    A simulation run of the double pendulum example in the [clerk-demo
+    repository](https://github.com/nextjournal/clerk-demo/blob/20a404a271bea29ef98ee4e60a05e54345aa43ba/notebooks/sicmutils.clj)
+    now runs in 700ms vs the former 2.2 seconds, a major win.
+
+  - Function compilation now pre-simplifies numerical forms encountered inside a
+    function, like `(/ 1 2)`, instead of letting them be evaluated on every fn
+    call.
+
+  - All numerical forms encountered in function compilation are now converted to
+    either `double` on the JVM or `js/Number` in javascript; this way no
+    `BigInt` values etc are left around.
+
+  - In `sicmutils.expression.compile`:
+
+    - gains a new, validating `compiler-mode` function for fetching the compiler
+      function.
+
+    - `set-compiler-mode!` now actually works. It never did!
+
+  - New `:source` compile mode that returns a source code form. You can either
+    call `eval` on this or call `source->sci-fn` to get an SCI-evaluated
+    function with all proper bindings in place.
 
 - #485:
 
