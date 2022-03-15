@@ -2,6 +2,11 @@
 
 ## unreleased
 
+- #496 replaces the function values in `sicmutils.expression.compile` with
+  symbols; I hadn't realized before that substituting in symbolic `Math/sqrt`,
+  for example, was possible, vs a `#(Math/sqrt %)` function value. Compiled
+  functions are now faster!!
+
 - #485:
 
   - Bumps the JDK version for Github Actions to 17 from 8.

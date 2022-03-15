@@ -110,6 +110,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
    'quotient 'clojure.core/quot
    'integer-part #?(:clj 'long
                     :cljs 'Math/trunc)
+   ;; NOTE that the proper way to handle this substitution is to add a
+   ;; simplification rule that does this transformation for us. If you hit this
+   ;; and it's slow, consider opening a PR for that.
    'fractional-part '(fn [^double x]
                        (- x (Math/floor x)))
    #?@(:cljs
