@@ -71,7 +71,8 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
             (let [f-source (c/compile-state-fn*
                             f params initial-state
                             {:gensym-fn identity})]
-              (is (= `(fn [[~'y] [~'p]] (up (+ (* ~'p ~'y) (* 0.5 ~'p))))
+              (is (= `(fn [[~'y] [~'p]]
+                        (vector (+ (* ~'p ~'y) (* 0.5 ~'p))))
                      f-source)
                   "source code!")
 
@@ -93,7 +94,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
               initial-state (up 1 (down 2 (down 4 (up 1))))]
 
           (is (= `(fn ~'[[y1 [y2 [y3 [y4]]]]]
-                    (up (+ (* 3.0 ~'y1) 1.5)))
+                    (vector (+ (* 3.0 ~'y1) 1.5)))
                  (c/compile-state-fn*
                   f params initial-state
                   {:flatten? false
@@ -102,7 +103,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
               "nested argument vector, no params.")
 
           (is (= `(fn ~'[[y1 [y2 [y3 [y4]]]] [p5]]
-                    (up (+ (* ~'p5 ~'y1) (* 0.5 ~'p5))))
+                    (vector (+ (* ~'p5 ~'y1) (* 0.5 ~'p5))))
                  (c/compile-state-fn*
                   f params initial-state
                   {:flatten? false
@@ -125,10 +126,12 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
         (testing "bind gensym to `identity` so we can check the result."
           (binding [c/*mode* :source]
-            (let [f-source (with-redefs [gensym identity]
+            (let [f-source (with-redefs [gensym (fn
+                                                  ([] (clojure.core/gensym))
+                                                  ([x] x))]
                              (c/compile-fn f))]
               (is (= `(fn [~'x]
-                        (up
+                        (vector
                          (+ (~'Math/pow ~'x 3.0)
                             (~'Math/sin ~'x))))
                      f-source)
@@ -137,7 +140,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
               (is (= expected ((c/sci-eval f-source) 10))
                   "source compiles to SCI and gives us the desired result."))
 
-            (with-redefs [gensym identity]
+            (with-redefs [gensym (fn
+                                   ([] (clojure.core/gensym))
+                                   ([x] x))]
               (is (= `(fn [~'x] (+ (* -1.0 ~'x) 28.0))
                      (c/compile-fn
                       (fn [x]

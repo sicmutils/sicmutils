@@ -94,8 +94,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
        library assumes that your function operates only on doubles (even though
        you wrote it with generic routines)."}
   compiled-fn-whitelist
-  {'up {:sym 'sicmutils.structure/up
-        :f struct/up}
+  {'up {:sym `vector :f vector}
    'down {:sym 'sicmutils.structure/down
           :f struct/down}
    '+ {:sym `+ :f +}
@@ -563,7 +562,6 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
               (gensym-fn 'y)))]
     (rec state)))
 
-#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn compile-state-fn*
   "Returns a compiled, simplified function with signature `(f state params)`,
   given:
@@ -599,9 +597,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
    (compile-state-fn* f params initial-state {}))
   ([f params initial-state {:keys [generic-params? gensym-fn]
                             :or {generic-params? true
-                                 ;; redundant fn wrapper since `gensym` is a
-                                 ;; macro in CLJS.
-                                 gensym-fn #(gensym %)}
+                                 gensym-fn gensym}
                             :as opts}]
    (let [sw             (us/stopwatch)
          params         (if generic-params?
