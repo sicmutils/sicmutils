@@ -2,6 +2,13 @@
 
 ## unreleased
 
+- new: `sicmutils.expression.compile/compile-state-fn` and its non-memoized
+  version can now take an explicit `:mode` argument; this will override the
+  dynamically bound `*mode*`.
+
+  Invalid modes supplied via `:mode` will cause `compile-state-fn` to throw an
+  exception.
+
 - #496:
 
   - replaces the function values in `sicmutils.expression.compile` with symbols;

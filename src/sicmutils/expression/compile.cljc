@@ -370,6 +370,12 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                  new-expression)))]
      (extract-common-subexpressions expr callback opts))))
 
+(def ^{:private true
+       :doc "Similar to [[compiled-fn-whitelist]], but restricted to numeric
+  operations."}
+  numeric-whitelist
+  (dissoc compiled-fn-whitelist 'up 'down))
+
 (defn ^:no-doc apply-numeric-ops
   "Takes a function body and returns a new body with all numeric operations
   like `(/ 1 2)` evaluated and all numerical literals converted to `double` or
@@ -381,7 +387,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
            (sequential? expr)
            (let [[f & xs] expr]
              (if-let [m (and (every? number? xs)
-                             (compiled-fn-whitelist f))]
+                             (numeric-whitelist f))]
                (u/double (apply (:f m) xs))
                expr))
            :else expr))
@@ -410,23 +416,30 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   valid-modes
   #{:sci :native :source})
 
-(defn set-compiler-mode!
-  "Set the default compilation mode by supplying an entry from [[valid-modes]]."
+(defn validate-mode!
+  "Given a keyword `mode` specifying a compilation mode, returns `mode` if valid,
+  and throws otherwise."
   [mode]
-  (if (valid-modes mode)
-    #?(:cljs (set! *mode* mode)
-       :clj  (alter-var-root #'*mode* (constantly mode)))
-    (u/illegal (str "Invalid compilation mode supplied: " mode
-                    ". Please supply one of " valid-modes))))
+  (or (valid-modes mode)
+      (throw
+       (ex-info
+        (str "Invalid compilation mode supplied: " mode
+             ". Please supply (or bind to `*mode*`) one of " valid-modes)
+        {:mode       mode
+         :valid-mode valid-modes}))))
 
 (defn compiler-mode
   "Validates and returns the dynamically bound compilation [[*mode*]].
   Throws on an invalid setting."
   []
-  (or (valid-modes *mode*)
-      (u/illegal (str "Invalid compilation mode bound: "
-                      *mode*
-                      ". Please supply one of " valid-modes))))
+  (validate-mode! *mode*))
+
+(defn set-compiler-mode!
+  "Set the default compilation mode by supplying an entry from [[valid-modes]]."
+  [mode]
+  (validate-mode! mode)
+  #?(:cljs (set! *mode* mode)
+     :clj  (alter-var-root #'*mode* (constantly mode))))
 
 ;; Native compilation works on the JVM, and on Clojurescript if you're running
 ;; in a self-hosted CLJS environment. Enable this mode by wrapping your call in
@@ -577,14 +590,17 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
 
   - an optional argument `opts`. Options accepted are:
 
-    - `:flatten?` if `true` (default), the returned function will have
+    - `:flatten?`: if `true` (default), the returned function will have
       signature `(f <flattened-state> [params])`. If `false`, the first arg of the
       returned function will be expected to have the same shape as `initial-state`
 
-    - `:generic-params?` if `true` (default), the returned function will take a
+    - `:generic-params?`: if `true` (default), the returned function will take a
       second argument for the parameters of the state derivative and keep params
       generic. If false, the returned function will take a single state argument,
       and the supplied params will be hardcoded.
+
+    - `:mode`: Explicitly set the compilation mode to one of the values
+      in [[valid-modes]]. Explicit alternative to dynamically binding [[*mode*]].
 
   The returned, compiled function expects all `Double` (or `js/Number`) for all
   state primitives. The function body is simplified and all common
@@ -595,26 +611,28 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
   cache, see `compile-state-fn`."
   ([f params initial-state]
    (compile-state-fn* f params initial-state {}))
-  ([f params initial-state {:keys [generic-params? gensym-fn]
+  ([f params initial-state {:keys [generic-params?
+                                   gensym-fn
+                                   mode]
                             :or {generic-params? true
                                  gensym-fn gensym}
                             :as opts}]
-   (let [sw             (us/stopwatch)
-         params         (if generic-params?
-                          (for [_ params] (gensym-fn 'p))
-                          params)
-         generic-state  (state->argv initial-state gensym-fn)
-         g              (apply f params)
-         body           (-> (g generic-state)
-                            (g/simplify)
-                            (v/freeze)
-                            (cse-form)
-                            (apply-numeric-ops))
-         compiler       (case (compiler-mode)
-                          :source compile-state->source
-                          :native compile-state-native
-                          :sci compile-state-sci)
-         compiled-fn    (compiler params generic-state body opts)]
+   (let [sw            (us/stopwatch)
+         params        (if generic-params?
+                         (for [_ params] (gensym-fn 'p))
+                         params)
+         generic-state (state->argv initial-state gensym-fn)
+         g             (apply f params)
+         body          (-> (g generic-state)
+                           (g/simplify)
+                           (v/freeze)
+                           (cse-form)
+                           (apply-numeric-ops))
+         compiler      (case (validate-mode! (or mode *mode*))
+                         :source compile-state->source
+                         :native compile-state-native
+                         :sci compile-state-sci)
+         compiled-fn   (compiler params generic-state body opts)]
      (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
      compiled-fn)))
 
