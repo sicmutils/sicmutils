@@ -3,7 +3,7 @@
   {:extra-paths ["dev"]
    :extra-deps
    {io.github.nextjournal/clerk
-    {:git/sha "a44f021a5f90defe877f3cfec81e164a844f7b39"}}}
+    {:git/sha "d08c26043efe19a92fe33dd9eb4499e304e4cff7"}}}
 
   :clj-kondo
   {:replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
