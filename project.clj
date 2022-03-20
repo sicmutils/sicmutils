@@ -39,8 +39,7 @@
                              [cider/piggieback "0.5.3"]
                              [com.taoensso/tufte "2.2.0"]
                              [com.gfredericks/test.chuck "0.2.13"]
-                             [io.github.nextjournal/clerk "0.5.346"
-                              :exclusions [org.clojure/tools.deps.alpha]]
+                             [io.github.nextjournal/clerk "0.6.387"]
                              [nrepl "0.9.0"]
                              [same/ish "0.1.4"]
                              [thheller/shadow-cljs "2.17.4"]]}}
