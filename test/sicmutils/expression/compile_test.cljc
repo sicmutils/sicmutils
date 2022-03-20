@@ -1,20 +1,4 @@
-#_
-"Copyright © 2017 Colin Smith.
-This work is based on the Scmutils system of MIT/GNU Scheme:
-Copyright © 2002 Massachusetts Institute of Technology
-
-This is free software;  you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or (at
-your option) any later version.
-
-This software is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this code; if not, see <http://www.gnu.org/licenses/>."
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.expression.compile-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -25,7 +9,9 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
             [sicmutils.expression.compile :as c]
             [sicmutils.generic :as g]
             [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang ExceptionInfo))))
 
 (deftest mode-binding-test
   (testing "set-compiler-mode! works"
@@ -42,7 +28,7 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
           "valid modes are all returned by compiler-mode.")))
 
   (binding [c/*mode* :TOTALLY-INVALID]
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+    (is (thrown? ExceptionInfo
                  (c/compiler-mode))
         "invalid modes throw.")))
 
@@ -75,6 +61,22 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                         (vector (+ (* ~'p ~'y) (* 0.5 ~'p))))
                      f-source)
                   "source code!")
+
+              (binding [c/*mode* :native]
+                (is (= `(fn [[~'y] [~'p]]
+                          (vector (+ (* ~'p ~'y) (* 0.5 ~'p))))
+                       (c/compile-state-fn*
+                        f params initial-state
+                        {:gensym-fn identity
+                         :mode :source}))
+                    "explicit `:mode` overrides the dynamic binding."))
+
+              (is (thrown? ExceptionInfo
+                           (c/compile-state-fn*
+                            f params initial-state
+                            {:gensym-fn identity
+                             :mode :invalid}))
+                  "explicit invalid modes will throw!")
 
               (is (= expected ((c/sci-eval f-source)
                                initial-state params))
@@ -150,10 +152,10 @@ along with this code; if not, see <http://www.gnu.org/licenses/>."
                              x))))
                   "all remaining numerical literals are doubles.")
 
-              (is (= `(fn [~'x] (+ ~'x 0.5))
+              (is (= `(fn [~'x] (vector 2.0 (+ ~'x 0.5)))
                      (c/compile-fn
                       (fn [x]
-                        (g/+ (g// 1 2) x))))
+                        (up 2 (g/+ (g// 1 2) x)))))
                   "`(/ 1 2)` is resolved into 0.5 at compile time.")))))))
 
   (let [f          (fn [x] (g/+ 1 (g/square (g/sin x))))

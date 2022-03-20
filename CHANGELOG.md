@@ -2,6 +2,21 @@
 
 ## unreleased
 
+- #497:
+
+  - `sicmutils.expression.compile/compile-state-fn` and its non-memoized version
+    can now take an explicit `:mode` argument; this will override the
+    dynamically bound `*mode*`.
+
+    Invalid modes supplied via `:mode` will cause `compile-state-fn` to throw an
+    exception.
+
+  - Fixes a bug where non-numeric operations `up` and `down` were applied at
+    compile time, throwing an error.
+
+- #498: replace all long-form GPL headers with `"SPDX-License-Identifier:
+  GPL-3.0"`.
+
 - #496:
 
   - replaces the function values in `sicmutils.expression.compile` with symbols;
@@ -11,7 +26,7 @@
 
     A simulation run of the double pendulum example in the [clerk-demo
     repository](https://github.com/nextjournal/clerk-demo/blob/20a404a271bea29ef98ee4e60a05e54345aa43ba/notebooks/sicmutils.clj)
-    now runs in 700ms vs the former 2.2 seconds, a major win.
+    now runs in 350ms vs the former 2.2 seconds, a major win.
 
   - Function compilation now pre-simplifies numerical forms encountered inside a
     function, like `(/ 1 2)`, instead of letting them be evaluated on every fn
