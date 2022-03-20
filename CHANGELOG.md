@@ -2,7 +2,8 @@
 
 ## unreleased
 
-- new: replace all long-form GPL headers with `"SPDX-License-Identifier: GPL-3.0"`.
+- #498: replace all long-form GPL headers with `"SPDX-License-Identifier:
+  GPL-3.0"`.
 
 - #496:
 
