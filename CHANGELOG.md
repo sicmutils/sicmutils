@@ -2,6 +2,9 @@
 
 ## unreleased
 
+- #498: replace all long-form GPL headers with `"SPDX-License-Identifier:
+  GPL-3.0"`.
+
 - #496:
 
   - replaces the function values in `sicmutils.expression.compile` with symbols;
