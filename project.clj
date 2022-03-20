@@ -1,6 +1,6 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
-(defproject sicmutils "0.21.1"
+(defproject sicmutils "0.22.0"
   :description "A port of the scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
   :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}

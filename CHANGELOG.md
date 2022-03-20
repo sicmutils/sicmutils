@@ -2,6 +2,8 @@
 
 ## unreleased
 
+## [0.22.0]
+
 - #497:
 
   - `sicmutils.expression.compile/compile-state-fn` and its non-memoized version

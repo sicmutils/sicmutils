@@ -213,7 +213,7 @@ license = {GPL-3.0},
 month = {4},
 title = {{SICMUtils: Functional Computer Algebra in Clojure}},
 url = {https://github.com/sicmutils/sicmutils},
-version = {0.21.1},
+version = {0.22.0},
 year = {2016}
 }
 ```
