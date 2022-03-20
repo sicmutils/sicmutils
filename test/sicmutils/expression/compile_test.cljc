@@ -9,7 +9,9 @@
             [sicmutils.expression.compile :as c]
             [sicmutils.generic :as g]
             [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang ExceptionInfo))))
 
 (deftest mode-binding-test
   (testing "set-compiler-mode! works"
@@ -26,7 +28,7 @@
           "valid modes are all returned by compiler-mode.")))
 
   (binding [c/*mode* :TOTALLY-INVALID]
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+    (is (thrown? ExceptionInfo
                  (c/compiler-mode))
         "invalid modes throw.")))
 
@@ -59,6 +61,22 @@
                         (vector (+ (* ~'p ~'y) (* 0.5 ~'p))))
                      f-source)
                   "source code!")
+
+              (binding [c/*mode* :native]
+                (is (= `(fn [[~'y] [~'p]]
+                          (vector (+ (* ~'p ~'y) (* 0.5 ~'p))))
+                       (c/compile-state-fn*
+                        f params initial-state
+                        {:gensym-fn identity
+                         :mode :source}))
+                    "explicit `:mode` overrides the dynamic binding."))
+
+              (is (thrown? ExceptionInfo
+                           (c/compile-state-fn*
+                            f params initial-state
+                            {:gensym-fn identity
+                             :mode :invalid}))
+                  "explicit invalid modes will throw!")
 
               (is (= expected ((c/sci-eval f-source)
                                initial-state params))
@@ -134,10 +152,10 @@
                              x))))
                   "all remaining numerical literals are doubles.")
 
-              (is (= `(fn [~'x] (+ ~'x 0.5))
+              (is (= `(fn [~'x] (vector 2.0 (+ ~'x 0.5)))
                      (c/compile-fn
                       (fn [x]
-                        (g/+ (g// 1 2) x))))
+                        (up 2 (g/+ (g// 1 2) x)))))
                   "`(/ 1 2)` is resolved into 0.5 at compile time.")))))))
 
   (let [f          (fn [x] (g/+ 1 (g/square (g/sin x))))
