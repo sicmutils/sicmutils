@@ -45,13 +45,13 @@
 
     - `set-compiler-mode!` now actually works. It never did!
 
-  - New `:source` compile mode that returns a source code form. You can either
-    call `eval` on this or call `sci-eval` to get an SCI-evaluated function with
-    all proper bindings in place.
+    - New `:source` compile mode that returns a source code form. You can either
+      call `eval` on this or call `sci-eval` to get an SCI-evaluated function
+      with all proper bindings in place.
 
-  - `compile-state-fn` now takes an optional options map, with support for
-    `:flatten?` and `:generic-params?` keywords. These can be used to tune the
-    shape of the function returned by `compile-state-fn`.
+    - `compile-state-fn` now takes an optional options map, with support for
+      `:flatten?` and `:generic-params?` keywords. These can be used to tune the
+      shape of the function returned by `compile-state-fn`.
 
 - #485:
 
@@ -63,7 +63,8 @@
     display-able with Clerk. To run these, start a REPL and follow the
     instructions in `dev/user.clj`.
 
-    - `sicmutils.calculus.derivative` and `sicmutils.differential` are now
+    - `sicmutils.calculus.derivative` and `sicmutils.differential` now render as
+      proper literate essays, with all TeX bugs fixed.
 
   - Bumps the shadow-cljs dependency to version `2.17.4`, and the included
     `cljs` version to `1.11.4`. `sicmutils.collection` properly handles the new
