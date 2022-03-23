@@ -448,23 +448,23 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  ;; Mechanics Namespaces
 
  [sicmutils.mechanics.lagrange
-  ->L-state
-  ->local
+  ->L-state ->local ->state
+  literal-Lagrangian-state
+  Dt
   Euler-Lagrange-operator
   F->C
-  Gamma
-  Gamma-bar
+  Gamma Gamma-bar
+  generalized-LE
   Lagrange-equations
   Lagrange-equations-first-order
   Lagrange-interpolation-function
-  Lagrangian->energy
+  Lagrangian->energy Lagrangian->power-loss
   Lagrangian->state-derivative
   Lagrangian-action
   find-path
   linear-interpolants
   osculating-path
-  p->r
-  s->r
+  r->s s->r p->r r->p
   state->t coordinate velocity acceleration
   coordinate-tuple velocity-tuple acceleration-tuple momentum-tuple]
  [sicmutils.matrix

@@ -2,43 +2,32 @@
 
 ## unreleased
 
-- #502 get `sicmutils.mechanics.lagrange` up to speed:
+- #502 begins the port of the remaining items in the scmutils `mechanics`
+  package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
+  which contains functions from many files in the original `mechanics` folder.
 
-  - new: `momentum-tuple` moved from hamilton,
-  - `->L-state`, `->local`, `->state`
-  - `state->n-dof`
-  - `time`, `state->{q,qdot,qddot}`
-  - `coordinates`, `velocities`, `accelerations`
-  - `Q`, `Qdot`, `Qdotdot`
-  - `literal-Lagrangian-state`
-  - `path->state-path` alias for Gamma
-  - many new lagrangians...
+  - `momentum-tuple` moves here from `sicmutils.mechanics.hamilton`
 
-    - `L-Kepler-polar`, `L-coupled-harmonic`, `L-sliding-pend`,
-      `L-sliding-pend*`, `L-pendulum`, `L-two-particle`
+  - New functions `->L-state`, `->local`, `->state`,`state->n-dof`, `time`,
+    `state->{q,qdot,qddot}`, `coordinates`, `velocities`, `accelerations`, `Q`,
+    `Qdot`, `Qdotdot`, `literal-Lagrangian-state` `path->state-path` (alias for
+    the existing `Gamma`), `Rayleigh-dissipation`, `qv->local-path`,
+    `Lagrange-equations-first-order`, (with `Lagrange-equations-1` alias),
+    `Lagrangian->power-loss`, `T3-spherical`, `L3-central`, `Dt-procedure` and
+    the wrapping operator `Dt`, `Euler-lagrange-operator` (with
+    `Lagrange-equations-operator` and `LE` aliases), `generalized-LE`.
 
-  - `Rayleigh-dissipation`
+  - Many of these are aliased into `sicmutils.env`. Ask if you think more should
+    be there!
+
+  - many new built-in Lagrangians: `L-Kepler-polar`, `L-coupled-harmonic`,
+    `L-sliding-pend`, `L-pendulum`, `L-two-particle`
 
   - `Lagrange-equations`, `Lagrangian->acceleration`,
     `Lagrangian->state-derivative` now take a dissipation function
 
-  - `qv->local-path`
-
-  - `local-state-derivative` alias for `Lagrangian->state-derivative`, but only
-    takes 1 arg.
-
-  - `Lagrange-equations-first-order`  with `Lagrange-equations-1` alias
-
-  - `Lagrangian->power-loss`
-
-  - `T3-spherical`, `L3-central`
-
-  - `Dt-procedure`, `Dt` operator version
-
-  - `Euler-lagrange-operator`, with `Lagrange-equations-operator` and `LE`
-    aliases
-
-  - `generalized-LE`
+  - `local-state-derivative` aliases the 1-arity version of
+    `Lagrangian->state-derivative`
 
   - New `rectangular->polar`, `polar->rectangular`, `spherical->rectangular` and
     `rectangular->spherical` that operate on coordinates, with associated `r->p`

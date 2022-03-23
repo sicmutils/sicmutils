@@ -55,6 +55,11 @@
                       (L/literal-Lagrangian-state n)))
                 "literal state is created with the correct dof "))
 
+  (testing "state->n-dof unit"
+    (is (= 1 (L/state->n-dof
+              (down 1 2 2)))
+        "Given a non-up, always produces 1"))
+
   (let [local (up 't
                   (L/coordinate-tuple 'x 'y)
                   (L/velocity-tuple 'xdot 'ydot)
@@ -130,10 +135,6 @@
                 (L/Gamma (L/coordinate-tuple x y z)))
                't))))))
 
-  (testing "L-rectangular"
-    ;; TODO add some tests
-    )
-
   (testing "L-harmonic"
     (is (= '(+ (* k (x t)) (* m (((expt D 2) x) t)))
            (simplify
@@ -192,6 +193,20 @@
                 (L/coordinate-tuple r phi))
                't))))))
 
+  (testing "L-kepler-polar"
+    (is (= '(down
+             (/ (+ (* -1 m (expt (r t) 3) (expt ((D phi) t) 2))
+                   (* m (expt (r t) 2) (((expt D 2) r) t))
+                   (* GM m))
+                (expt (r t) 2))
+             (+ (* m (expt (r t) 2) (((expt D 2) phi) t))
+                (* 2 m (r t) ((D phi) t) ((D r) t))))
+           (f/with-literal-functions [r phi]
+             (simplify
+              (((L/Lagrange-equations (L/L-Kepler-polar 'GM 'm))
+                (L/coordinate-tuple r phi))
+               't))))))
+
   (testing "L-coupled-harmonic"
     (is (= '(down (+ (* c (y t)) (* k_1 (x t)) (* m_1 (((expt D 2) x) t)))
                   (+ (* c (x t)) (* k_2 (y t)) (* m_2 (((expt D 2) y) t))))
@@ -205,22 +220,7 @@
 
   (testing "L-sliding-pend"
     (is (= '(down
-             (+ (* -1 b m_2 (expt ((D theta) t) 2) (sin (theta t)))
-                (* b m_2 (cos (theta t)) (((expt D 2) theta) t))
-                (* m_1 (((expt D 2) x) t))
-                (* m_2 (((expt D 2) x) t)))
-             (+ (* (expt b 2) m_2 (((expt D 2) theta) t))
-                (* b g m_2 (sin (theta t)))
-                (* b m_2 (((expt D 2) x) t) (cos (theta t)))))
-           (f/with-literal-functions [x theta]
-             (simplify
-              (((L/Lagrange-equations (L/L-sliding-pend 'm_1 'm_2 'b 'g))
-                (L/coordinate-tuple x theta))
-               't))))))
-
-  (testing "L-sliding-pend*"
-    (is (= '(down
-             (+ (* -1 b m_2 (expt ((D theta) t) 2) (sin (theta t)))
+             (+ (* -1 b m_2 (sin (theta t)) (expt ((D theta) t) 2))
                 (* b m_2 (cos (theta t)) (((expt D 2) theta) t))
                 (* m_1 (((expt D 2) x) t))
                 (* m_2 (((expt D 2) x) t)))
@@ -230,7 +230,7 @@
            (f/with-literal-functions [x theta]
              (simplify
               (((L/Lagrange-equations
-                 (L/L-sliding-pend* 'm_1 'm_2 'b 'g))
+                 (L/L-sliding-pend 'm_1 'm_2 'b 'g))
                 (up x theta))
                't))))))
 
@@ -245,24 +245,25 @@
              't)))))
 
   (testing "L-two-particle"
-    (is (= '(down
-             (down
-              (+ (* m_1 (((expt D 2) x_1) t))
-                 (((partial 0 0) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
-              (+ (* m_1 (((expt D 2) y_1) t))
-                 (((partial 0 1) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))
-             (down
-              (+ (* m_2 (((expt D 2) x_2) t))
-                 (((partial 1 0) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
-              (+ (* m_2 (((expt D 2) y_2) t))
-                 (((partial 1 1) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))))
-           (f/with-literal-functions [x_1 x_2 y_1 y_2]
-             (simplify
-              (((L/Lagrange-equations (L/L-two-particle 'm_1 'm_2))
-                (L/coordinate-tuple
-                 (L/coordinate-tuple x_1 y_1)
-                 (L/coordinate-tuple x_2 y_2)))
-               't)))))))
+    (let [V (f/literal-function 'V '(-> (X (X Real Real) (X Real Real)) Real))]
+      (is (= '(down
+               (down
+                (+ (* m_1 (((expt D 2) x_1) t))
+                   (((partial 0 0) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
+                (+ (* m_1 (((expt D 2) y_1) t))
+                   (((partial 0 1) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))
+               (down
+                (+ (* m_2 (((expt D 2) x_2) t))
+                   (((partial 1 0) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
+                (+ (* m_2 (((expt D 2) y_2) t))
+                   (((partial 1 1) V) (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))))
+             (f/with-literal-functions [x_1 x_2 y_1 y_2]
+               (simplify
+                (((L/Lagrange-equations (L/L-two-particle 'm_1 'm_2 V))
+                  (L/coordinate-tuple
+                   (L/coordinate-tuple x_1 y_1)
+                   (L/coordinate-tuple x_2 y_2)))
+                 't))))))))
 
 (deftest Lagrange-equation-tests
   (let [test-path (fn [t]
@@ -279,8 +280,6 @@
            (simplify
             (((L/Lagrange-equations
                (L/L-free-particle 'm)) q) 't)))))
-
-  ;; TODO test with dissipation function!
 
   (testing "Lagrangian->acceleration"
     (is (= '(up (/ (+ (* b m_2 (expt thetadot 2) (sin theta))
@@ -308,7 +307,15 @@
             ((L/Lagrangian->state-derivative
               (L/L-pendulum 'g 'm 'l)
               (L/Rayleigh-dissipation 'k))
-             (up 't 'theta 'thetadot))))))
+             (up 't 'theta 'thetadot))))
+        "with dissipation")
+
+    (is (= '(up 1 thetadot (/ (* -1N g (sin theta)) l))
+           (simplify
+            ((L/local-state-derivative
+              (L/L-pendulum 'g 'm 'l))
+             (up 't 'theta 'thetadot))))
+        "without dissipation"))
 
   (testing "Lagrange-equations-1"
     (is (= '(up 0
@@ -442,16 +449,19 @@
 
   (testing "Euler-Lagrange-operator"
     ;; Given a local tuple, produces a finite state.
-    (is (= '(+ (* a m) (* k x))
-           (simplify
-            ((L/LE (L/L-harmonic 'm 'k))
-             (up 't 'x 'v 'a)))))
+    (doseq [LE [L/Euler-Lagrange-operator
+                L/LE
+                L/Lagrange-equations-operator]]
+      (is (= '(+ (* a m) (* k x))
+             (simplify
+              ((LE (L/L-harmonic 'm 'k))
+               (up 't 'x 'v 'a)))))
 
-    (is (= '(down (+ (* ax m) (* k x))
-                  (+ (* ay m) (* k y)))
-           (simplify
-            ((L/LE (L/L-harmonic 'm 'k))
-             (up 't '[x y] '[vx vy] '[ax ay])))))
+      (is (= '(down (+ (* ax m) (* k x))
+                    (+ (* ay m) (* k y)))
+             (simplify
+              ((LE (L/L-harmonic 'm 'k))
+               (up 't '[x y] '[vx vy] '[ax ay]))))))
 
     ;; Adding extra state components is harmless, because L-harmonic does
     ;; not check the length of the jet.
@@ -583,7 +593,7 @@
           V-pend (fn [m l g ys]
                    (fn [[t theta]]
                      (* m g (- (ys t) (* l (cos theta))))))
-          L-pend (- T-pend V-pend)]
+          L-pend (L/make-Lagrangian T-pend V-pend)]
       (is (= '(+ (* (/ 1 2) (expt l 2) m (expt thetadot 2))
                  (* l m thetadot ((D y_s) t) (sin theta))
                  (* g l m (cos theta))
@@ -634,7 +644,38 @@
                   (f/literal-function 'theta))
                  't))))))))
 
-(deftest last-tests
+(deftest coordinate-change-tests
+  (testing "conversion between spherical and rectangular"
+    (let [rect      (up 't (up 'x 'y 'z)       (up 'v_x 'v_y 'v_z))
+          spherical (up 't (up 'r 'theta 'phi) (up 'v_r 'v_theta 'v_phi))]
+      (is (= (up 'r 'theta 'phi)
+             (g/simplify
+              (L/rectangular->spherical
+               (L/s->r spherical))))
+          "round trip from s->r->s")
+
+      (is (= (up 'x 'y 'z)
+             (g/simplify
+              (L/spherical->rectangular
+               (L/r->s rect))))
+          "round trip from r->s->r")))
+
+  (testing "conversion between polar and rectangular"
+    (let [rect  (up 't      (up 'x 'y)     (up 'v_x 'v_y))
+          polar (up 't      (up 'r 'theta) (up 'v_r 'v_theta))]
+      (is (= (up 'r 'theta)
+             (g/simplify
+              (L/rectangular->polar
+               (L/p->r polar))))
+          "round trip from p->r->p")
+
+      (is (= (up 'x 'y)
+             (g/simplify
+              (L/polar->rectangular
+               (L/r->p rect))))
+          "round trip from r->p->r"))))
+
+(deftest misc-tests
   (letfn [(ang-mom-z [m]
             (fn [[_ q v]]
               (nth (g/cross-product q (* m v)) 2)))]
@@ -654,9 +695,8 @@
               (L/L3-central 'm (f/literal-function 'V)))
              (L/->local 't
                         (L/coordinate-tuple 'r 'theta 'phi)
-                        (L/velocity-tuple 'rdot 'thetadot 'phidot))))))))
+                        (L/velocity-tuple 'rdot 'thetadot 'phidot)))))))
 
-(deftest misc-tests
   (let [vs (L/velocity-tuple
             (L/velocity-tuple 'vx1 'vy1)
             (L/velocity-tuple 'vx2 'vy2))

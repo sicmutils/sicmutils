@@ -2,8 +2,7 @@
 
 (ns sicmutils.mechanics.lagrange
   (:refer-clojure :exclude [+ - * / partial time])
-  (:require [sicmutils.abstract.function :as af]
-            [sicmutils.calculus.derivative :refer [D partial]]
+  (:require [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.numerical.minimize :as m]
@@ -129,8 +128,6 @@
 (def ^{:doc "Alias for [[acceleration]]."}
   Qdotdot acceleration)
 
-;; TODO suggest mod to GJS; his version does a gensym for every entry.
-
 (defn literal-Lagrangian-state [n-dof]
   (up (gensym 't)
       (s/literal-up (gensym 'x) n-dof)
@@ -169,7 +166,9 @@
 (defn make-Lagrangian [kinetic-energy potential-energy]
   (- kinetic-energy potential-energy))
 
-;; TODO move to their own namespace, lots of Lagrangians.
+;; ## Library of Lagrangians
+;;
+;; These should arguably live in their own place.
 
 (defn L-free-particle
   "The lagrangian of a free particle of mass m. The Lagrangian
@@ -225,47 +224,37 @@
              (g/square (* r phidot))) )
        (/ (* GM m) r))))
 
-;;; Coupled harmonic oscillators.
+;; Coupled harmonic oscillators.
 
 (defn L-coupled-harmonic [m k]
   (fn [[_ q qdot]]
     (- (* (/ 1 2) qdot m qdot)
        (* (/ 1 2) q k q))))
 
-;; Pendulum of mass m2 and length b, hanging from a support of mass m1 that is
-;; free to move horizontally (from Groesberg, Advanced Mechanics, p. 72)
-
-;; if these are equiv, move this to the tests.
-(defn L-sliding-pend [m1 m2 b g]
-  (fn [[_ [_ theta] [xdot thetadot]]]
-    (let [rel-pend-vel (* b thetadot (velocity-tuple (cos theta) (sin theta)))
-          pend-vel (+ rel-pend-vel (velocity-tuple xdot 0))
-          Tpend (* (/ 1 2) m2 (g/square pend-vel))
-          Tsupport (* (/ 1 2) m1 (g/square xdot))
-          V (- (* m2 g b (cos theta)))]
-      (+ Tpend Tsupport (- V)))))
-
-;;; Nicer treatment
-(defn F-sliding-pend [l]
+(defn ^:no-doc F-sliding-pend [l]
   (fn [[_ [x theta]]]
     (up (up x 0)
         (up (+ x (* l (sin theta)))
             (* -1 l (cos theta))))))
 
-(defn two-free [m1 m2 g]
+(defn ^:no-doc two-free [m1 m2 g]
   (fn [[_ [[_ h1] [_ h2]] [v1 v2]]]
-    (- (+ (* (/ 1 2) m1 (g/square v1))
-          (* (/ 1 2) m2 (g/square v2)))
-       (+ (* m1 g h1)
-          (* m2 g h2)))))
+    (- (* (/ 1 2)
+          (+ (* m1 (g/square v1))
+             (* m2 (g/square v2))))
+       (* g (+ (* m1 h1)
+               (* m2 h2))))))
 
 (declare F->C)
 
-(defn L-sliding-pend* [m1 m2 l g]
+(defn L-sliding-pend
+  "Pendulum of mass m2 and length b, hanging from a support of mass m1 that is
+  free to move horizontally (from Groesberg, Advanced Mechanics, p. 72)"
+  [m1 m2 l g]
   (compose (two-free m1 m2 g)
            (F->C (F-sliding-pend l))))
 
-;;; Consider a simple pendulum with Rayleigh dissipation:
+;; Consider a simple pendulum with Rayleigh dissipation:
 
 (defn L-pendulum [g m l]
   (fn [[_ theta thetadot]]
@@ -276,69 +265,42 @@
   (fn [[_ _ qdot]]
     (* qdot k qdot)))
 
-;;; Can group coordinates.  Procedures don't care.
-
-(defn L-two-particle [m1 m2]
+(defn L-two-particle [m1 m2 V]
   (fn [[_ [x1 x2] [v1 v2]]]
-    ;; CHECK on the sig, I think this is right?
-    ;;
-    ;; TODO take V as an argument, move this to tests.
-    (let [V (af/literal-function 'V '(-> (X (X Real Real) (X Real Real)) Real))]
-      (- (+ (* (/ 1 2) m1 (g/square v1))
-            (* (/ 1 2) m2 (g/square v2)))
-         (V x1 x2)))))
+    (- (+ (* (/ 1 2) m1 (g/square v1))
+          (* (/ 1 2) m2 (g/square v2)))
+       (V x1 x2))))
 
 ;; Given a Lagrangian, we can obtain Lagrange's equations of motion.
 
 (defn Lagrange-equations
-  ([Lagrangian]
+  ([L]
+   (Lagrange-equations L nil))
+  ([L dissipation-fn]
    (fn [q]
      (let [state-path (Gamma q)]
-       (- (D (compose ((partial 2) Lagrangian) state-path))
-          (compose ((partial 1) Lagrangian) state-path)))))
-  ([Lagrangian dissipation-function]
-   (fn [q]
-     (let [state-path (Gamma q)]
-       (- (D (compose ((partial 2) Lagrangian) state-path))
-          (compose ((partial 1) Lagrangian) state-path)
-          (- (compose ((partial 2) dissipation-function) state-path)))))))
-
-;; TODO verify that the new one is good!
-#_
-(defn Lagrangian->acceleration-old [L]
-  (let [P ((partial 2) L)
-        F ((partial 1) L)]
-    (g/solve-linear-left
-     ((partial 2) P)
-     (- F
-        (+ ((partial 0) P)
-           (* ((partial 1) P) velocity))))))
+       (- (D (compose ((partial 2) L) state-path))
+          (compose ((partial 1) L) state-path)
+          (if dissipation-fn
+            (- (compose ((partial 2) dissipation-fn) state-path))
+            0))))))
 
 (defn Lagrangian->acceleration
   ([L]
+   (Lagrangian->acceleration L nil))
+  ([L dissipation-fn]
    (let [P ((partial 2) L)
          F ((partial 1) L)]
-     (fn [state]
-       ;; TODO can we remove the `state` fn wrapper here and below?
-       (g/solve-linear-left
-        (((partial 2) P) state)
-        ((- F
-            (+ ((partial 0) P)
-               (* ((partial 1) P) velocity)))
-         state)))))
-  ([L dissipation-function]
-   (let [P ((partial 2) L)
-         F ((partial 1) L)]
-     (fn [state]
-       (g/solve-linear-left
-        (((partial 2) P) state)
-        ((- (- F
-               ((partial 2) dissipation-function))
-            (+ ((partial 0) P)
-               (* ((partial 1) P) velocity)))
-         state))))))
+     (g/solve-linear-left
+      ((partial 2) P)
+      (- F
+         (if dissipation-fn
+           ((partial 2) dissipation-fn)
+           0)
+         (+ ((partial 0) P)
+            (* ((partial 1) P) velocity)))))))
 
-;; ### Lagrange equations in first-order form.
+;; ### Lagrange equations in first-order form
 
 (defn qv->local-path [q v]
   (fn [t]
@@ -346,20 +308,23 @@
 
 (defn Lagrangian->state-derivative
   "Optionally takes a dissipation function."
-  [L & opts]
-  (let [acceleration (apply Lagrangian->acceleration L opts)]
-    (fn [state]
-      (up 1
-          (velocity state)
-          (acceleration state)))))
+  ([L]
+   (Lagrangian->state-derivative L nil))
+  ([L dissipation-fn]
+   (let [acceleration (Lagrangian->acceleration L dissipation-fn)]
+     (fn [state]
+       (up 1
+           (velocity state)
+           (acceleration state))))))
 
 (defn local-state-derivative
-  "The state derivative of a Lagrangian is a function carrying a state
-  tuple to its time derivative.
+  "The state derivative of a Lagrangian is a function carrying a state tuple to
+  its time derivative.
 
-  Alias for the single-arity version of [[Lagrangian->state-derivative]]."
+  Alias for the non-dissipative, single-arity version
+  of [[Lagrangian->state-derivative]]."
   [L]
-  (Lagrangian->state-derivative L))
+  (Lagrangian->state-derivative L nil))
 
 (defn Lagrange-equations-first-order [L]
   (fn [q v]
@@ -369,7 +334,8 @@
                   state-path)))))
 
 (def ^{:doc "Alias for [[Lagrange-equations-first-order]]."}
-  Lagrange-equations-1 Lagrange-equations-first-order)
+  Lagrange-equations-1
+  Lagrange-equations-first-order)
 
 ;; Given a Lagrangian, we can make an energy function on (t, Q, Qdot).
 
@@ -386,8 +352,6 @@
         (Lagrangian->energy L)
         (Gamma q)))))
 
-;; TODO note that these are in demo.clj
-
 (defn T3-spherical [m]
   (fn [[_ [r theta] [rdot thetadot phidot]]]
     (* (/ 1 2) m
@@ -399,8 +363,6 @@
   (letfn [(Vs [[_ [r]]]
             (Vr r))]
     (- (T3-spherical m) Vs)))
-
-;; TODO: these come from action.scm.
 
 (defn Lagrangian-action
   ([L q t1 t2]
@@ -455,8 +417,6 @@
                        :callback observe)]
     (make-path t0 q0 t1 q1 minimizing-qs)))
 
-;; TODO: gamma-bar.scm
-
 ;; An alternative method allows taking derivatives in the construction of the
 ;; Lagrangian.
 
@@ -491,23 +451,13 @@
                 (D (f/compose F (Gamma q (dec n)))))]
         ((Gamma-bar DF-on-path) state)))))
 
-;; TODO this was the following before... test that it is better now?
-#_
-(defn Dt [F]
-  (letfn [(G-bar [q]
-            (D (compose F (Gamma q))))]
-    (Gamma-bar G-bar)))
-
 (def Dt (o/make-operator Dt-procedure 'Dt))
 
 (defn- trim-last-argument [local]
   (s/up* (pop (s/structure->vector local))))
 
-;; TODO should this be an operator??
-
 (defn Euler-Lagrange-operator [L]
   (- (Dt ((partial 2) L))
-     ;; TODO test this new trim-last BS
      (compose ((partial 1) L) trim-last-argument)))
 
 (def ^{:doc "Alias for [[Euler-lagrange-operator]]."}
@@ -533,8 +483,6 @@
         (lp (quot m 2) state)))))
 
 ;; ### Coordinate Transformation to State Transformation
-
-;; NOTE these come from Lagrangian-transformations.scm
 
 (defn F->C
   "Accepts a coordinate transformation `F` from a local tuple to a new coordinate
