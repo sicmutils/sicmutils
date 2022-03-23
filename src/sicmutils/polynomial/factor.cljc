@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2021 Sam Ritchie.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.polynomial.factor
   "This namespace contains functions for factoring polynomials and symbolic
@@ -30,7 +13,10 @@
             [sicmutils.polynomial.gcd :refer [gcd gcd-Dp]]
             [sicmutils.simplify.rules :as rules]
             [sicmutils.util.logic :as ul]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [taoensso.timbre :as log])
+  #?(:clj
+     (:import (java.util.concurrent TimeoutException))))
 
 (defn split-polynomial
   "Given a [[Polynomial]] `p`, returns a sequence of factors of in order of
@@ -122,12 +108,23 @@
   ([p vars]
    (poly->factored-expression p vars identity))
   ([p vars simplify]
-   (let [factors (map (fn [factor]
-                        (simplify
-                         (poly/->expression factor vars)))
-                      (split-polynomial p))]
-     (simplify-product
-      (factors->expression factors)))))
+   (try
+     (let [factors (map (fn [factor]
+                          (simplify
+                           (poly/->expression factor vars)))
+                        (split-polynomial p))]
+       (simplify-product
+        (factors->expression factors)))
+     ;; NOTE: This is not an ideal, principled approach for a timeout failure.
+     ;; Think through how this should be handled if it comes up.
+     (catch #?(:clj TimeoutException :cljs js/Error) _
+       (log/warn
+        (str "Factorization choked! Simplifying the unfactored polynomial."))
+       (simplify-product
+        (poly/->expression p vars))))))
+
+#?(:clj
+   (alter-var-root #'poly->factored-expression memoize))
 
 (defn factor-expression
   "Given some symbolic expression containing only polynomial operations, returns a

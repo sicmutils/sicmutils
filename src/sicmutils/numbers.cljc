@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2017 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numbers
   "This namespace extends of all appropriate SICMUtils generic operations
@@ -257,9 +240,9 @@
              (bigint-gcd [a b]
                (loop [a (abs a)
                       b (abs b)]
-                 (if (js* "~{} == ~{}" b 0)
+                 (if (coercive-= b 0)
                    a
-                   (recur b (js* "~{} % ~{}" a b)))))]
+                   (recur b (js-mod a b)))))]
 
        ;; The following GCD implementations use native operations to get more
        ;; speed than the generic implementation in `sicmutils.euclid`.
@@ -312,19 +295,14 @@
          (g/invert (js* "~{} ** ~{}" a (core-minus b)))
          (js* "~{} ** ~{}" a b)))
 
-     ;; Not ideal; TODO find a better way to calculate this without the
-     ;; downcast.
-     (defmethod g/sqrt [js/BigInt] [a]
-       (Math/sqrt (js/Number a)))
-
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
-     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
+     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js-mod a b))
      (defmethod g/magnitude [js/BigInt] [a]
        (if (neg? a) (core-minus a) a))
 
      (defmethod g/div [js/BigInt js/BigInt] [a b]
-       (let [rem (js* "~{} % ~{}" a b)]
+       (let [rem (js-mod a b)]
          (if (v/zero? rem)
            (core-div a b)
            (r/rationalize a b))))
@@ -347,12 +325,12 @@
 
      ;; BigInt can't handle these operations natively, so we override with a
      ;; downcast to number for now.
-
      (doseq [op [g/cos g/sin g/tan
                  g/asin g/acos g/atan
                  g/cosh g/sinh g/tanh
                  g/asinh g/acosh g/acosh
-                 g/cot g/sec g/csc g/sech g/csch]]
+                 g/cot g/sec g/csc g/sech g/csch
+                 g/log g/exp g/sqrt]]
        (defmethod op [js/BigInt] [a]
          (op (js/Number a))))
 
@@ -374,7 +352,7 @@
      ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
      (letfn [(long-expt [base pow]
                (loop [^Long n pow
-                      ^Long y (.getOne Long)
+                      ^Long y (Long/getOne)
                       ^Long z base]
                  (let [t (not (.isOdd n))
                        n ^Long (.shiftRight n 1)]
@@ -392,10 +370,10 @@
      ;; number.
      (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
        (defmethod op [Long ::v/native-integral] [a b]
-         (op a (.fromNumber Long b)))
+         (op a (Long/fromNumber b)))
 
        (defmethod op [::v/native-integral Long] [a b]
-         (op (.fromNumber Long a) b))
+         (op (Long/fromNumber a) b))
 
        ;; If this type encounters a floating point type it should lose
        ;; precision.
@@ -434,10 +412,10 @@
      ;; number.
      (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
        (defmethod op [Integer ::v/native-integral] [a b]
-         (op a (.fromNumber Integer b)))
+         (op a (Integer/fromNumber b)))
 
        (defmethod op [::v/native-integral Integer] [a b]
-         (op (.fromNumber Integer a) b))
+         (op (Integer/fromNumber a) b))
 
        ;; If this type encounters a floating point type it should lose
        ;; precision.
@@ -450,10 +428,10 @@
        ;; When they encounter each other in binary operations, Long is coerced
        ;; to Integer.
        (defmethod op [Integer Long] [a b]
-         (op a (.fromNumber Integer b)))
+         (op a (Integer/fromNumber b)))
 
        (defmethod op [Long Integer] [a b]
-         (op (.fromNumber Integer a) b)))
+         (op (Integer/fromNumber a) b)))
 
      ;; These names are slightly different between the two types.
      (defmethod g/quotient [Long Long] [^Long a ^Long b] (.div a b))

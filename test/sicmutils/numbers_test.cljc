@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2017 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -74,6 +57,19 @@
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})
   (gt/floating-point-tests identity :eq near)
+
+  (testing "log, exp works on bigint"
+    (is (ish? 59874.14171519782
+              (g/exp #sicm/bigint 11)))
+
+    (is (ish? 2.3978952727983707
+              (g/log #sicm/bigint 11)))
+
+    (is (ish? 3.4594316186372978
+              (g/log2 #sicm/bigint 11)))
+
+    (is (ish? 1.041392685158225
+              (g/log10 #sicm/bigint 11))))
 
   (testing "log converts to complex"
     (is (c/complex? (g/log -10)))

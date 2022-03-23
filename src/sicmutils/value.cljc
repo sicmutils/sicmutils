@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2017 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.value
   "The home of most of the protocol-based extensible generic operations offered by
@@ -296,10 +279,10 @@
    ;; These definitions are required for the protocol implementation below.
    (do
      (defmethod = [::native-integral js/BigInt] [l r]
-       (js*  "~{} == ~{}" l r))
+       (coercive-= l r))
 
      (defmethod = [js/BigInt ::native-integral] [l r]
-       (js*  "~{} == ~{}" l r))
+       (coercive-= l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
                           [::native-integral goog.math.Integer u/int]
@@ -342,7 +325,7 @@
      (-equiv [this o]
        (let [other (.valueOf o)]
          (if (u/bigint? other)
-           (js*  "~{} == ~{}" this other)
+           (coercive-= this other)
            (= this other))))
 
      IPrintWithWriter
@@ -412,9 +395,9 @@
 
      (extend-protocol Value
        js/BigInt
-       (zero? [x] (js*  "~{} == ~{}" big-zero x))
-       (one? [x] (js*  "~{} == ~{}" big-one x))
-       (identity? [x] (js*  "~{} == ~{}" big-one x))
+       (zero? [x] (coercive-= big-zero x))
+       (one? [x] (coercive-= big-one x))
+       (identity? [x] (coercive-= big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
        (identity-like [_] big-one)
@@ -440,11 +423,11 @@
 
        goog.math.Long
        (zero? [x] (.isZero x))
-       (one? [x] (core= (.getOne goog.math.Long) x))
-       (identity? [x] (core= (.getOne goog.math.Long) x))
-       (zero-like [_] (.getZero goog.math.Long))
-       (one-like [_] (.getOne goog.math.Long))
-       (identity-like [_] (.getOne goog.math.Long))
+       (one? [x] (core= (goog.math.Long/getOne) x))
+       (identity? [x] (core= (goog.math.Long/getOne) x))
+       (zero-like [_] (goog.math.Long/getZero))
+       (one-like [_] (goog.math.Long/getOne))
+       (identity-like [_] (goog.math.Long/getOne))
        (freeze [x] x)
        (exact? [_] true)
        (kind [_] goog.math.Long))))

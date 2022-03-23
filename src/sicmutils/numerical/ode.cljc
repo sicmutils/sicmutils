@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2017 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numerical.ode
   "ODE solvers for working with initial value problems."
@@ -159,11 +142,17 @@
   system is assumed to be a map from a structure to a structure of the
   same shape, as differentiating a function does not change its
   shape), and returns an integrator, which is a function of several
-  arguments: the initial state, an intermediate-state observation
-  function, the step size desired, the final time to seek, and an
-  error tolerance. If the observe function is not nil, it will be
-  invoked with the time as first argument and integrated state as the
-  second, at each intermediate step."
+  arguments:
+
+  - the initial state
+  - an intermediate-state observation function
+  - the step size desired
+  - the final time to seek, and
+  - an error tolerance.
+
+
+  If the `observe` function is not nil, it will be invoked with the time as
+  first argument and integrated state as the second, at each intermediate step."
   [state-derivative derivative-args]
   #?(:cljs
      (let [total-time (us/stopwatch :started? false)

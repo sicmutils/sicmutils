@@ -1,3 +1,5 @@
+#_"SPDX-License-Identifier: GPL-3.0"
+
 (ns sicmutils.generators
   "test.check generators for the various types in the sicmutils project."
   (:refer-clojure :rename {bigint core-bigint

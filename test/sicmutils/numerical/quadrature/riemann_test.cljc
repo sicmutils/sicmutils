@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2020 Sam Ritchie.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numerical.quadrature.riemann-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -189,9 +172,9 @@
   (testing "upper-integral"
     (is (ish?
          {:converged? true
-          :terms-checked #?(:cljs 15 :clj 13)
+          :terms-checked 13
           :result 2}
          (qr/upper-integral
           g/sin 0 Math/PI {:accelerate? true
                            :tolerance v/machine-epsilon}))
-        "upper-integral converges, with slightly different speeds on CLJS vs Clojure (at machine epsilon!).")))
+        "upper-integral converges (at machine epsilon!)")))

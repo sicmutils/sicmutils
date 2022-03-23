@@ -1,21 +1,4 @@
-;;
-;; Copyright © 2020 Sam Ritchie.
-;; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; Copyright © 2002 Massachusetts Institute of Technology
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-;;
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;;
+#_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.polynomial.interpolate
   "This namespace contains a discussion of polynomial interpolation, and different
@@ -74,8 +57,8 @@
 ;; ## Neville's Algorithm
 ;;
 ;; Start the recursion with a single point. Any point $(x, f(x))$ has a unique
-;; 0th order polynomial passing through it - the constant function $P(x) =
-;; f(x)$. For points $x_a$, $x_b$, let's call this $P_a$, $P_b$, etc.
+;; 0th order polynomial passing through it - the constant function $P(x) = f(x)$.
+;; For points $x_a$, $x_b$, let's call this $P_a$, $P_b$, etc.
 ;;
 ;; $P_{ab}$ is the unique FIRST order polynomial (ie, a line) going through
 ;; points $x_a$ and $x_b$.
@@ -136,6 +119,7 @@
 ;; You can write these out these relationships in a "tableau" that grows to the
 ;; right from an initial left column:
 ;;
+;;```
 ;; p0
 ;;  \
 ;;  p01
@@ -153,6 +137,7 @@
 ;;  p34
 ;;  /
 ;; p4
+;;```
 
 ;; The next few functions will discuss "rows" and "columns" of the tableau. That
 ;; refers to the rows and columns of this representation;

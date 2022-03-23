@@ -2,6 +2,102 @@
 
 ## unreleased
 
+## [0.22.0]
+
+- #497:
+
+  - `sicmutils.expression.compile/compile-state-fn` and its non-memoized version
+    can now take an explicit `:mode` argument; this will override the
+    dynamically bound `*mode*`.
+
+    Invalid modes supplied via `:mode` will cause `compile-state-fn` to throw an
+    exception.
+
+  - Fixes a bug where non-numeric operations `up` and `down` were applied at
+    compile time, throwing an error.
+
+- #498: replace all long-form GPL headers with `"SPDX-License-Identifier:
+  GPL-3.0"`.
+
+- #496:
+
+  - replaces the function values in `sicmutils.expression.compile` with symbols;
+    I hadn't realized before that substituting in symbolic `Math/sqrt`, for
+    example, was possible, vs a `#(Math/sqrt %)` function value. Compiled
+    functions are now faster!
+
+    A simulation run of the double pendulum example in the [clerk-demo
+    repository](https://github.com/nextjournal/clerk-demo/blob/20a404a271bea29ef98ee4e60a05e54345aa43ba/notebooks/sicmutils.clj)
+    now runs in 350ms vs the former 2.2 seconds, a major win.
+
+  - Function compilation now pre-simplifies numerical forms encountered inside a
+    function, like `(/ 1 2)`, instead of letting them be evaluated on every fn
+    call.
+
+  - All numerical forms encountered in function compilation are now converted to
+    either `double` on the JVM or `js/Number` in javascript; this way no
+    `BigInt` values etc are left around.
+
+  - In `sicmutils.expression.compile`:
+
+    - gains a new, validating `compiler-mode` function for fetching the compiler
+      function.
+
+    - `set-compiler-mode!` now actually works. It never did!
+
+    - New `:source` compile mode that returns a source code form. You can either
+      call `eval` on this or call `sci-eval` to get an SCI-evaluated function
+      with all proper bindings in place.
+
+    - `compile-state-fn` now takes an optional options map, with support for
+      `:flatten?` and `:generic-params?` keywords. These can be used to tune the
+      shape of the function returned by `compile-state-fn`.
+
+- #485:
+
+  - Bumps the JDK version for Github Actions to 17 from 8.
+
+  - Adds a development dependency on Nextjournal's
+    [Clerk](https://github.com/nextjournal/clerk) library, and begins the
+    process of massaging various namespaces into proper literate essays
+    display-able with Clerk. To run these, start a REPL and follow the
+    instructions in `dev/user.clj`.
+
+    - `sicmutils.calculus.derivative` and `sicmutils.differential` now render as
+      proper literate essays, with all TeX bugs fixed.
+
+  - Bumps the shadow-cljs dependency to version `2.17.4`, and the included
+    `cljs` version to `1.11.4`. `sicmutils.collection` properly handles the new
+    cljs `IntegerRange` class.
+
+  - `sicmutils.polynomial.factor` now memoizes `poly->factored-expression` by
+    default. If polynomial GCD fails inside that function the computation now
+    proceeds with a warning instead of failing.
+
+- #492 updates the `clj-kondo` linters to emit custom warnings with _all_
+  metadata from the original token, not just `:row` and `:col`. This fixes the
+  ability to override or ignore individual warnings.
+
+- #490 adds `sicmutils.numerical.roots.bisect` with implementations of bisection
+  search, secant search and a mixed method found in `scmutils`. These all live
+  under a `bisect` function.
+
+  The data structure returned is similar to the minimization functions in the
+  `sicmutils.numeric.{unimin, multimin}` namespaces. As more root-finding
+  methods come online this should all standardize nicely.
+
+- #491 adds `sicmutils.mechanics.rotation/M->Euler`, for converting from a
+  rotation matrix to a triple of Euler angles. Now we can successfully round
+  trip.
+
+- #489:
+
+  - Installs `g/log` and `g/exp` for `js/BigInt` instances, enabling `g/log2` and
+    `g/log10` in the mix.
+
+  - Removes most `js*` calls using `coercive-=` and `js-mod`. This form is
+    internal and should be avoided.
+
 - #484 adds `sicmutils.polynomial/from-power-series`, for generating a
   polynomial instance from some prefix of a (univariate) power series.
 
