@@ -203,8 +203,6 @@
   (fn [[_ [_ y] v]]
     (- (* (/ 1 2) m (g/square v)) (* m g y))))
 
-
-
 (defn L-central-rectangular [m U]
   (fn [[_ q v]]
     (- (* (/ 1 2) m (g/square v))
@@ -230,7 +228,7 @@
 ;;; Coupled harmonic oscillators.
 
 (defn L-coupled-harmonic [m k]
-  (fn [_ q qdot]
+  (fn [[_ q qdot]]
     (- (* (/ 1 2) qdot m qdot)
        (* (/ 1 2) q k q))))
 
@@ -249,7 +247,7 @@
 
 ;;; Nicer treatment
 (defn F-sliding-pend [l]
-  (fn [_ [x theta]]
+  (fn [[_ [x theta]]]
     (up (up x 0)
         (up (+ x (* l (sin theta)))
             (* -1 l (cos theta))))))
