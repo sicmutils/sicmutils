@@ -2,6 +2,48 @@
 
 ## unreleased
 
+- #502 get `sicmutils.mechanics.lagrange` up to speed:
+
+  - new: `momentum-tuple` moved from hamilton,
+  - `->L-state`, `->local`, `->state`
+  - `state->n-dof`
+  - `time`, `state->{q,qdot,qddot}`
+  - `coordinates`, `velocities`, `accelerations`
+  - `Q`, `Qdot`, `Qdotdot`
+  - `literal-Lagrangian-state`
+  - `path->state-path` alias for Gamma
+  - many new lagrangians...
+
+    - `L-Kepler-polar`, `L-coupled-harmonic`, `L-sliding-pend`,
+      `L-sliding-pend*`, `L-pendulum`, `L-two-particle`
+
+  - `Rayleigh-dissipation`
+
+  - `Lagrange-equations`, `Lagrangian->acceleration`,
+    `Lagrangian->state-derivative` now take a dissipation function
+
+  - `qv->local-path`
+
+  - `local-state-derivative` alias for `Lagrangian->state-derivative`, but only
+    takes 1 arg.
+
+  - `Lagrange-equations-first-order`  with `Lagrange-equations-1` alias
+
+  - `Lagrangian->power-loss`
+
+  - `T3-spherical`, `L3-central`
+
+  - `Dt-procedure`, `Dt` operator version
+
+  - `Euler-lagrange-operator`, with `Lagrange-equations-operator` and `LE`
+    aliases
+
+  - `generalized-LE`
+
+  - New `rectangular->polar`, `polar->rectangular`, `spherical->rectangular` and
+    `rectangular->spherical` that operate on coordinates, with associated `r->p`
+    (new), `p->r`, `s->r` and `r->s` (new).
+
 - #501 moves `elliptic-integrals` from `sicmutils.special.elliptical-test`
   `sicmutils.special.elliptical`, as it's needed by the upcoming
   `sicmutils.mechanics.pendulum` namespace.

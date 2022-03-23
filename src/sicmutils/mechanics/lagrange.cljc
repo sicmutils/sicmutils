@@ -355,7 +355,9 @@
 
 (defn local-state-derivative
   "The state derivative of a Lagrangian is a function carrying a state
-  tuple to its time derivative."
+  tuple to its time derivative.
+
+  Alias for the single-arity version of [[Lagrangian->state-derivative]]."
   [L]
   (Lagrangian->state-derivative L))
 
@@ -366,7 +368,8 @@
          (compose (Lagrangian->state-derivative L)
                   state-path)))))
 
-(def Lagrange-equations-1 Lagrange-equations-first-order)
+(def ^{:doc "Alias for [[Lagrange-equations-first-order]]."}
+  Lagrange-equations-1 Lagrange-equations-first-order)
 
 ;; Given a Lagrangian, we can make an energy function on (t, Q, Qdot).
 
@@ -500,13 +503,20 @@
 (defn- trim-last-argument [local]
   (s/up* (pop (s/structure->vector local))))
 
+;; TODO should this be an operator??
+
 (defn Euler-Lagrange-operator [L]
   (- (Dt ((partial 2) L))
      ;; TODO test this new trim-last BS
      (compose ((partial 1) L) trim-last-argument)))
 
-(def LE Euler-Lagrange-operator)
-(def Lagrange-equations-operator Euler-Lagrange-operator)
+(def ^{:doc "Alias for [[Euler-lagrange-operator]]."}
+  LE
+  Euler-Lagrange-operator)
+
+(def ^{:doc "Alias for [[Euler-lagrange-operator]]."}
+  Lagrange-equations-operator
+  Euler-Lagrange-operator)
 
 (defn generalized-LE [Lagrangian]
   (fn [state]
