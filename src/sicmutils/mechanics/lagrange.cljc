@@ -30,11 +30,11 @@
 ;; configuration, and the rate of change of the configuration. Lagrangian
 ;; mechanics is formulated in terms of the kinematic state.
 ;;
-;; Kinematic states and their derivatives are represented as Scheme
-;; vectors, with components time, configuration, and derivatives.
+;; Kinematic states and their derivatives are represented as Scheme vectors,
+;; with components time, configuration, and derivatives.
 
 (defn ->L-state
-  "Constructs a Lagrangian state, also knows as a local tuple"
+  "Constructs a Lagrangian state, also knows as a local tuple."
   [t q qdot & derivs]
   (apply up t q qdot derivs))
 
@@ -120,13 +120,6 @@
 ;; state space. If such a path is described in terms of generalized coordinates,
 ;; we have
 
-(comment
-  (defn path->state-path* [q]
-    (fn [t]
-      (->local t
-               (q t)
-               ((D q) t)))))
-
 (defn Gamma
   "Gamma takes a path function (from time to coordinates) to a state
   function (from time to local tuple)."
@@ -143,16 +136,6 @@
          (f/with-arity [:exactly 1])))))
 
 (def path->state-path Gamma)
-
-;; TODO ask GJS about this comment:
-;;
-;; Can we do it this way?
-
-#_
-(defn path->state [q]
-  (->local identity q (D q)))
-
-;; No... We don't know number of degrees of freedom when we build state vector.
 
 ;; ### Lagrangians
 ;;
@@ -396,8 +379,10 @@
 
 (defn L-two-particle [m1 m2]
   (fn [[_ [x1 x2] [v1 v2]]]
-    ;; TODO fix up sig!
-    (let [V (af/literal-function 'V #_(-> (X (^ Real 2) (^ Real 2)) Real))]
+    ;; CHECK on the sig, I think this is right?
+    ;;
+    ;; TODO take V as an argument, move this to tests.
+    (let [V (af/literal-function 'V '(-> (X (X Real Real) (X Real Real)) Real))]
       (- (+ (* (/ 1 2) m1 (g/square v1))
             (* (/ 1 2) m2 (g/square v2)))
          (V x1 x2)))))
@@ -863,9 +848,9 @@
 ;; (print-expression
 ;;  ((LE (L-harmonic 'm 'k))
 ;;   (up 't 'x 'v)))
-;;                                         ;Cannot extract velocity from #((*diff* ... ...) x)
+;; Cannot extract velocity from #((*diff* ... ...) x)
 ;; ;;; error
-;; 
+;;
 ;; (print-expression
 ;;  ((LE (L-central-polar 'm (af/literal-function 'V)))
 ;;   (up 't
@@ -945,7 +930,7 @@
 
 ;; ### Coordinate Transformation to State Transformation
 
-;; TODO fill in the rest of the Lagrangian-transformations.scm code.
+;; NOTE these come from Lagrangian-transformations.scm
 
 (defn F->C
   "Accepts a coordinate transformation `F` from a local tuple to a new coordinate
@@ -1133,5 +1118,3 @@
 ;;    (* 1/2 m (expt r 2) (expt thetadot 2))
 ;;    (* 1/2 m (expt rdot 2))
 ;;    (V r))
-
-;; TODO the rest of the Rx, Ry and Rz are in rotation.cljc.
