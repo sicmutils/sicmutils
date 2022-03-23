@@ -7,11 +7,9 @@
             [sicmutils.generic :as g :refer [sin cos + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :refer [make-operator]]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [up]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
-
-(def momentum-tuple down)
 
 (defn momentum
   "See coordinate: this returns the momentum element of a
