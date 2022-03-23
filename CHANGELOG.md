@@ -2,6 +2,10 @@
 
 ## unreleased
 
+- #501 moves `elliptic-integrals` from `sicmutils.special.elliptical-test`
+  `sicmutils.special.elliptical`, as it's needed by the upcoming
+  `sicmutils.mechanics.pendulum` namespace.
+
 ## [0.22.0]
 
 - #497:
