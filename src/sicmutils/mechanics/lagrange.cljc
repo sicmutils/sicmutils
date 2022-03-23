@@ -166,9 +166,9 @@
 ;;   (->local 't
 ;;            (coordinate-tuple 'x 'y 'z)
 ;;            (velocity-tuple 'xdot 'ydot 'zdot))))
-;; (+ (* 1/2 m (expt xdot 2))
-;;    (* 1/2 m (expt ydot 2))
-;;    (* 1/2 m (expt zdot 2)))
+;; (+ (* (/ 1 2) m (expt xdot 2))
+;;    (* (/ 1 2) m (expt ydot 2))
+;;    (* (/ 1 2) m (expt zdot 2)))
 
 ;; (show-expression
 ;;  ((compose
@@ -177,9 +177,9 @@
 ;;                             (af/literal-function 'y)
 ;;                             (af/literal-function 'z))))
 ;;   't))
-;; (+ (* 1/2 (expt ((D x) t) 2) m)
-;;    (* 1/2 (expt ((D y) t) 2) m)
-;;    (* 1/2 (expt ((D z) t) 2) m))
+;; (+ (* (/ 1 2) (expt ((D x) t) 2) m)
+;;    (* (/ 1 2) (expt ((D y) t) 2) m)
+;;    (* (/ 1 2) (expt ((D z) t) 2) m))
 
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"
@@ -329,8 +329,8 @@
 
 (defn two-free [m1 m2 g]
   (fn [[_ [[_ h1] [_ h2]] [v1 v2]]]
-    (- (+ (* 1/2 m1 (g/square v1))
-          (* 1/2 m2 (g/square v2)))
+    (- (+ (* (/ 1 2) m1 (g/square v1))
+          (* (/ 1 2) m2 (g/square v2)))
        (+ (* m1 g h1)
           (* m2 g h2)))))
 
@@ -570,8 +570,8 @@
 ;;    (Gamma
 ;;     (coordinate-tuple (af/literal-function 'r) (af/literal-function 'phi))))
 ;;   't))
-;; (+ (* 1/2 m (expt (r t) 2) (expt ((D phi) t) 2))
-;;    (* 1/2 m (expt ((D r) t) 2))
+;; (+ (* (/ 1 2) m (expt (r t) 2) (expt ((D phi) t) 2))
+;;    (* (/ 1 2) m (expt ((D r) t) 2))
 ;;    (U (r t)))
 
 
@@ -891,7 +891,7 @@
 ;; (define ((L2harmonic m k) state)
 ;;   (let ((x (coordinate state))
 ;;        (a (acceleration state)))
-;;     (+ (* 1/2 m x a) (* 1/2 k (square x)))))
+;;     (+ (* (/ 1 2) m x a) (* (/ 1 2) k (square x)))))
 
 ;; (print-expression
 ;;  ((generalized-LE (L2harmonic 'm 'k))
@@ -988,8 +988,8 @@
 ;;  ((L-central-polar 'm (af/literal-function 'V))
 ;;   (->local 't (coordinate-tuple 'r 'phi)
 ;;            (velocity-tuple 'rdot 'phidot))))
-;; (+ (* 1/2 m (expt phidot 2) (expt r 2))
-;;    (* 1/2 m (expt rdot 2))
+;; (+ (* (/ 1 2) m (expt phidot 2) (expt r 2))
+;;    (* (/ 1 2) m (expt rdot 2))
 ;;    (* -1 (V r)))
 
 ;; ### Driven pendulum example
@@ -999,7 +999,7 @@
 ;;         (theta (coordinate local))
 ;;         (thetadot (velocity local)))
 ;;     (let ((ysdot (D ys)))
-;;       (* 1/2 m
+;;       (* (/ 1 2) m
 ;;          (+ (square (* l thetadot))
 ;;             (square (ysdot t))
 ;;             (* 2 (ysdot t) l (sin theta) thetadot))))))
@@ -1014,11 +1014,11 @@
 ;; (show-expression
 ;;  ((L-pend 'm 'l 'g (af/literal-function 'y_s))
 ;;   (->local 't 'theta 'thetadot)))
-;; (+ (* 1/2 (expt l 2) m (expt thetadot 2))
+;; (+ (* (/ 1 2) (expt l 2) m (expt thetadot 2))
 ;;    (* l m thetadot ((D y_s) t) (sin theta))
 ;;    (* g l m (cos theta))
 ;;    (* -1 g m (y_s t))
-;;    (* 1/2 m (expt ((D y_s) t) 2)))
+;;    (* (/ 1 2) m (expt ((D y_s) t) 2)))
 
 ;; (show-expression
 ;;  (((Lagrange-equations
@@ -1035,7 +1035,7 @@
 ;;   (let ((q (coordinate local))
 ;;         (v (velocity local)))
 ;;     (let ((h (ref q 1)))
-;;       (- (* 1/2 m (square v)) (* m g h)))))
+;;       (- (* (/ 1 2) m (square v)) (* m g h)))))
 
 ;; (define ((dp-coordinates l y_s) local)
 ;;   (let ((t (time local))
@@ -1051,11 +1051,11 @@
 ;; (show-expression
 ;;  ((L-pend 'm 'l 'g (af/literal-function 'y_s))
 ;;   (->local 't 'theta 'thetadot)))
-;; (+ (* 1/2 (expt l 2) m (expt thetadot 2))
+;; (+ (* (/ 1 2) (expt l 2) m (expt thetadot 2))
 ;;    (* l m thetadot (sin theta) ((D y_s) t))
 ;;    (* g l m (cos theta))
 ;;    (* -1 g m (y_s t))
-;;    (* 1/2 m (expt ((D y_s) t) 2)))
+;;    (* (/ 1 2) m (expt ((D y_s) t) 2)))
 
 ;; (show-expression
 ;;  (((Lagrange-equations
@@ -1114,7 +1114,7 @@
 ;;   (->local 't
 ;;            (coordinate-tuple 'r 'theta 'phi)
 ;;            (velocity-tuple 'rdot 'thetadot 'phidot))))
-;; (+ (* 1/2 m (expt r 2) (expt phidot 2) (expt (sin theta) 2))
-;;    (* 1/2 m (expt r 2) (expt thetadot 2))
-;;    (* 1/2 m (expt rdot 2))
+;; (+ (* (/ 1 2) m (expt r 2) (expt phidot 2) (expt (sin theta) 2))
+;;    (* (/ 1 2) m (expt r 2) (expt thetadot 2))
+;;    (* (/ 1 2) m (expt rdot 2))
 ;;    (V r))
