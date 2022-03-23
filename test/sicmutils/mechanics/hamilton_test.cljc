@@ -22,7 +22,7 @@
 (deftest poisson
   (let [a-state (H/->H-state 't
                              (L/coordinate-tuple 'x 'y 'z)
-                             (H/momentum-tuple 'p_x 'p_y 'p_z))]
+                             (L/momentum-tuple 'p_x 'p_y 'p_z))]
     (is (= '(up (down 1 0 0)
                 (down 0 1 0)
                 (down 0 0 1))
@@ -72,9 +72,9 @@
                (up 't (up 'x 'y) (down 'p_x 'p_y))))))
       (testing "Jacobi identity"
         (is (= 0 (simplify ((+ (H/Poisson-bracket FF (H/Poisson-bracket GG HH))
-                                 (H/Poisson-bracket GG (H/Poisson-bracket HH FF))
-                                 (H/Poisson-bracket HH (H/Poisson-bracket FF GG)))
-                              (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))
+                               (H/Poisson-bracket GG (H/Poisson-bracket HH FF))
+                               (H/Poisson-bracket HH (H/Poisson-bracket FF GG)))
+                            (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))
 
 (deftest section-3-1-1
   ;; To move further into Hamiltonian mechanics, we will need
@@ -125,7 +125,7 @@
                         (H/H-rectangular
                          'm V))
                        (L/coordinate-tuple x y)
-                       (H/momentum-tuple p_x p_y))
+                       (L/momentum-tuple p_x p_y))
                       't)))))
 
   (is (= '(/ (+ (* m (expt r 2) (V r))
@@ -137,7 +137,7 @@
             (L/L-central-polar 'm (f/literal-function 'V)))
            (H/->H-state 't
                         (L/coordinate-tuple 'r 'phi)
-                        (H/momentum-tuple 'p_r 'p_phi))))))
+                        (L/momentum-tuple 'p_r 'p_phi))))))
   (is (= '(up 0
               (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
                   (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))
@@ -149,7 +149,7 @@
                (H/Lagrangian->Hamiltonian
                 (L/L-central-polar 'm V)))
               (L/coordinate-tuple r phi)
-              (H/momentum-tuple p_r p_phi))
+              (L/momentum-tuple p_r p_phi))
              't)))))
   (is (= '(up 0
               (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
@@ -163,7 +163,7 @@
                 (L/L-central-polar 'm
                                    (fn [r] (- (/ (* 'GM 'm) r))))))
               (L/coordinate-tuple r phi)
-              (H/momentum-tuple p_r p_phi))
+              (L/momentum-tuple p_r p_phi))
              't)))))
   (let [F (f/literal-function 'F (H/Hamiltonian 2))
         G (f/literal-function 'G (H/Hamiltonian 2))

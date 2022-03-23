@@ -466,7 +466,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   p->r
   s->r
   state->t coordinate velocity acceleration
-  coordinate-tuple velocity-tuple acceleration-tuple]
+  coordinate-tuple velocity-tuple acceleration-tuple momentum-tuple]
  [sicmutils.matrix
   s->m
   m->s
@@ -492,7 +492,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   compositional-canonical?
   iterated-map
   momentum
-  momentum-tuple
   polar-canonical
   standard-map
   qp-submatrix
