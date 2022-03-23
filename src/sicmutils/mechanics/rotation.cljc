@@ -48,20 +48,20 @@
 
 (defn angle-axis->rotation-matrix [theta [x y z]]
   (let [colatitude (g/acos z)
-	      longitude (g/atan y x)]
+        longitude (g/atan y x)]
     (* (rotate-z-matrix longitude)
-	     (rotate-y-matrix colatitude)
-	     (rotate-z-matrix theta)
-	     (matrix/transpose (rotate-y-matrix colatitude))
-	     (matrix/transpose (rotate-z-matrix longitude)))))
+       (rotate-y-matrix colatitude)
+       (rotate-z-matrix theta)
+       (matrix/transpose (rotate-y-matrix colatitude))
+       (matrix/transpose (rotate-z-matrix longitude)))))
 
 ;; ## Rotation Tuples
 
 (defn ^:no-doc rotate-x-tuple-2 [c s]
   (matrix/m->s
    (s/literal-down 'l 3)
-	 (rotate-x-matrix-2 c s)
-	 (s/literal-up 'r 3)))
+   (rotate-x-matrix-2 c s)
+   (s/literal-up 'r 3)))
 
 (defn rotate-x-tuple [α]
   (rotate-x-tuple-2 (cos α)

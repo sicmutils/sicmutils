@@ -444,8 +444,8 @@
   (fn [s]
     (matrix/s->m
      (s/compatible-shape (F s))
-	   ((D F) s)
-	   s)))
+     ((D F) s)
+     s)))
 
 (defn partial
   "Returns an operator that, when applied to a function `f`, produces a function
@@ -495,38 +495,39 @@
 ;;           ((D f) x)))
 ;; ```
 
-(comment
-  (define (Taylor-series-coefficients f . args)
-    (assert (not (null? args)))
-    (define (output result x dummy)
-      ((series:elementwise
-        (compose
-         simplify
-         (lambda (term)
-	               (let ((ans term))
-	                 (let walk ((x x) (dummy dummy))
-	                      (cond ((structure? x)
-		                           (let ((n (s:length x)))
-		                             (let lp ((i 0))
-			                                (if (fix:= i n)
-			                                  'done
-			                                  (begin
-			                                   (walk (s:ref x i) (s:ref dummy i))
-			                                   (lp (fix:+ i 1)))))))
-		                          ((pair? x)
-		                           (for-each walk x dummy))
-		                          (else
-		                           (set! ans (subst x dummy ans)))))
-	                 ans))
-         simplify))
-       result))
-    (if (null? (cdr args))
-      (let* ((x (car args))
-	           (dummy (typical-object x)))
-	      (output (((exp D) f) dummy) x dummy))
-      (let* ((x args)
-	           (dummies (map typical-object x)))
-	      (output (apply ((exp D) f) dummies) x dummies)))))
+#_
+(defn Taylor-series-coefficients
+  [f & args]
+  {:pre [(not (empty? args))]}
+  (letfn  [(output [result x dummy]
+             ((series:elementwise
+               (comp
+                g/simplify
+                (fn [term]
+                  (let [ans (atom term)]
+                    (letfn [(walk [x x dummy dummy]
+                              (cond (s/structure? x)
+                                    (let [n (count x)]
+                                      (loop [i 0]
+                                        (if (= i n)
+                                          :done
+                                          (do (walk (get x i) (get dummy i))
+                                              (recur (inc i))))))
+
+                                    (sequential? x)
+                                    (for-each walk x dummy)
+
+                                    :else (reset! ans (subst x dummy ans))))])
+                    @ans))
+                g/simplify))
+              result))]
+    (if (empty? (rest args))
+      (let [x (first args)
+            dummy (s/typical-object x)]
+        (output (((g/exp D) f) dummy) x dummy))
+      (let [x args
+            dummies (map s/typical-object x)]
+        (output (apply ((g/exp D) f) dummies) x dummies)))))
 
 ;; #|
 ;; ;;; Examples
@@ -570,7 +571,7 @@
 
 ;; (ref
 ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-;; 			                       (up 'a 'b))
+;;                             (up 'a 'b))
 ;;  0)
 ;; #|
 ;; (G (up a b))
@@ -578,7 +579,7 @@
 
 ;; (ref
 ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-;; 			                       (up 'a 'b))
+;;                             (up 'a 'b))
 ;;  1)
 ;; #|
 ;; (down (((partial 0) G) (up a b)) (((partial 1) G) (up a b)))
@@ -586,7 +587,7 @@
 
 ;; (ref
 ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-;; 			                       (up 'a 'b))
+;;                             (up 'a 'b))
 ;;  2)
 ;; #|
 ;; (down
@@ -601,7 +602,7 @@
 
 ;; (ref
 ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
-;; 			                       'a 'b)
+;;                             'a 'b)
 ;;  0)
 ;; #|
 ;; (H a b)
@@ -609,7 +610,7 @@
 
 ;; (ref
 ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
-;; 			                       'a 'b)
+;;                             'a 'b)
 ;;  3)
 ;; #|
 ;; (down
@@ -634,10 +635,10 @@
 ;; (define (Taylor-series-coefficients f x)
 ;;   (let ((dummy (generate-uninterned-symbol 'x)))
 ;;     ((series:elementwise (compose
-;; 			                    simplify
-;; 			                    (lambda (term)
-;; 			                            (subst x dummy term))
-;; 			                    simplify))
+;;                          simplify
+;;                          (lambda (term)
+;;                                  (subst x dummy term))
+;;                          simplify))
 ;;      (((exp D) f) dummy))))
 
 
@@ -651,7 +652,7 @@
 ;; (define (Taylor-series-coefficients f x)
 ;;   (let ((dummy (generate-uninterned-symbol 'x)))
 ;;     ((series:elementwise (lambda (term)
-;; 			                           (subst x dummy term)))
+;;                                 (subst x dummy term)))
 ;;      (((exp D) f) dummy))))
 ;; #| Taylor-series-coefficients |#
 

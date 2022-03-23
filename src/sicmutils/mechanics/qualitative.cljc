@@ -36,47 +36,47 @@
       ((iterated-map T n) (+ xe (* dx (/ param (expt A n))))
        (+ ye (* dy (/ param (expt A n))))
        cons
-		   (lambda ()
-			         (error "Failed"))))))
+       (lambda ()
+               (error "Failed"))))))
 
 (comment
   (define (fixed-point-eigen T xe ye eps cont)
     (let ((M00 ((richardson-derivative
-	               (lambda (dx)
-		                     (T (+ xe dx) ye
-		                        (lambda (x y)
-		                                ((principal-value pi) (- x xe)))
-		                        'failure))
-	               eps)
-	              0.0))
-	        (M01 ((richardson-derivative
-	               (lambda (dx)
-		                     (T xe (+ ye dx)
-		                        (lambda (x y)
-		                                ((principal-value pi) (- x xe)))
-		                        'failure))
-	               eps)
-	              0.0))
-	        (M10 ((richardson-derivative
-	               (lambda (dx)
-		                     (T (+ xe dx) ye
-		                        (lambda (x y) y)
-		                        'failure))
-	               eps)
-	              0.0))
-	        (M11 ((richardson-derivative
-	               (lambda (dx)
-		                     (T xe (+ ye dx)
-		                        (lambda (x y) y)
-		                        'failure))
-	               eps)
-	              0.0)))
+                 (lambda (dx)
+                         (T (+ xe dx) ye
+                            (lambda (x y)
+                                    ((principal-value pi) (- x xe)))
+                            'failure))
+                 eps)
+                0.0))
+          (M01 ((richardson-derivative
+                 (lambda (dx)
+                         (T xe (+ ye dx)
+                            (lambda (x y)
+                                    ((principal-value pi) (- x xe)))
+                            'failure))
+                 eps)
+                0.0))
+          (M10 ((richardson-derivative
+                 (lambda (dx)
+                         (T (+ xe dx) ye
+                            (lambda (x y) y)
+                            'failure))
+                 eps)
+                0.0))
+          (M11 ((richardson-derivative
+                 (lambda (dx)
+                         (T xe (+ ye dx)
+                            (lambda (x y) y)
+                            'failure))
+                 eps)
+                0.0)))
       (let ((trace (+ M00 M11))
-	          (determinant (- (* M00 M11) (* M01 M10))))
+            (determinant (- (* M00 M11) (* M01 M10))))
         (quadratic 1. (- trace) determinant
                    (lambda (root1 root2)
-	                         (cont root1 M01 (- root1 M00)
-	                               root2 M01 (- root2 M00))))))))
+                           (cont root1 M01 (- root1 M00)
+                                 root2 M01 (- root2 M00))))))))
 ;; 
 ;; #| in open.scm
 

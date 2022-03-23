@@ -72,11 +72,11 @@
   (define (literal-Hamiltonian-state n-dof)
     (up (literal-number (generate-uninterned-symbol 't))
         (s:generate n-dof 'up
-		                (lambda (i)
-		                        (literal-number (generate-uninterned-symbol 'x))))
+                    (lambda (i)
+                            (literal-number (generate-uninterned-symbol 'x))))
         (s:generate n-dof 'down
-		                (lambda (i)
-		                        (literal-number (generate-uninterned-symbol 'p)))))))
+                    (lambda (i)
+                            (literal-number (generate-uninterned-symbol 'p)))))))
 
 (comment
   (define ((Lstate->Hstate L) Ls)
@@ -96,7 +96,7 @@
   (define (matrix->H-state m s)
     (assert (= (m:num-cols m) 1))
     (assert (and (odd? (m:num-rows m))
-	               (> (m:num-rows m) 2)))
+                 (> (m:num-rows m) 2)))
     (m->s (compatible-shape s) m 1))
 
   (define (degrees-of-freedom H-state)
@@ -126,7 +126,7 @@
 
   (define ((Hamilton-equations Hamiltonian) q p)
     (let ((H-state-path (qp->H-state-path q p))
-	        (dH (Hamiltonian->state-derivative Hamiltonian)))
+          (dH (Hamiltonian->state-derivative Hamiltonian)))
       (- (D H-state-path)
          (compose dH
                   H-state-path)))))
@@ -231,7 +231,7 @@
         (let ((z (compatible-zero w)))
           (let ((M ((D w-of-v) z))
                 (b (w-of-v z)))
-	          ;; DM=0 for this code to be correct.
+            ;; DM=0 for this code to be correct.
             (let ((v (solve-linear-left M (- w b))))
               (- (* w v) (F v))))))
       G)))
@@ -241,28 +241,28 @@
 (comment
   (define (Legendre-transform-procedure F)
     (let ((untested? true)
-	        (w-of-v (D F)))
+          (w-of-v (D F)))
       (define (putative-G w)
         (let ((z (compatible-zero w)))
           (let ((M ((D w-of-v) z))
                 (b (w-of-v z)))
-	          (if (and untested? (zero? (simplify (determinant M))))
-	            (error "Legendre Transform Failure: determinant=0"
-		                 F w))
+            (if (and untested? (zero? (simplify (determinant M))))
+              (error "Legendre Transform Failure: determinant=0"
+                     F w))
             (let ((v (solve-linear-left M (- w b))))
-	            (- (* w v) (F v))))))
+              (- (* w v) (F v))))))
       (define (G w)
         (if untested?
-	        (let ((thing (typical-object w)))
-	          (if (not (equal?
-		                  (simplify
-		                   ((compose w-of-v (D putative-G))
-			                  thing))
-		                  (simplify thing)))
-		          (error "Legendre Transform Failure: not quadratic"
-		                 F w)
-		          (set! untested? #f))
-	          'tested))
+          (let ((thing (typical-object w)))
+            (if (not (equal?
+                      (simplify
+                       ((compose w-of-v (D putative-G))
+                        thing))
+                      (simplify thing)))
+              (error "Legendre Transform Failure: not quadratic"
+                     F w)
+              (set! untested? #f))
+            'tested))
         (putative-G w))
       G)))
 
@@ -285,8 +285,8 @@
 (comment
   (define ((Hamiltonian->Lagrangian-procedure the-Hamiltonian) L-state)
     (let ((t (time L-state))
-	        (q (coordinate L-state))
-	        (qdot (velocity L-state)))
+          (q (coordinate L-state))
+          (qdot (velocity L-state)))
       (define (H p)
         (the-Hamiltonian (->H-state t q p)))
       ((Legendre-transform-procedure H) qdot)))
@@ -350,7 +350,7 @@
   (make-operator
    (fn [F]
      (+ ((partial 0) F)
-	      (Poisson-bracket F H)))
+        (Poisson-bracket F H)))
    `(~'flow-derivative ~H)))
 
 (comment
@@ -365,7 +365,7 @@
   ;; (define L_G (Lie-derivative G))
 
   ;; (pe (((+ (commutator L_F L_G)
-	;;          (Lie-derivative (Poisson-bracket F G)))
+  ;;          (Lie-derivative (Poisson-bracket F G)))
   ;;       H)
   ;;      (up 't (up 'x 'y) (down 'px 'py))))
   ;; 0
@@ -413,7 +413,7 @@
 
 ;; (define ((H-harmonic m k) state)
 ;;   (let ((q (coordinate state))
-;; 	      (p (momentum state)))
+;;        (p (momentum state)))
 ;;     (+ (/ (square p) (* 2 m))
 ;;        (* 1/2 k (square q)))))
 
@@ -468,8 +468,8 @@
 ;;           (pr ((component 0) p))
 ;;           (pphi ((component 1) p)))
 ;;       (+ (/ (+ (square pr)
-;; 	             (square (/ pphi r)))
-;; 	          (* 2 m))
+;;               (square (/ pphi r)))
+;;            (* 2 m))
 ;;          (V r)))))
 
 ;; (series:for-each print-expression
@@ -478,8 +478,8 @@
 ;;                     'dt)
 ;;                    state->q)
 ;;                   (->H-state 0
-;; 	                           (coordinate-tuple 'r_0 'phi_0)
-;; 	                           (momentum-tuple 'p_r_0 'p_phi_0)))
+;;                             (coordinate-tuple 'r_0 'phi_0)
+;;                             (momentum-tuple 'p_r_0 'p_phi_0)))
 ;;                  4)
 ;; (up r_0 phi_0)
 ;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
@@ -518,12 +518,12 @@
 ;;          (series:print
 ;;           (((Lie-transform
 ;;              (Lagrangian->Hamiltonian
-;; 	            (L-central-polar 'm (lambda (r) (- (/ 'GM r)))))
+;;              (L-central-polar 'm (lambda (r) (- (/ 'GM r)))))
 ;;              'dt)
 ;;             state->q)
 ;;            (->H-state 0
-;; 		                  (coordinate-tuple 'r_0 'phi_0)
-;; 		                  (momentum-tuple 'p_r_0 'p_phi_0)))
+;;                      (coordinate-tuple 'r_0 'phi_0)
+;;                      (momentum-tuple 'p_r_0 'p_phi_0)))
 ;;           4)))
 ;; #|
 ;; ;;; 13 March 2012: I changed the system so that the original
@@ -623,19 +623,19 @@
 
   ;; (define (explore-map window poincare-map #!optional mode-or-n)
   ;;   (let* ((default-n 1000)
-	;;          (collector
-	;;           (cond ((default-object? mode-or-n)
-	;; 	               (default-collector (default-monitor window)
-	;; 			                              poincare-map
-	;; 			                              default-n))
-	;; 	              ((number? mode-or-n)
-	;; 	               (default-collector (default-monitor window)
-	;; 			                              poincare-map
-	;; 			                              mode-or-n))
-	;; 	              (else poincare-map))))
+  ;;          (collector
+  ;;           (cond ((default-object? mode-or-n)
+  ;;                 (default-collector (default-monitor window)
+  ;;                                    poincare-map
+  ;;                                    default-n))
+  ;;                ((number? mode-or-n)
+  ;;                 (default-collector (default-monitor window)
+  ;;                                    poincare-map
+  ;;                                    mode-or-n))
+  ;;                (else poincare-map))))
   ;;     (define (button-loop ox oy)
   ;;       (pointer-coordinates window
-	;;                            (lambda (x y button)
+  ;;                            (lambda (x y button)
   ;;                                    (case button
   ;;                                      ((0)
   ;;                                       (display "Started: ")
@@ -698,10 +698,10 @@
          (let ((x (g:ref state 1 0))
                (xd (g:ref state 2 0)))
            (let ((zstate (advance state (- (/ x xd)))))
-	           (if (< (abs (g:ref zstate 1 0))
-	                  sec-eps)
-	             zstate
-	             (lp zstate))))))
+             (if (< (abs (g:ref zstate 1 0))
+                    sec-eps)
+               zstate
+               (lp zstate))))))
 
   (define (display-map window poincare-map x y n)
     (plot-point window x y)
@@ -709,11 +709,11 @@
       (poincare-map
        x y
        (lambda (nx ny)
-	             (display-map window poincare-map nx ny (fix:- n 1)))
+               (display-map window poincare-map nx ny (fix:- n 1)))
        (lambda ()
-	             (newline)
-	             (display "Illegal point: ")
-	             (write (list x y))))))
+               (newline)
+               (display "Illegal point: ")
+               (write (list x y))))))
   )
 
 ;; TODO go to sections.scm.
@@ -840,13 +840,13 @@
 (defn canonical-H? [C H]
   (- (f/compose (D-phase-space H) C)
      (* (D C)
-	      (D-phase-space (f/compose H C)))))
+        (D-phase-space (f/compose H C)))))
 
 ;; TODO use this vs chapter 5 test code
 (defn canonical-K? [C K]
   (- (f/compose T-func C)
      (* (D C)
-	      (+ T-func (D-phase-space K)))))
+        (+ T-func (D-phase-space K)))))
 
 (defn linear-function->multiplier [F argument]
   ((D F) argument))
@@ -884,9 +884,9 @@
 ;; (define (a-non-canonical-transform Istate)
 ;;   (let ((t (time Istate))
 ;;         (theta (coordinate Istate))
-;; 	      (p (momentum Istate)))
+;;        (p (momentum Istate)))
 ;;     (let ((x (* p (sin theta)))
-;; 	        (p_x (* p (cos theta))))
+;;          (p_x (* p (cos theta))))
 ;;       (up t x p_x))))
 
 ;; (print-expression
@@ -904,19 +904,19 @@
   (fn [s]
     (- (J-func ((D H) (C s)))
        (* ((D C) s)
-	        (J-func
-	         ((D (compose H C)) s))))))
+          (J-func
+           ((D (compose H C)) s))))))
 
 ;; (define ((canonical-K? C K) s)
 ;;   (let ((s* (compatible-shape s)))
 ;;     (- (T-func s*)
 ;;        (+ (* ((D C) s) (J-func ((D K) s)))
-;; 	        (((partial 0) C) s)))))
+;;          (((partial 0) C) s)))))
 
 
 ;; (define ((canonical-K? C K) s)
 ;;   (let ((DCs ((D C) s))
-;; 	      (s* (compatible-shape s)))
+;;        (s* (compatible-shape s)))
 ;;     (- (T-func s*)
 ;;        (* DCs ((Hamiltonian->state-derivative K) s)))))
 ;; |#
@@ -924,21 +924,21 @@
 ;; #|
 ;; (define ((rotating n) state)
 ;;   (let ((t (time state))
-;; 	      (q (coordinate state)))
+;;        (q (coordinate state)))
 ;;     (let ((x (ref q 0))
-;; 	        (y (ref q 1))
-;; 	        (z (ref q 2)))
+;;          (y (ref q 1))
+;;          (z (ref q 2)))
 ;;       (coordinate-tuple (+ (* (cos (* n t)) x) (* (sin (* n t)) y))
-;; 			                  (- (* (cos (* n t)) y) (* (sin (* n t)) x))
-;; 			                  z))))
+;;                        (- (* (cos (* n t)) y) (* (sin (* n t)) x))
+;;                        z))))
 
 ;; (define (C-rotating n) (F->CT (rotating n)))
 
 ;; (define ((K n) s)
 ;;   (let ((q (coordinate s))
-;; 	      (p (momentum s)))
+;;        (p (momentum s)))
 ;;     (let ((x (ref q 0)) (y (ref q 1))
-;; 	        (px (ref p 0)) (py (ref p 1)))
+;;          (px (ref p 0)) (py (ref p 1)))
 ;;       (* n (- (* x py) (* y px))))))
 
 ;; (define a-state
@@ -955,7 +955,7 @@
 ;; (up 0 (up 0 0 0) (down 0 0 0))
 
 ;; (pe ((- (F->K (rotating 'n))
-;; 	      (K 'n))
+;;        (K 'n))
 ;;      a-state))
 ;; 0
 
@@ -986,20 +986,20 @@
 (comment
   (define ((polar-canonical-inverse alpha) s)
     (let ((t (time s))
-	        (x (coordinate s))
-	        (p (momentum s)))
+          (x (coordinate s))
+          (p (momentum s)))
       (let ((I (/ (+ (* alpha (square x))
-		                 (/ (square p) alpha))
-		              2)))
+                     (/ (square p) alpha))
+                  2)))
         (let ((theta (atan (/ x (sqrt (/ (* 2 I) alpha)))
-			                     (/ p (sqrt (* 2 I alpha))))))
-	        (up t theta I))))))
+                           (/ p (sqrt (* 2 I alpha))))))
+          (up t theta I))))))
 
 ;; TODO move to tests:
 ;; #|
 ;; (pe
 ;;  ((compose (polar-canonical-inverse 'alpha)
-;; 	         (polar-canonical 'alpha))
+;;           (polar-canonical 'alpha))
 ;;   (up 't 'x 'p)))
 ;; (up t x p)
 
@@ -1012,8 +1012,8 @@
 ;; #|
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
 ;;         (coordinate-tuple (ref q 0) (- (ref p 1)))
 ;;         (momentum-tuple   (ref p 0) (ref q 1)))))
@@ -1030,8 +1030,8 @@
 
 ;; (define (Cmix2 H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
 ;;         (flip-outer-index p)
 ;;         (- (flip-outer-index q)))))
@@ -1046,17 +1046,17 @@
   (define ((two-particle-center-of-mass m0 m1) H-state)
     (let ((q (coordinate H-state)))
       (let ((x0 (ref q 0))
-	          (x1 (ref q 1)))
+            (x1 (ref q 1)))
         (coordinate-tuple (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
-			                    (- x1 x0)))))
+                          (- x1 x0)))))
 
   (define ((two-particle-center-of-mass-canonical m0 m1) state)
     (let ((x (coordinate state))
-	        (p (momentum state)))
+          (p (momentum state)))
       (let ((x0 (ref x 0))
-	          (x1 (ref x 1))
-	          (p0 (ref p 0))
-	          (p1 (ref p 1)))
+            (x1 (ref x 1))
+            (p0 (ref p 0))
+            (p1 (ref p 1)))
         (up (time state)
             (coordinate-tuple
              (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
@@ -1111,13 +1111,13 @@
 ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
 
 ;; (pe (* (* ((multiplicative-transpose (down 'p_x 'p_y)) ((D T) (up 'x 'y)))
-;; 	        (down 'p_x 'p_y))
+;;          (down 'p_x 'p_y))
 ;;        (up 'v_x 'v_y)))
 ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
 
 ;; ;;; But strangely enough...
 ;; (pe (* (* (down 'p_x 'p_y)
-;; 	        ((multiplicative-transpose (down 'p_x 'p_y)) ((D T) (up 'x 'y))))
+;;          ((multiplicative-transpose (down 'p_x 'p_y)) ((D T) (up 'x 'y))))
 ;;        (up 'v_x 'v_y)))
 ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
 ;; |#
@@ -1127,9 +1127,9 @@
 ;;   (let ((s* (compatible-shape s)))
 ;;     (let ((J (linear-function->multiplier J-func s*)))
 ;;       (- J
-;; 	       (* ((D C) s)
-;; 	          (* J
-;; 	             ((multiplicative-transpose s*) ((D C) s))))))))
+;;         (* ((D C) s)
+;;            (* J
+;;               ((multiplicative-transpose s*) ((D C) s))))))))
 
 ;; (print-expression
 ;;  ((time-independent-canonical? (F->CT p->r))
@@ -1144,9 +1144,9 @@
 ;; (define (a-non-canonical-transform Istate)
 ;;   (let ((t (time Istate))
 ;;         (theta (coordinate Istate))
-;; 	      (p (momentum Istate)))
+;;        (p (momentum Istate)))
 ;;     (let ((x (* p (sin theta)))
-;; 	        (p_x (* p (cos theta))))
+;;          (p_x (* p (cos theta))))
 ;;       (up t x p_x))))
 
 ;; (print-expression
@@ -1163,8 +1163,8 @@
 ;; #|
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
 ;;         (coordinate-tuple (ref q 0) (- (ref p 1)))
 ;;         (momentum-tuple   (ref p 0) (ref q 1)))))
@@ -1181,8 +1181,8 @@
 
 ;; (define (Cmix2 H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
 ;;         (flip-outer-index p)
 ;;         (- (flip-outer-index q)))))
@@ -1196,18 +1196,18 @@
 ;; #|
 ;; (define ((C m0 m1) state)
 ;;   (let ((x (coordinate state))
-;; 	      (p (momentum state)))
+;;        (p (momentum state)))
 ;;     (let ((x0 (ref x 0))
-;; 	        (x1 (ref x 1))
-;; 	        (p0 (ref p 0))
-;; 	        (p1 (ref p 1)))
+;;          (x1 (ref x 1))
+;;          (p0 (ref p 0))
+;;          (p1 (ref p 1)))
 ;;       (up
 ;;        (time state)
 ;;        (coordinate-tuple (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
-;; 			                   (- x1 x0))
+;;                         (- x1 x0))
 ;;        (momentum-tuple (+ p0 p1)
-;; 		                   (/ (- (* m0 p1) (* m1 p0))
-;; 			                    (+ m0 m1)))))))
+;;                       (/ (- (* m0 p1) (* m1 p0))
+;;                          (+ m0 m1)))))))
 
 ;; (define b-state
 ;;   (up 't
@@ -1264,9 +1264,9 @@
 ;; (define (a-non-canonical-transform Istate)
 ;;   (let ((t (time Istate))
 ;;         (theta (coordinate Istate))
-;; 	      (p (momentum Istate)))
+;;        (p (momentum Istate)))
 ;;     (let ((x (* p (sin theta)))
-;; 	        (p_x (* p (cos theta))))
+;;          (p_x (* p (cos theta))))
 ;;       (up t x p_x))))
 
 ;; (print-expression
@@ -1278,11 +1278,11 @@
 ;; #|
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
-;; 	      (up (ref q 0) (- (ref p 1)))
-;; 	      (down (ref p 0) (ref q 1)))))
+;;        (up (ref q 0) (- (ref p 1)))
+;;        (down (ref p 0) (ref q 1)))))
 
 ;; (define a-state
 ;;   (up 't (up 'x 'y) (down 'p_x 'p_y)))
@@ -1296,11 +1296,11 @@
 
 ;; (define (Cmix2 H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
-;; 	      (flip-outer-index p)
-;; 	      (- (flip-outer-index q)))))
+;;        (flip-outer-index p)
+;;        (- (flip-outer-index q)))))
 
 ;; (print-expression
 ;;  ((canonical-transform? Cmix2)
@@ -1313,24 +1313,24 @@
 ;; #|
 ;; (define ((C m0 m1) state)
 ;;   (let ((x (coordinate state))
-;; 	      (p (momentum state)))
+;;        (p (momentum state)))
 ;;     (let ((x0 (ref x 0))
-;; 	        (x1 (ref x 1))
-;; 	        (p0 (ref p 0))
-;; 	        (p1 (ref p 1)))
+;;          (x1 (ref x 1))
+;;          (p0 (ref p 0))
+;;          (p1 (ref p 1)))
 ;;       (up (time state)
-;; 	        (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
-;; 	            (- x1 x0))
-;; 	        (down (+ p0 p1)
-;; 		            (/ (- (* m0 p1) (* m1 p0))
-;; 		               (+ m0 m1)))))))
+;;          (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
+;;              (- x1 x0))
+;;          (down (+ p0 p1)
+;;                (/ (- (* m0 p1) (* m1 p0))
+;;                   (+ m0 m1)))))))
 
 ;; (define b-state
 ;;   (up 't
 ;;       (up (up 'x_1 'y_1)
-;; 	        (up 'x_2 'y_2))
+;;          (up 'x_2 'y_2))
 ;;       (down (down 'p_x_1 'p_y_1)
-;; 	          (down 'p_x_2 'p_y_2))))
+;;            (down 'p_x_2 'p_y_2))))
 
 ;; (print-expression
 ;;  ((canonical-transform? (C 'm1 'm2)) b-state))
@@ -1354,11 +1354,11 @@
     (let ((2n+1 (fix:+ (fix:* 2 n) 1)))
       (m:generate 2n+1 2n+1
                   (lambda (a b)
-	                        (cond ((fix:= a 0) 0)
+                          (cond ((fix:= a 0) 0)
                                 ((fix:= b 0) 0)
                                 ((fix:= (fix:+ a n) b) 1)
-	                              ((fix:= (fix:+ b n) a) -1)
-	                              (else 0)))))))
+                                ((fix:= (fix:+ b n) a) -1)
+                                (else 0)))))))
 
 ;; Symplectic test in terms of matrices
 
@@ -1388,32 +1388,32 @@
 ;; (define (a-non-canonical-transform Istate)
 ;;   (let ((t (time Istate))
 ;;         (theta (coordinate Istate))
-;; 	      (p (momentum Istate)))
+;;        (p (momentum Istate)))
 ;;     (let ((x (* p (sin theta)))
-;; 	        (p_x (* p (cos theta))))
+;;          (p_x (* p (cos theta))))
 ;;       (up t x p_x))))
 
 ;; (print-expression
 ;;  ((symplectic? a-non-canonical-transform)
 ;;   (up 't 'theta 'p)))
 ;; (matrix-by-rows (list 0 0 0)
-;; 		            (list 0 0 (+ 1 (* -1 p)))
-;; 		            (list 0 (+ -1 p) 0))
+;;                (list 0 0 (+ 1 (* -1 p)))
+;;                (list 0 (+ -1 p) 0))
 
 ;; (print-expression
 ;;  ((symplectic? (polar-canonical 'alpha))
 ;;   (up 't 'a 'I)))
 ;; (matrix-by-rows (list 0 0 0)
-;; 		            (list 0 0 0)
-;; 		            (list 0 0 0))
+;;                (list 0 0 0)
+;;                (list 0 0 0))
 
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
-;; 	      (up (ref q 0) (- (ref p 1)))
-;; 	      (down   (ref p 0) (ref q 1)))))
+;;        (up (ref q 0) (- (ref p 1)))
+;;        (down   (ref p 0) (ref q 1)))))
 
 ;; (define a-state
 ;;   (up 't (up 'x 'y) (down 'p_x 'p_y)))
@@ -1429,11 +1429,11 @@
 ;; #|
 ;; (define (Cmix2 H-state)
 ;;   (let ((t (time H-state))
-;; 	      (q (coordinate H-state))
-;; 	      (p (momentum H-state)))
+;;        (q (coordinate H-state))
+;;        (p (momentum H-state)))
 ;;     (up t
-;; 	      (flip-outer-index p)
-;; 	      (- (flip-outer-index q)))))
+;;        (flip-outer-index p)
+;;        (- (flip-outer-index q)))))
 
 ;; (print-expression
 ;;  ((canonical-transform? Cmix2)
@@ -1447,24 +1447,24 @@
 
 ;; (define ((C m0 m1) state)
 ;;   (let ((x (coordinate state))
-;; 	      (p (momentum state)))
+;;        (p (momentum state)))
 ;;     (let ((x0 (ref x 0))
-;; 	        (x1 (ref x 1))
-;; 	        (p0 (ref p 0))
-;; 	        (p1 (ref p 1)))
+;;          (x1 (ref x 1))
+;;          (p0 (ref p 0))
+;;          (p1 (ref p 1)))
 ;;       (up (time state)
-;; 	        (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
-;; 	            (- x1 x0))
-;; 	        (down (+ p0 p1)
-;; 		            (/ (- (* m0 p1) (* m1 p0))
-;; 		               (+ m0 m1)))))))
+;;          (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
+;;              (- x1 x0))
+;;          (down (+ p0 p1)
+;;                (/ (- (* m0 p1) (* m1 p0))
+;;                   (+ m0 m1)))))))
 
 ;; (define b-state
 ;;   (up 't
 ;;       (up (up 'x_1 'y_1)
-;; 	        (up 'x_2 'y_2))
+;;          (up 'x_2 'y_2))
 ;;       (down (down 'p_x_1 'p_y_1)
-;; 	          (down 'p_x_2 'p_y_2))))
+;;            (down 'p_x_2 'p_y_2))))
 
 ;; (print-expression
 ;;  ((canonical-transform? (C 'm1 'm2)) b-state))
@@ -1494,7 +1494,7 @@
   (define (symplectic-matrix? M)
     (let ((2n (m:dimension M)))
       (if (not (even? 2n))
-	      (error "Wrong type -- SYMPLECTIC-MATRIX?" M))
+        (error "Wrong type -- SYMPLECTIC-MATRIX?" M))
       (let ((J (symplectic-unit (quotient 2n 2))))
         (- J (* M J (transpose M)))))))
 
@@ -1529,9 +1529,9 @@
 ;;       (up 'r 'theta)
 ;;       (down 'p_r 'p_theta))))
 ;; (matrix-by-rows (list 0 0 0 0)
-;; 		            (list 0 0 0 0)
-;; 		            (list 0 0 0 0)
-;; 		            (list 0 0 0 0))
+;;                (list 0 0 0 0)
+;;                (list 0 0 0 0)
+;;                (list 0 0 0 0))
 ;; |#
 ;; 
 ;; #|
@@ -1551,25 +1551,25 @@
 ;;         (theta (coordinate Istate))
 ;;         (I (momentum Istate)))
 ;;     (let ((x (* (sqrt (/ (* 2 I) alpha)) (sin theta)))
-;; 	        (p_x (* (sqrt (* 2 alpha I)) (cos theta))))
+;;          (p_x (* (sqrt (* 2 alpha I)) (cos theta))))
 ;;       (up t x p_x))))
 
 ;; (define ((polar-canonical-inverse alpha) s)
 ;;   (let ((t (time s))
-;; 	      (x (coordinate s))
-;; 	      (p (momentum s)))
+;;        (x (coordinate s))
+;;        (p (momentum s)))
 ;;     (let ((I (/ (+ (* alpha (square x))
-;; 		               (/ (square p) alpha))
-;; 		            2)))
+;;                   (/ (square p) alpha))
+;;                2)))
 ;;       (let ((theta (atan (/ x (sqrt (/ (* 2 I) alpha)))
-;; 			                   (/ p (sqrt (* 2 I alpha))))))
-;; 	      (up t theta I)))))
+;;                         (/ p (sqrt (* 2 I alpha))))))
+;;        (up t theta I)))))
 
 
 
 ;; (pe
 ;;  ((compose (polar-canonical-inverse 'alpha)
-;; 	         (polar-canonical 'alpha))
+;;           (polar-canonical 'alpha))
 ;;   (up 't 'x 'p)))
 ;; (up t x p)
 

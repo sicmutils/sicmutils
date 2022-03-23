@@ -53,16 +53,16 @@
 
 ;; (define (F-tilde theta phi psi)
 ;;   (compose (Rx theta)
-;; 	         (Ry phi)
-;; 	         (Rz psi)
-;; 	         coordinate))
+;;           (Ry phi)
+;;           (Rz psi)
+;;           coordinate))
 
 ;; (pe ((Noether-integral
 ;;       (L-central-rectangular 'm (literal-function 'Vr))
 ;;       F-tilde)
 ;;      (up 't
-;; 	       (up 'x 'y 'z)
-;; 	       (up 'vx 'vy 'vz))))
+;;         (up 'x 'y 'z)
+;;         (up 'vx 'vy 'vz))))
 ;; (down (+ (* -1 m vy z) (* m vz y))
 ;;       (+ (* m vx z) (* -1 m vz x))
 ;;       (+ (* -1 m vx y) (* m vy x)))

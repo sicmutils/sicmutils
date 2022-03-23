@@ -44,26 +44,26 @@ Routhian equations of motion
 (comment
   (define ((Lagrangian->Routhian Lagrangian) R-state)
     (let ((t (time R-state))
-	        (q (coordinate R-state))
-	        (vp (ref R-state 2)))
+          (q (coordinate R-state))
+          (vp (ref R-state 2)))
       (let ((x (ref q 0))
-	          (y (ref q 1))
-	          (vx (ref vp 0))
-	          (py (ref vp 1)))
+            (y (ref q 1))
+            (vx (ref vp 0))
+            (py (ref vp 1)))
         (define (L vy)
-	        (Lagrangian (up t q (up vx vy))))
+          (Lagrangian (up t q (up vx vy))))
         ((Legendre-transform-procedure L) py))))
 
   (define (((Routh-equations Routhian) x y py) t)
     (define (L s)
       (let ((tau (time s))
-	          (q (coordinate s))
-	          (v (velocity s)))
+            (q (coordinate s))
+            (v (velocity s)))
         (Routhian (up tau (up q (y tau)) (up v (py tau))))))
     (define (H s)
       (let ((tau (time s))
-	          (q (coordinate s))
-	          (p (momentum s)))
+            (q (coordinate s))
+            (p (momentum s)))
         (Routhian (up tau (up (x tau) q) (up ((D x) tau) p)))))
     (up
      (((Lagrange-equations L) x) t)
@@ -73,13 +73,13 @@ Routhian equations of motion
   (define (((Routh-equations-bad Routhian) x y py) t)
     (define (L s)
       (let ((tau (time s))
-	          (q (coordinate s))
-	          (v (velocity s)))
+            (q (coordinate s))
+            (v (velocity s)))
         (Routhian (up tau (up q (y t)) (up v (py t))))))
     (define (H s)
       (let ((tau (time s))
-	          (q (coordinate s))
-	          (p (momentum s)))
+            (q (coordinate s))
+            (p (momentum s)))
         (Routhian (up tau (up (x t) q) (up ((D x) t) p)))))
     (up
      (((Lagrange-equations L) x) t)
@@ -93,17 +93,17 @@ Routhian equations of motion
 
 ;; (define ((Lag mx kx my ky) s)
 ;;   (let ((t (time s))
-;; 	      (q (coordinate s))
-;; 	      (v (velocity s)))
+;;        (q (coordinate s))
+;;        (v (velocity s)))
 ;;     (let ((x (ref q 0))
-;; 	        (y (ref q 1))
-;; 	        (vx (ref v 0))
-;; 	        (vy (ref v 1)))
+;;          (y (ref q 1))
+;;          (vx (ref v 0))
+;;          (vy (ref v 1)))
 ;;       (- (+ (* 1/2 mx (square vx))
-;; 	          (* 1/2 my (square vy)))
-;; 	       (+ (* 1/2 kx (square x))
-;; 	          (* 1/2 ky (square y))
-;; 	          (* x y y))))))
+;;            (* 1/2 my (square vy)))
+;;         (+ (* 1/2 kx (square x))
+;;            (* 1/2 ky (square y))
+;;            (* x y y))))))
 
 ;; (pe ((Lagrangian->Routhian (Lag 'mx 'kx 'my 'ky))
 ;;      (up 't (up 'x 'y) (up 'vx 'py))))
@@ -130,16 +130,16 @@ Routhian equations of motion
 
 ;; (define ((Lag2 m k) s)
 ;;   (let ((t (time s))
-;; 	      (q (coordinate s))
-;; 	      (v (velocity s)))
+;;        (q (coordinate s))
+;;        (v (velocity s)))
 ;;     (let ((x (ref q 0))
-;; 	        (y (ref q 1))
-;; 	        (vx (ref v 0))
-;; 	        (vy (ref v 1)))
+;;          (y (ref q 1))
+;;          (vx (ref v 0))
+;;          (vy (ref v 1)))
 ;;       (- (+ (* 1/2 m (square vx))
-;; 	          (* 1/2 m (square vy)))
-;; 	       (+ (* 1/2 k (square x))
-;; 	          (* 1/2 k (square y)))))))
+;;            (* 1/2 m (square vy)))
+;;         (+ (* 1/2 k (square x))
+;;            (* 1/2 k (square y)))))))
 
 ;; (pe (((Routh-equations
 ;;        (Lagrangian->Routhian (Lag2 'm 'k)))
@@ -155,7 +155,7 @@ Routhian equations of motion
 ;;   (up (+ ((D y0) t) (/ (* -1 (py1 t)) m))
 ;;       (+ ((D y1) t) (/ (* -1 (py1 t)) m)))
 ;;   (down (+ (* k (y0 t)) ((D py1) t))
-;; 	      (+ (* k (y1 t)) ((D py1) t)))))
+;;        (+ (* k (y1 t)) ((D py1) t)))))
 ;; ;;; good
 
 ;; |#
@@ -164,44 +164,44 @@ Routhian equations of motion
   (define ((Routhian->acceleration R #!optional dissipation-function) s)
     (if (default-object? dissipation-function)
       (let ((minus-P ((partial 2 0) R))
-	          (minus-F (((partial 1 0) R) s))
-	          (vy (((partial 2 1) R) s))
-	          (pyd ((* -1 ((partial 1 1) R)) s)))
-	      (* (s:inverse (ref s 2 0) (((partial 2 0) minus-P) s) (ref s 2 0))
-	         (- minus-F
-	            (+ (((partial 0) minus-P) s)
-		             (* (((partial 1 0) minus-P) s) ((component 2 0) s))
-		             (* (((partial 1 1) minus-P) s) vy)
-		             (* (((partial 2 1) minus-P) s) pyd)
-		             ))))
+            (minus-F (((partial 1 0) R) s))
+            (vy (((partial 2 1) R) s))
+            (pyd ((* -1 ((partial 1 1) R)) s)))
+        (* (s:inverse (ref s 2 0) (((partial 2 0) minus-P) s) (ref s 2 0))
+           (- minus-F
+              (+ (((partial 0) minus-P) s)
+                 (* (((partial 1 0) minus-P) s) ((component 2 0) s))
+                 (* (((partial 1 1) minus-P) s) vy)
+                 (* (((partial 2 1) minus-P) s) pyd)
+                 ))))
       (let ((minus-P ((partial 2 0) R))
-	          (minus-F (((partial 1 0) R) s))
-	          (vy (((partial 2 1) R) s)))
-	      (let ((minus-F0 (((partial 2 0) dissipation-function)
-			                   (up (time s)
-			                       (coordinate s)
-			                       (up (ref s 2 0) vy))))
-	            (minus-F1 (((partial 2 1) dissipation-function)
-			                   (up (time s)
-			                       (coordinate s)
-			                       (up (ref s 2 0) vy)))))
-	        (let ((pyd (- ((* -1 ((partial 1 1) R)) s) minus-F1)))
-	          (* (s:inverse (ref s 2 0) (((partial 2 0) minus-P) s) (ref s 2 0))
-	             (+ (- minus-F
-		                 (+ (((partial 0) minus-P) s)
-			                  (* (((partial 1 0) minus-P) s) ((component 2 0) s))
-			                  (* (((partial 1 1) minus-P) s) vy)
-			                  (* (((partial 2 1) minus-P) s) pyd)
-			                  ))
-		              minus-F0))))))))
+            (minus-F (((partial 1 0) R) s))
+            (vy (((partial 2 1) R) s)))
+        (let ((minus-F0 (((partial 2 0) dissipation-function)
+                         (up (time s)
+                             (coordinate s)
+                             (up (ref s 2 0) vy))))
+              (minus-F1 (((partial 2 1) dissipation-function)
+                         (up (time s)
+                             (coordinate s)
+                             (up (ref s 2 0) vy)))))
+          (let ((pyd (- ((* -1 ((partial 1 1) R)) s) minus-F1)))
+            (* (s:inverse (ref s 2 0) (((partial 2 0) minus-P) s) (ref s 2 0))
+               (+ (- minus-F
+                     (+ (((partial 0) minus-P) s)
+                        (* (((partial 1 0) minus-P) s) ((component 2 0) s))
+                        (* (((partial 1 1) minus-P) s) vy)
+                        (* (((partial 2 1) minus-P) s) pyd)
+                        ))
+                  minus-F0))))))))
 
 ;; TODO test
 
 ;; (pe ((Routhian->acceleration
 ;;       (Lagrangian->Routhian (Lag2 'm 'k)))
 ;;      (up 't
-;; 	       (up (up 'x0 'x1) (up 'y0 'y1))
-;; 	       (up (up 'vx0 'vx1) (down 'py0 'py1)))))
+;;         (up (up 'x0 'x1) (up 'y0 'y1))
+;;         (up (up 'vx0 'vx1) (down 'py0 'py1)))))
 ;; (up (/ (* -1 k x0) m) (/ (* -1 k x1) m))
 
 
@@ -209,45 +209,45 @@ Routhian equations of motion
 (comment
   (define ((Routhian->state-derivative R #!optional dissipation-function) s)
     (let ((minus-P ((partial 2 0) R))
-	        (minus-F (((partial 1 0) R) s))
-	        (vx (ref s 2 0))
-	        (vy (((partial 2 1) R) s)))
+          (minus-F (((partial 1 0) R) s))
+          (vx (ref s 2 0))
+          (vy (((partial 2 1) R) s)))
       (if (default-object? dissipation-function)
-	      (let ((pyd (- (((partial 1 1) R) s))))
-	        (up 1
-	            (up vx vy)
-	            (up
-	             (* (s:inverse vx (((partial 2 0) minus-P) s) vx)
-		              (- minus-F
-		                 (+ (((partial 0) minus-P) s)
-			                  (* (((partial 1 0) minus-P) s) vx)
-			                  (* (((partial 1 1) minus-P) s) vy)
-			                  (* (((partial 2 1) minus-P) s) pyd)
-			                  )))
-	             pyd)))
-	      (let ((minus-F0 (((partial 2 0) dissipation-function)
-			                   (up (time s) (coordinate s) (up vx vy))))
-	            (minus-F1 (((partial 2 1) dissipation-function)
-			                   (up (time s) (coordinate s) (up vx vy)))))
-	        (let ((pyd (- ((* -1 ((partial 1 1) R)) s) minus-F1)))
-	          (up 1
-		            (up vx vy)
-		            (up
-		             (* (s:inverse vx (((partial 2 0) minus-P) s) vx)
-		                (+ (- minus-F
-			                    (+ (((partial 0) minus-P) s)
-			                       (* (((partial 1 0) minus-P) s) vx)
-			                       (* (((partial 1 1) minus-P) s) vy)
-			                       (* (((partial 2 1) minus-P) s) pyd)
-			                       ))
-		                   minus-F0))
-		             pyd))))))))
+        (let ((pyd (- (((partial 1 1) R) s))))
+          (up 1
+              (up vx vy)
+              (up
+               (* (s:inverse vx (((partial 2 0) minus-P) s) vx)
+                  (- minus-F
+                     (+ (((partial 0) minus-P) s)
+                        (* (((partial 1 0) minus-P) s) vx)
+                        (* (((partial 1 1) minus-P) s) vy)
+                        (* (((partial 2 1) minus-P) s) pyd)
+                        )))
+               pyd)))
+        (let ((minus-F0 (((partial 2 0) dissipation-function)
+                         (up (time s) (coordinate s) (up vx vy))))
+              (minus-F1 (((partial 2 1) dissipation-function)
+                         (up (time s) (coordinate s) (up vx vy)))))
+          (let ((pyd (- ((* -1 ((partial 1 1) R)) s) minus-F1)))
+            (up 1
+                (up vx vy)
+                (up
+                 (* (s:inverse vx (((partial 2 0) minus-P) s) vx)
+                    (+ (- minus-F
+                          (+ (((partial 0) minus-P) s)
+                             (* (((partial 1 0) minus-P) s) vx)
+                             (* (((partial 1 1) minus-P) s) vy)
+                             (* (((partial 2 1) minus-P) s) pyd)
+                             ))
+                       minus-F0))
+                 pyd))))))))
 
 ;; (pe ((Routhian->state-derivative
 ;;       (Lagrangian->Routhian (Lag2 'm 'k)))
 ;;      (up 't
-;; 	       (up (up 'x0 'x1) (up 'y0 'y1))
-;; 	       (up (up 'vx0 'vx1) (down 'py0 'py1)))))
+;;         (up (up 'x0 'x1) (up 'y0 'y1))
+;;         (up (up 'vx0 'vx1) (down 'py0 'py1)))))
 
 ;; (up
 ;;  1
@@ -269,8 +269,8 @@ Routhian equations of motion
 ;;       (Lagrangian->Routhian (Lag2 'm 'k))
 ;;       (diss2 'delta0 'delta1))
 ;;      (up 't
-;; 	       (up (up 'x0 'x1) (up 'y0 'y1))
-;; 	       (up (up 'vx0 'vx1) (down 'py0 'py1)))))
+;;         (up (up 'x0 'x1) (up 'y0 'y1))
+;;         (up (up 'vx0 'vx1) (down 'py0 'py1)))))
 ;; (up
 ;;  1
 ;;  (up (up vx0 vx1) (up (/ py0 m) (/ py1 m)))
@@ -285,45 +285,45 @@ Routhian equations of motion
 (comment
   (define ((Lagrangian-state->Routhian-state L) s)
     (let ((t (time s))
-	        (q (coordinate s))
-	        (v (velocity s)))
+          (q (coordinate s))
+          (v (velocity s)))
       (let ((vx (ref v 0)))
         (let ((py (ref (((partial 2) L) s) 1)))
-	        (up t
-	            q
-	            (up vx py))))))
+          (up t
+              q
+              (up vx py))))))
 
   (define ((Routhian-state->Lagrangian-state R) s)
     (let ((t (time s))
-	        (q (coordinate s))
-	        (v (velocity s)))
+          (q (coordinate s))
+          (v (velocity s)))
       (let ((vx (ref v 0)))
         (let ((vy (ref (((partial 2) R) s) 1)))
-	        (up t
-	            q
-	            (up vx vy)))))))
+          (up t
+              q
+              (up vx vy)))))))
 
 ;; #|;;; Two 2-dimensional particles
 
 ;; (define ((L m1 m2 V) s)
 ;;   (let ((t (time s))
-;; 	      (q (coordinate s))
-;; 	      (v (velocity s)))
+;;        (q (coordinate s))
+;;        (v (velocity s)))
 ;;     (let ((xy1 (ref q 0))
-;; 	        (xy2 (ref q 1))
-;; 	        (v1 (ref v 0))
-;; 	        (v2 (ref v 1)))
+;;          (xy2 (ref q 1))
+;;          (v1 (ref v 0))
+;;          (v2 (ref v 1)))
 ;;       (- (+ (* 1/2 m1 (square v1))
-;; 	          (* 1/2 m2 (square v2)))
-;; 	       (V xy1 xy2)))))
+;;            (* 1/2 m2 (square v2)))
+;;         (V xy1 xy2)))))
 
 ;; (pe ((Lagrangian->Routhian
 ;;       (L 'm1 'm2
-;; 	       (literal-function 'V
-;; 			                     (-> (X (UP Real Real) (UP Real Real)) Real))))
+;;         (literal-function 'V
+;;                           (-> (X (UP Real Real) (UP Real Real)) Real))))
 ;;      (up 't
-;; 	       (up (up 'x1 'y1) (up 'x2 'y2))
-;; 	       (up (up 'v1x 'v1y) (down 'p2x 'p2y)))))
+;;         (up (up 'x1 'y1) (up 'x2 'y2))
+;;         (up (up 'v1x 'v1y) (down 'p2x 'p2y)))))
 ;; (+ (* -1/2 m1 (expt v1x 2))
 ;;    (* -1/2 m1 (expt v1y 2))
 ;;    (V (up x1 y1) (up x2 y2))
@@ -333,9 +333,9 @@ Routhian equations of motion
 
 ;; (pe (((Routh-equations
 ;;        (Lagrangian->Routhian
-;; 	      (L 'm1 'm2
-;; 	         (literal-function 'V
-;; 			                       (-> (X (UP Real Real) (UP Real Real)) Real)))))
+;;        (L 'm1 'm2
+;;           (literal-function 'V
+;;                             (-> (X (UP Real Real) (UP Real Real)) Real)))))
 ;;       (up (literal-function 'x1) (literal-function 'y1))
 ;;       (up (literal-function 'x2) (literal-function 'y2))
 ;;       (down (literal-function 'p2x) (literal-function 'p2y)))

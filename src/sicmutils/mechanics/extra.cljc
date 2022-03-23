@@ -41,18 +41,18 @@
 (defn with-dynamic-state [cont]
   (fn [[t q pv]]
     #_(cont t q (if (vector? pv)
-			            (matrix/num-rows pv)
-			            pv))))
+                  (matrix/num-rows pv)
+                  pv))))
 
 (defn flatten-state [state]
   #_(list->vector
      (apply append
-	          (map (fn [x]
-		               (cond (vector? x) (vector->list x)
-		                     (matrix/column? x) (vector->list (column->vector x))
-		                     (matrix/row? x) (vector->list (row->vector x))
-		                     :else (list x)))
-	               (vector->list state)))))
+            (map (fn [x]
+                   (cond (vector? x) (vector->list x)
+                         (matrix/column? x) (vector->list (column->vector x))
+                         (matrix/row? x) (vector->list (row->vector x))
+                         :else (list x)))
+                 (vector->list state)))))
 
 (def local->istate flatten-state)
 (def H-state->istate flatten-state)
@@ -74,19 +74,19 @@
      (unflatten-L-state flat-state n)))
   ([flat-state n]
    (let [kn+1 (count flat-state)
-	       kn   (dec kn+1)
-	       k    (quot kn n)]
+         kn   (dec kn+1)
+         k    (quot kn n)]
      (assert (zero? (rem kn n)))
      (if (= n 1)
-	     flat-state
+       flat-state
        (s/generate (inc k) ::s/up
                    (fn [i]
-		                 (if (zero? i)
-			                 (get flat-state 0)
-			                 (matrix/up->column-matrix
-			                  (subvec (vec flat-state)
-				                        (inc (* (dec i) n))
-				                        (inc (* i n)))))))))))
+                     (if (zero? i)
+                       (get flat-state 0)
+                       (matrix/up->column-matrix
+                        (subvec (vec flat-state)
+                                (inc (* (dec i) n))
+                                (inc (* i n)))))))))))
 
 (def istate->local unflatten-L-state)
 (def istate->t l/time)
@@ -95,17 +95,17 @@
 
 (defn unflatten-H-state [flat-state]
   (let [two-n+1 (count flat-state)
-	      two-n (dec two-n+1)
-	      n (quot two-n 2)
+        two-n (dec two-n+1)
+        n (quot two-n 2)
         ;; TODO add a structural subvec
         statev (vec flat-state)]
     (assert (odd? two-n+1))
     (if (= n 1)
-	    flat-state
-	    (h/->H-state
-	     (get flat-state 0)
-	     (matrix/column* (subvec statev 1 (inc n)))
-	     (matrix/row* (subvec statev (inc n) two-n+1))))))
+      flat-state
+      (h/->H-state
+       (get flat-state 0)
+       (matrix/column* (subvec statev 1 (inc n)))
+       (matrix/row* (subvec statev (inc n) two-n+1))))))
 
 (def istate->H-state unflatten-H-state)
 
@@ -120,35 +120,35 @@
 (defn on-jet [q qdot]
   (fn [lfun]
     (f/compose lfun
-	             (fn [t]
-	               (up t (q t) (qdot t))))))
+               (fn [t]
+                 (up t (q t) (qdot t))))))
 
 (defn Lagrange-operator [Lagrangian]
   (let [P ((partial 2) Lagrangian)
-	      F ((partial 1) Lagrangian)
+        F ((partial 1) Lagrangian)
         Pq ((partial 1) P)
         Pqdot ((partial 2) P)
         Pt ((partial 0) P)]
     (fn [q qdot qddot]
-	    (let [lift (on-jet q qdot)]
-	      (+ (* (lift Pqdot) qddot)
-	         (* (lift Pq) qdot)
-	         (lift Pt)
-	         (- (lift F)))))))
+      (let [lift (on-jet q qdot)]
+        (+ (* (lift Pqdot) qddot)
+           (* (lift Pq) qdot)
+           (lift Pt)
+           (- (lift F)))))))
 
 (defn Lagrange-equations-from-operator [Lagrangian]
   (let [lop (Lagrange-operator Lagrangian)]
     (fn [q]
       (let [qdot (D q)
             qddot (D qdot)]
-	      (lop q qdot qddot)))))
+        (lop q qdot qddot)))))
 
 ;; #|
 ;; (show-expression
 ;;  (((Lagrange-equations-from-operator
 ;;     (L-sliding-pend 'm_1 'm_2 'b 'g))
 ;;    (coordinate-tuple (literal-function 'x)
-;; 		                 (literal-function 'theta)))
+;;                     (literal-function 'theta)))
 ;;   't))
 ;; (down
 ;;  (+ (* -1 b m_2 (sin (theta t)) (expt ((D theta) t) 2))
@@ -162,14 +162,14 @@
 
 (defn tz->tqp [t z]
   (let [two-n (count z)
-	      n     (quot two-n 2)]
+        n     (quot two-n 2)]
     (assert (even? two-n))
     #_(if (= n 1)
-	      (->H-state t (get z 0) (get z 1))
-	      (->H-state t
-		               (vector->column-matrix
+        (->H-state t (get z 0) (get z 1))
+        (->H-state t
+                   (vector->column-matrix
                     (subvec z 0 n))
-		               (vector->row-matrix
+                   (vector->row-matrix
                     (subvec z n two-n))))))
 
 (defn z->tqp [z]
@@ -178,15 +178,15 @@
 (defn tqp->z [[_ q p]]
   #_
   (if (and (column? q) (row? p))
-	  (vector->up
-	   (vector-append (column->vector q)
-			              (row->vector p)))
-	  (up q p)))
+    (vector->up
+     (vector-append (column->vector q)
+                    (row->vector p)))
+    (up q p)))
 
 (defn tqp->tz [[t q p]]
   #_(if (and (column? q) (row? p))
-	    (up t
-	        (vector->up
-	         (vector-append (column->vector q)
-			                    (row->vector p))))
-	    (up t (up q p))))
+      (up t
+          (vector->up
+           (vector-append (column->vector q)
+                          (row->vector p))))
+      (up t (up q p))))

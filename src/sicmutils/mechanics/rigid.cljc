@@ -19,7 +19,7 @@
 (defn- antisymmetric? [A]
   (v/zero?
    (g/simplify
-	  (+ (g/transpose A) A))))
+    (+ (g/transpose A) A))))
 
 (defn antisymmetric->column-matrix
   "Given an antisymmetric matrix-structure of dimension 3,
@@ -81,14 +81,14 @@
   (fn [[w0 w1 w2]]
     (* (/ 1 2)
        (+ (* A (g/square w0))
-	        (* B (g/square w1))
-	        (* C (g/square w2))))))
+          (* B (g/square w1))
+          (* C (g/square w2))))))
 
 (defn L-body [A B C]
   (fn [[w0 w1 w2]]
     (s/down (* A w0)
-	          (* B w1)
-	          (* C w2))))
+            (* B w1)
+            (* C w2))))
 
 (defn L-space [M]
   (fn [A B C]
@@ -101,7 +101,7 @@
 (defn Euler->M [[theta phi psi]]
   (* (r/rotate-z-matrix phi)
      (* (r/rotate-x-matrix theta)
-	      (r/rotate-z-matrix psi))))
+        (r/rotate-z-matrix psi))))
 
 (defn Euler->omega [angles-path]
   (fn [t]
@@ -121,16 +121,16 @@
 ;; (show-expression
 ;;  ((Euler->omega-body
 ;;    (up (literal-function 'theta)
-;; 	     (literal-function 'phi)
-;; 	     (literal-function 'psi)))
+;;       (literal-function 'phi)
+;;       (literal-function 'psi)))
 ;;   't))
 ;; (matrix-by-rows
 ;;  (list (+ (* (sin (theta t)) (sin (psi t)) ((D phi) t))
-;; 	        (* ((D theta) t) (cos (psi t)))))
+;;          (* ((D theta) t) (cos (psi t)))))
 ;;  (list (+ (* (sin (theta t)) (cos (psi t)) ((D phi) t))
-;; 	        (* -1 ((D theta) t) (sin (psi t)))))
+;;          (* -1 ((D theta) t) (sin (psi t)))))
 ;;  (list (+ (* (cos (theta t)) ((D phi) t))
-;; 	        ((D psi) t))))
+;;          ((D psi) t))))
 ;; |#
 
 ;; #|
@@ -142,11 +142,11 @@
 ;;   't))
 ;; (matrix-by-rows
 ;;  (list (+ (* (sin (theta t)) (sin (psi t)) ((D phi) t))
-;; 	        (* ((D theta) t) (cos (psi t)))))
+;;          (* ((D theta) t) (cos (psi t)))))
 ;;  (list (+ (* (sin (theta t)) (cos (psi t)) ((D phi) t))
-;; 	        (* -1 ((D theta) t) (sin (psi t)))))
+;;          (* -1 ((D theta) t) (sin (psi t)))))
 ;;  (list (+ (* (cos (theta t)) ((D phi) t))
-;; 	        ((D psi) t))))
+;;          ((D psi) t))))
 
 ;; (show-expression
 ;;  ((M->omega-body Euler->M)
@@ -249,8 +249,8 @@
 
 ;; (define ((monitor-errors win A B C L0 E0) state)
 ;;   (let ((t (time state))
-;; 	      (L ((L-space-Euler A B C) state))
-;; 	      (E ((T-body-Euler A B C) state)))
+;;        (L ((L-space-Euler A B C) state))
+;;        (E ((T-body-Euler A B C) state)))
 ;;     (plot-point win t (relative-error (ref L 0) (ref L0 0)))
 ;;     (plot-point win t (relative-error (ref L 1) (ref L0 1)))
 ;;     (plot-point win t (relative-error (ref L 2) (ref L0 2)))
@@ -267,10 +267,10 @@
 
 ;; (let ((A 1.) (B (sqrt 2.)) (C 2.)
 ;;       (state0 (up 0.0
-;; 		              (up 1. 0. 0.)
-;; 		              (up 0.1 0.1 0.1))))
+;;                  (up 1. 0. 0.)
+;;                  (up 0.1 0.1 0.1))))
 ;;   (let ((L0 ((L-space-Euler A B C) state0))
-;; 	      (E0 ((T-body-Euler A B C) state0)))
+;;        (E0 ((T-body-Euler A B C) state0)))
 ;;     ((evolve rigid-sysder A B C)
 ;;      state0
 ;;      (monitor-errors win A B C L0 E0)
@@ -304,12 +304,12 @@
 
 ;; (print-expression
 ;;  (let ((Euler (up 'theta 'phi 'psi))
-;; 	     (v (up 'x 'y 'z)))
+;;       (v (up 'x 'y 'z)))
 ;;    (let ((M (Euler->M Euler)))
 ;;      (- (* (3vector-components->antisymmetric (* M v))
-;; 	         M)
-;; 	      (* M
-;; 	         (3vector-components->antisymmetric v))))))
+;;           M)
+;;        (* M
+;;           (3vector-components->antisymmetric v))))))
 ;; (matrix-by-rows (list 0 0 0) (list 0 0 0) (list 0 0 0))
 ;; |#
 
@@ -318,11 +318,11 @@
 
 ;; (print-expression
 ;;  (let ((Euler (up (literal-function 'theta)
-;; 				          (literal-function 'phi)
-;; 				          (literal-function 'psi))))
+;;                  (literal-function 'phi)
+;;                  (literal-function 'psi))))
 ;;    (antisymmetric->column-matrix
 ;;     (* (transpose ((Euler->M Euler) 't))
-;; 	     ((D (Euler->M Euler)) 't)))))
+;;       ((D (Euler->M Euler)) 't)))))
 ;; (matrix-by-rows
 ;;  (list
 ;;   (+ (* ((D phi) t) (sin (psi t)) (sin (theta t)))
@@ -352,7 +352,7 @@
 ;; (define ((V_eff p A C gMR) theta)
 ;;   (+ (/ (square p) (* 2 C))
 ;;      (* (/ (square p) (* 2 A))
-;; 	      (square (tan (/ theta 2))))
+;;        (square (tan (/ theta 2))))
 ;;      (* gMR (cos theta))))
 
 
@@ -386,26 +386,26 @@
 (defn quaternion-state->omega-space [[_ q qdot]]
   (let [q:a (matrix/by-rows
              (list  0 +1  0  0)
-		         (list -1  0  0  0)
-		         (list  0  0  0 +1)
-		         (list  0  0 -1  0))
+             (list -1  0  0  0)
+             (list  0  0  0 +1)
+             (list  0  0 -1  0))
         q:b (matrix/by-rows
              (list  0  0 +1  0)
-		         (list  0  0  0 -1)
-		         (list -1  0  0  0)
-		         (list  0 +1  0  0))
+             (list  0  0  0 -1)
+             (list -1  0  0  0)
+             (list  0 +1  0  0))
         q:c (matrix/by-rows
              (list  0  0  0 +1)
-		         (list  0  0 +1  0)
-		         (list  0 -1  0  0)
-		         (list -1  0  0  0))
+             (list  0  0 +1  0)
+             (list  0 -1  0  0)
+             (list -1  0  0  0))
         Q     (matrix/up->column-matrix q)
         QdotT (matrix/transpose
                (matrix/up->column-matrix qdot))
         m**2 (get-in (* (matrix/transpose Q) Q) [0 0])
         omega**x (/ (get-in (* -2 QdotT q:a Q) [0 0]) m**2)
-	      omega**y (/ (get-in (* -2 QdotT q:b Q) [0 0]) m**2)
-	      omega**z (/ (get-in (* -2 QdotT q:c Q) [0 0]) m**2)]
+        omega**y (/ (get-in (* -2 QdotT q:b Q) [0 0]) m**2)
+        omega**z (/ (get-in (* -2 QdotT q:c Q) [0 0]) m**2)]
     (up omega**x omega**y omega**z)))
 
 (defn qw-state->L-body [A B C]
@@ -424,15 +424,15 @@
 (defn T-quaternion-state [A B C]
   (fn [[_ q qdot]]
     (let [Q (matrix/up->column-matrix q)
-	        Qdot (matrix/up->column-matrix qdot)
+          Qdot (matrix/up->column-matrix qdot)
           m**2 (get-in (* (matrix/transpose Q) Q) [0 0])
           x (/ (* q/I Qdot) m**2)
-	        y (/ (* q/J Qdot) m**2)
-	        z (/ (* q/K Qdot) m**2)
-	        M (* Q (matrix/transpose Q))]
+          y (/ (* q/J Qdot) m**2)
+          z (/ (* q/K Qdot) m**2)
+          M (* Q (matrix/transpose Q))]
       (* 2 (+ (* A (get-in (* (matrix/transpose x) M x) [0 0]))
-		          (* B (get-in (* (matrix/transpose y) M y) [0 0]))
-		          (* C (get-in (* (matrix/transpose z) M z) [0 0])))))))
+              (* B (get-in (* (matrix/transpose y) M y) [0 0]))
+              (* C (get-in (* (matrix/transpose z) M z) [0 0])))))))
 
 ;; (define (qw-sysder A B C)
 ;;   (let ((B-C/A (/ (- B C) A))

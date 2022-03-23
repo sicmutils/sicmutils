@@ -653,8 +653,8 @@
 
 ;; (define (test-path t)
 ;;   (coordinate-tuple (+ (* 4 t) 7)
-;; 		                (+ (* 3 t) 5)
-;; 		                (+ (* 2 t) 1)))
+;;                    (+ (* 3 t) 5)
+;;                    (+ (* 2 t) 1)))
 
 ;; (Lagrangian-action (L-free-particle 3) test-path 0 10)
 ;;                                         ;Value: 435.
@@ -777,7 +777,7 @@
 ;;  ((Dt
 ;;    (lambda (state)
 ;;            (let ((t (time state))
-;; 	               (q (coordinate state)))
+;;                 (q (coordinate state)))
 ;;              (square q))))
 ;;   (up 't (up 'x 'y) (up 'vx 'vy))))
 ;; (+ (* 2 vx x) (* 2 vy y))
@@ -790,7 +790,7 @@
 
 ;; (print-expression
 ;;  ((Dt (Dt (lambda (state)
-;; 	                (square (coordinate state)))))
+;;                  (square (coordinate state)))))
 ;;   (up 't 'x 'v 'a 'j)))
 ;; (+ (* 2 a x) (* 2 (expt v 2)))
 
@@ -878,10 +878,10 @@
 
 ;; (print-expression
 ;;  ((compose (LE (L-central-polar 'm (literal-function 'V)))
-;; 	         (Gamma
-;; 	          (coordinate-tuple (literal-function 'r)
-;; 			                        (literal-function 'phi))
-;; 	          4))
+;;           (Gamma
+;;            (coordinate-tuple (literal-function 'r)
+;;                              (literal-function 'phi))
+;;            4))
 ;;   't))
 ;; (down
 ;;  (+ (* -1 m (expt ((D phi) t) 2) (r t))
@@ -894,19 +894,19 @@
   (fn [state]
     (let [m (count state)]
       (assert (and (> m 3) (even? m))
-	            "Incorrect state size for Lagrange Equations")
+              "Incorrect state size for Lagrange Equations")
       (letfn [(lp [i state]
                 (if (zero? i)
-	                0
-	                (- (((g/expt Dt (dec i))
-	                     ((partial i) Lagrangian))
-	                    state)
-	                   (lp (dec i) (trim-last-argument state)))))]
+                  0
+                  (- (((g/expt Dt (dec i))
+                       ((partial i) Lagrangian))
+                      state)
+                     (lp (dec i) (trim-last-argument state)))))]
         (lp (quot m 2) state)))))
 
 ;; (define ((L2harmonic m k) state)
 ;;   (let ((x (coordinate state))
-;; 	      (a (acceleration state)))
+;;        (a (acceleration state)))
 ;;     (+ (* 1/2 m x a) (* 1/2 k (square x)))))
 
 ;; (print-expression
@@ -990,15 +990,15 @@
 ;;  (velocity
 ;;   ((F->C p->r)
 ;;    (->local 't
-;; 	          (coordinate-tuple 'r 'phi)
-;; 	          (velocity-tuple 'rdot 'phidot)))))
+;;            (coordinate-tuple 'r 'phi)
+;;            (velocity-tuple 'rdot 'phidot)))))
 ;; (up (+ (* -1 r phidot (sin phi)) (* rdot (cos phi)))
 ;;     (+ (* r phidot (cos phi)) (* rdot (sin phi))))
 
 
 ;; (define (L-central-polar m V)
 ;;   (compose (L-central-rectangular m V)
-;; 	         (F->C p->r)))
+;;           (F->C p->r)))
 
 ;; (show-expression
 ;;  ((L-central-polar 'm (literal-function 'V))
@@ -1055,9 +1055,9 @@
 
 ;; (define ((dp-coordinates l y_s) local)
 ;;   (let ((t (time local))
-;; 	      (theta (coordinate local)))
+;;        (theta (coordinate local)))
 ;;     (let ((x (* l (sin theta)))
-;; 	        (y (- (y_s t) (* l (cos theta)))))
+;;          (y (- (y_s t) (* l (cos theta)))))
 ;;       (coordinate-tuple x y))))
 
 ;; (define (L-pend m l g y_s)

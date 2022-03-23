@@ -35,7 +35,7 @@
 (defn Hpendulum [alpha beta]
   (fn [state]
     (let [theta (l/state->q state)
-	        ptheta (h/state->p state)]
+          ptheta (h/state->p state)]
       (- (/ (g/square ptheta)
             (* 2 alpha))
          (* beta (cos theta))))))
@@ -51,29 +51,29 @@
 (defn pendulum-oscillating-frequency [alpha beta E]
   (let [k (g/sqrt (/ (+ E beta)
                      (* 2.0 beta)))
-	      omega0 (g/sqrt (g/abs (/ beta alpha)))]
+        omega0 (g/sqrt (g/abs (/ beta alpha)))]
     (/ (* Math/PI omega0)
        (* 2.0 (ell/elliptic-k k)))))
 
 (defn pendulum-oscillating-angle [alpha beta E]
   (let [k (g/sqrt (/ (+ E beta) (* 2.0 beta)))
-	      omega-0 (g/sqrt (/ beta alpha))]
+        omega-0 (g/sqrt (/ beta alpha))]
     (fn [t]
       (ell/jacobi-elliptic-functions
        (* omega-0 t)
        k
        (fn [sn _cn _dn]
-	       (* 2.0 (g/asin (* k sn))))))))
+         (* 2.0 (g/asin (* k sn))))))))
 
 (defn pendulum-oscillating-angular-momentum [alpha beta E]
   (let [k (g/sqrt (/ (+ E beta) (* 2.0 beta)))
-	      omega-0 (g/sqrt (/ beta alpha))]
+        omega-0 (g/sqrt (/ beta alpha))]
     (fn [t]
       (ell/jacobi-elliptic-functions
        (* omega-0 t)
        k
        (fn [_sn cn _dn]
-	       (* 2.0 alpha omega-0 k cn))))))
+         (* 2.0 alpha omega-0 k cn))))))
 
 ;; freq = (/ (* pi omega0) (* 2 (ell/elliptic-k k)))
 ;; period = 4 K / omega0
@@ -83,13 +83,13 @@
 (defn pendulum-oscillating-action [alpha beta E]
   (let [k**2 (/ (+ beta E) (* 2.0 beta))]
     (if (= k**2 1.0)
-	    (* (/ 8.0 Math/PI) (g/sqrt (* beta alpha)))
-	    (ell/elliptic-integrals
-	     (Math/sqrt k**2)
-	     (fn [Kk Ek]
-	       (* (/ 8.0 Math/PI)
-	          (g/sqrt (* beta alpha))
-	          (- Ek (* (- 1.0 k**2) Kk))))))))
+      (* (/ 8.0 Math/PI) (g/sqrt (* beta alpha)))
+      (ell/elliptic-integrals
+       (Math/sqrt k**2)
+       (fn [Kk Ek]
+         (* (/ 8.0 Math/PI)
+            (g/sqrt (* beta alpha))
+            (- Ek (* (- 1.0 k**2) Kk))))))))
 
 (defn pendulum-f [k]
   (if (= k 1.0)
@@ -97,7 +97,7 @@
     (ell/elliptic-integrals
      k
      (fn [Kk Ek]
-	     (- Ek (* (- 1.0 (g/square k)) Kk))))))
+       (- Ek (* (- 1.0 (g/square k)) Kk))))))
 
 (defn pendulum-g [k]
   (/ (ell/elliptic-e k) k))
@@ -105,16 +105,16 @@
 (defn pendulum-inverse-g [gk]
   (let [inv-gk (/ 1.0 gk)]
     (bi/bisect (fn [k]
-	               (if (zero? k)
-		               (- inv-gk)
-		               (- (/ 1.0 (pendulum-g k)) inv-gk)))
-	             0.0 1.0 1.e-10)))
+                 (if (zero? k)
+                   (- inv-gk)
+                   (- (/ 1.0 (pendulum-g k)) inv-gk)))
+               0.0 1.0 1.e-10)))
 
 (defn pendulum-inverse-f [fk]
   (let [sfk (g/sqrt fk)]
     (bi/bisect (fn [k]
-	               (- (g/sqrt (pendulum-f k)) sfk))
-	             0.0 1.0 1e-10)))
+                 (- (g/sqrt (pendulum-f k)) sfk))
+               0.0 1.0 1e-10)))
 
 (defn pendulum-oscillating-action-to-E [alpha beta]
   (fn [action]
@@ -129,33 +129,33 @@
   (let [omega-0 (g/sqrt (/ beta alpha))]
     (fn (state)
       (let ((theta (state->q state))
-	          (ptheta (state->p state)))
-	      (let ((E ((Hpendulum alpha beta) state)))
-	        (if (> E (- beta))
-	          (let ((k (g/sqrt (/ (+ E beta) (* 2.0 beta))))
-		              (period (/ v/twopi (pendulum-frequency alpha beta E))))
-		          (let* ((sin-phi (/ (sin (/ theta 2.0)) k))
-		                 (dt0 (/ (elliptic-integral-F (asin sin-phi) k) omega-0)))
-		            (let ((dt (if (< ptheta 0) (- (/ period 2.0) dt0) dt0)))
-		              ((principal-value Math/PI) (* v/twopi (/ dt period))))))
-	          (error "at the fixed point the phase is undefined")))))))
+            (ptheta (state->p state)))
+        (let ((E ((Hpendulum alpha beta) state)))
+          (if (> E (- beta))
+            (let ((k (g/sqrt (/ (+ E beta) (* 2.0 beta))))
+                  (period (/ v/twopi (pendulum-frequency alpha beta E))))
+              (let* ((sin-phi (/ (sin (/ theta 2.0)) k))
+                     (dt0 (/ (elliptic-integral-F (asin sin-phi) k) omega-0)))
+                (let ((dt (if (< ptheta 0) (- (/ period 2.0) dt0) dt0)))
+                  ((principal-value Math/PI) (* v/twopi (/ dt period))))))
+            (error "at the fixed point the phase is undefined")))))))
 
 ;;; time from theta=0 to state
 (define ((pendulum-oscillating-dt alpha beta) state)
   (let ((E ((Hpendulum alpha beta) state))
-	      (phase ((pendulum-oscillating-phase alpha beta) state)))
+        (phase ((pendulum-oscillating-phase alpha beta) state)))
     (let ((period (/ v/twopi (pendulum-frequency alpha beta E))))
       (* phase (/ period v/twopi)))))
 
 (define ((pendulum-oscillating-aa-state-to-state alpha beta) aa-state)
   (let ((angle (state->q aa-state))
-	      (action (state->p aa-state)))
+        (action (state->p aa-state)))
     (let* ((E ((pendulum-oscillating-action-to-E alpha beta) action))
-	         (period (/ v/twopi (pendulum-frequency alpha beta E))))
+           (period (/ v/twopi (pendulum-frequency alpha beta E))))
       (let ((dt (* (/ period v/twopi) angle)))
-	      (->H-state (state->t aa-state)
-		               ((pendulum-oscillating-angle alpha beta E) dt)
-		               ((pendulum-oscillating-angular-momentum alpha beta E) dt))))))
+        (->H-state (state->t aa-state)
+                   ((pendulum-oscillating-angle alpha beta E) dt)
+                   ((pendulum-oscillating-angular-momentum alpha beta E) dt))))))
 
 (defn pendulum-oscillating-state-to-aa-state [alpha beta]
   (fn [state]
@@ -169,30 +169,30 @@
 
 (define (pendulum-circulating-frequency alpha beta E)
   (let ((k (g/sqrt (/ (* 2.0 beta) (+ E beta))))
-	      (omegaR (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha))))))
-	  (/ (* pi omegaR) (ell/elliptic-k k))))
+        (omegaR (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha))))))
+    (/ (* pi omegaR) (ell/elliptic-k k))))
 
 (define (pendulum-circulating-angle alpha beta E)
   (let ((k (g/sqrt (/ (* 2.0 beta) (+ E beta))))
-	      (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
-	      (period (/ v/twopi (pendulum-frequency alpha beta E))))
+        (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
+        (period (/ v/twopi (pendulum-frequency alpha beta E))))
     (fn (t)
             (Jacobi-elliptic-functions
              (* omega-R ((principal-range period) t))
              k
              (fn (sn cn dn)
-	                   (* 2.0 (asin sn)))))))
+                     (* 2.0 (asin sn)))))))
 
 (define (pendulum-circulating-angular-momentum alpha beta E)
   (let ((k (g/sqrt (/ (* 2.0 beta) (+ E beta))))
-	      (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
-	      (period (/ v/twopi (pendulum-frequency alpha beta E))))
+        (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
+        (period (/ v/twopi (pendulum-frequency alpha beta E))))
     (fn (t)
       (Jacobi-elliptic-functions
        (* omega-R ((principal-range period) t))
        k
        (fn (sn cn dn)
-	       (* 2.0 alpha omega-R dn))))))
+         (* 2.0 alpha omega-R dn))))))
 
 
 ;;; Defined in kernel/numeric.scm
@@ -200,13 +200,13 @@
 ;; (define ((principal-range period) t)
 ;;   (let ((t (- t (* period (floor (/ t period))))))
 ;;     (if (< t (/ period 2.0))
-;; 	    t
-;; 	    (- t period))))
+;;      t
+;;      (- t period))))
 ;; |#
 
 ;; #|
 
-;; omega =	(/ (* pi omegaR) (ell/elliptic-k k)))))
+;; omega =  (/ (* pi omegaR) (ell/elliptic-k k)))))
 ;; period = 2pi / omega = 2 K / omegaR
 ;; so period*omegaR = 2 K but the period of sn is 4 K
 ;; so if period*omegaR is in the range 2K to 4K the
@@ -224,7 +224,7 @@
   (let ((g (/ action (* (/ 4. pi) (g/sqrt (* beta alpha))))))
     (let ((k (pendulum-inverse-g g)))
       (let ((k**2 (square k)))
-	      (/ (* beta (- 2.0 k**2)) k**2)))))
+        (/ (* beta (- 2.0 k**2)) k**2)))))
 
 
 (define ((pendulum-circulating-phase alpha beta) state)
@@ -232,12 +232,12 @@
         (ptheta (state->p state)))
     (let ((E ((Hpendulum alpha beta) state)))
       (let ((k (g/sqrt (/ (* 2.0 beta) (+ E beta))))
-	          (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
-	          (period (/ v/twopi (pendulum-frequency alpha beta E))))
-	      (let ((dt (/ (elliptic-integral-F
-		                  (/ ((principal-value pi) theta) 2.0) k)
-		                 omega-R)))
-	        ((principal-value pi) (* v/twopi (/ dt period))))))))
+            (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha)))))
+            (period (/ v/twopi (pendulum-frequency alpha beta E))))
+        (let ((dt (/ (elliptic-integral-F
+                      (/ ((principal-value pi) theta) 2.0) k)
+                     omega-R)))
+          ((principal-value pi) (* v/twopi (/ dt period))))))))
 
 ;;; time from theta=0 to state
 (define ((pendulum-circulating-dt alpha beta) state)
@@ -250,16 +250,16 @@
   (let ((angle (state->q aa-state))
         (action (state->p aa-state)))
     (let* ((E ((pendulum-circulating-action-to-E alpha beta) action))
-	         (period (/ v/twopi (pendulum-frequency alpha beta E))))
+           (period (/ v/twopi (pendulum-frequency alpha beta E))))
       (let ((dt (* (/ period v/twopi) angle)))
-	      (->H-state (state->t aa-state)
-		               ((pendulum-circulating-angle alpha beta E) dt)
-		               ((pendulum-circulating-angular-momentum alpha beta E) dt))))))
+        (->H-state (state->t aa-state)
+                   ((pendulum-circulating-angle alpha beta E) dt)
+                   ((pendulum-circulating-angular-momentum alpha beta E) dt))))))
 
 (define ((pendulum-circulating-state-to-aa-state alpha beta) state)
   (let ((E ((Hpendulum alpha beta) state)))
     (let ((action (pendulum-circulating-action alpha beta E))
-	        (angle ((pendulum-circulating-phase alpha beta) state)))
+          (angle ((pendulum-circulating-phase alpha beta) state)))
       (->H-state (state->t state) angle action))))
 
 ;;;----------------------------------------------------------------
@@ -290,36 +290,36 @@
 (define (((pendulum-advance alpha beta) state) t)
   (let ((E ((Hpendulum alpha beta) state)))
     (if (< E beta)
-	    (let ((dt ((pendulum-oscillating-dt alpha beta) state)))
-	      (let ((t' (+ dt (- t (state->t state)))))
-	        (->H-state t
-		                 ((pendulum-oscillating-angle alpha beta E) t')
-		                 ((pendulum-oscillating-angular-momentum alpha beta E) t'))))
+      (let ((dt ((pendulum-oscillating-dt alpha beta) state)))
+        (let ((t' (+ dt (- t (state->t state)))))
+          (->H-state t
+                     ((pendulum-oscillating-angle alpha beta E) t')
+                     ((pendulum-oscillating-angular-momentum alpha beta E) t'))))
 
-	    (if (> (state->p state) 0)
-	      (let ((dt ((pendulum-circulating-dt alpha beta) state)))
-	        (let ((t' (+ dt (- t (state->t state)))))
-		        (->H-state t
-			                 ((pendulum-circulating-angle alpha beta E) t')
-			                 ((pendulum-circulating-angular-momentum alpha beta E) t'))))
-	      (let ((dt ((pendulum-circulating-dt alpha beta)
-		               (->H-state (- (state->t state))
-				                      (- (state->q state))
-				                      (- (state->p state))))))
-	        (let ((t' (+ dt (- t (state->t state)))))
-		        (->H-state
-		         t
-		         (- ((pendulum-circulating-angle alpha beta E) t'))
-		         (- ((pendulum-circulating-angular-momentum alpha beta E) t')))))))))
+      (if (> (state->p state) 0)
+        (let ((dt ((pendulum-circulating-dt alpha beta) state)))
+          (let ((t' (+ dt (- t (state->t state)))))
+            (->H-state t
+                       ((pendulum-circulating-angle alpha beta E) t')
+                       ((pendulum-circulating-angular-momentum alpha beta E) t'))))
+        (let ((dt ((pendulum-circulating-dt alpha beta)
+                   (->H-state (- (state->t state))
+                              (- (state->q state))
+                              (- (state->p state))))))
+          (let ((t' (+ dt (- t (state->t state)))))
+            (->H-state
+             t
+             (- ((pendulum-circulating-angle alpha beta E) t'))
+             (- ((pendulum-circulating-angular-momentum alpha beta E) t')))))))))
 
 
 (define (((pendulum-integration alpha beta eps) state) t)
   (let ((state2
-	       ((state-advancer pendulum-sysder alpha beta)
-	        state (- t (state->t state)) eps)))
+         ((state-advancer pendulum-sysder alpha beta)
+          state (- t (state->t state)) eps)))
     (->H-state (state->t state2)
-	             ((principal-value pi) (state->q state2))
-	             (state->p state2))))
+               ((principal-value pi) (state->q state2))
+               (state->p state2))))
 
 
 
@@ -329,32 +329,32 @@
 ;; #|
 ;; (define ((pendulum-oscillating-solution-series alpha beta E omega eps) t)
 ;;   (let ((k (g/sqrt (/ (+ E beta) (* 2.0 beta))))
-;; 	      (omega-0 (g/sqrt (/ beta alpha))))
+;;        (omega-0 (g/sqrt (/ beta alpha))))
 ;;     (let ((Kp (ell/elliptic-k (g/sqrt (- 1. (square k))))))
 ;;       (define (term n)
-;; 	      (let ((omega-n (* omega (- (* 2.0 n) 1.))))
-;; 	        (/ (sin (* omega-n t))
-;; 	           (* omega-n (cosh (/ (* omega-n Kp) omega-0))))))
+;;        (let ((omega-n (* omega (- (* 2.0 n) 1.))))
+;;          (/ (sin (* omega-n t))
+;;             (* omega-n (cosh (/ (* omega-n Kp) omega-0))))))
 ;;       (* 4. omega (sum-series term eps)))))
 
 ;; (define ((pendulum-circulating-solution-series alpha beta E omega eps) t)
 ;;   (let ((k (g/sqrt (/ (* 2.0 beta) (+ E beta))))
-;; 	      (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha))))))
+;;        (omega-R (g/sqrt (abs (/ (+ E beta) (* 2.0 alpha))))))
 ;;     (let ((Kp (ell/elliptic-k (g/sqrt (- 1. (square k))))))
 ;;       (define ((term t) n)
-;; 	      (let ((omega-n (* omega n)))
-;; 	        (/ (sin (* omega-n t))
-;; 	           (* omega-n (cosh (/ (* omega-n Kp) omega-R))))))
+;;        (let ((omega-n (* omega n)))
+;;          (/ (sin (* omega-n t))
+;;             (* omega-n (cosh (/ (* omega-n Kp) omega-R))))))
 ;;       (+ (* omega t)
-;; 	       (* 2.0 omega (sum-series (term t) eps))))))
+;;         (* 2.0 omega (sum-series (term t) eps))))))
 
 ;; ;;; don't use this without thinking...
 ;; (define (sum-series term eps)
 ;;   (let loop ((n 1) (sum 0.) (lastf 1.))
 ;;        (let ((f (term n)))
 ;;          (if (and (< (abs f) eps) (< (abs lastf) eps))
-;; 	         sum
-;; 	         (loop (fix:+ n 1) (+ sum f) f)))))
+;;           sum
+;;           (loop (fix:+ n 1) (+ sum f) f)))))
 ;; ;;; purpose of checking last two is
 ;; ;;; to prevent some premature terminations
 ;; ;;; because a term is "accidently" zero
@@ -367,25 +367,25 @@
 ;; (define (((pendulum-solution-series alpha beta) state) t)
 ;;   (let ((E ((Hpendulum alpha beta) state)))
 ;;     (let ((omega (pendulum-frequency alpha beta E))
-;; 	        (beta (abs beta)))
+;;          (beta (abs beta)))
 ;;       (if (< E beta)
-;; 	      (let ((k (g/sqrt (/ (+ E beta) (* 2 beta))))
-;; 		          (omega-0 (g/sqrt (abs (/ beta alpha)))))
-;; 	        (let ((Kp (ell/elliptic-k (g/sqrt (- 1 (square k))))))
-;; 	          (define (term n)
-;; 		          (let ((omega-n (* omega (- (* 2 n) 1))))
-;; 		            (/ (sin (* omega-n t))
-;; 		               (* omega-n (cosh (/ (* omega-n Kp) omega-0))))))
-;; 	          (* 4 omega (series:generate (fn (i) (term (+ i 1)))))))
-;; 	      (let ((k (g/sqrt (/ (* 2 beta) (+ E beta))))
-;; 		          (omega-R (g/sqrt (abs (/ (+ E beta) (* 2 alpha))))))
-;; 	        (let ((Kp (ell/elliptic-k (g/sqrt (- 1 (square k))))))
-;; 	          (define ((term t) n)
-;; 		          (let ((omega-n (* omega n)))
-;; 		            (/ (sin (* omega-n t))
-;; 		               (* omega-n (cosh (/ (* omega-n Kp) omega-R))))))
-;; 	          (+ (* omega t)
-;; 		           (* 2 omega (series:generate (fn (i) ((term t) (+ i 1))))))))))))
+;;        (let ((k (g/sqrt (/ (+ E beta) (* 2 beta))))
+;;              (omega-0 (g/sqrt (abs (/ beta alpha)))))
+;;          (let ((Kp (ell/elliptic-k (g/sqrt (- 1 (square k))))))
+;;            (define (term n)
+;;              (let ((omega-n (* omega (- (* 2 n) 1))))
+;;                (/ (sin (* omega-n t))
+;;                   (* omega-n (cosh (/ (* omega-n Kp) omega-0))))))
+;;            (* 4 omega (series:generate (fn (i) (term (+ i 1)))))))
+;;        (let ((k (g/sqrt (/ (* 2 beta) (+ E beta))))
+;;              (omega-R (g/sqrt (abs (/ (+ E beta) (* 2 alpha))))))
+;;          (let ((Kp (ell/elliptic-k (g/sqrt (- 1 (square k))))))
+;;            (define ((term t) n)
+;;              (let ((omega-n (* omega n)))
+;;                (/ (sin (* omega-n t))
+;;                   (* omega-n (cosh (/ (* omega-n Kp) omega-R))))))
+;;            (+ (* omega t)
+;;               (* 2 omega (series:generate (fn (i) ((term t) (+ i 1))))))))))))
 
 ;; (series:print
 ;;  (((pendulum-solution-series 1. 9.8)
@@ -451,7 +451,7 @@
 ;; (let ((f (pendulum-circulating-aa-state-to-state 2.0 9.8))
 ;;       (g (pendulum-circulating-state-to-aa-state 2.0 9.8)))
 ;;   (let* ((state (->H-state 1. 1. 15.))
-;; 	       (aa-state (g state)))
+;;         (aa-state (g state)))
 ;;     (- (* (der-qq f aa-state) (der-pp f aa-state))
 ;;        (* (der-pq f aa-state) (der-qp f aa-state)))))
 ;;                                         ;Value: 1.0000000000003484
@@ -459,7 +459,7 @@
 ;; (let ((f (pendulum-circulating-aa-state-to-state 2.0 9.8))
 ;;       (g (pendulum-circulating-state-to-aa-state 2.0 9.8)))
 ;;   (let* ((state (->H-state 1. 1. 15.))
-;; 	       (aa-state (g state)))
+;;         (aa-state (g state)))
 ;;     (- (* (der-qq g state) (der-pp g state))
 ;;        (* (der-pq g state) (der-qp g state)))))
 ;;                                         ;Value: .9999999999986688
@@ -467,7 +467,7 @@
 ;; (let ((f (pendulum-oscillating-aa-state-to-state 2.0 9.8))
 ;;       (g (pendulum-oscillating-state-to-aa-state 2.0 9.8)))
 ;;   (let* ((state (->H-state 1. 1. 1.))
-;; 	       (aa-state (g state)))
+;;         (aa-state (g state)))
 ;;     (- (* (der-qq g state) (der-pp g state))
 ;;        (* (der-pq g state) (der-qp g state)))))
 ;;                                         ;Value: 1.000000000000521
@@ -475,7 +475,7 @@
 ;; (let ((f (pendulum-oscillating-aa-state-to-state 2.0 9.8))
 ;;       (g (pendulum-oscillating-state-to-aa-state 2.0 9.8)))
 ;;   (let* ((state (->H-state 1. 1. 1.))
-;; 	       (aa-state (g state)))
+;;         (aa-state (g state)))
 ;;     (- (* (der-qq f aa-state) (der-pp f aa-state))
 ;;        (* (der-pq f aa-state) (der-qp f aa-state)))))
 ;;                                         ;Value: 1.000000000000406
@@ -511,22 +511,22 @@
 (define ((pendulum-state-to-global-aa-state alpha beta) state)
   (let ((E ((Hpendulum alpha beta) state)))
     (cond ((< E beta)
-	         ((pendulum-oscillating-state-to-aa-state alpha beta) state))
+           ((pendulum-oscillating-state-to-aa-state alpha beta) state))
           ((and (> E beta) (> (state->p state) 0.))
            (let ((aa-state
-		              ((pendulum-circulating-state-to-aa-state alpha beta)
-		               state)))
-	           (->H-state (state->t state)
-			                  (* 0.5 (state->q aa-state))
-			                  (* 2.0 (state->p aa-state)))))
+                  ((pendulum-circulating-state-to-aa-state alpha beta)
+                   state)))
+             (->H-state (state->t state)
+                        (* 0.5 (state->q aa-state))
+                        (* 2.0 (state->p aa-state)))))
           ((and (> E beta) (< (state->p state) 0.))
            (let ((aa-state
-		              ((pendulum-circulating-state-to-aa-state alpha beta)
-		               state)))
-	           (->H-state (state->t state)
-			                  ((principal-value pi)
-			                   (- pi (* 0.5 (state->q aa-state))))
-			                  (* 2.0 (state->p aa-state)))))
+                  ((pendulum-circulating-state-to-aa-state alpha beta)
+                   state)))
+             (->H-state (state->t state)
+                        ((principal-value pi)
+                         (- pi (* 0.5 (state->q aa-state))))
+                        (* 2.0 (state->p aa-state)))))
           ((= E beta)
            'go-figure))))
 
@@ -534,22 +534,22 @@
   (let ((separatrix-action (pendulum-separatrix-action alpha beta)))
     (fn (aa-state)
       (let ((angle (state->q aa-state))
-	          (action (state->p aa-state)))
-	      (cond ((< action separatrix-action)
-	             ((pendulum-oscillating-aa-state-to-state alpha beta) aa-state))
-	            ((> action separatrix-action)
-	             (if (and (< angle pi/2) (>= angle -pi/2))
-		             ((pendulum-circulating-aa-state-to-state alpha beta)
-		              (->H-state (state->t aa-state)
-			                       (* 2. (state->q aa-state))
-			                       (* 0.5 (state->p aa-state))))
-		             (let ((state
-			                  ((pendulum-circulating-aa-state-to-state alpha beta)
-			                   (->H-state (state->t aa-state)
-				                            (* 2. (state->q aa-state))
-				                            (* 0.5 (state->p aa-state))))))
-		               (->H-state (state->t state)
-				                      (- (state->q state))
-				                      (- (state->p state))))))
-	            ((= action separatrix-action)
-	             'oh-well))))))
+            (action (state->p aa-state)))
+        (cond ((< action separatrix-action)
+               ((pendulum-oscillating-aa-state-to-state alpha beta) aa-state))
+              ((> action separatrix-action)
+               (if (and (< angle pi/2) (>= angle -pi/2))
+                 ((pendulum-circulating-aa-state-to-state alpha beta)
+                  (->H-state (state->t aa-state)
+                             (* 2. (state->q aa-state))
+                             (* 0.5 (state->p aa-state))))
+                 (let ((state
+                        ((pendulum-circulating-aa-state-to-state alpha beta)
+                         (->H-state (state->t aa-state)
+                                    (* 2. (state->q aa-state))
+                                    (* 0.5 (state->p aa-state))))))
+                   (->H-state (state->t state)
+                              (- (state->q state))
+                              (- (state->p state))))))
+              ((= action separatrix-action)
+               'oh-well))))))
