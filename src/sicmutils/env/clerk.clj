@@ -1,4 +1,4 @@
-(ns clerk)
+(ns sicmutils.env.clerk)
 
 (defn- try-resolve [sym]
   (try (requiring-resolve sym)
