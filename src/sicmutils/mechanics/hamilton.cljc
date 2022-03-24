@@ -24,109 +24,90 @@
   (up t q p))
 
 (defn H-state? [s]
-  #_(and (up? s)
-         (fix:= (s:length s) 3)
-         (numerical-quantity? (ref s 0))
-         (or (and (numerical-quantity? (ref s 1))
-                  (numerical-quantity? (ref s 2)))
-             (and (up? (ref s 1))
-                  (down? (ref s 2))
-                  (= (s:dimension (ref s 1))
-                     (s:dimension (ref s 2)))))))
+  (and (s/up? s)
+       (= (count s) 3)
+       (let [[t q v] s]
+         (and (v/numerical? t)
+              (or (and (v/numerical? q)
+                       (v/numerical? v))
+                  (and (s/up? q)
+                       (s/down? v)
+                       (= (s/dimension q)
+                          (s/dimension v))))))))
 
+;; TODO merge this and above somehow.
 (defn compatible-H-state? [s]
-  #_(and (down? s)
-         (fix:= (s:length s) 3)
-         (numerical-quantity? (ref s 0))
-         (or (and (numerical-quantity? (ref s 1))
-                  (numerical-quantity? (ref s 2)))
-             (and (down? (ref s 1))
-                  (up? (ref s 2))
-                  (= (s:dimension (ref s 1))
-                     (s:dimension (ref s 2)))))))
+  (and (s/down? s)
+       (= (count s) 3)
+       (let [[t q v] s]
+         (and (v/numerical? t)
+              (or (and (v/numerical? q)
+                       (v/numerical? v))
+                  (and (s/down? q)
+                       (s/up? v)
+                       (= (s/dimension q)
+                          (s/dimension v))))))))
 
-(defn state->p [state]
-  #_(if (not (and (vector? state)
-                  (fix:> (vector-length state) 2)))
-      (error "Cannot extract momentum from" state))
-  #_(ref state 2))
-
-(def momentum state->p)
-(def momenta state->p)
-(def P state->p)
-
-;; TODO - put a precondition on here like above, make aliases.
 (defn momentum
-  "See coordinate: this returns the momentum element of a
-  Hammilton state tuple (by convention, the element at index 2)."
+  "Returns the momentum element of a local Hamiltonian state tuple (by convention,
+  the third element)."
   [H-state]
+  {:pre [(s/up? H-state) (> (count H-state) 2)]}
   (nth H-state 2))
 
-(comment
-  (define (state->qp dynamic-state)
-    (vector-tail dynamic-state 1))
+(def ^{:doc "Alias for [[momentum]]."}
+  state->p momentum)
 
-  (define (literal-Hamiltonian-state n-dof)
-    (up (literal-number (generate-uninterned-symbol 't))
-        (s:generate n-dof 'up
-                    (lambda (i)
-                            (literal-number (generate-uninterned-symbol 'x))))
-        (s:generate n-dof 'down
-                    (lambda (i)
-                            (literal-number (generate-uninterned-symbol 'p)))))))
+(def ^{:doc "Alias for [[momentum]]."}
+  momenta momentum)
 
-(comment
-  (define ((Lstate->Hstate L) Ls)
-    (up (time Ls)
-        (coordinate Ls)
-        (((partial 2) L) Ls)))
+(def ^{:doc "Alias for [[momentum]]."}
+  P momentum)
 
-  (define ((Hstate->Lstate H) Hs)
-    (up (time Hs)
-        (coordinate Hs)
-        (((partial 2) H) Hs)))
+(defn state->qp [[_ q p]]
+  (up q p))
 
-  (define (H-state->matrix s)
-    (s->m (compatible-shape s) s 1)))
+(defn literal-Hamiltonian-state [n-dof]
+  (up (gensym 't)
+      (s/literal-up (gensym 'x) n-dof)
+      (s/literal-down (gensym 'p) n-dof)))
 
-(comment
-  (define (matrix->H-state m s)
-    (assert (= (m:num-cols m) 1))
-    (assert (and (odd? (m:num-rows m))
-                 (> (m:num-rows m) 2)))
-    (m->s (compatible-shape s) m 1))
+(defn Lstate->Hstate [L]
+  (fn [Ls]
+    (up (l/time Ls)
+        (l/coordinate Ls)
+        (((partial 2) L) Ls))))
 
-  (define (degrees-of-freedom H-state)
-    (assert (= (s:length H-state) 3))
-    (assert (= (s:dimension (coordinate H-state))
-               (s:dimension (momentum H-state))))
-    (s:dimension (coordinate H-state))))
+(defn Hstate->Lstate [H]
+  (fn [Hs]
+    (up (l/time Hs)
+        (l/coordinate Hs)
+        (((partial 2) H) Hs))))
 
-(comment
-  (is (= (up t (up x y) (down p_x p_y))
-         (matrix->H-state
-          (H-state->matrix (up 't (up 'x 'y) (down 'p_x 'p_y)))))))
+(defn H-state->matrix [s]
+  (matrix/s->m
+   (s/compatible-shape s) s 1))
 
-(comment
-  (is (= (matrix-by-rows (list t) (list x) (list y) (list p_x) (list p_y))
-         (H-state->matrix
-          (matrix->H-state
-           (matrix-by-rows (list 't)
-                           (list 'x)
-                           (list 'y)
-                           (list 'p_x)
-                           (list 'p_y)))))))
+(defn matrix->H-state [m s]
+  (assert (= (matrix/num-cols m) 1))
+  (assert (and (odd? (matrix/num-rows m))
+               (> (matrix/num-rows m) 2)))
+  (matrix/m->s
+   (s/compatible-shape s) m 1))
 
-(comment
-  (define (make-Hamiltonian kinetic-energy potential-energy)
-    (+ kinetic-energy potential-energy))
+(defn degrees-of-freedom [H-state]
+  {:pre [(= (count H-state) 3)
+         (= (s/dimension (l/coordinate H-state))
+            (s/dimension (momentum H-state)))]}
+  (s/dimension
+   (l/coordinate H-state)))
 
-  (define ((Hamilton-equations Hamiltonian) q p)
-    (let ((H-state-path (qp->H-state-path q p))
-          (dH (Hamiltonian->state-derivative Hamiltonian)))
-      (- (D H-state-path)
-         (compose dH
-                  H-state-path)))))
+(defn make-Hamiltonian [kinetic-energy potential-energy]
+  (+ kinetic-energy potential-energy))
+
+(defn qp->H-state-path [q p]
+  (fn [t]
+    (->H-state t (q t) (p t))))
 
 (defn Hamiltonian->state-derivative [Hamiltonian]
   (fn [H-state]
@@ -134,13 +115,10 @@
                (((partial 2) Hamiltonian) H-state)
                (- (((partial 1) Hamiltonian) H-state)))))
 
-;; NOTE: For compatibility with 1st edition
-(def phase-space-derivative
+(def ^{:doc "Alias for [[Hamiltonian->state-derivative]], for compatibility with
+  1st edition of SICM."}
+  phase-space-derivative
   Hamiltonian->state-derivative)
-
-(defn qp->H-state-path [q p]
-  (fn [t]
-    (->H-state t (q t) (p t))))
 
 (defn Hamilton-equations [Hamiltonian]
   (fn [q p]
@@ -155,37 +133,17 @@
         (((partial 2) H) s)
         (- (((partial 1) H) s)))))
 
-;; If we express the energy in terms of t,Q,P we have the Hamiltonian.
-;; A Hamiltonian is an example of an H-function: an H-function takes
-;; 2 vector arguments and a scalar argument (t, Q, P).  It produces a
-;; scalar result.
+;; If we express the energy in terms of t,Q,P we have the Hamiltonian. A
+;; Hamiltonian is an example of an H-function: an H-function takes 2 vector
+;; arguments and a scalar argument (t, Q, P). It produces a scalar result.
 
 (defn H-rectangular
+  "Returns a function of H-state..."
   [m V]
-  (fn [[_ q p]]  ;; H-state
+  (fn [[_ q p]]
     (+ (/ (g/square p) (* 2 m))
        (apply V q))))
 
-;; TODO move to tests:
-(comment
-  (is (= (up 0
-             (up (+ ((D x) t) (/ (* -1 (p_x t)) m))
-                 (+ ((D y) t) (/ (* -1 (p_y t)) m)))
-             (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t)))
-                   (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
-         (((Hamilton-equations
-            (H-rectangular
-             'm
-             (literal-function 'V (-> (X Real Real) Real))))
-           (coordinate-tuple (literal-function 'x)
-                             (literal-function 'y))
-           (momentum-tuple (literal-function 'p_x)
-                           (literal-function 'p_y)))
-          't)))
-  )
-
-;; TODO file? what's up?
-;;
 ;; If we express the energy in terms of t,Q,P we have the Hamiltonian
 ;;
 ;;        H(t,Q,P) = P*Qdot - L(t, Q, Qdot(t, Q, P))
@@ -204,7 +162,10 @@
 ;;  then v = A u + b, so u = A^(-1) (v - b)
 
 (defn dual-zero [z]
-  (if (s/structure? z) (-> z g/transpose v/zero-like) 0))
+  (if (s/structure? z)
+    (v/zero-like
+     (g/transpose z))
+    0))
 
 (defn- Legendre-transform-fn
   "A better definition of Legendre transform that works for structured coordinates
@@ -222,7 +183,7 @@
   ;; TODO: the one we HAVE above is actually a crappy one. replace with this
   ;; one, with compatible zero, and move THIS one even to the tests... then
   ;; convert the ugly one below.
-  (define (Legendre-transform-procedure F)
+  (defn (Legendre-transform-procedure F)
     (let ((w-of-v (D F)))
       (define (G w)
         (let ((z (compatible-zero w)))
@@ -236,7 +197,7 @@
 ;; This ugly version tests for correctness of the result.
 
 (comment
-  (define (Legendre-transform-procedure F)
+  (defn (Legendre-transform-procedure F)
     (let ((untested? true)
           (w-of-v (D F)))
       (define (putative-G w)
@@ -280,7 +241,7 @@
                  'Lagrangian->Hamiltonian))
 
 (comment
-  (define ((Hamiltonian->Lagrangian-procedure the-Hamiltonian) L-state)
+  (defn ((Hamiltonian->Lagrangian-procedure the-Hamiltonian) L-state)
     (let ((t (time L-state))
           (q (coordinate L-state))
           (qdot (velocity L-state)))
@@ -288,9 +249,9 @@
         (the-Hamiltonian (->H-state t q p)))
       ((Legendre-transform-procedure H) qdot)))
 
-  (define Hamiltonian->Lagrangian
-    (make-operator Hamiltonian->Lagrangian-procedure
-                   'Hamiltonian->Lagrangian)))
+  (def Hamiltonian->Lagrangian
+    (o/make-operator Hamiltonian->Lagrangian-procedure
+                     'Hamiltonian->Lagrangian)))
 
 (defn H-central-polar
   [m V]

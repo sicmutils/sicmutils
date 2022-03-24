@@ -19,6 +19,34 @@
 (def simplify
   (comp v/freeze g/simplify))
 
+(deftest new-tests
+  (let [s  (up 't (up 'x 'y) (down 'p_x 'p_y))
+        m  (m/by-cols ['t 'x 'y 'p_x 'p_y])
+        s2 (H/literal-Hamiltonian-state 2)]
+    (is (= s
+           (-> (H/H-state->matrix s)
+               (H/matrix->H-state s2)))
+        "round tripping from H-state to matrix and back")
+
+    (is (= m
+           (-> (H/matrix->H-state m s2)
+               (H/H-state->matrix)))
+        "round tripping from matrix to H-state and back"))
+
+  (testing "H-rectangular"
+    (is (= '(up 0
+                (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
+                    (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
+                (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t)))
+                      (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
+           (simplify
+            (f/with-literal-functions [x y p_x p_y [V [0 0] 0]]
+              (((H/Hamilton-equations
+                 (H/H-rectangular 'm V))
+                (L/coordinate-tuple x y)
+                (L/momentum-tuple p_x p_y))
+               't)))))))
+
 (deftest poisson
   (let [a-state (H/->H-state 't
                              (L/coordinate-tuple 'x 'y 'z)
