@@ -3,7 +3,8 @@
 (ns ^:no-doc sicmutils.series.impl
   "Backing implementation for the types defined in [[sicmutils.series]], written
   against pure Clojure sequences."
-  (:require [sicmutils.generic :as g]
+  (:require [sicmutils.env.clerk :as clerk #?@(:cljs [:include-macros true])]
+            [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.special.factorial :as sf]
             [sicmutils.util :as u]
@@ -50,9 +51,8 @@
 
 ;; This works as expected:
 
-#_
-(= [1 2 3 4 0 0 0 0 0 0]
-   (take 10 (->series [1 2 3 4])))
+(clerk/examples
+ (take 10 (->series [1 2 3 4])))
 
 ;; The core observation we'll use in the following definitions (courtesy of
 ;; McIlroy) is that a power series $F$ in a variable $x$:
@@ -73,7 +73,7 @@
 (defn negate [xs]
   (map g/negate xs))
 
-#_
+
 (let [xs [1 2 3 4]]
   (= [-1 -2 -3 -4 0 0 0]
      (take 7 (negate (->series xs)))))
