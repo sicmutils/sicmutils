@@ -7,6 +7,8 @@
   - adds `sicmutils.mechanics.lagrange/Lagrangian` for building function
     signatures of Lagrangians
 
+  - adds `sicmutils.mechanics.time-evolution`
+
   - fleshes out `sicmutils.mechanics.hamilton`:
 
     - New functions: `H-state?`, `compatible-H-state?`, `state->p`, `momenta`,
