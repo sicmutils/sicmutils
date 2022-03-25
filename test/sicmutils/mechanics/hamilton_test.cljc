@@ -97,8 +97,6 @@
         "round tripping from matrix to H-state and back")))
 
 (deftest new-tests
-
-
   (testing "H-rectangular"
     (is (= '(up 0
                 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
@@ -1577,19 +1575,11 @@
 ;; |#
 
 ;; #|
-;; (define FF
-;;   (literal-function 'F
-;;                     (-> (UP Real
-;;                             (UP Real Real)
-;;                             (DOWN Real Real))
-;;                         Real)))
 
-;; (define GG
-;;   (literal-function 'G
-;;                     (-> (UP Real
-;;                             (UP Real Real)
-;;                             (DOWN Real Real))
-;;                         Real)))
+#_
+(let [FF (f/literal-function 'F (H/Hamiltonian 2))
+      GG (f/literal-function 'G (H/Hamiltonian 2))]
+  )
 
 ;; (pe ((* (D FF)
 ;;         (Poisson-bracket identity identity)

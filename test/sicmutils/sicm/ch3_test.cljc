@@ -46,9 +46,9 @@
 
 (deftest section-3-2
   (testing "p.205"
-    (let [F (literal-function 'F (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
-          G (literal-function 'G (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
-          H (literal-function 'H (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))]
+    (let [F (literal-function 'F (H/Hamiltonian 2))
+          G (literal-function 'G (H/Hamiltonian 2))
+          H (literal-function 'H (H/Hamiltonian 2))]
       (is (zero?
            (simplify
             ((+ (e/Poisson-bracket F (e/Poisson-bracket G H))

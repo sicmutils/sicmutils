@@ -3,8 +3,7 @@
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.core :as core]
-            [pattern.rule :as r
-             #?@(:cljs [:include-macros true])]
+            [pattern.rule :as r :include-macros true]
             [sicmutils.calculus.derivative :refer [D D-as-matrix partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [sin cos + - * /]]
@@ -19,6 +18,16 @@
 ;;
 ;; A system has a dynamic state, which has the time, the configuration, and the
 ;; momenta. Hamiltonian mechanics is formulated in terms of the dynamic state.
+
+(defn Hamiltonian
+  "Returns function signature for a Hamiltonian with n degrees of freedom (or an
+  unrestricted number if n is not given).
+
+  Useful for constructing Hamiltonian literal functions."
+  ([] '(-> (UP Real (UP* Real) (DOWN* Real)) Real))
+  ([n]
+   (r/template
+    (-> (UP Real (UP* Real ~n) (DOWN* Real ~n)) Real))))
 
 (defn ->H-state
   "Given a time `t`, coordinate tuple (or scalar) `q` and momentum tuple (or
@@ -243,16 +252,6 @@
 (def Hamiltonian->Lagrangian
   (o/make-operator Hamiltonian->Lagrangian-procedure
                    'Hamiltonian->Lagrangian))
-
-(defn Hamiltonian
-  "Return SICM-style function signature for a Hamiltonian with n degrees of
-  freedom (or 1 if n is not given).
-
-  Useful for constructing Hamiltonian literal functions."
-  ([] '(-> (UP Real (UP* Real) (DOWN* Real)) Real))
-  ([n]
-   (r/template
-    (-> (UP Real (UP* Real ~n) (DOWN* Real ~n)) Real))))
 
 (defn Poisson-bracket
   [f g]

@@ -14,6 +14,7 @@
                                              cot sec csc
                                              log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
+            [sicmutils.mechanics.hamilton :as h]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -590,11 +591,7 @@
 
 (deftest moved-from-structure-and-matrix
   (testing "as-matrix, D-as-matrix"
-    (let [Hamiltonian2 '(-> (UP Real
-                                (UP Real Real)
-                                (DOWN Real Real))
-                            Real)
-          S (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y))
+    (let [S (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y))
           present (fn [expr]
                     (-> (simplify expr)
                         (x/substitute (v/freeze S) 'p)))]
@@ -605,7 +602,7 @@
                    (((partial 2 0) H) p)
                    (((partial 2 1) H) p)))
              (present
-              ((d/D-as-matrix (af/literal-function 'H Hamiltonian2))
+              ((d/D-as-matrix (af/literal-function 'H (h/Hamiltonian 2)))
                S)))))
 
     (let [C-general (af/literal-function

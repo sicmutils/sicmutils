@@ -2,7 +2,8 @@
 
 (ns sicmutils.mechanics.lagrange
   (:refer-clojure :exclude [+ - * / partial time])
-  (:require [sicmutils.calculus.derivative :refer [D partial]]
+  (:require [pattern.rule :as r :include-macros true]
+            [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.numerical.minimize :as m]
@@ -31,6 +32,16 @@
 ;;
 ;; Kinematic states and their derivatives are represented as Scheme vectors,
 ;; with components time, configuration, and derivatives.
+
+(defn Lagrangian
+  "Returns a function signature for a Lagrangian with n degrees of freedom (or an
+  unrestricted number if n is not given).
+
+  Useful for constructing Lagrangian literal functions."
+  ([] '(-> (UP Real (UP* Real) (UP* Real)) Real))
+  ([n]
+   (r/template
+    (-> (UP Real (UP* Real ~n) (UP* Real ~n)) Real))))
 
 (defn ->L-state
   "Given a time `t`, coordinate tuple (or scalar) `q`, velocity tuple (or scalar)
