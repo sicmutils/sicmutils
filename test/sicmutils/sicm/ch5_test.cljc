@@ -1,10 +1,10 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.sicm.ch5-test
-  (:refer-clojure :exclude [+ - * /  ref partial])
+  (:refer-clojure :exclude [+ - * /  ref])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D ref partial compose
+             :refer [+ - * / D ref compose
                      up down sin cos square
                      p->r s->m F->CT
                      literal-function]
@@ -30,9 +30,7 @@
                           (down 'p_r 'p_phi))))))))
 
 (deftest section-5-2
-  (let [J-func (fn [[_ dh1 dh2]] (up 0 dh2 (- dh1)))
-        T-func (fn [_] (up 1 0 0))]
-
+  (let [J-func (fn [[_ dh1 dh2]] (up 0 dh2 (- dh1)))]
     (testing "canonical"
       (is (= '(up 0 (up 0 0) (down 0 0))
              (simplify
@@ -98,13 +96,7 @@
                     (down 'p_r 'p_theta))))))))
 
     (testing "rotating coordinates p. 336"
-      (let [canonical-K? (fn [C K]
-                           (fn [s]
-                             (let [s* (e/compatible-shape s)]
-                               (- (T-func s*)
-                                  (+ (* ((D C) s) (J-func ((D K) s)))
-                                     (((partial 0) C) s))))))
-            rotating (fn [n]
+      (let [rotating (fn [n]
                        (fn [[t [x y z]]]
                          (up (+ (* (cos (* n t)) x) (* (sin (* n t)) y))
                              (- (* (cos (* n t)) y) (* (sin (* n t)) x))
@@ -136,7 +128,7 @@
         ;; definition an erratum
         (is (= '(up 0 (up 0 0 0) (down 0 0 0))
                (simplify
-                ((canonical-K? (C-rotating 'Omega) (K 'Omega))
+                ((H/canonical-K? (C-rotating 'Omega) (K 'Omega))
                  (up 't
                      (up 'x 'y 'z)
                      (down 'p_x 'p_y 'p_z))))))))))

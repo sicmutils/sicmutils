@@ -3,8 +3,11 @@
 (ns sicmutils.mechanics.hamilton-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             :include-macros true]
             [sicmutils.abstract.function :as f :include-macros true]
             [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.matrix :as m]
             [sicmutils.mechanics.hamilton :as H]
@@ -19,7 +22,67 @@
 (def simplify
   (comp v/freeze g/simplify))
 
-(deftest new-tests
+(deftest basic-tests
+  (checking "basic accessors and state creation" 100
+            [t sg/symbol
+             q sg/symbol
+             p sg/symbol]
+            (let [state (H/->H-state t q p)]
+              (is (H/H-state? state)
+                  "constructs to a proper H-state.")
+
+              (is (= [q p] (H/state->qp state))
+                  "state->qp works")
+
+              (is (= t (L/time state))
+                  "time lookup works correctly")
+
+              (is (= q (L/coordinate state))
+                  "coordinate lookup works correctly")
+
+              (doseq [->p [H/momentum H/state->p H/momenta H/P]]
+                (is (= p (->p state))
+                    "momentum lookup works correctly"))))
+
+  (testing "H-state?"
+    (is (H/H-state?
+         (H/literal-Hamiltonian-state 2))
+        "literal state works")
+
+    (let [L-state (L/->L-state 't (up 'x) (up 'vx))]
+      (is (not (H/H-state? L-state))
+          "up in momentum slot fails.")
+
+      (is (H/H-state?
+           ((H/L-state->H-state (L/L-free-particle 'm))
+            L-state))
+          "up in momentum slot fails.")))
+
+  (testing "round trip H-state, L-state"
+    (let [H-state (H/->H-state 't (up 'x) (down 'p_x))
+          L (L/L-free-particle 'm)
+          H (H/Lagrangian->Hamiltonian L)]
+      (is (H/H-state? H-state)
+          "confirming!")
+
+      (is (not
+           (H/H-state?
+            ((H/H-state->L-state H) H-state)))
+          "L-state is not an H-state")
+
+      (is (= H-state
+             (g/simplify
+              ((H/L-state->H-state L)
+               ((H/H-state->L-state H) H-state))))
+          "round-tripping")))
+
+  (testing "qp->H-state-path"
+    (f/with-literal-functions [q p]
+      (is (= (up 't '(q t) '(p t))
+             ((H/qp->H-state-path q p) 't))
+          "qp->H-state-path works, given two functions of t"))))
+
+(deftest matrix<->state-tests
   (let [s  (up 't (up 'x 'y) (down 'p_x 'p_y))
         m  (m/by-cols ['t 'x 'y 'p_x 'p_y])
         s2 (H/literal-Hamiltonian-state 2)]
@@ -31,7 +94,10 @@
     (is (= m
            (-> (H/matrix->H-state m s2)
                (H/H-state->matrix)))
-        "round tripping from matrix to H-state and back"))
+        "round tripping from matrix to H-state and back")))
+
+(deftest new-tests
+
 
   (testing "H-rectangular"
     (is (= '(up 0
@@ -45,7 +111,457 @@
                  (H/H-rectangular 'm V))
                 (L/coordinate-tuple x y)
                 (L/momentum-tuple p_x p_y))
-               't)))))))
+               't))))))
+
+  (testing "two-particle-center-of-mass"
+    ;; TODO tests
+    ;; #|
+    ;; (define b-state
+    ;;   (up 't
+    ;;       (coordinate-tuple
+    ;;        (coordinate-tuple 'x_1 'y_1)
+    ;;        (coordinate-tuple 'x_2 'y_2))
+    ;;       (momentum-tuple
+    ;;        (momentum-tuple 'p_x_1 'p_y_1)
+    ;;        (momentum-tuple 'p_x_2 'p_y_2))))
+
+    ;; (pe (- ((F->CT (two-particle-center-of-mass 'm0 'm1)) b-state)
+    ;;        ((two-particle-center-of-mass-canonical 'm0 'm1) b-state)))
+    ;; (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical?
+    ;;    (two-particle-center-of-mass-canonical 'm1 'm2))
+    ;;   b-state))
+    ;; (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;; |#
+    )
+
+  (testing "multiplicative-transpose"
+    ;; TODO remaining tests from canonical.scm
+
+    ;; #|
+    ;; (define (T v)
+    ;;   (* (down (up 'a 'c) (up 'b 'd)) v))
+
+    ;; (pe (T (up 'x 'y)))
+    ;; (up (+ (* a x) (* b y)) (+ (* c x) (* d y)))
+
+    ;; (pe (* (* (down 'p_x 'p_y) ((D T) (up 'x 'y))) (up 'v_x 'v_y)))
+    ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
+
+
+    ;; (pe (* (down 'p_x 'p_y) (* ((D T) (up 'x 'y)) (up 'v_x 'v_y))))
+    ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
+
+    ;; (pe (* (* ((multiplicative-transpose (down 'p_x 'p_y)) ((D T) (up 'x 'y)))
+    ;;          (down 'p_x 'p_y))
+    ;;        (up 'v_x 'v_y)))
+    ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
+
+    ;; ;;; But strangely enough...
+    ;; (pe (* (* (down 'p_x 'p_y)
+    ;;          ((multiplicative-transpose (down 'p_x 'p_y)) ((D T) (up 'x 'y))))
+    ;;        (up 'v_x 'v_y)))
+    ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define ((time-independent-canonical? C) s)
+    ;;   (let ((s* (compatible-shape s)))
+    ;;     (let ((J (linear-function->multiplier J-func s*)))
+    ;;       (- J
+    ;;         (* ((D C) s)
+    ;;            (* J
+    ;;               ((multiplicative-transpose s*) ((D C) s))))))))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? (F->CT p->r))
+    ;;   (up 't
+    ;;       (coordinate-tuple 'r 'phi)
+    ;;       (momentum-tuple 'p_r 'p_phi))))
+    ;; (up 0 (up 0 0) (down 0 0))
+
+
+    ;; ;;; but not all transforms are
+
+    ;; (define (a-non-canonical-transform Istate)
+    ;;   (let ((t (time Istate))
+    ;;         (theta (coordinate Istate))
+    ;;        (p (momentum Istate)))
+    ;;     (let ((x (* p (sin theta)))
+    ;;          (p_x (* p (cos theta))))
+    ;;       (up t x p_x))))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? a-non-canonical-transform)
+    ;;   (up 't 'theta 'p)))
+    ;; (up (up 0 0 0) (up 0 0 (+ -1 p)) (up 0 (+ 1 (* -1 p)) 0))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? (polar-canonical 'alpha))
+    ;;   (up 't 'a 'I)))
+    ;; (up (up 0 0 0) (up 0 0 0) (up 0 0 0))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define (Cmix H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;         (coordinate-tuple (ref q 0) (- (ref p 1)))
+    ;;         (momentum-tuple   (ref p 0) (ref q 1)))))
+
+    ;; (define a-state
+    ;;   (up 't
+    ;;       (coordinate-tuple 'x 'y)
+    ;;       (momentum-tuple 'p_x 'p_y)))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? Cmix)
+    ;;   a-state))
+    ;; (up 0 (up 0 0) (down 0 0))
+
+    ;; (define (Cmix2 H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;         (flip-outer-index p)
+    ;;         (- (flip-outer-index q)))))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? Cmix2)
+    ;;   a-state))
+    ;; (up 0 (up 0 0) (down 0 0))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define ((C m0 m1) state)
+    ;;   (let ((x (coordinate state))
+    ;;        (p (momentum state)))
+    ;;     (let ((x0 (ref x 0))
+    ;;          (x1 (ref x 1))
+    ;;          (p0 (ref p 0))
+    ;;          (p1 (ref p 1)))
+    ;;       (up
+    ;;        (time state)
+    ;;        (coordinate-tuple (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
+    ;;                         (- x1 x0))
+    ;;        (momentum-tuple (+ p0 p1)
+    ;;                       (/ (- (* m0 p1) (* m1 p0))
+    ;;                          (+ m0 m1)))))))
+
+    ;; (define b-state
+    ;;   (up 't
+    ;;       (coordinate-tuple
+    ;;        (coordinate-tuple 'x_1 'y_1)
+    ;;        (coordinate-tuple 'x_2 'y_2))
+    ;;       (momentum-tuple
+    ;;        (momentum-tuple 'p_x_1 'p_y_1)
+    ;;        (momentum-tuple 'p_x_2 'p_y_2))))
+
+    ;; (print-expression
+    ;;  ((time-independent-canonical? (C 'm1 'm2)) b-state))
+    ;; (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+
+    ;; |#
+
+    )
+
+  (testing "canonical-transform?"
+    ;; TODO tests:
+
+    ;; #|
+    ;; (print-expression
+    ;;  ((canonical-transform? (F->CT p->r))
+    ;;   (up 't
+    ;;       (up 'r 'phi)
+    ;;       (down 'p_r 'p_phi))))
+    ;; (up (up 0 (up 0 0) (down 0 0))
+    ;;     (up (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0)))
+    ;;     (down (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0))))
+
+
+    ;; (print-expression
+    ;;  ((canonical-transform? (polar-canonical 'alpha))
+    ;;   (up 't 'a 'I)))
+    ;; (up (up 0 0 0) (up 0 0 0) (up 0 0 0))
+
+
+    ;; ;;; but not all transforms are
+
+    ;; (define (a-non-canonical-transform Istate)
+    ;;   (let ((t (time Istate))
+    ;;         (theta (coordinate Istate))
+    ;;        (p (momentum Istate)))
+    ;;     (let ((x (* p (sin theta)))
+    ;;          (p_x (* p (cos theta))))
+    ;;       (up t x p_x))))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? a-non-canonical-transform)
+    ;;   (up 't 'theta 'p)))
+    ;; (up (up 0 0 0) (up 0 0 (+ -1 p)) (up 0 (+ 1 (* -1 p)) 0))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define (Cmix H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;        (up (ref q 0) (- (ref p 1)))
+    ;;        (down (ref p 0) (ref q 1)))))
+
+    ;; (define a-state
+    ;;   (up 't (up 'x 'y) (down 'p_x 'p_y)))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? Cmix) a-state))
+    ;; (up (up 0 (up 0 0) (down 0 0))
+    ;;     (up (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0)))
+    ;;     (down (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0))))
+
+
+    ;; (define (Cmix2 H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;        (flip-outer-index p)
+    ;;        (- (flip-outer-index q)))))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? Cmix2)
+    ;;   a-state))
+    ;; (up (up 0 (up 0 0) (down 0 0))
+    ;;     (up (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0)))
+    ;;     (down (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0))))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define ((C m0 m1) state)
+    ;;   (let ((x (coordinate state))
+    ;;        (p (momentum state)))
+    ;;     (let ((x0 (ref x 0))
+    ;;          (x1 (ref x 1))
+    ;;          (p0 (ref p 0))
+    ;;          (p1 (ref p 1)))
+    ;;       (up (time state)
+    ;;          (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
+    ;;              (- x1 x0))
+    ;;          (down (+ p0 p1)
+    ;;                (/ (- (* m0 p1) (* m1 p0))
+    ;;                   (+ m0 m1)))))))
+
+    ;; (define b-state
+    ;;   (up 't
+    ;;       (up (up 'x_1 'y_1)
+    ;;          (up 'x_2 'y_2))
+    ;;       (down (down 'p_x_1 'p_y_1)
+    ;;            (down 'p_x_2 'p_y_2))))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? (C 'm1 'm2)) b-state))
+    ;; (up
+    ;;  (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;;  (up
+    ;;   (up (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;;       (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0))))
+    ;;   (up (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;;       (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))))
+    ;;  (down
+    ;;   (down (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;;         (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0))))
+    ;;   (down (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0)))
+    ;;         (up 0 (up (up 0 0) (up 0 0)) (down (down 0 0) (down 0 0))))))
+    ;; |#
+    )
+
+  (testing "symplectic?"
+    ;; TODO tests:
+
+    ;; #|
+    ;; (print-expression
+    ;;  ((symplectic? (F->CT p->r))
+    ;;   (up 't
+    ;;       (up 'r 'phi)
+    ;;       (down 'p_r 'p_phi))))
+    ;; (matrix-by-rows (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0))
+
+
+    ;; ;;; but not all transforms are
+
+    ;; (define (a-non-canonical-transform Istate)
+    ;;   (let ((t (time Istate))
+    ;;         (theta (coordinate Istate))
+    ;;        (p (momentum Istate)))
+    ;;     (let ((x (* p (sin theta)))
+    ;;          (p_x (* p (cos theta))))
+    ;;       (up t x p_x))))
+
+    ;; (print-expression
+    ;;  ((symplectic? a-non-canonical-transform)
+    ;;   (up 't 'theta 'p)))
+    ;; (matrix-by-rows (list 0 0 0)
+    ;;                (list 0 0 (+ 1 (* -1 p)))
+    ;;                (list 0 (+ -1 p) 0))
+
+    ;; (print-expression
+    ;;  ((symplectic? (polar-canonical 'alpha))
+    ;;   (up 't 'a 'I)))
+    ;; (matrix-by-rows (list 0 0 0)
+    ;;                (list 0 0 0)
+    ;;                (list 0 0 0))
+
+    ;; (define (Cmix H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;        (up (ref q 0) (- (ref p 1)))
+    ;;        (down   (ref p 0) (ref q 1)))))
+
+    ;; (define a-state
+    ;;   (up 't (up 'x 'y) (down 'p_x 'p_y)))
+
+    ;; (print-expression ((symplectic? Cmix) a-state))
+    ;; (matrix-by-rows (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (define (Cmix2 H-state)
+    ;;   (let ((t (time H-state))
+    ;;        (q (coordinate H-state))
+    ;;        (p (momentum H-state)))
+    ;;     (up t
+    ;;        (flip-outer-index p)
+    ;;        (- (flip-outer-index q)))))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? Cmix2)
+    ;;   a-state))
+    ;; (matrix-by-rows (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0))
+
+
+    ;; (define ((C m0 m1) state)
+    ;;   (let ((x (coordinate state))
+    ;;        (p (momentum state)))
+    ;;     (let ((x0 (ref x 0))
+    ;;          (x1 (ref x 1))
+    ;;          (p0 (ref p 0))
+    ;;          (p1 (ref p 1)))
+    ;;       (up (time state)
+    ;;          (up (/ (+ (* m0 x0) (* m1 x1)) (+ m0 m1))
+    ;;              (- x1 x0))
+    ;;          (down (+ p0 p1)
+    ;;                (/ (- (* m0 p1) (* m1 p0))
+    ;;                   (+ m0 m1)))))))
+
+    ;; (define b-state
+    ;;   (up 't
+    ;;       (up (up 'x_1 'y_1)
+    ;;          (up 'x_2 'y_2))
+    ;;       (down (down 'p_x_1 'p_y_1)
+    ;;            (down 'p_x_2 'p_y_2))))
+
+    ;; (print-expression
+    ;;  ((canonical-transform? (C 'm1 'm2)) b-state))
+    ;; (matrix-by-rows (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0)
+    ;;                 (list 0 0 0 0 0 0 0 0 0))
+    ;; |#
+    )
+
+  (testing "symplectic-transform?"
+    ;; TODO remaining tests
+
+    ;; #|
+    ;; ;;; For example, point transforms are canonical
+
+    ;; (print-expression
+    ;;  ((symplectic-transform? (F->CT p->r))
+    ;;   (up 't
+    ;;       (up 'r 'theta)
+    ;;       (down 'p_r 'p_theta))))
+    ;; (matrix-by-rows (list 0 0 0 0)
+    ;;                (list 0 0 0 0)
+    ;;                (list 0 0 0 0)
+    ;;                (list 0 0 0 0))
+    ;; |#
+    ;;
+    ;; #|
+    ;; (print-expression
+    ;;  ((symplectic-transform? a-non-canonical-transform)
+    ;;   (up 't 'theta 'p)))
+    ;; (matrix-by-rows (list 0 (+ 1 (* -1 p))) (list (+ -1 p) 0))
+    ;; |#
+
+    ;; #|
+    ;; ;;; One particularly useful canonical transform is the
+    ;; ;;;  Poincare transform, which is good for simplifying
+    ;; ;;;  oscillators.
+
+    ;; (define ((polar-canonical alpha) Istate)
+    ;;   (let ((t (time Istate))
+    ;;         (theta (coordinate Istate))
+    ;;         (I (momentum Istate)))
+    ;;     (let ((x (* (sqrt (/ (* 2 I) alpha)) (sin theta)))
+    ;;          (p_x (* (sqrt (* 2 alpha I)) (cos theta))))
+    ;;       (up t x p_x))))
+
+    ;; (define ((polar-canonical-inverse alpha) s)
+    ;;   (let ((t (time s))
+    ;;        (x (coordinate s))
+    ;;        (p (momentum s)))
+    ;;     (let ((I (/ (+ (* alpha (square x))
+    ;;                   (/ (square p) alpha))
+    ;;                2)))
+    ;;       (let ((theta (atan (/ x (sqrt (/ (* 2 I) alpha)))
+    ;;                         (/ p (sqrt (* 2 I alpha))))))
+    ;;        (up t theta I)))))
+
+
+
+    ;; (pe
+    ;;  ((compose (polar-canonical-inverse 'alpha)
+    ;;           (polar-canonical 'alpha))
+    ;;   (up 't 'x 'p)))
+    ;; (up t x p)
+
+    ;; |#
+
+    ;; #|
+    ;; ;;; It is clearly canonical.
+
+    ;; (print-expression
+    ;;  ((symplectic-transform? (polar-canonical 'alpha))
+    ;;   (up 't 'a 'I)))
+    ;; (matrix-by-rows (list 0 0) (list 0 0))
+    ;; |#
+
+    )
+  )
 
 (deftest poisson
   (let [a-state (H/->H-state 't
@@ -414,31 +930,29 @@
     ;; #|
 ;;; This is used to zero in on crossings in autonomous systems,
 ;;;  such as Henon-Heiles.
+    ))
 
-    ;; TODO this was commented out but can we keep it?
-    (define (refine-crossing sec-eps advance state)
-      (let lp ((state state))
-           (let ((x (g:ref state 1 0))
-                 (xd (g:ref state 2 0)))
-             (let ((zstate (advance state (- (/ x xd)))))
-               (if (< (abs (g:ref zstate 1 0))
-                      sec-eps)
-                 zstate
-                 (lp zstate))))))
+;; TODO this was commented out but can we keep it?
+#_
+(defn refine-crossing [sec-eps advance state]
+  (loop [[_ [x] [xd]] state]
+    (let [zstate (advance state (- (/ x xd)))]
+      (if (< (Math/abs (get-in zstate [1 0])) sec-eps)
+        zstate
+        (recur zstate)))))
 
-    (define (display-map window poincare-map x y n)
-      (plot-point window x y)
-      (if (fix:> n 0)
-        (poincare-map
-         x y
-         (lambda (nx ny)
-                 (display-map window poincare-map nx ny (fix:- n 1)))
-         (lambda ()
-                 (newline)
-                 (display "Illegal point: ")
-                 (write (list x y))))))
-    )
-  )
+#_
+(defn display-map [window poincare-map x y n]
+  (plot-point window x y)
+  (if (pos? n)
+    (poincare-map
+     x y
+     (fn [nx ny]
+       (display-map window poincare-map nx ny (fix:- n 1)))
+     (fn []
+       (newline)
+       (display "Illegal point: ")
+       (write (list x y))))))
 
 (deftest more-tests
   #_
@@ -718,11 +1232,18 @@
 
 (deftest iterated-map-test
   (let [fail (constantly false)
-        M (fn [x y cont fail] (if (> x 10) (fail) (cont (inc x) (dec y))))]
-    (is (= '(6 95) ((H/iterated-map M 5) 1 100 list fail)))
-    (is (= '(10 91) ((H/iterated-map M 9) 1 100 list fail)))
-    (is (= false ((H/iterated-map M 20) 1 100 list fail )))))
+        M (fn [x y cont fail]
+            (if (> x 10)
+              (fail)
+              (cont (inc x) (dec y))))]
+    (is (= [6 95]
+           ((H/iterated-map M 5) 1 100 vector fail)))
 
+    (is (= [10 91]
+           ((H/iterated-map M 9) 1 100 vector fail)))
+
+    (is (false?
+         ((H/iterated-map M 20) 1 100 vector fail)))))
 
 ;; Next tests come from hamiltonian.scm
 
@@ -737,8 +1258,8 @@
 ;; (show-expression
 ;;  ((Lagrangian->Hamiltonian
 ;;    (L-rectangular 'm
-;; 		              (literal-function 'V
-;; 				                            (-> (X Real Real) Real))))
+;;                  (literal-function 'V
+;;                                    (-> (X Real Real) Real))))
 ;;   (->H-state 't
 ;;              (coordinate-tuple 'x 'y)
 ;;              (momentum-tuple 'p_x 'p_y))))
@@ -796,20 +1317,20 @@
 ;;  (((Hamilton-equations
 ;;     (Lagrangian->Hamiltonian
 ;;      (L-central-polar 'm
-;; 		                  (lambda (r)
-;; 			                        (- (/ (* 'GM 'm) r))))))
+;;                      (lambda (r)
+;;                              (- (/ (* 'GM 'm) r))))))
 ;;    (coordinate-tuple (literal-function 'r)
-;; 		                 (literal-function 'phi))
+;;                     (literal-function 'phi))
 ;;    (momentum-tuple (literal-function 'p_r)
-;; 		               (literal-function 'p_phi)))
+;;                   (literal-function 'p_phi)))
 ;;   't))
 ;; (up 0
 ;;     (up (+ ((D r) t) (/ (* -1 (p_r t)) m))
-;; 	      (+ ((D phi) t) (/ (* -1 (p_phi t)) (* m (expt (r t) 2)))))
+;;        (+ ((D phi) t) (/ (* -1 (p_phi t)) (* m (expt (r t) 2)))))
 ;;     (down
 ;;      (+ ((D p_r) t)
-;; 	      (/ (* GM m) (expt (r t) 2))
-;; 	      (/ (* -1 (expt (p_phi t) 2)) (* m (expt (r t) 3))))
+;;        (/ (* GM m) (expt (r t) 2))
+;;        (/ (* -1 (expt (p_phi t) 2)) (* m (expt (r t) 3))))
 ;;      ((D p_phi) t)))
 
 ;; (define ((H-central-polar m V) state)
@@ -820,8 +1341,8 @@
 ;;           (pr ((component 0) p))
 ;;           (pphi ((component 1) p)))
 ;;       (+ (/ (+ (square pr)
-;; 	             (square (/ pphi r)))
-;; 	          (* 2 m))
+;;               (square (/ pphi r)))
+;;            (* 2 m))
 ;;          (V r)))))
 ;; |#
 
@@ -836,34 +1357,34 @@
 ;;  (((Hamilton-equations
 ;;     (Lagrangian->Hamiltonian (L-harmonic 'm 'k)))
 ;;    (coordinate-tuple (literal-function 'x_1)
-;; 		                 (literal-function 'x_2))
+;;                     (literal-function 'x_2))
 ;;    (momentum-tuple (literal-function 'p_1)
-;; 		               (literal-function 'p_2)))
+;;                   (literal-function 'p_2)))
 ;;   't))
 ;; (up 0
 ;;     (up (+ ((D x_1) t) (/ (* -1 (p_1 t)) m_1))
-;; 	      (+ ((D x_2) t) (/ (* -1 (p_2 t)) m_2)))
+;;        (+ ((D x_2) t) (/ (* -1 (p_2 t)) m_2)))
 ;;     (down (+ (* c (x_2 t)) (* k_1 (x_1 t)) ((D p_1) t))
-;; 	        (+ (* c (x_1 t)) (* k_2 (x_2 t)) ((D p_2) t))))
+;;          (+ (* c (x_1 t)) (* k_2 (x_2 t)) ((D p_2) t))))
 ;;
 ;; ;;; Continuing with our coupled harmonic oscillators
 ;; ;;;  we obtain the Hamiltonian:
 
 ;; (define ((L-coupled-harmonic m k) state)
 ;;   (let ((q (coordinate state))
-;; 	      (qdot (velocity state)))
+;;        (qdot (velocity state)))
 ;;     (- (* 1/2 qdot m qdot)
 ;;        (* 1/2 q k q))))
 
 ;; (show-expression
 ;;  ((Lagrangian->Hamiltonian
 ;;    (L-coupled-harmonic (down (down 'm_1 0)
-;; 			                       (down 0 'm_2))
-;; 		                   (down (down 'k_1 'c)
-;; 			                       (down 'c 'k_2))))
+;;                             (down 0 'm_2))
+;;                       (down (down 'k_1 'c)
+;;                             (down 'c 'k_2))))
 ;;   (->H-state 't
-;; 	           (coordinate-tuple 'x_1 'x_2)
-;; 	           (momentum-tuple 'p_1 'p_2))))
+;;             (coordinate-tuple 'x_1 'x_2)
+;;             (momentum-tuple 'p_1 'p_2))))
 ;; (+ (* c x_1 x_2)
 ;;    (* 1/2 k_1 (expt x_1 2))
 ;;    (* 1/2 k_2 (expt x_2 2))
@@ -874,13 +1395,13 @@
 ;;  (((Hamilton-equations
 ;;     (Lagrangian->Hamiltonian
 ;;      (L-coupled-harmonic (down (down 'm_1 0)
-;; 			                         (down 0 'm_2))
-;; 			                   (down (down 'k_1 'c)
-;; 			                         (down 'c 'k_2)))))
+;;                               (down 0 'm_2))
+;;                         (down (down 'k_1 'c)
+;;                               (down 'c 'k_2)))))
 ;;    (coordinate-tuple (literal-function 'x_1)
-;; 		                 (literal-function 'x_2))
+;;                     (literal-function 'x_2))
 ;;    (momentum-tuple (literal-function 'p_1)
-;; 		               (literal-function 'p_2)))
+;;                   (literal-function 'p_2)))
 ;;   't))
 ;; (up
 ;;  0
@@ -896,46 +1417,46 @@
 
 ;; (define ((L-two-particle m1 m2) local)
 ;;   (let ((x (coordinate local))
-;; 	      (v (velocity local))
-;; 	      (V (literal-function 'V (-> (X (^ Real 2) (^ Real 2)) Real))))
+;;        (v (velocity local))
+;;        (V (literal-function 'V (-> (X (^ Real 2) (^ Real 2)) Real))))
 ;;     (let ((x1 (ref x 0)) (x2 (ref x 1))
 ;;           (v1 (ref v 0)) (v2 (ref v 1)))
 ;;       (- (+ (* 1/2 m1 (square v1))
-;; 	          (* 1/2 m2 (square v2)))
-;; 	       (V x1 x2)))))
+;;            (* 1/2 m2 (square v2)))
+;;         (V x1 x2)))))
 
 ;; (show-expression
 ;;  (((Hamilton-equations
 ;;     (Lagrangian->Hamiltonian
 ;;      (L-two-particle 'm_1 'm_2)))
 ;;    (coordinate-tuple (coordinate-tuple (literal-function 'x_1)
-;; 				                               (literal-function 'y_1))
-;; 		                 (coordinate-tuple (literal-function 'x_2)
-;; 				                               (literal-function 'y_2)))
+;;                                       (literal-function 'y_1))
+;;                     (coordinate-tuple (literal-function 'x_2)
+;;                                       (literal-function 'y_2)))
 ;;    (momentum-tuple (momentum-tuple (literal-function 'p_x_1)
-;; 				                           (literal-function 'p_y_1))
-;; 		               (momentum-tuple (literal-function 'p_x_2)
-;; 				                           (literal-function 'p_y_2))))
+;;                                   (literal-function 'p_y_1))
+;;                   (momentum-tuple (literal-function 'p_x_2)
+;;                                   (literal-function 'p_y_2))))
 ;;   't))
 ;; (up 0
 ;;     (up (up (+ ((D x_1) t) (/ (* -1 (px_1 t)) m_1))
-;; 	          (+ ((D y_1) t) (/ (* -1 (py_1 t)) m_1)))
-;; 	      (up (+ ((D x_2) t) (/ (* -1 (px_2 t)) m_2))
-;; 	          (+ ((D y_2) t) (/ (* -1 (py_2 t)) m_2))))
+;;            (+ ((D y_1) t) (/ (* -1 (py_1 t)) m_1)))
+;;        (up (+ ((D x_2) t) (/ (* -1 (px_2 t)) m_2))
+;;            (+ ((D y_2) t) (/ (* -1 (py_2 t)) m_2))))
 ;;     (down (down
-;; 	         (+ ((D px_1) t)
-;; 	            (((partial 0 0) V)
-;; 	             (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
-;; 	         (+ ((D py_1) t)
-;; 	            (((partial 0 1) V)
-;; 	             (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))
-;; 	        (down
-;; 	         (+ ((D px_2) t)
-;; 	            (((partial 1 0) V)
-;; 	             (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
-;; 	         (+ ((D py_2) t)
-;; 	            (((partial 1 1) V)
-;; 	             (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))))
+;;           (+ ((D px_1) t)
+;;              (((partial 0 0) V)
+;;               (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
+;;           (+ ((D py_1) t)
+;;              (((partial 0 1) V)
+;;               (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))
+;;          (down
+;;           (+ ((D px_2) t)
+;;              (((partial 1 0) V)
+;;               (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t))))
+;;           (+ ((D py_2) t)
+;;              (((partial 1 1) V)
+;;               (up (x_1 t) (y_1 t)) (up (x_2 t) (y_2 t)))))))
 ;; |#
 ;;
 ;; #|
@@ -978,11 +1499,11 @@
 ;;     (Lagrangian->Hamiltonian
 ;;      (L-axisymmetric-top 'A 'C 'gMR)))
 ;;    (coordinate-tuple (literal-function 'theta)
-;; 		                 (literal-function 'phi)
-;; 		                 (literal-function 'psi))
+;;                     (literal-function 'phi)
+;;                     (literal-function 'psi))
 ;;    (momentum-tuple (literal-function 'p_theta)
-;; 		               (literal-function 'p_phi)
-;; 		               (literal-function 'p_psi)))
+;;                   (literal-function 'p_phi)
+;;                   (literal-function 'p_psi)))
 ;;   't))
 ;; (up
 ;;  0
@@ -1020,11 +1541,11 @@
 
 ;; (define (Poisson-bracket f g)
 ;;   (cond ((and (structure? f) (structure? g))
-;; 	       (s:map/r (lambda (fi)
-;; 		                      (s:map/r (lambda (gj)
-;; 			                                     (Poisson-bracket fi gj))
-;; 			                             g))
-;; 		              f)
+;;         (s:map/r (lambda (fi)
+;;                          (s:map/r (lambda (gj)
+;;                                           (Poisson-bracket fi gj))
+;;                                   g))
+;;                  f)
 ;;          #;(error "Poisson bracket of two structures" f g)
 ;;          )
 ;;         ((structure? f)

@@ -33,9 +33,9 @@
 ;; with components time, configuration, and derivatives.
 
 (defn ->L-state
-  "Given a time `t`, coordinate tuple `q`, velocity tuple `qdot` and any number of
-  additional higher-order derivative tuples, returns a 'Local tuple', ie, the
-  state expected by a Lagrangian."
+  "Given a time `t`, coordinate tuple (or scalar) `q`, velocity tuple (or scalar)
+  `qdot` and any number of additional higher-order derivative tuples (or
+  scalars), returns a 'Local tuple', ie, the state expected by a Lagrangian."
   [t q qdot & derivs]
   (apply up t q qdot derivs))
 

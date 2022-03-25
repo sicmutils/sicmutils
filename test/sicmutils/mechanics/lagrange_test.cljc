@@ -37,7 +37,7 @@
                 (doseq [->q [L/coordinate L/state->q
                              L/coordinates L/Q]]
                   (is (= q (->q state))
-                      "time lookup works correctly"))
+                      "coordinate lookup works correctly"))
 
                 (doseq [->v [L/velocity L/state->qdot
                              L/velocities L/Qdot]]

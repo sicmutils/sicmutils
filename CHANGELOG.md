@@ -2,6 +2,25 @@
 
 ## unreleased
 
+- #503 fleshes out `sicmutils.mechanics.hamilton`:
+
+  - New functions: `H-state?`, `compatible-H-state?`, `state->p`, `momenta`,
+    `P`, `literal-Hamiltonian-state`, `L-state->H-state`, `H-state->L-state`,
+    `H-state->matrix`, `matrix->H-state`, `make-Hamiltonian`, `D-phase-space`,
+    `Hamiltonian->Lagrangian-procedure`, `Hamiltonian->Lagrangian`,
+    `flow-derivative`, `flow-transform`, `standard-map-inverse`, `F->K`,
+    `J-func`, `T-func`, `canonical-H?`, `canonical-K?`,
+    `linear-function->multiplier`, `Phi`, `Phi*`, `qp-canonical?`,
+    `polar-canonical-inverse`, `two-particle-center-of-mass` ,
+    `two-particle-center-of-mass-canonical`, `transpose-function`,
+    `multiplicative-transpose`, `symplectic-two-form`, `canonical-transform?`,
+    `J-matrix`, `symplectic?`
+
+  - `F->CH` moves to `F->CT` (`F->CT` is now an alias)
+
+  - `Legendre-transform-fn` becomes `Legendre-transform-procedure` and gains
+    more correctness tests.
+
 - #506 tidies up the build by removing unneeded reader conditionals and
   replacing renames like `core-=` with a proper require of `clojure.core`.
 
