@@ -397,7 +397,6 @@
   (canonical? C H (f/compose H C)))
 
 (defn J-func [DHs]
-  {:pre [(compatible-H-state? DHs)]}
   (up 0 (nth DHs 2) (- (nth DHs 1))))
 
 (defn T-func [s]
@@ -448,7 +447,9 @@
           (J-func
            ((D (f/compose H C)) s))))))
 
-;; back to previous file:
+;; One particularly useful canonical transform is the Poincare transform, which
+;; is good for simplifying oscillators.
+
 (defn polar-canonical
   "p.327"
   [alpha]
