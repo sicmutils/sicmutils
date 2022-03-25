@@ -6,6 +6,19 @@
 
   - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}`
 
+  - `sicmutils.mechanics.rigid`:
+
+    - New functions `three-vector-components->antisymmetric`, `T-body`,
+      `L-body`, `L-space`, `Euler->omega`, `Euler->omega-body`, `T-body-Euler`
+      and alias `T-rigid-body` (this used to be its own function, impl now lives
+      in `T-body-Euler`), `L-body-Euler` and alias `Euler-state->L-body` (same
+      situation!), `L-space-Euler` and alias `Euler-state->L-space` (same
+      situation!), `quaternion-state->omega-body`,
+      `quaternion-state->omega-space`, `qw-state->L-body`, `qw-state->L-space`,
+      `T-quaternion-state`
+
+- #508 adds `sicmutils.mechanics.noether` namespace, with `Noether-integral`.
+
 - #502 begins the port of the remaining items in the scmutils `mechanics`
   package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
   which contains functions from many files in the original `mechanics` folder.
