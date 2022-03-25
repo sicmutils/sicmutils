@@ -5,9 +5,9 @@
 - #503:
 
   - adds `sicmutils.mechanics.lagrange/Lagrangian` for building function
-    signatures of Lagrangians
+    signatures of Lagrangians.
 
-  - adds `sicmutils.mechanics.time-evolution`
+  - adds the `sicmutils.mechanics.time-evolution` namespace
 
   - adds `sicmutils.mechanics.lagrange/L-axisymmetric-top`
 

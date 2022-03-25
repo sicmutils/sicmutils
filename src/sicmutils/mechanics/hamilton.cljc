@@ -245,10 +245,10 @@
   (o/make-operator Lagrangian->Hamiltonian-procedure
                    'Lagrangian->Hamiltonian))
 
-(defn ^:no-doc Hamiltonian->Lagrangian-procedure [the-Hamiltonian]
+(defn ^:no-doc Hamiltonian->Lagrangian-procedure [Hamiltonian]
   (fn [[t q qdot]]
     (letfn [(H [p]
-              (the-Hamiltonian
+              (Hamiltonian
                (->H-state t q p)))]
       ((Legendre-transform-procedure H) qdot))))
 
@@ -349,8 +349,8 @@
             (recur x' y' (dec i))
             (fail)))))))
 
-;; TODO move to point-transformation or something, from point-transformation.scm
-
+;; ## Point Transformations
+;;
 ;; Makes a canonical point transformation from a time-invariant coordinate
 ;; transformation T(q)
 
@@ -381,9 +381,7 @@
            (((partial 1) F) H-state))
           (((partial 0) F) H-state)))))
 
-;; do not correspond to 1ed.
-
-;; TODO NOW we are cribbing from canonical.scm
+;; ## Canonical Transformations
 
 (defn canonical?
   "p.324"
@@ -435,7 +433,10 @@
                    (Phi* ((D C) s))))
      (s/compatible-shape s))))
 
-;; from time-varying.scm
+;; Time-Varying code
+;;
+;; Originally from time-varying.scm.
+
 (defn qp-canonical?
   "Tests that K yields a canonical transformation if the C is symplectic. (The
   qp-canonical? code is really a symplectic test without factoring out the
@@ -493,7 +494,9 @@
     (linear-function->multiplier
      (transpose-function A) s)))
 
-;; TODO now we are onto symplectic.scm
+;; Symplectic
+;;
+;; Originally from symplectic.scm.
 
 (defn symplectic-two-form [zeta1 zeta2]
   (- (* (momenta zeta2) (l/coordinates zeta1))

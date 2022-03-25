@@ -10,7 +10,6 @@
                      literal-function]
              :include-macros true]
             [sicmutils.mechanics.hamilton :as H]
-            [sicmutils.mechanics.time-evolution :as te]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
