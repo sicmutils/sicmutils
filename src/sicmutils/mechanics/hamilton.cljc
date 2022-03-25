@@ -202,34 +202,38 @@
 
 ;; From GJS: This ugly version tests for correctness of the result.
 
-(defn ^:no-doc Legendre-transform-procedure [F]
-  (let [w-of-v (D F)]
-    (letfn [(putative-G [w]
-              (let [z (s/compatible-zero w)
-                    M ((D w-of-v) z)
-                    b (w-of-v z)]
-                (if (v/zero?
-                     (g/simplify
-                      (g/determinant M)))
-                  (throw
-                   (ex-info "Legendre Transform Failure: determinant=0"
-                            {:F F :w w}))
-                  (let [v (g/solve-linear-left M (- w b))]
-                    (- (* w v) (F v))))))]
-      (memoize
-       (fn G [w]
-         (let [thing (s/typical-object w)]
-           (if (v/= (g/simplify
-                     (w-of-v ((D putative-G) thing)))
-                    (g/simplify thing))
-             (putative-G w)
-             (throw
-              (ex-info "Legendre Transform Failure: not quadratic"
-                       {:F F :w w})))))))))
+;; SO I am seeing that there are a ton of calls here, and they take a really
+;; long time down below.
+(do (defn ^:no-doc Legendre-transform-procedure [F]
+      (let [w-of-v (D F)]
+        (letfn [(putative-G [w]
+                  (let [z (s/compatible-zero w)
+                        M ((D w-of-v) z)
+                        b (w-of-v z)]
+                    (prn "up here")
+                    (if (time (v/zero?
+                               (g/simplify
+                                (g/determinant M))))
+                      (throw
+                       (ex-info "Legendre Transform Failure: determinant=0"
+                                {:F F :w w}))
+                      (let [v (g/solve-linear-left M (- w b))]
+                        (- (* w v) (F v))))))]
+          (fn G [w]
+            (let [thing (s/typical-object w)]
+              (prn "down here")
+              (if (time (v/= (g/simplify
+                              ((f/compose w-of-v (D putative-G))
+                               thing))
+                             (g/simplify thing)))
+                (putative-G w)
+                (throw
+                 (ex-info "Legendre Transform Failure: not quadratic"
+                          {:F F :w w}))))))))
 
-(def Legendre-transform
-  (o/make-operator Legendre-transform-procedure
-                   'Legendre-transform))
+    (def Legendre-transform
+      (o/make-operator Legendre-transform-procedure
+                       'Legendre-transform)))
 
 ;; Notice that Lagrangians and Hamiltonians are symmetrical with
 ;; respect to the Legendre transform.

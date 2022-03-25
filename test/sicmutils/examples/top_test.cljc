@@ -10,7 +10,7 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(deftest Top
+(deftest top-test
   (let [state (up 't
                   (up 'theta 'phi 'psi)
                   (up 'thetadot 'phidot 'psidot))]
@@ -78,15 +78,12 @@
                   (* A (expt (sin (theta t)) 3)))
                ((D p_phi) t)
                ((D p_psi) t)))
-         (e/freeze
-          (e/simplify
-           (((e/Hamilton-equations
-              (e/Lagrangian->Hamiltonian
-               (t/L-axisymmetric 'A 'C 'gMR)))
-             (e/coordinate-tuple (literal-function 'theta)
-                                 (literal-function 'phi)
-                                 (literal-function 'psi))
-             (e/momentum-tuple (literal-function 'p_theta)
-                               (literal-function 'p_phi)
-                               (literal-function 'p_psi)))
-            't))))))
+         (e/with-literal-functions [theta phi psi p_theta p_phi p_psi]
+           (e/freeze
+            (e/simplify
+             (((e/Hamilton-equations
+                (e/Lagrangian->Hamiltonian
+                 (t/L-axisymmetric 'A 'C 'gMR)))
+               (e/coordinate-tuple theta phi psi)
+               (e/momentum-tuple p_theta p_phi p_psi))
+              't)))))))
