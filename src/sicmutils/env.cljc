@@ -20,15 +20,13 @@
   ```clojure
   (require '[sicmutils.env :as e :refer :all])
   ```"
-  (:refer-clojure :rename {ref core-ref
-                           partial core-partial
-                           compare core-compare
-                           = core=}
-                  :exclude [+ - * / zero? compare divide
-                            numerator denominator
-                            infinite? abs
-                            #?@(:cljs [= partial])])
-  (:require #?(:clj [potemkin :refer [import-def import-vars]])
+  (:refer-clojure
+   :exclude [+ - * / zero? compare divide
+             numerator denominator
+             infinite? abs
+             ref partial =])
+  (:require [clojure.core :as core]
+            #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
             [sicmutils.algebra.fold]
@@ -101,7 +99,7 @@
   ([f] `(af/literal-function ~f))
   ([f sicm-signature]
    (if (and (list? sicm-signature)
-            (core= '-> (first sicm-signature)))
+            (core/= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
   ([f domain range]
@@ -122,7 +120,7 @@
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
   elsewhere."
-  ([a] #?(:clj (core-ref a) :cljs a))
+  ([a] #?(:clj (core/ref a) :cljs a))
   ([a & ks]
    (cond (f/function? a) (f/compose #(apply ref % ks) a)
          (o/operator? a) (o/make-operator
@@ -134,7 +132,7 @@
                  (if (matrix/matrix? a)
                    (matrix/get-in a ks)
                    (get-in a ks))
-                 #?(:clj (apply core-ref a ks)
+                 #?(:clj (apply core/ref a ks)
                     :cljs (get-in a ks))))))
 
 (defn component
@@ -154,7 +152,7 @@
   [& selectors]
   (if (every? integer? selectors)
     (apply d/partial selectors)
-    (apply core-partial selectors)))
+    (apply core/partial selectors)))
 
 ;; Constants
 
