@@ -30,6 +30,8 @@
     - `Legendre-transform-fn` becomes `Legendre-transform-procedure` and gains
       more correctness tests.
 
+- #508 adds `sicmutils.mechanics.noether` namespace, with `Noether-integral`.
+
 - #506 tidies up the build by removing unneeded reader conditionals and
   replacing renames like `core-=` with a proper require of `clojure.core`.
 
