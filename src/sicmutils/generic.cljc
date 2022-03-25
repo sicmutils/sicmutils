@@ -10,8 +10,7 @@
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
   (:refer-clojure :exclude [/ + - * divide infinite? abs])
   (:require [sicmutils.util :as u]
-            [sicmutils.util.def :refer [defgeneric]
-             #?@(:cljs [:include-macros true])]
+            [sicmutils.util.def :refer [defgeneric] :include-macros true]
             [sicmutils.value :as v]))
 
 ;; ## Generic Numerics

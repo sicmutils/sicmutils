@@ -2,6 +2,9 @@
 
 ## unreleased
 
+- #506 tidies up the build by removing unneeded reader conditionals and
+  replacing renames like `core-=` with a proper require of `clojure.core`.
+
 - #502 begins the port of the remaining items in the scmutils `mechanics`
   package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
   which contains functions from many files in the original `mechanics` folder.

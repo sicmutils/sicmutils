@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.quadrature.substitute-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.numerical.quadrature.romberg :as qr]
             [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.substitute :as qs]

@@ -7,7 +7,7 @@
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.connection :as conn]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.curvature :as curv]
             [sicmutils.calculus.manifold :as m]

@@ -6,7 +6,7 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [same :refer [ish?]]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]

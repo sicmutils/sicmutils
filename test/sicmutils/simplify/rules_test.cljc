@@ -3,7 +3,7 @@
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
             [pattern.rule :as pr :refer [rule-simplifier template]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.numbers]

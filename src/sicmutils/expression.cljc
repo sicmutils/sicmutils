@@ -6,10 +6,9 @@
 
   Also included is an implementation of a [[Literal]] type that forms the basis
   for [[sicmutils.abstract.number/literal-number]]."
-  (:refer-clojure :rename {compare core-compare
-                           sort core-sort}
-                  :exclude [sorted? #?@(:cljs [compare sort])])
-  (:require [clojure.pprint :as pp]
+  (:refer-clojure :exclude [sorted? compare sort])
+  (:require [clojure.core :as core]
+            [clojure.pprint :as pp]
             [clojure.walk :as w]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -237,23 +236,23 @@
         rstr?    (string? r)
         l-empty? (and lseq? (empty? l))
         r-empty? (and rseq? (empty? r))
-        raw-comp (delay (core-compare (hash l) (hash r)))]
+        raw-comp (delay (core/compare (hash l) (hash r)))]
 
     (cond (and l-empty? r-empty?) 0
           l-empty?                -1
           r-empty?                1
-          (v/real? l) (cond (v/real? r) (core-compare l r)
+          (v/real? l) (cond (v/real? r) (core/compare l r)
                             (or rsym? rstr? rseq?)
                             -1
                             :else @raw-comp)
           (v/real? r) 1
 
-          (symbol? l) (cond rsym? (core-compare l r)
+          (symbol? l) (cond rsym? (core/compare l r)
                             (or rstr? rseq?) -1
                             :else @raw-comp)
           rsym? 1
 
-          (string? l) (cond rstr? (core-compare l r)
+          (string? l) (cond rstr? (core/compare l r)
                             rseq? -1
                             :else @raw-comp)
           rstr? 1
@@ -281,7 +280,7 @@
 
 (defn sort [xs]
   (if (sequential? xs)
-    (core-sort compare xs)
+    (core/sort compare xs)
     xs))
 
 ;; ## Printing

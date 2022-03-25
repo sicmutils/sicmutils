@@ -4,7 +4,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.abstract.number :as an]
             [sicmutils.calculus.derivative :as deriv :refer [D]]
             [sicmutils.complex :as c]

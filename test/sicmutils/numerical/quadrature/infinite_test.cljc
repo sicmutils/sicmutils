@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.quadrature.infinite-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? zeroish?]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? zeroish?] :include-macros true]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
             [sicmutils.numerical.quadrature.infinite :as qi]))

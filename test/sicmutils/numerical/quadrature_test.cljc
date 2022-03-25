@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.quadrature-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? zeroish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? zeroish? with-comparator] :include-macros true]
             [sicmutils.numerical.quadrature :as q]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.common :as qc]

@@ -2,13 +2,9 @@
 
 (ns sicmutils.util
   "Shared utilities between clojure and clojurescript."
-  (:refer-clojure :rename {bigint core-bigint
-                           biginteger core-biginteger
-                           int core-int
-                           long core-long
-                           double core-double}
-                  #?@(:cljs [:exclude [bigint double long int uuid]]))
-  (:require #?(:clj [clojure.math.numeric-tower :as nt])
+  (:refer-clojure :exclude [bigint biginteger double long int uuid])
+  (:require #?(:clj [clojure.core :as core])
+            #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long))
   #?(:clj
@@ -54,7 +50,7 @@
      :cljs (.test re s)))
 
 (defn bigint [x]
-  #?(:clj (core-bigint x)
+  #?(:clj (core/bigint x)
      :cljs (js/BigInt x)))
 
 (defn ^boolean bigint?
@@ -67,19 +63,19 @@
   `(bigint ~x))
 
 (defn biginteger [x]
-  #?(:clj (core-biginteger x)
+  #?(:clj (core/biginteger x)
      :cljs (js/BigInt x)))
 
 (defn int [x]
-  #?(:clj (core-int x)
+  #?(:clj (core/int x)
      :cljs (goog.math.Integer/fromNumber x)))
 
 (defn long [x]
-  #?(:clj (core-long x)
+  #?(:clj (core/long x)
      :cljs (goog.math.Long/fromNumber x)))
 
 (defn double [x]
-  #?(:clj (core-double x)
+  #?(:clj (core/double x)
      :cljs (if (number? x) x (js/Number x))))
 
 (defn unsupported [s]

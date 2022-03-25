@@ -8,12 +8,9 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :rename {zero? core-zero?
-                           number? core-number?
-                           = core=
-                           compare core-compare}
-                  #?@(:cljs [:exclude [zero? number? = compare]]))
-  (:require [sicmutils.util :as u]
+  (:refer-clojure :exclude [zero? number? = compare])
+  (:require [clojure.core :as core]
+            [sicmutils.util :as u]
             #?@(:cljs [["complex.js" :as Complex]
                        ["fraction.js/bigfraction.js" :as Fraction]
                        [goog.array :as garray]
@@ -84,7 +81,7 @@
   [x]
   #?(:clj (integer? x)
      :cljs (or (int? x)
-               (core= "bigint" (goog/typeOf x)))))
+               (core/= "bigint" (goog/typeOf x)))))
 
 (defn real?
   "Returns true if `x` is either an integral number or a floating point number (ie,
@@ -94,7 +91,7 @@
      :cljs (or (cljs.core/number? x)
                (instance? goog.math.Integer x)
                (instance? goog.math.Long x)
-               (core= "bigint" (goog/typeOf x))
+               (core/= "bigint" (goog/typeOf x))
                (instance? Fraction x))))
 
 (defn number?
@@ -110,7 +107,7 @@
      (or (instance? Number x)
          (instance? Complex x))
      :cljs (or (cljs.core/number? x)
-               (core= "bigint" (goog/typeOf x))
+               (core/= "bigint" (goog/typeOf x))
                (instance? Fraction x)
                (instance? goog.math.Integer x)
                (instance? goog.math.Long x)
@@ -166,7 +163,7 @@
 
 (extend-protocol Value
   #?(:clj Number :cljs number)
-  (zero? [x] (core-zero? x))
+  (zero? [x] (core/zero? x))
   (one? [x] (== 1 x))
   (identity? [x] (== 1 x))
   (zero-like [_] 0)
@@ -193,7 +190,7 @@
 
   #?@(:clj
       [java.lang.Double
-       (zero? [x] (core-zero? x))
+       (zero? [x] (core/zero? x))
        (one? [x] (== 1 x))
        (identity? [x] (== 1 x))
        (zero-like [_] 0.0)
@@ -204,7 +201,7 @@
        (kind [x] (type x))
 
        java.lang.Float
-       (zero? [x] (core-zero? x))
+       (zero? [x] (core/zero? x))
        (one? [x] (== 1 x))
        (identity? [x] (== 1 x))
        (zero-like [_] 0.0)
@@ -273,7 +270,7 @@
   (if (or (isa? (kind l) ::number)
           (isa? (kind r) ::number))
     false
-    (core= l r)))
+    (core/= l r)))
 
 #?(:cljs
    ;; These definitions are required for the protocol implementation below.
@@ -289,8 +286,8 @@
                           [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
-       (defmethod = [from to] [l r] (core= (f l) r))
-       (defmethod = [to from] [l r] (core= l (f r))))
+       (defmethod = [from to] [l r] (core/= (f l) r))
+       (defmethod = [to from] [l r] (core/= l (f r))))
 
      (defmethod = [goog.math.Long goog.math.Long]
        [^goog.math.Long l ^goog.math.Long r]
@@ -303,19 +300,19 @@
      (extend-protocol IEquiv
        number
        (-equiv [this other]
-         (cond (core-number? other) (identical? this other)
+         (cond (core/number? other) (identical? this other)
                (numerical? other)   (= this (.valueOf other))
                :else false))
 
        goog.math.Integer
        (-equiv [this other]
-         (if (core= goog.math.Integer (type other))
+         (if (core/= goog.math.Integer (type other))
            (.equals this other)
            (= this (.valueOf other))))
 
        goog.math.Long
        (-equiv [this other]
-         (if (core= goog.math.Long (type other))
+         (if (core/= goog.math.Long (type other))
            (.equals this other)
            (= this (.valueOf other)))))))
 
@@ -412,8 +409,8 @@
 
        goog.math.Integer
        (zero? [x] (.isZero x))
-       (one? [x] (core= (.-ONE goog.math.Integer) x))
-       (identity? [x] (core= (.-ONE goog.math.Integer) x))
+       (one? [x] (core/= (.-ONE goog.math.Integer) x))
+       (identity? [x] (core/= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
        (identity-like [_] (.-ONE goog.math.Integer))
@@ -423,8 +420,8 @@
 
        goog.math.Long
        (zero? [x] (.isZero x))
-       (one? [x] (core= (goog.math.Long/getOne) x))
-       (identity? [x] (core= (goog.math.Long/getOne) x))
+       (one? [x] (core/= (goog.math.Long/getOne) x))
+       (identity? [x] (core/= (goog.math.Long/getOne) x))
        (zero-like [_] (goog.math.Long/getZero))
        (one-like [_] (goog.math.Long/getOne))
        (identity-like [_] (goog.math.Long/getOne))
@@ -447,11 +444,11 @@
   compares numbers and collections in a type-independent manner. x
   must implement Comparable"
      [x y]
-     (if (core-number? x)
-       (if (core-number? y)
-         (core-compare x y)
-         (- (core-compare y x)))
-       (core-compare x y)))
+     (if (core/number? x)
+       (if (core/number? y)
+         (core/compare x y)
+         (- (core/compare y x)))
+       (core/compare x y)))
    :cljs
    (defn ^number compare
      "Comparator. Clone of [[cljs.core/compare]] that works with the expanded
@@ -466,7 +463,7 @@
        (identical? x y) 0
        (nil? x)         -1
        (nil? y)         1
-       (core-number? x) (let [yv (.valueOf y)]
+       (core/number? x) (let [yv (.valueOf y)]
                           (if (real? yv)
                             (garray/defaultCompare x yv)
                             (throw (js/Error. (str "Cannot compare " x " to " y)))))
@@ -486,7 +483,7 @@
 
 (def machine-epsilon
   (loop [e 1.0]
-    (if (core= 1.0 (+ e 1.0))
+    (if (core/= 1.0 (+ e 1.0))
       (* e 2.0)
       (recur (/ e 2.0)))))
 

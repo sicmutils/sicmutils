@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.minimize-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.numerical.minimize :as m]
             [sicmutils.value :as v]))
 

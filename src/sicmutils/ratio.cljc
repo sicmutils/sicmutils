@@ -9,12 +9,9 @@
 
   For other numeric extensions, see [[sicmutils.numbers]]
   and [[sicmutils.complex]]."
-  #?(:clj
-     (:refer-clojure :rename {rationalize core-rationalize
-                              ratio? core-ratio?
-                              denominator core-denominator
-                              numerator core-numerator}))
-  (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+  (:refer-clojure :exclude [ratio? numerator denominator rationalize])
+  (:require #?(:clj [clojure.core :as core])
+            #?(:clj [clojure.edn] :cljs [cljs.reader])
             #?(:cljs [goog.array :as garray])
             #?(:cljs [goog.object :as obj])
             #?(:cljs [sicmutils.complex :as c])
@@ -30,7 +27,7 @@
 (derive ratiotype ::v/real)
 
 (def ratio?
-  #?(:clj core-ratio?
+  #?(:clj core/ratio?
      :cljs (fn [r] (instance? Fraction r))))
 
 (defprotocol IRational
@@ -44,8 +41,8 @@
 
   #?@(:clj
       [Ratio
-       (numerator [r] (core-numerator r))
-       (denominator [r] (core-denominator r))]
+       (numerator [r] (core/numerator r))
+       (denominator [r] (core/denominator r))]
 
       :cljs
       [Fraction
@@ -70,12 +67,12 @@
    #?(:cljs (if (v/integral? x)
               x
               (Fraction. x))
-      :clj (core-rationalize x)))
+      :clj (core/rationalize x)))
   ([n d]
    #?(:cljs (if (v/one? d)
               n
               (promote (Fraction. n d)))
-      :clj (core-rationalize (/ n d)))))
+      :clj (core/rationalize (/ n d)))))
 
 (def ^:private ratio-pattern #"([-+]?[0-9]+)/([0-9]+)")
 
@@ -200,20 +197,20 @@
 #?(:clj
    (do
      (defmethod g/gcd [Ratio ::v/integral] [a b]
-       (g/div (.gcd (core-numerator a)
+       (g/div (.gcd (core/numerator a)
                     (biginteger b))
-              (core-denominator a)))
+              (core/denominator a)))
 
      (defmethod g/gcd [::v/integral Ratio] [a b]
        (g/div (.gcd (biginteger a)
-                    (core-numerator b))
-              (core-denominator b)))
+                    (core/numerator b))
+              (core/denominator b)))
 
      (defmethod g/gcd [Ratio Ratio] [a b]
-       (g/div (.gcd (core-numerator a)
-                    (core-numerator b))
-              (g/lcm (core-denominator a)
-                     (core-denominator b))))
+       (g/div (.gcd (core/numerator a)
+                    (core/numerator b))
+              (g/lcm (core/denominator a)
+                     (core/denominator b))))
 
      (defmethod g/infinite? [Ratio] [_] false)
 

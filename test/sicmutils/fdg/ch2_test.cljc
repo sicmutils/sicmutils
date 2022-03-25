@@ -11,7 +11,7 @@
                                          point chart
                                          S2-spherical S2-Riemann
                                          define-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

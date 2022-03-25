@@ -5,7 +5,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [-]]

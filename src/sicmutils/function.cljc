@@ -7,12 +7,9 @@
   See [the `Function`
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
   for a discussion of generic function arithmetic."
-  (:refer-clojure :rename {get core-get
-                           get-in core-get-in
-                           memoize core-memoize}
-                  #?@(:cljs [:exclude [get get-in memoize]]))
-  (:require [clojure.core.match :refer [match]
-             #?@(:cljs [:include-macros true])]
+  (:refer-clojure :exclude [get get-in memoize])
+  (:require [clojure.core :as core]
+            [clojure.core.match :refer [match] :include-macros true]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -89,7 +86,7 @@
         m (if (:arity m)
             m
             (assoc m :arity (arity f)))]
-    (with-meta (core-memoize f)
+    (with-meta (core/memoize f)
       m)))
 
 (defn get
@@ -105,11 +102,11 @@
   ([f k]
    (if (function? f)
      (compose #(get % k) f)
-     (core-get f k)))
+     (core/get f k)))
   ([f k not-found]
    (if (function? f)
      (compose #(get % k not-found) f)
-     (core-get f k not-found))))
+     (core/get f k not-found))))
 
 (defn get-in
   "For non-functions, acts like [[clojure.core/get-in]]. For function
@@ -124,11 +121,11 @@
   ([f ks]
    (if (function? f)
      (compose #(get-in % ks) f)
-     (core-get-in f ks)))
+     (core/get-in f ks)))
   ([f ks not-found]
    (if (function? f)
      (compose #(get-in % ks not-found) f)
-     (core-get-in f ks not-found))))
+     (core/get-in f ks not-found))))
 
 (defn- zero-like [f]
   (let [meta {:arity (arity f)
@@ -195,7 +192,7 @@
   (freeze [f]
     (if-let [m (get-method f [Keyword])]
       (m :name)
-      (core-get @v/object-name-map f f)))
+      (core/get @v/object-name-map f f)))
   (kind [_] ::v/function)
 
   #?(:clj AFunction :cljs function)
@@ -206,7 +203,7 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (freeze [f] (core-get
+  (freeze [f] (core/get
                @v/object-name-map
                f #?(:clj (:name (meta f) f)
                     :cljs f)))
@@ -220,7 +217,7 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (freeze [f] (core-get @v/object-name-map @f f))
+  (freeze [f] (core/get @v/object-name-map @f f))
   (kind [_] ::v/function)
 
   #?@(:cljs
@@ -232,7 +229,7 @@
        (one-like [f] (one-like f))
        (identity-like [f] (identity-like f))
        (exact? [f] (compose v/exact? f))
-       (freeze [f] (core-get
+       (freeze [f] (core/get
                     @v/object-name-map f (:name (.-meta f) f)))
        (kind [_] ::v/function)]))
 
@@ -351,7 +348,7 @@
   functions is a bit complicated. It involves reflection, so the results are
   definitely worth memoizing."}
   reflect-on-arity
-  (core-memoize
+  (core/memoize
    #?(:cljs js-arity :clj jvm-arity)))
 
 (def ^{:dynamic true

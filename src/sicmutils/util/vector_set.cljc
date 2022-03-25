@@ -3,9 +3,9 @@
 (ns sicmutils.util.vector-set
   "Contains an implementation and API for an 'ordered set' data structure backed
   by a persistent vector."
-  (:refer-clojure :rename {conj core-conj}
-                  :exclude [contains? disj #?(:cljs conj)])
-  (:require [sicmutils.util :as u]))
+  (:refer-clojure :exclude [contains? disj conj])
+  (:require [clojure.core :as core]
+            [sicmutils.util :as u]))
 
 (def empty-set [])
 
@@ -102,7 +102,7 @@
   [vset x]
   (cond (empty? vset)      [x]
         (< x (nth vset 0)) (into [x] vset)
-        (> x (peek vset))  (core-conj vset x)
+        (> x (peek vset))  (core/conj vset x)
         :else
         (loop [i (long 0)
                r (transient [])]

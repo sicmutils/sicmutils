@@ -11,7 +11,7 @@
                                          R1-rect R2-rect R3-rect
                                          S2-spherical
                                          let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

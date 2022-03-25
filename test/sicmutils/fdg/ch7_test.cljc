@@ -3,8 +3,7 @@
 (ns sicmutils.fdg.ch7-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.calculus.curvature-test :refer [S2-Christoffel]]
             [sicmutils.env :as e :refer [+ - * / zero?
                                          D d
@@ -13,7 +12,7 @@
                                          R2-rect R2-polar R3-rect
                                          R1-rect S2-spherical
                                          let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))

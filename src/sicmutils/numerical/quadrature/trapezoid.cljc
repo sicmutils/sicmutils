@@ -4,8 +4,7 @@
   "Trapezoid method."
   (:require [sicmutils.abstract.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.numerical.quadrature.common :as qc
-             #?@(:cljs [:include-macros true])]
+            [sicmutils.numerical.quadrature.common :as qc :include-macros true]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util :as u]
