@@ -24,10 +24,9 @@
   unrestricted number if n is not given).
 
   Useful for constructing Hamiltonian literal functions."
-  ([] '(-> (UP Real (UP* Real) (DOWN* Real)) Real))
-  ([n]
-   (r/template
-    (-> (UP Real (UP* Real ~n) (DOWN* Real ~n)) Real))))
+  [n]
+  (r/template
+   (-> (UP Real (UP* Real ~n) (DOWN* Real ~n)) Real)))
 
 (defn ->H-state
   "Given a time `t`, coordinate tuple (or scalar) `q` and momentum tuple (or
@@ -122,9 +121,9 @@
    (s/compatible-shape s) s 1))
 
 (defn matrix->H-state [m s]
-  (assert (= (matrix/num-cols m) 1))
-  (assert (and (odd? (matrix/num-rows m))
-               (> (matrix/num-rows m) 2)))
+  {:pre [(= (matrix/num-cols m) 1)
+         (odd? (matrix/num-rows m))
+         (> (matrix/num-rows m) 2)]}
   (matrix/m->s
    (s/compatible-shape s) m 1))
 
@@ -289,11 +288,11 @@
   "the flow derivative generalizes the Lie derivative to allow for time dependent
   H and F --- computes the 'time' derivative of F along the flow specified by H"
   [H]
-  (o/make-operator
-   (fn [F]
-     (+ ((partial 0) F)
-        (Poisson-bracket F H)))
-   (list 'flow-derivative H)))
+  (-> (fn [F]
+        (+ ((partial 0) F)
+           (Poisson-bracket F H)))
+      (o/make-operator
+       (list 'flow-derivative H))))
 
 (defmethod g/Lie-derivative [::v/function] [f]
   (Lie-derivative f))
@@ -302,16 +301,16 @@
   "p. 428, the Lie transform is just the time-advance operator using the Lie
   derivative (see Hamiltonian.scm)."
   [H t]
-  (o/make-operator
-   (g/exp (* t (g/Lie-derivative H)))
-   `(~'Lie-transform ~H ~t)))
+  (-> (g/exp (* t (g/Lie-derivative H)))
+      (o/make-operator
+       `(~'Lie-transform ~H ~t))))
 
 (defn flow-transform
   "The generalization of Lie-transform to include time dependence."
   [H delta-t]
-  (o/make-operator
-   (g/exp (* delta-t (flow-derivative H)))
-   `(~'flow-transform ~H ~delta-t)))
+  (-> (g/exp (* delta-t (flow-derivative H)))
+      (o/make-operator
+       `(~'flow-transform ~H ~delta-t))))
 
 (defn standard-map [K]
   (let [pv (v/principal-value v/twopi)]

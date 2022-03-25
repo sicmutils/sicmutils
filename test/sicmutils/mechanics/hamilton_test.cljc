@@ -31,6 +31,10 @@
               (is (H/H-state? state)
                   "constructs to a proper H-state.")
 
+              (is (H/compatible-H-state? (g/transpose state))
+                  "transposing inner and outer gets you something compatible for
+                  contraction.")
+
               (is (= [q p] (H/state->qp state))
                   "state->qp works")
 
@@ -43,6 +47,14 @@
               (doseq [->p [H/momentum H/state->p H/momenta H/P]]
                 (is (= p (->p state))
                     "momentum lookup works correctly"))))
+
+  (testing "Hamiltonian type sig"
+    (let [state (H/literal-Hamiltonian-state 4)]
+      (is (= (list 'f (v/freeze state))
+             (v/freeze
+              ((f/literal-function 'f (H/Hamiltonian 4))
+               state)))
+          "Applying the state passes the type check.")))
 
   (testing "H-state?"
     (is (H/H-state?
@@ -97,10 +109,6 @@
         "round tripping from matrix to H-state and back")))
 
 (deftest hamiltonian-tests
-  (testing "D-phase-space"
-    ;; TODO
-    )
-
   (testing "H-rectangular"
     (is (= '(up 0
                 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
@@ -113,15 +121,7 @@
                  (H/H-rectangular 'm V))
                 (L/coordinate-tuple x y)
                 (L/momentum-tuple p_x p_y))
-               't))))))
-
-  (testing "H-central"
-    ;; TODO
-    )
-
-  (testing "H-central-polar"
-    ;; TODO
-    ))
+               't)))))))
 
 (deftest legendre-xform-tests
   (testing "Legendre-transform"
@@ -165,7 +165,17 @@
              (simplify
               ((H/Lagrangian->Hamiltonian
                 (L/L-rectangular 'm V))
-               (up 't (up 'x 'y) (down 'p_x 'p_y)))))))))
+               (up 't (up 'x 'y) (down 'p_x 'p_y))))))
+
+      (is (= '(+ (* (/ 1 2) m (expt v_x 2))
+                 (* (/ 1 2) m (expt v_y 2))
+                 (* -1 (V x y)))
+             (simplify
+              ((H/Hamiltonian->Lagrangian
+                (H/Lagrangian->Hamiltonian
+                 (L/L-rectangular 'm V)))
+               (up 't (up 'x 'y) (up 'v_x 'v_y)))))
+          "round tripping a Lagrangian to Hamiltonian and back"))))
 
 (deftest L<->H-tests
   (is (= '(/ (+ (* m (V x y))
