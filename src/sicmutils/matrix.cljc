@@ -1084,6 +1084,22 @@
                        :let [entry (core/get-in m [i j])]]
                    (v/zero? entry))))))
 
+(defn symmetric?
+  "Returns true if the supplied matrix `M` is equal to its own transpose (ie,
+  symmetric), false otherwise."
+  [M]
+  (v/zero?
+   (g/simplify
+    (g/sub (transpose M) M))))
+
+(defn antisymmetric?
+  "Returns true if the supplied matrix `M` is equal to the negation of its own
+  transpose (ie, antisymmetric), false otherwise."
+  [M]
+  (v/zero?
+   (g/simplify
+    (g/add (transpose M) M))))
+
 (defn characteristic-polynomial
   "Returns the [characteristic
   polynomial](https://en.wikipedia.org/wiki/Characteristic_polynomial) of the

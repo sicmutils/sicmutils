@@ -2,6 +2,10 @@
 
 ## unreleased
 
+- new PR:
+
+  - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}`
+
 - #502 begins the port of the remaining items in the scmutils `mechanics`
   package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
   which contains functions from many files in the original `mechanics` folder.
