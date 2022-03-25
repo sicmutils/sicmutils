@@ -131,11 +131,11 @@
 (defn make-Hamiltonian [kinetic-energy potential-energy]
   (+ kinetic-energy potential-energy))
 
-(defn Hamiltonian->state-derivative [Hamiltonian]
+(defn Hamiltonian->state-derivative [H]
   (fn [H-state]
     (->H-state 1
-               (((partial 2) Hamiltonian) H-state)
-               (- (((partial 1) Hamiltonian) H-state)))))
+               (((partial 2) H) H-state)
+               (- (((partial 1) H) H-state)))))
 
 (def ^{:doc "Alias for [[Hamiltonian->state-derivative]], for compatibility with
   1st edition of SICM."}
@@ -159,9 +159,7 @@
 ;; Hamiltonian is an example of an H-function: an H-function takes 2 vector
 ;; arguments and a scalar argument (t, Q, P). It produces a scalar result.
 
-(defn H-rectangular
-  "Returns a function of H-state..."
-  [m V]
+(defn H-rectangular [m V]
   (fn [[_ q p]]
     (make-Hamiltonian
      (/ (g/square p) (* 2 m))
@@ -253,8 +251,7 @@
   (o/make-operator Hamiltonian->Lagrangian-procedure
                    'Hamiltonian->Lagrangian))
 
-(defn Poisson-bracket
-  [f g]
+(defn Poisson-bracket [f g]
   (fn [x]
     (let [fx (f x)
           gx (g x)]

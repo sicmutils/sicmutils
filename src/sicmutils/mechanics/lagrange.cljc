@@ -235,6 +235,15 @@
              (g/square (* r phidot))) )
        (/ (* GM m) r))))
 
+(defn L-axisymmetric-top [A C gMR]
+  (fn [[_ [theta] [thetadot phidot psidot]]]
+    (+ (* (/ 1 2) A
+          (+ (g/square thetadot)
+             (g/square (* phidot (sin theta)))))
+       (* (/ 1 2) C
+          (g/square (+ psidot (* phidot (cos theta)))))
+       (* -1 gMR (cos theta)))))
+
 ;; Coupled harmonic oscillators.
 
 (defn L-coupled-harmonic [m k]

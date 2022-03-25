@@ -9,6 +9,8 @@
 
   - adds `sicmutils.mechanics.time-evolution`
 
+  - adds `sicmutils.mechanics.lagrange/L-axisymmetric-top`
+
   - fleshes out `sicmutils.mechanics.hamilton`:
 
     - New functions: `H-state?`, `compatible-H-state?`, `state->p`, `momenta`,
