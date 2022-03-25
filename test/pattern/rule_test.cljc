@@ -3,11 +3,10 @@
 (ns pattern.rule-test
   (:require [clojure.test :as t :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+            [com.gfredericks.test.chuck.clojure-test
+             :refer [checking] :include-macros true]
             [pattern.match :as m]
-            [pattern.rule :as r :refer [=> !=>]
-             #?@(:cljs [:include-macros true])]
+            [pattern.rule :as r :refer [=> !=>] :include-macros true]
             [sicmutils.ratio]))
 
 (deftest consequence-tests

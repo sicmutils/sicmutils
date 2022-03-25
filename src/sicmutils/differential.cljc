@@ -8,9 +8,9 @@
 
   See [[sicmutils.calculus.derivative]] for a fleshed-out derivative
   implementation using [[Differential]]."
-  (:refer-clojure :rename {compare core-compare}
-                  #?@(:cljs [:exclude [compare]]))
-  (:require [clojure.string :refer [join]]
+  (:refer-clojure :exclude [compare])
+  (:require [clojure.core :as core]
+            [clojure.string :refer [join]]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -469,7 +469,7 @@
   Each input must be sequence of `[tag-set, coefficient]` pairs, sorted by
   `tag-set`."}
   terms:+
-  (ua/merge-fn core-compare g/add v/zero? make-term))
+  (ua/merge-fn core/compare g/add v/zero? make-term))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:

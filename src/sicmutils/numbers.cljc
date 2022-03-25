@@ -7,13 +7,9 @@
 
   For other numeric extensions, see [[sicmutils.ratio]]
   and [[sicmutils.complex]]."
-  (:refer-clojure :rename {zero? core-zero?
-                           / core-div
-                           + core-plus
-                           - core-minus
-                           * core-times}
-                  #?@(:cljs [:exclude [zero? / + - *]]))
-  (:require [sicmutils.complex :refer [complex]]
+  (:refer-clojure :exclude [zero? / + - *])
+  (:require [clojure.core :as core]
+            [sicmutils.complex :refer [complex]]
             #?(:cljs [sicmutils.ratio :as r])
 
             ;; Required to enable the generic gcd implementation.
@@ -30,23 +26,23 @@
 
 ;; "Backstop" implementations that apply to anything that descends from
 ;; ::v/real.
-(defmethod g/add [::v/real ::v/real] [a b] (#?(:clj +' :cljs core-plus) a b))
-(defmethod g/mul [::v/real ::v/real] [a b] (#?(:clj *' :cljs core-times) a b))
-(defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core-minus) a b))
-(defmethod g/negate [::v/real] [a] (core-minus a))
+(defmethod g/add [::v/real ::v/real] [a b] (#?(:clj +' :cljs core/+) a b))
+(defmethod g/mul [::v/real ::v/real] [a b] (#?(:clj *' :cljs core/*) a b))
+(defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core/-) a b))
+(defmethod g/negate [::v/real] [a] (core/- a))
 (defmethod g/negative? [::v/real] [a] (neg? a))
 
 (defmethod g/expt [::v/real ::v/real] [b x]
   (if (and (neg? b)
-           (not (core-zero?
+           (not (core/zero?
                  (g/fractional-part x))))
     (g/exp (g/mul x (g/log b)))
     (u/compute-expt b x)))
 
 (defmethod g/abs [::v/real] [a] (u/compute-abs a))
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
-(defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
-(defmethod g/invert [::v/real] [a] (core-div a))
+(defmethod g/div [::v/real ::v/real] [a b] (core// a b))
+(defmethod g/invert [::v/real] [a] (core// a))
 (defmethod g/floor [::v/real] [a] (long (Math/floor a)))
 (defmethod g/ceiling [::v/real] [a] (long (Math/ceil a)))
 (defmethod g/integer-part [::v/real] [a]
@@ -148,7 +144,7 @@
              (Math/log2 x))))
 
 (defmethod g/exp [::v/real] [a]
-  (if (core-zero? a)
+  (if (core/zero? a)
     1
     (Math/exp a)))
 
@@ -235,7 +231,7 @@
 #?(:cljs
    (do
      (letfn [(abs [a]
-               (if (neg? a) (core-minus a) a))
+               (if (neg? a) (core/- a) a))
 
              (bigint-gcd [a b]
                (loop [a (abs a)
@@ -249,7 +245,7 @@
        (defmethod g/gcd [::v/native-integral ::v/native-integral] [a b]
          (loop [a (abs a)
                 b (abs b)]
-           (if (core-zero? b)
+           (if (core/zero? b)
              a
              (recur b (rem a b)))))
 
@@ -264,7 +260,7 @@
 
      (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
        (if (neg? b)
-         (g/invert (u/compute-expt a (core-minus b)))
+         (g/invert (u/compute-expt a (core/- b)))
          (u/compute-expt a b)))
 
      (defmethod g/div [::v/integral ::v/integral] [a b]
@@ -284,27 +280,27 @@
 #?(:cljs
    (do
      ;; native BigInt type in JS.
-     (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
-     (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
+     (defmethod g/add [js/BigInt js/BigInt] [a b] (core/+ a b))
+     (defmethod g/mul [js/BigInt js/BigInt] [a b] (core/* a b))
      (defmethod g/modulo [js/BigInt js/BigInt] [a b] (g/modulo-default a b))
-     (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
-     (defmethod g/negate [js/BigInt] [a] (core-minus a))
+     (defmethod g/sub [js/BigInt js/BigInt] [a b] (core/- a b))
+     (defmethod g/negate [js/BigInt] [a] (core/- a))
 
      (defmethod g/expt [js/BigInt js/BigInt] [a b]
        (if (g/negative? b)
-         (g/invert (js* "~{} ** ~{}" a (core-minus b)))
+         (g/invert (js* "~{} ** ~{}" a (core/- b)))
          (js* "~{} ** ~{}" a b)))
 
-     (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
-     (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
+     (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core/- a) a))
+     (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core// a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js-mod a b))
      (defmethod g/magnitude [js/BigInt] [a]
-       (if (neg? a) (core-minus a) a))
+       (if (neg? a) (core/- a) a))
 
      (defmethod g/div [js/BigInt js/BigInt] [a b]
        (let [rem (js-mod a b)]
          (if (v/zero? rem)
-           (core-div a b)
+           (core// a b)
            (r/rationalize a b))))
 
      (doseq [op [g/add g/mul g/sub g/div g/expt g/modulo g/remainder g/quotient]]

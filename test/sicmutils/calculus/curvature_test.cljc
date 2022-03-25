@@ -7,7 +7,7 @@
             [sicmutils.abstract.number :as an]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.curvature :as c]
             [sicmutils.calculus.derivative :refer [D]]

@@ -6,7 +6,7 @@
   multiplicative options in sicmutils.value.Value."
   (:require [clojure.test :refer [is]]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [same :refer [ish?]]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))

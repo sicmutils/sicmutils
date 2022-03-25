@@ -12,7 +12,7 @@
                                          point chart wedge
                                          R2-rect
                                          define-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

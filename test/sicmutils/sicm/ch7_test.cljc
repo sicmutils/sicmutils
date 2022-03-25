@@ -8,7 +8,7 @@
                      literal-function
                      up down
                      sin cos square cube exp]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :refer [within]]))
 

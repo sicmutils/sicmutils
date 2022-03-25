@@ -3,9 +3,8 @@
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
-            [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
+            [sicmutils.abstract.function :as af :include-macros true]
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.differential :as sd]

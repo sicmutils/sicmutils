@@ -7,13 +7,10 @@
   Contains a number of algorithms for [compensated
   summation](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) of
   floating-point numbers."
-  (:refer-clojure :rename {count core-count
-                           min core-min
-                           max core-max}
-                  #?@(:cljs [:exclude [min max count]]))
-  (:require [sicmutils.generic :as g]
-            [sicmutils.util.def :as ud
-             #?@(:cljs [:include-macros true])]))
+  (:refer-clojure :exclude [min max count])
+  (:require [clojure.core :as core]
+            [sicmutils.generic :as g]
+            [sicmutils.util.def :as ud :include-macros true]))
 
 ;; ## Folds and Scans
 ;;
@@ -156,7 +153,7 @@
   ([acc] acc)
   ([acc x]
    (if acc
-     (core-min acc x)
+     (core/min acc x)
      x)))
 
 (defn max
@@ -168,7 +165,7 @@
   ([acc] acc)
   ([acc x]
    (if acc
-     (core-max acc x)
+     (core/max acc x)
      x)))
 
 ;; NOTE also that any [[sicmutils.util.aggregate/monoid]] instance will work as

@@ -3,7 +3,7 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish?] #?@(:cljs [:include-macros true])]
+            [same :refer [ish?] :include-macros true]
             [sicmutils.complex :as c]
             [sicmutils.env :as e :refer [+ * /  partial ref
                                          complex
@@ -14,7 +14,7 @@
                                          ->infix
                                          cross-product
                                          cot csc sec]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
             [sicmutils.value :as v]))

@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.roots.bisect-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish?]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish?] :include-macros true]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.numerical.roots.bisect :as bi]

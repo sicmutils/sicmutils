@@ -10,11 +10,9 @@
   Radul's [Rules](https://github.com/axch/rules) library for Scheme, and the
   pattern matching system described in GJS and Hanson's [Software Design for
   Flexibility](https://mitpress.mit.edu/books/software-design-flexibility)."
-  (:refer-clojure :exclude [sequence #?@(:cljs [or and not])]
-                  :rename {or core:or
-                           and core:and
-                           not core:not})
-  (:require [pattern.syntax :as s]))
+  (:refer-clojure :exclude [sequence or and not])
+  (:require [clojure.core :as core]
+            [pattern.syntax :as s]))
 
 ;; # Pattern Matching
 ;;
@@ -110,7 +108,7 @@
   new bindings) if its data input passes the predicate, fails otherwise."
   [pred]
   (fn predicate-match [frame data succeed]
-    (core:and (pred data)
+    (core/and (pred data)
               (succeed frame))))
 
 (defn frame-predicate
@@ -118,7 +116,7 @@
   new bindings) if its data input passes the predicate, fails otherwise."
   [pred]
   (fn frame-pred [frame _ succeed]
-    (core:and (pred frame)
+    (core/and (pred frame)
               (succeed frame))))
 
 (defn eq
@@ -151,7 +149,7 @@
      (fn bind-match [frame data succeed]
        (when (pred data)
          (if-let [[_ binding] (find frame sym)]
-           (core:and (= binding data)
+           (core/and (= binding data)
                      (succeed frame))
            (succeed (assoc frame sym data))))))))
 
@@ -295,10 +293,10 @@
   [sym]
   (as-segment-matcher
    (fn segment-match [frame xs succeed]
-     (let [xs (core:or xs [])]
+     (let [xs (core/or xs [])]
        (when (sequential? xs)
-         (if-let [binding (core:and
-                           (core:not (s/wildcard? sym))
+         (if-let [binding (core/and
+                           (core/not (s/wildcard? sym))
                            (frame sym))]
            (let [binding-count (count binding)]
              (when (= (take binding-count xs) binding)
@@ -308,8 +306,8 @@
              (let [new-frame (if (s/wildcard? sym)
                                frame
                                (assoc frame sym prefix))]
-               (core:or (succeed new-frame suffix)
-                        (core:and (seq suffix)
+               (core/or (succeed new-frame suffix)
+                        (core/and (seq suffix)
                                   (recur (conj prefix (first suffix))
                                          (next suffix))))))))))))
 
@@ -325,7 +323,7 @@
   [sym]
   (as-segment-matcher
    (fn entire-segment-match [frame xs succeed]
-     (let [xs (core:or xs [])]
+     (let [xs (core/or xs [])]
        (when (sequential? xs)
          (if (s/wildcard? sym)
            (succeed frame nil)
@@ -348,7 +346,7 @@
   [sym]
   (as-segment-matcher
    (fn reverse-segment-match [frame xs succeed]
-     (let [xs (core:or xs [])]
+     (let [xs (core/or xs [])]
        (when (sequential? xs)
          (when-let [binding (frame sym)]
            (when (vector? binding)
@@ -382,7 +380,7 @@
                   (cond matchers (let [m (first matchers)]
                                    (if (segment-matcher? m)
                                      (try-segment m)
-                                     (core:and (seq items)
+                                     (core/and (seq items)
                                                (try-elem m))))
 
                         (seq items) false
@@ -429,7 +427,7 @@
 
         (s/wildcard? pattern) pass
 
-        (core:or (seq? pattern)
+        (core/or (seq? pattern)
                  (vector? pattern))
         (if (empty? pattern)
           (eq pattern)
@@ -497,7 +495,7 @@
   ([pattern]
    (let [match (pattern->combinators pattern)]
      (fn [data]
-       (core:or (match {} data identity)
+       (core/or (match {} data identity)
                 failure))))
   ([pattern pred]
    (let [match (pattern->combinators pattern)
@@ -508,7 +506,7 @@
                          (merge frame m)
                          frame))))]
      (fn [data]
-       (core:or (match {} data success)
+       (core/or (match {} data success)
                 failure)))))
 
 (defn match

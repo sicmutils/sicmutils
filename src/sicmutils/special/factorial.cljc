@@ -5,8 +5,7 @@
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
             #?@(:cljs [[sicmutils.util :as u]])
-            [sicmutils.util.def :refer [defgeneric]
-             #?@(:cljs [:include-macros true])]
+            [sicmutils.util.def :refer [defgeneric] :include-macros true]
             [sicmutils.value :as v]))
 
 #?(:cljs

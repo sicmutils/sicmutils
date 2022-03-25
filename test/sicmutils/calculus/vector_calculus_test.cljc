@@ -6,7 +6,7 @@
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-calculus :as vc]

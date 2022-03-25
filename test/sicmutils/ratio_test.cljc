@@ -5,7 +5,7 @@
             [clojure.test.check.generators :as gen]
             #?(:cljs [cljs.reader :refer [read-string]])
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [same :refer [ish?]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]

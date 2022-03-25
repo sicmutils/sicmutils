@@ -5,8 +5,7 @@
 
   - code to wrap a sequence of progressively better estimates in a common `integrator` interface
   - data structures implementing various integration intervals."
-  (:refer-clojure :exclude [infinite?]
-                  :rename {infinite? core-infinite?})
+  (:refer-clojure :exclude [infinite?])
   (:require [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 

@@ -8,7 +8,7 @@
                      up down sin cos square
                      p->r s->m F->CT
                      literal-function]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
