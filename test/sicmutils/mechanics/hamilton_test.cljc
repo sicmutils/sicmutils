@@ -386,49 +386,7 @@
                     (comp (component 2) H/momentum)))
              a-state))))
 
-    (f/with-literal-functions
-      [[FF (up 0 (up 1 2) (down 3 4)) 5]
-       [GG (up 0 (up 1 2) (down 3 4)) 5]
-       [HH (up 0 (up 1 2) (down 3 4)) 5]]
-      (is (= '(FF (up t (up x y) (down pa pb)))
-             (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
-      (is (= '(down
-               (((partial 0) FF) (up t (up x y) (down pa pb)))
-               (down
-                (((partial 1 0) FF) (up t (up x y) (down pa pb)))
-                (((partial 1 1) FF) (up t (up x y) (down pa pb))))
-               (up
-                (((partial 2 0) FF) (up t (up x y) (down pa pb)))
-                (((partial 2 1) FF) (up t (up x y) (down pa pb)))))
-             (simplify ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
-      (is (= '(+
-               (*
-                -1
-                (((partial 2 0) FF) (up t (up x y) (down p_x p_y)))
-                (((partial 1 0) GG) (up t (up x y) (down p_x p_y))))
-               (*
-                -1
-                (((partial 2 1) FF) (up t (up x y) (down p_x p_y)))
-                (((partial 1 1) GG) (up t (up x y) (down p_x p_y))))
-               (*
-                (((partial 1 0) FF) (up t (up x y) (down p_x p_y)))
-                (((partial 2 0) GG) (up t (up x y) (down p_x p_y))))
-               (*
-                (((partial 1 1) FF) (up t (up x y) (down p_x p_y)))
-                (((partial 2 1) GG) (up t (up x y) (down p_x p_y)))))
-             (simplify
-              ((* (D FF)
-                  (H/Poisson-bracket identity identity)
-                  (D GG))
-               (up 't (up 'x 'y) (down 'p_x 'p_y))))))
-
-      (testing "Jacobi identity"
-        (is (zero?
-             (simplify
-              ((+ (H/Poisson-bracket FF (H/Poisson-bracket GG HH))
-                  (H/Poisson-bracket GG (H/Poisson-bracket HH FF))
-                  (H/Poisson-bracket HH (H/Poisson-bracket FF GG)))
-               (up 't (up 'x 'y) (down 'p_x 'p_y)))))))))
+    )
 
   ;;
   ;; ;;; The Poisson Bracket is a differential operator on H-functions:
@@ -473,43 +431,53 @@
   ;;             (compose (component 2) momentum)))
   ;;      a-state))
   ;; (up (down 1 0 0) (down 0 1 0) (down 0 0 1))
-  ;; |#
 
-  ;; #|
+  (f/with-literal-functions [[FF (up 0 (up 1 2) (down 3 4)) 5]
+                             [GG (up 0 (up 1 2) (down 3 4)) 5]
+                             [HH (up 0 (up 1 2) (down 3 4)) 5]]
+    (is (= '(FF (up t (up x y) (down pa pb)))
+           (simplify
+            (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
 
-  #_
-  (let [FF (f/literal-function 'F (H/Hamiltonian 2))
-        GG (f/literal-function 'G (H/Hamiltonian 2))]
-    )
+    (is (= '(down
+             (((partial 0) FF) (up t (up x y) (down pa pb)))
+             (down
+              (((partial 1 0) FF) (up t (up x y) (down pa pb)))
+              (((partial 1 1) FF) (up t (up x y) (down pa pb))))
+             (up
+              (((partial 2 0) FF) (up t (up x y) (down pa pb)))
+              (((partial 2 1) FF) (up t (up x y) (down pa pb)))))
+           (simplify
+            ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
 
-  ;; (pe ((* (D FF)
-  ;;         (Poisson-bracket identity identity)
-  ;;         (D GG))
-  ;;      (up 't (up 'x 'y) (down 'px 'py))))
-  ;; (+ (* -1
-  ;;       (((partial 1 0) G) (up t (up x y) (down px py)))
-  ;;       (((partial 2 0) F) (up t (up x y) (down px py))))
-  ;;    (* -1
-  ;;       (((partial 1 1) G) (up t (up x y) (down px py)))
-  ;;       (((partial 2 1) F) (up t (up x y) (down px py))))
-  ;;    (* (((partial 2 0) G) (up t (up x y) (down px py)))
-  ;;       (((partial 1 0) F) (up t (up x y) (down px py))))
-  ;;    (* (((partial 2 1) G) (up t (up x y) (down px py)))
-  ;;       (((partial 1 1) F) (up t (up x y) (down px py)))))
-  ;; |#
-  ;;
-  ;; #|
-  ;; (define F (literal-function 'F (Hamiltonian 2)))
-  ;; (define G (literal-function 'G (Hamiltonian 2)))
-  ;; (define H (literal-function 'H (Hamiltonian 2)))
+    (is (= '(+
+             (*
+              -1
+              (((partial 2 0) FF) (up t (up x y) (down p_x p_y)))
+              (((partial 1 0) GG) (up t (up x y) (down p_x p_y))))
+             (*
+              -1
+              (((partial 2 1) FF) (up t (up x y) (down p_x p_y)))
+              (((partial 1 1) GG) (up t (up x y) (down p_x p_y))))
+             (*
+              (((partial 1 0) FF) (up t (up x y) (down p_x p_y)))
+              (((partial 2 0) GG) (up t (up x y) (down p_x p_y))))
+             (*
+              (((partial 1 1) FF) (up t (up x y) (down p_x p_y)))
+              (((partial 2 1) GG) (up t (up x y) (down p_x p_y)))))
+           (simplify
+            ((* (D FF)
+                (H/Poisson-bracket identity identity)
+                (D GG))
+             (up 't (up 'x 'y) (down 'p_x 'p_y))))))
 
-  ;; ;;; Jacobi identity
-  ;; (pe ((+ (Poisson-bracket F (Poisson-bracket G H))
-  ;;         (Poisson-bracket G (Poisson-bracket H F))
-  ;;         (Poisson-bracket H (Poisson-bracket F G)))
-  ;;      (up 't (up 'x 'y) (down 'px 'py))))
-  ;; 0
-  ;; |#
+    (testing "Jacobi identity"
+      (is (zero?
+           (simplify
+            ((+ (H/Poisson-bracket FF (H/Poisson-bracket GG HH))
+                (H/Poisson-bracket GG (H/Poisson-bracket HH FF))
+                (H/Poisson-bracket HH (H/Poisson-bracket FF GG)))
+             (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
   ;; #|
   ;; (define Sx (compose (component 0) coordinate))
@@ -1128,312 +1096,80 @@
   ;;   we should get q(t) = q0*cos(sqrt(k/m)*t)+p0*sin(sqrt(k/m)*t)
   ;;
   ;; We can expand this as a Lie series:
+  (is (= '(x_0
+           (/ (* dt p_0) m)
+           (/ (* (/ -1 2) (expt dt 2) k x_0) m)
+           (/ (* (/ -1 6) (expt dt 3) k p_0) (expt m 2))
+           (/ (* (/ 1 24) (expt dt 4) (expt k 2) x_0) (expt m 2))
+           (/ (* (/ 1 120) (expt dt 5) (expt k 2) p_0) (expt m 3)))
+         (simplify
+          (take 6 (((H/Lie-transform (H/H-harmonic 'm 'k) 'dt)
+                    L/state->q)
+                   (H/->H-state 0 'x_0 'p_0))))))
 
-  ;; (define ((H-harmonic m k) state)
-  ;;   (let ((q (coordinate state))
-  ;;        (p (momentum state)))
-  ;;     (+ (/ (square p) (* 2 m))
-  ;;        (* (/ 1 2) k (square q)))))
+  (is (= '(p_0
+           (* -1 dt k x_0)
+           (/ (* (/ -1 2) (expt dt 2) k p_0) m)
+           (/ (* (/ 1 6) (expt dt 3) (expt k 2) x_0) m)
+           (/ (* (/ 1 24) (expt dt 4) (expt k 2) p_0) (expt m 2))
+           (/ (* (/ -1 120) (expt dt 5) (expt k 3) x_0) (expt m 2)))
+         (simplify
+          (take 6 (((H/Lie-transform (H/H-harmonic 'm 'k) 'dt)
+                    H/momentum)
+                   (H/->H-state 0 'x_0 'p_0))))))
 
-  ;; ;;; This works, but it takes forever! -- hung in deriv, not in simplify!
+  (is (= '((/ (+ (* (/ 1 2) k m (expt x_0 2))
+                 (* (/ 1 2) (expt p_0 2)))
+              m)
+           0 0 0 0 0)
+         (simplify
+          (take 6 (((H/Lie-transform (H/H-harmonic 'm 'k) 'dt)
+                    (H/H-harmonic 'm 'k))
+                   (H/->H-state 0 'x_0 'p_0))))))
 
-  ;; (series:for-each print-expression
-  ;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-  ;;                    state->q)
-  ;;                   (->H-state 0 'x_0 'p_0))
-  ;;                  6)
-  ;; x_0
-  ;; (/ (* dt p_0) m)
-  ;; (/ (* -(/ 1 2) (expt dt 2) k x_0) m)
-  ;; (/ (* -1/6 (expt dt 3) k p_0) (expt m 2))
-  ;; (/ (* (/ 1 2)4 (expt dt 4) (expt k 2) x_0) (expt m 2))
-  ;; (/ (* 1/120 (expt dt 5) (expt k 2) p_0) (expt m 3))
-  ;;                                         ;Value: ...
+  (is (= '((up r_0 phi_0)
+           (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
+           (up (/ (+ (* (/ -1 2) (expt dt 2) m (expt r_0 3) ((D U) r_0))
+                     (* (/ 1 2) (expt dt 2) (expt p_phi_0 2)))
+                  (* (expt m 2) (expt r_0 3)))
+               (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
+           (up
+            (/ (+ (* (/ -1 6) (expt dt 3) m p_r_0 (expt r_0 4) (((expt D 2) U) r_0))
+                  (* (/ -1 2) (expt dt 3) (expt p_phi_0 2) p_r_0))
+               (* (expt m 3) (expt r_0 4)))
+            (/ (+ (* (/ 1 3) (expt dt 3) m p_phi_0 (expt r_0 3) ((D U) r_0))
+                  (* (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
+                  (* (/ -1 3) (expt dt 3) (expt p_phi_0 3)))
+               (* (expt m 3) (expt r_0 6)))))
+         (simplify
+          (take 4 (((H/Lie-transform
+                     (H/H-central-polar 'm (f/literal-function 'U))
+                     'dt)
+                    L/state->q)
+                   (H/->H-state
+                    0
+                    (L/coordinate-tuple 'r_0 'phi_0)
+                    (L/momentum-tuple 'p_r_0 'p_phi_0)))))))
 
-  ;; (series:for-each print-expression
-  ;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-  ;;                    momentum)
-  ;;                   (->H-state 0 'x_0 'p_0))
-  ;;                  6)
-  ;; p_0
-  ;; (* -1 dt k x_0)
-  ;; (/ (* -(/ 1 2) (expt dt 2) k p_0) m)
-  ;; (/ (* 1/6 (expt dt 3) (expt k 2) x_0) m)
-  ;; (/ (* (/ 1 2)4 (expt dt 4) (expt k 2) p_0) (expt m 2))
-  ;; (/ (* -1/120 (expt dt 5) (expt k 3) x_0) (expt m 2))
-  ;;                                         ;Value: ...
-
-  ;; (series:for-each print-expression
-  ;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-  ;;                    (H-harmonic 'm 'k))
-  ;;                   (->H-state 0 'x_0 'p_0))
-  ;;                  6)
-  ;; (/ (+ (* (/ 1 2) k m (expt x_0 2)) (* (/ 1 2) (expt p_0 2))) m)
-  ;; 0
-  ;; 0
-  ;; 0
-  ;; 0
-  ;; 0
-  ;;                                         ;Value: ...
-  ;; |#
-  ;;
-  ;; #|
-  ;; (define ((H-central-polar m V) state)
-  ;;   (let ((q (coordinate state))
-  ;;         (p (momentum state)))
-  ;;     (let ((r ((component 0) q))
-  ;;           (phi ((component 1) q))
-  ;;           (pr ((component 0) p))
-  ;;           (pphi ((component 1) p)))
-  ;;       (+ (/ (+ (square pr)
-  ;;               (square (/ pphi r)))
-  ;;            (* 2 m))
-  ;;          (V r)))))
-
-  ;; (series:for-each print-expression
-  ;;                  (((Lie-transform
-  ;;                     (H-central-polar 'm (literal-function 'U))
-  ;;                     'dt)
-  ;;                    state->q)
-  ;;                   (->H-state 0
-  ;;                             (coordinate-tuple 'r_0 'phi_0)
-  ;;                             (momentum-tuple 'p_r_0 'p_phi_0)))
-  ;;                  4)
-  ;; (up r_0 phi_0)
-  ;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-  ;; (up
-  ;;  (+ (/ (* -(/ 1 2) (expt dt 2) ((D U) r_0)) m)
-  ;;     (/ (* (/ 1 2) (expt dt 2) (expt p_phi_0 2)) (* (expt m 2) (expt r_0 3))))
-  ;;  (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
-  ;; (up
-  ;;  (+
-  ;;   (/ (* -1/6 (expt dt 3) p_r_0 (((expt D 2) U) r_0)) (expt m 2))
-  ;;   (/ (* -(/ 1 2) (expt dt 3) (expt p_phi_0 2) p_r_0) (* (expt m 3) (expt r_0 4))))
-  ;;  (+ (/ (* 1/3 (expt dt 3) p_phi_0 ((D U) r_0)) (* (expt m 2) (expt r_0 3)))
-  ;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))
-  ;;     (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))))
-  ;;                                         ;Value: ...
-  ;; |#
-  ;;
-  ;; #|
-  ;; (define ((L-central-polar m V) local)
-  ;;   (let ((q (coordinate local))
-  ;;         (qdot (velocity local)))
-  ;;     (let ((r (ref q 0))
-  ;;           (phi (ref q 1))
-  ;;           (rdot (ref qdot 0))
-  ;;           (phidot (ref qdot 1)))
-  ;;       (- (* (/ 1 2) m
-  ;;             (+ (square rdot)
-  ;;                (square (* r phidot))) )
-  ;;          (V r)))))
-
-
-  ;; ;;; I left this one that uses the Lagrangian because it appears to be
-  ;; ;;; used for timings
-  ;; (show-time
-  ;;  (lambda ()
-  ;;          (series:print
-  ;;           (((Lie-transform
-  ;;              (Lagrangian->Hamiltonian
-  ;;              (L-central-polar 'm (lambda (r) (- (/ 'GM r)))))
-  ;;              'dt)
-  ;;             state->q)
-  ;;            (->H-state 0
-  ;;                      (coordinate-tuple 'r_0 'phi_0)
-  ;;                      (momentum-tuple 'p_r_0 'p_phi_0)))
-  ;;           4)))
-  ;; #|
-  ;; ;;; 13 March 2012: I changed the system so that the original
-  ;; ;;; normalization is available, without causing the original gcd bug.
-  ;; ;;; This is done by adding an additional stage of simplification.
-  ;; ;;; This new stage is enabled by "(divide-numbers-through-simplify
-  ;; ;;; true/false)" The control is in simplify/rules.scm.  The default is
-  ;; ;;; now true, yielding the old representation.
-  ;; (up r_0 phi_0)
-  ;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-  ;; (up
-  ;;  (+ (/ (* -(/ 1 2) GM (expt dt 2)) (* m (expt r_0 2)))
-  ;;     (/ (* (/ 1 2) (* (expt dt 2) (expt p_phi_0 2))) (* (expt m 2) (expt r_0 3))))
-  ;;  (/ (* -1 (expt dt 2) p_r_0 p_phi_0) (* (expt m 2) (expt r_0 3))))
-  ;; (up
-  ;;  (+ (/ (* 1/3 (* GM (expt dt 3) p_r_0)) (* (expt m 2) (expt r_0 3)))
-  ;;     (/ (* -(/ 1 2) (expt dt 3) p_r_0 (expt p_phi_0 2)) (* (expt m 3) (expt r_0 4))))
-  ;;  (+ (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))
-  ;;     (/ (* 1/3 (* GM (expt dt 3) p_phi_0)) (* (expt m 2) (expt r_0 5)))
-  ;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))))
-  ;;                                         ;process time: 1570 (1570 RUN + 0 GC); real time: 1573#| ... |#
-
-
-  ;; ;;; 30 Jan 2011: I changed the normalization of rational functions to
-  ;; ;;; favor integer coefficients.  This was to eliminate a bug in the
-  ;; ;;; construction of polynomial gcds.
-  ;; ;;; This is the new result.  It is algebraically equivalent to the old
-  ;; ;;; result.
-  ;; (up r_0 phi_0)
-  ;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-  ;; (up
-  ;;  (+ (/ (* -1 GM (expt dt 2)) (* 2 m (expt r_0 2)))
-  ;;     (/ (* (expt dt 2) (expt p_phi_0 2)) (* 2 (expt m 2) (expt r_0 3))))
-  ;;  (/ (* -1 (expt dt 2) p_r_0 p_phi_0) (* (expt m 2) (expt r_0 3))))
-  ;; (up
-  ;;  (+ (/ (* GM (expt dt 3) p_r_0) (* 3 (expt m 2) (expt r_0 3)))
-  ;;     (/ (* -1 (expt dt 3) (expt p_phi_0 2) p_r_0) (* 2 (expt m 3) (expt r_0 4))))
-  ;;  (+ (/ (* (expt dt 3) (expt p_r_0 2) p_phi_0) (* (expt m 3) (expt r_0 4)))
-  ;;     (/ (* GM (expt dt 3) p_phi_0) (* 3 (expt m 2) (expt r_0 5)))
-  ;;     (/ (* -1 (expt dt 3) (expt p_phi_0 3)) (* 3 (expt m 3) (expt r_0 6)))))
-  ;; ;;; Binah 30 Jan 2011
-  ;;                                         ;process time: 1600 (1600 RUN + 0 GC); real time: 1607#| ... |#
-  ;; |#
-  ;; #|
-  ;; (up r_0 phi_0)
-  ;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-  ;; (up
-  ;;  (+ (/ (* -(/ 1 2) GM (expt dt 2)) (* m (expt r_0 2)))
-  ;;     (/ (* (/ 1 2) (expt dt 2) (expt p_phi_0 2)) (* (expt m 2) (expt r_0 3))))
-  ;;  (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
-  ;; (up
-  ;;  (+
-  ;;   (/ (* 1/3 GM (expt dt 3) p_r_0) (* (expt m 2) (expt r_0 3)))
-  ;;   (/ (* -(/ 1 2) (expt dt 3) (expt p_phi_0 2) p_r_0) (* (expt m 3) (expt r_0 4))))
-  ;;  (+ (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))
-  ;;     (/ (* 1/3 GM (expt dt 3) p_phi_0) (* (expt m 2) (expt r_0 5)))
-  ;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))))
-  ;; |#
-  ;; ;;; Binah: 9 December 2009
-  ;; ;;;  With simple-derivative-internal memoized
-  ;; ;;;   process time: 2830 (2830 RUN + 0 GC); real time: 2846
-  ;; ;;;  Without memoization
-  ;; ;;;   process time: 1360 (1360 RUN + 0 GC); real time: 1377
-  ;; ;;;  But memoization makes some stuff feasible (see calculus/tensor.scm).
-  ;; ;;;
-  ;; ;;; Earlier
-  ;; ;;; MAHARAL
-  ;; ;;;         process time: 3940 (3710 RUN + 230 GC); real time: 3956
-  ;; ;;; HOD
-  ;; ;;;         process time: 14590 (13610 RUN + 980 GC); real time: 14588
-  ;; ;;; PLANET003 600MHz PIII
-  ;; ;;;         process time: 19610 (17560 RUN + 2050 GC); real time: 19610
-  ;; ;;; HEIFETZ xeon 400MHz 512K
-  ;; ;;;         process time: 27380 (24250 RUN + 3130 GC); real time: 27385
-  ;; ;;; GEVURAH 300 MHz
-  ;; ;;;         process time: 36070 (33800 RUN + 2270 GC); real time: 36072
-  ;; ;;; MAHARAL
-  ;; ;;;         process time: 56390 (50970 RUN + 5420 GC); real time: 56386
-  ;; ;;; ACTION1 200MHz Pentium Pro
-  ;; ;;;         process time: 55260 (49570 RUN + 5690 GC); real time: 55257
-  ;; ;;; PPA     200MHz Pentium Pro
-  ;; ;;;         process time: 58840 (56500 RUN + 2340 GC); real time: 59165
-  ;; ;;; ZOHAR   33MHz 486
-  ;; ;;;         process time: 463610 (443630 RUN + 19980 GC); real time: 485593
-  ;; |#
-
-
-  ;; TODO its from sections.scm. AND that code has some shit that I absolutely
-  ;; want to visualize.
-  )
-
-(deftest poincare-map-tests
-  (comment
-    ;; Now to do the Poincare section.
-    ;;  Map explorer:
-    ;;   Left button starts a trajectory.
-    ;;   Middle button continues a trajectory.
-    ;;   Right button interrogates coordinates.
-
-    ;; (define (explore-map window poincare-map #!optional mode-or-n)
-    ;;   (let* ((default-n 1000)
-    ;;          (collector
-    ;;           (cond ((default-object? mode-or-n)
-    ;;                 (default-collector (default-monitor window)
-    ;;                                    poincare-map
-    ;;                                    default-n))
-    ;;                ((number? mode-or-n)
-    ;;                 (default-collector (default-monitor window)
-    ;;                                    poincare-map
-    ;;                                    mode-or-n))
-    ;;                (else poincare-map))))
-    ;;     (define (button-loop ox oy)
-    ;;       (pointer-coordinates window
-    ;;                            (lambda (x y button)
-    ;;                                    (case button
-    ;;                                      ((0)
-    ;;                                       (display "Started: ")
-    ;;                                       (write-line (list x y))
-    ;;                                       (collector x y button-loop map-failed))
-    ;;                                      ((1)
-    ;;                                       (if (eq? ox 'ignore)
-    ;;                                         (button-loop 'ignore oy)
-    ;;                                         (begin (display "Continued: ")
-    ;;                                                (write-line (list ox oy))
-    ;;                                                (collector ox oy button-loop map-failed))))
-    ;;                                      ((2)
-    ;;                                       (display "Hit: ")
-    ;;                                       (write-line (list x y))
-    ;;                                       (button-loop ox oy))))))
-    ;;     (define (map-failed)
-    ;;       (display "Illegal point \n")
-    ;;       (button-loop 'ignore 'ignore))
-    ;;     (newline)
-    ;;     (display "Left button starts a trajectory.")
-    ;;     (newline)
-    ;;     (display "Middle button continues a trajectory.")
-    ;;     (newline)
-    ;;     (display "Right button interrogates coordinates.")
-    ;;     (newline)
-    ;;     (button-loop 'ignore 'ignore)))
-    ;;
-    ;; (define ((default-collector monitor pmap n) x y done fail)
-    ;;   (let lp ((n n) (x x) (y y))
-    ;;        (monitor x y)
-    ;;        (if (fix:> n 0)
-    ;;          (pmap x y
-    ;;                (lambda (nx ny)
-    ;;                        (lp (fix:- n 1) nx ny))
-    ;;                fail)
-    ;;          (done x y))))
-
-    ;; (define ((default-monitor win) x y)
-    ;;   (plot-point win x y))
-
-    ;; (define (pointer-coordinates window continue)
-    ;;   (beep)
-    ;;   (get-pointer-coordinates window continue))
-
-    ;; #| ;;; Test for standard map
-    ;; (define win (frame 0.0 v/twopi 0.0 v/twopi))
-    ;; (explore-map win (standard-map 1.0))
-    ;; (explore-map win (standard-map 1.0) 5000)
-    ;; (graphics-clear win)
-    ;; (graphics-close win)
-    ;; |#
-
-    ;; #|
-;;; This is used to zero in on crossings in autonomous systems,
-;;;  such as Henon-Heiles.
-    ))
-
-;; TODO this was commented out but can we keep it?
-#_
-(defn refine-crossing [sec-eps advance state]
-  (loop [[_ [x] [xd]] state]
-    (let [zstate (advance state (- (/ x xd)))]
-      (if (< (Math/abs (get-in zstate [1 0])) sec-eps)
-        zstate
-        (recur zstate)))))
-
-#_
-(defn display-map [window poincare-map x y n]
-  (plot-point window x y)
-  (if (pos? n)
-    (poincare-map
-     x y
-     (fn [nx ny]
-       (display-map window poincare-map nx ny (fix:- n 1)))
-     (fn []
-       (newline)
-       (display "Illegal point: ")
-       (write (list x y))))))
+  ;;; I left this one that uses the Lagrangian because it appears to be
+  ;;; used for timings
+  (is (= '((up r_0 phi_0)
+           (up (/ (* dt p_r_0) m)
+               (/ (* dt p_phi_0)
+                  (* m (expt r_0 2)))))
+         (simplify
+          (take 2
+                (((H/Lie-transform
+                   (H/Lagrangian->Hamiltonian
+                    (L/L-central-polar 'm (fn [r] (- (/ 'GM r)))))
+                   'dt)
+                  L/state->q)
+                 (H/->H-state 0
+                              (L/coordinate-tuple 'r_0 'phi_0)
+                              (L/momentum-tuple 'p_r_0 'p_phi_0))))))
+      "Wow, this is very slow after the first two terms! We are still faster
+      than the original but I absolutely don't buy the timings in
+      Lie-transform.scm."))
 
 (deftest more-tests
   #_
@@ -1545,50 +1281,34 @@
     )
 
   (testing "polar-canonical-tests"
-    ;; TODO move to tests:
-    ;; #|
-    ;; (pe
-    ;;  ((compose (polar-canonical-inverse 'alpha)
-    ;;           (polar-canonical 'alpha))
-    ;;   (up 't 'x 'p)))
-    ;; (up t x p)
+    (is (= '(up t x p)
+           (simplify
+            ((comp (H/polar-canonical-inverse 'alpha)
+                   (H/polar-canonical 'alpha))
+             (up 't 'x 'p)))))
 
-    ;; (print-expression
-    ;;  ((time-independent-canonical? (polar-canonical 'alpha))
-    ;;   (up 't 'a 'I)))
-    ;; (up 0 0 0)
-    ;; |#
-    ;;
-    ;; #|
-    ;; (define (Cmix H-state)
-    ;;   (let ((t (time H-state))
-    ;;        (q (coordinate H-state))
-    ;;        (p (momentum H-state)))
-    ;;     (up t
-    ;;         (coordinate-tuple (ref q 0) (- (ref p 1)))
-    ;;         (momentum-tuple   (ref p 0) (ref q 1)))))
+    (is (= (up 0 0 0)
+           (g/simplify
+            ((H/time-independent-canonical? (H/polar-canonical 'alpha))
+             (up 't 'a 'I)))))
 
-    ;; (define a-state
-    ;;   (up 't
-    ;;       (coordinate-tuple 'x 'y)
-    ;;       (momentum-tuple 'p_x 'p_y)))
+    (let [Cmix (fn [[t [q0 q1] [p0 p1]]]
+                 (up t
+                     (L/coordinate-tuple q0 (- p1))
+                     (L/momentum-tuple p0 q1)))
+          Cmix2 (fn [[t q p]]
+                  (up t
+                      (s/opposite p)
+                      (- (s/opposite q))))
+          a-state (up 't
+                      (L/coordinate-tuple 'x 'y)
+                      (L/momentum-tuple 'p_x 'p_y))]
+      (is (= (up 0 (up 0 0) (down 0 0))
+             (g/simplify
+              ((H/time-independent-canonical? Cmix)
+               a-state))))
 
-    ;; (print-expression
-    ;;  ((time-independent-canonical? Cmix)
-    ;;   a-state))
-    ;; (up 0 (up 0 0) (down 0 0))
-
-    ;; (define (Cmix2 H-state)
-    ;;   (let ((t (time H-state))
-    ;;        (q (coordinate H-state))
-    ;;        (p (momentum H-state)))
-    ;;     (up t
-    ;;         (flip-outer-index p)
-    ;;         (- (flip-outer-index q)))))
-
-    ;; (print-expression
-    ;;  ((time-independent-canonical? Cmix2)
-    ;;   a-state))
-    ;; (up 0 (up 0 0) (down 0 0))
-    ;; |#
-    ))
+      (is (= (up 0 (up 0 0) (down 0 0))
+             (g/simplify
+              ((H/time-independent-canonical? Cmix2)
+               a-state)))))))

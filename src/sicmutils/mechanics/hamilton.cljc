@@ -179,6 +179,11 @@
         (* 2 m))
      (V r))))
 
+(defn H-harmonic [m k]
+  (fn [[_ q p]]
+    (+ (/ (g/square p) (* 2 m))
+       (* (/ 1 2) k (g/square q)))))
+
 ;; If we express the energy in terms of t,Q,P we have the Hamiltonian
 ;;
 ;;        H(t,Q,P) = P*Qdot - L(t, Q, Qdot(t, Q, P))
