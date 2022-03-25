@@ -2,8 +2,7 @@
 
 (ns sicmutils.polynomial.interpolate-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [ish?]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish?] :include-macros true]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]
             [sicmutils.polynomial.gcd :as pg]

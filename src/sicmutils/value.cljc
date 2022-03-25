@@ -518,11 +518,6 @@
 
 (def twopi (* 2 Math/PI))
 
-(defn flo:pv [x]
-  (core/- x (core/*
-             v/twopi
-             (Math/floor (core// x v/twopi)))))
-
 (defn principal-value [cuthigh]
   (let [cutlow (- cuthigh twopi)]
     (fn [x]

@@ -10,7 +10,7 @@
                                          point chart
                                          R2-rect R2-polar
                                          define-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))

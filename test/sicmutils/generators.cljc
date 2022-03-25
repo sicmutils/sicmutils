@@ -2,13 +2,9 @@
 
 (ns sicmutils.generators
   "test.check generators for the various types in the sicmutils project."
-  (:refer-clojure :rename {bigint core-bigint
-                           biginteger core-biginteger
-                           double core-double
-                           long core-long
-                           symbol core-symbol}
-                  #?@(:cljs [:exclude [bigint double long symbol]]))
-  (:require [clojure.test.check.generators :as gen]
+  (:refer-clojure :exclude [bigint biginteger double long symbol])
+  (:require [clojure.core :as core]
+            [clojure.test.check.generators :as gen]
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.differential :as d]
@@ -118,7 +114,7 @@
    [any-integral ratio (reasonable-double)]))
 
 (defn reasonable-real [bound]
-  (let [bound    (core-long bound)
+  (let [bound    (core/long bound)
         integral (gen/fmap
                   #(g/remainder % bound)
                   any-integral)]

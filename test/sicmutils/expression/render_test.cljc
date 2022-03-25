@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
-            [sicmutils.abstract.function :as af
-             #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.function :as af :include-macros true]
             [sicmutils.calculus.derivative :refer [D taylor-series]]
             [sicmutils.expression.render :as r :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.function :as f]

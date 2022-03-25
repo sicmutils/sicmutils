@@ -7,7 +7,7 @@
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R3-cyl R3-rect]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g :refer [cos sin + - * /]]

@@ -1,11 +1,9 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.operator
-  (:refer-clojure :rename {identity core-identity
-                           name core-name}
-                  #?@(:cljs [:exclude [get identity name]]))
-  (:require [pattern.rule :refer [rule-simplifier]
-             #?@(:cljs [:include-macros true])]
+  (:refer-clojure :exclude [get identity name])
+  (:require [clojure.core :as core]
+            [pattern.rule :refer [rule-simplifier] :include-macros true]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -48,7 +46,7 @@
   (identity? [this]
     (if-let [id-fn (:identity? context)]
       (id-fn this)
-      (= o core-identity)))
+      (= o core/identity)))
 
   (zero-like [this]
     (if-let [z-fn (:zero-like context)]
@@ -58,12 +56,12 @@
   (one-like [this]
     (if-let [one-fn (:one-like context)]
       (one-fn this)
-      (Operator. core-identity arity 'identity context m)))
+      (Operator. core/identity arity 'identity context m)))
 
   (identity-like [this]
     (if-let [id-fn (:identity-like context)]
       (id-fn this)
-      (Operator. core-identity arity 'identity context m)))
+      (Operator. core/identity arity 'identity context m)))
 
   (freeze [_]
     (simplify-operator-name
@@ -237,7 +235,7 @@
 
 (def ^{:doc "Identity operator. Returns its argument unchanged."}
   identity
-  (make-operator core-identity 'identity))
+  (make-operator core/identity 'identity))
 
 (defn- joint-context
   "Merges type context maps of the two operators. Where the maps have keys in

@@ -8,7 +8,7 @@
             [sicmutils.calculus.connection :as conn]
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]

@@ -11,7 +11,7 @@
                                          point
                                          R2-rect R3-rect
                                          define-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 

@@ -5,7 +5,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold :as m]

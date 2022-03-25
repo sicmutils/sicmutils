@@ -10,7 +10,7 @@
                      F->C p->r s->r ->local
                      coordinate velocity
                      Rx Ry Rz]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.pendulum :as pendulum]
             [sicmutils.mechanics.lagrange :as L]

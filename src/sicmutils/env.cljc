@@ -27,7 +27,7 @@
              ref partial =])
   (:require [clojure.core :as core]
             #?(:clj [potemkin :refer [import-def import-vars]])
-            [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.function :as af :include-macros true]
             [sicmutils.abstract.number]
             [sicmutils.algebra.fold]
             [sicmutils.calculus.basis]

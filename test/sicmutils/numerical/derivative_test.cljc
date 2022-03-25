@@ -2,8 +2,7 @@
 
 (ns sicmutils.numerical.derivative-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.calculus.derivative :as cd]
             [sicmutils.generic :as g]
             [sicmutils.numerical.derivative :as d]

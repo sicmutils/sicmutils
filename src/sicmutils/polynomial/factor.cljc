@@ -4,8 +4,7 @@
   "This namespace contains functions for factoring polynomials and symbolic
   expressions."
   (:require [clojure.walk :as w]
-            [pattern.rule :as r :refer [=> rule-simplifier]
-             #?@(:cljs [:include-macros true])]
+            [pattern.rule :as r :refer [=> rule-simplifier] :include-macros true]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
             [sicmutils.numsymb :as sym]

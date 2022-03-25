@@ -11,7 +11,7 @@
                                          spacetime-rect spacetime-sphere
                                          compose square point up
                                          let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 

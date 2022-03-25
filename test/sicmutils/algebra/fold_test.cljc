@@ -3,10 +3,9 @@
 (ns sicmutils.algebra.fold-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
-            [sicmutils.algebra.fold :as af
-             #?@(:cljs [:include-macros true])]
+            [com.gfredericks.test.chuck.clojure-test
+             :refer [checking] :include-macros true]
+            [sicmutils.algebra.fold :as af :include-macros true]
             [sicmutils.numbers]))
 
 (deftest fold-tests

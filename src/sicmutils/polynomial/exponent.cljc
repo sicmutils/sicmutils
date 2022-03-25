@@ -3,9 +3,9 @@
 (ns ^:no-doc sicmutils.polynomial.exponent
   "This namespace provides an implementation of a sparse representation of the
   exponent portion of a term of a polynomial, sometimes called a 'monomial'."
-  (:refer-clojure :exclude [empty #?@(:cljs [assoc])]
-                  :rename {assoc core-assoc})
-  (:require [sicmutils.util :as u]))
+  (:refer-clojure :exclude [empty assoc])
+  (:require [clojure.core :as core]
+            [sicmutils.util :as u]))
 
 ;; ## Sparse Monomial Exponents
 ;;
@@ -47,7 +47,7 @@
   (reduce-kv (fn [acc i x]
                (if (zero? x)
                  acc
-                 (core-assoc acc i x)))
+                 (core/assoc acc i x)))
              empty
              idx->pow))
 
@@ -100,7 +100,7 @@
   [m x n]
   (if (zero? n)
     (dissoc m x)
-    (core-assoc m x n)))
+    (core/assoc m x n)))
 
 (defn lower
   "Given some exponent vector `expts`, and an optional variable index
@@ -123,8 +123,8 @@
   ([expts i]
    (reduce-kv (fn [acc k v]
                 (if (> k i)
-                  (core-assoc acc (dec k) v)
-                  (core-assoc acc k v)))
+                  (core/assoc acc (dec k) v)
+                  (core/assoc acc k v)))
               empty
               (dissoc expts i))))
 
@@ -155,13 +155,13 @@
   ([expts i n]
    (let [m (reduce-kv (fn [acc k v]
                         (if (>= k i)
-                          (core-assoc acc (inc k) v)
-                          (core-assoc acc k v)))
+                          (core/assoc acc (inc k) v)
+                          (core/assoc acc k v)))
                       empty
                       expts)]
      (if (zero? n)
        m
-       (core-assoc m i n)))))
+       (core/assoc m i n)))))
 
 (defn monomial-degree
   "Returns the [monomial degree](https://en.wikipedia.org/wiki/Monomial#Degree) of

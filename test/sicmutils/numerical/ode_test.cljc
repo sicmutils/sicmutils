@@ -3,8 +3,7 @@
 (ns sicmutils.numerical.ode-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.generic :as g :refer [- * /]]
             [sicmutils.numerical.ode :as o]
             [sicmutils.structure :refer [up]]

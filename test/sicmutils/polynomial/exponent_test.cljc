@@ -4,7 +4,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.generators :as sg]
             [sicmutils.polynomial.exponent :as xpt]))
 

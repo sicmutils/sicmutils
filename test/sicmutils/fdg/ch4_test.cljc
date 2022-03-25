@@ -13,7 +13,7 @@
                                          R2-rect R2-polar R3-rect
                                          Euler-angles
                                          let-coordinates]
-             #?@(:cljs [:include-macros true])]
+             :include-macros true]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-z-matrix]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
