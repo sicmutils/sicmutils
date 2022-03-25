@@ -2,16 +2,18 @@
 
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * /  partial])
-  (:require [sicmutils.calculus.derivative :refer [D D-as-matrix partial]]
+  (:require [clojure.core :as core]
+            [pattern.rule :as r
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.calculus.derivative :refer [D D-as-matrix partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [sin cos + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.mechanics.lagrange :as l :refer [momentum-tuple]]
-            [sicmutils.operator :refer [make-operator]]
+            [sicmutils.operator :as o]
             [sicmutils.structure :as s :refer [up down]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
-
 
 ;; Hamiltonian mechanics requires a phase space QxP, and a function H:RxQxP -->
 ;; R
@@ -161,71 +163,39 @@
 ;;  F(u) = 1/2 A u u + b u + c
 ;;  then v = A u + b, so u = A^(-1) (v - b)
 
-(defn dual-zero [z]
-  (if (s/structure? z)
-    (v/zero-like
-     (g/transpose z))
-    0))
+;; From GJS: This ugly version tests for correctness of the result.
 
-(defn- Legendre-transform-fn
-  "A better definition of Legendre transform that works for structured coordinates
-  that have substructure"
-  [F]
-  (let [w-of-v (D F)]
-    (fn [w]
-      (let [z (dual-zero w)
-            M ((D w-of-v) z)
-            b (w-of-v z)
-            v (g/solve-linear-left M (- w b))]
-        (- (* w v) (F v))))))
-
-(comment
-  ;; TODO: the one we HAVE above is actually a crappy one. replace with this
-  ;; one, with compatible zero, and move THIS one even to the tests... then
-  ;; convert the ugly one below.
-  (defn (Legendre-transform-procedure F)
-    (let ((w-of-v (D F)))
-      (define (G w)
-        (let ((z (compatible-zero w)))
-          (let ((M ((D w-of-v) z))
-                (b (w-of-v z)))
-            ;; DM=0 for this code to be correct.
-            (let ((v (solve-linear-left M (- w b))))
-              (- (* w v) (F v))))))
-      G)))
-
-;; This ugly version tests for correctness of the result.
-
-(comment
-  (defn (Legendre-transform-procedure F)
-    (let ((untested? true)
-          (w-of-v (D F)))
-      (define (putative-G w)
-        (let ((z (compatible-zero w)))
-          (let ((M ((D w-of-v) z))
-                (b (w-of-v z)))
-            (if (and untested? (zero? (simplify (determinant M))))
-              (error "Legendre Transform Failure: determinant=0"
-                     F w))
-            (let ((v (solve-linear-left M (- w b))))
-              (- (* w v) (F v))))))
-      (define (G w)
-        (if untested?
-          (let ((thing (typical-object w)))
-            (if (not (equal?
-                      (simplify
-                       ((compose w-of-v (D putative-G))
-                        thing))
-                      (simplify thing)))
-              (error "Legendre Transform Failure: not quadratic"
-                     F w)
-              (set! untested? false))
-            'tested))
-        (putative-G w))
-      G)))
+(defn Legendre-transform-procedure [F]
+  (let [untested? (atom true)
+        w-of-v    (D F)]
+    (letfn [(putative-G [w]
+              (let [z (s/compatible-zero w)
+                    M ((D w-of-v) z)
+                    b (w-of-v z)]
+                (if (and @untested?
+                         (v/zero?
+                          (g/simplify
+                           (matrix/determinant M))))
+                  (throw
+                   (ex-info "Legendre Transform Failure: determinant=0"
+                            {:F F :w w}))
+                  (let [v (g/solve-linear-left M (- w b))]
+                    (- (* w v) (F v))))))]
+      (fn G [w]
+        (when @untested?
+          (let [thing (s/typical-object w)]
+            (if (v/= (g/simplify
+                      (w-of-v ((D putative-G) thing)))
+                     (g/simplify thing))
+              (reset! untested? false)
+              (throw
+               (ex-info "Legendre Transform Failure: not quadratic"
+                        {:F F :w w})))))
+        (putative-G w)))))
 
 (def Legendre-transform
-  (make-operator Legendre-transform-fn 'Legendre-transform))
+  (o/make-operator Legendre-transform-procedure
+                   'Legendre-transform))
 
 ;; Notice that Lagrangians and Hamiltonians are symmetrical with
 ;; respect to the Legendre transform.
@@ -237,21 +207,19 @@
       ((Legendre-transform L) p))))
 
 (def Lagrangian->Hamiltonian
-  (make-operator Lagrangian->Hamiltonian-fn
-                 'Lagrangian->Hamiltonian))
+  (o/make-operator Lagrangian->Hamiltonian-fn
+                   'Lagrangian->Hamiltonian))
 
-(comment
-  (defn ((Hamiltonian->Lagrangian-procedure the-Hamiltonian) L-state)
-    (let ((t (time L-state))
-          (q (coordinate L-state))
-          (qdot (velocity L-state)))
-      (define (H p)
-        (the-Hamiltonian (->H-state t q p)))
-      ((Legendre-transform-procedure H) qdot)))
+(defn Hamiltonian->Lagrangian-procedure [the-Hamiltonian]
+  (fn [[t q qdot]]
+    (letfn [(H [p]
+              (the-Hamiltonian
+               (->H-state t q p)))]
+      ((Legendre-transform-procedure H) qdot))))
 
-  (def Hamiltonian->Lagrangian
-    (o/make-operator Hamiltonian->Lagrangian-procedure
-                     'Hamiltonian->Lagrangian)))
+(def Hamiltonian->Lagrangian
+  (o/make-operator Hamiltonian->Lagrangian-procedure
+                   'Hamiltonian->Lagrangian))
 
 (defn H-central-polar
   [m V]
@@ -262,13 +230,14 @@
        (V r))))
 
 (defn Hamiltonian
-  "Return SICM-style function signature for a Hamiltonian with n
-  degrees of freedom (or 1 if n is not given). Useful for constructing
-  Hamiltonian literal functions."
-  [& n]
-  (if (nil? n)
-    '(-> (UP Real (UP* Real) (DOWN* Real)) Real)
-    `(~'-> (~'UP ~'Real (~'UP* ~'Real ~@n) (~'DOWN* ~'Real ~@n)) ~'Real)))
+  "Return SICM-style function signature for a Hamiltonian with n degrees of
+  freedom (or 1 if n is not given).
+
+  Useful for constructing Hamiltonian literal functions."
+  ([] '(-> (UP Real (UP* Real) (DOWN* Real)) Real))
+  ([n]
+   (r/template
+    (-> (UP Real (UP* Real ~n) (DOWN* Real ~n)) Real))))
 
 (defn Poisson-bracket
   [f g]
@@ -288,8 +257,7 @@
             (* ((partial 2) f) ((partial 1) g)))
          x)))))
 
-;; TODO rename to Lie-derivative, since it's namespaced.
-(defn- Hamiltonian-Lie-derivative
+(defn ^:no-doc Lie-derivative
   "p. 428
 
   We define the Lie derivative of F, as a derivative-like operator, relative to
@@ -297,391 +265,47 @@
   calculus/Lie.scm
   "
   [H]
-  (make-operator
+  (o/make-operator
    (fn [F] (Poisson-bracket F H))
-   `(~'Lie-derivative ~H)))
+   (list 'Lie-derivative H)))
 
 (defn flow-derivative
   "the flow derivative generalizes the Lie derivative to allow for time dependent
   H and F --- computes the 'time' derivative of F along the flow specified by H"
   [H]
-  (make-operator
+  (o/make-operator
    (fn [F]
      (+ ((partial 0) F)
         (Poisson-bracket F H)))
-   `(~'flow-derivative ~H)))
-
-(comment
-;;; for Lie derivatives, a TEST TODO
-
-  ;; (define F (literal-function 'F (Hamiltonian 2)))
-  ;; (define G (literal-function 'G (Hamiltonian 2)))
-
-  ;; (define L_F (Lie-derivative F))
-  ;; (define L_G (Lie-derivative G))
-
-  ;; (pe (((+ (commutator L_F L_G)
-  ;;          (Lie-derivative (Poisson-bracket F G)))
-  ;;       H)
-  ;;      (up 't (up 'x 'y) (down 'px 'py))))
-  ;; 0
-
-  )
+   (list 'flow-derivative H)))
 
 (defmethod g/Lie-derivative [::v/function] [f]
-  (Hamiltonian-Lie-derivative f))
-
-;; TODO what the hell, this is from Lie-transform.scm.
-;;
-;; TODO get the rest of the tests from that namespace, separate this out.
+  (Lie-derivative f))
 
 (defn Lie-transform
   "p. 428, the Lie transform is just the time-advance operator using the Lie
   derivative (see Hamiltonian.scm)."
   [H t]
-  (make-operator
+  (o/make-operator
    (g/exp (* t (g/Lie-derivative H)))
    `(~'Lie-transform ~H ~t)))
 
-(comment
-  (define flow-transform
-    "The generalization of Lie-transform to include time dependence."
-    [H delta-t]
-    (make-operator
-     (g/exp (* delta-t (flow-derivative H)))
-     `(~'flow-transform ~H ~delta-t))))
-
-;; TODO lie-transform tests:
-
-;; #|
-;; ;;; The general solution for a trajectory is:
-;; ;;;
-;; ;;;  q(t,q0,p0) = A(q0,p0) cos (sqrt(k/m)*t + phi(q0,p0))
-;; ;;;
-;; ;;;  where A(q0,p0) = sqrt(2/k)*sqrt(p0^2/(2*m) + (k/2)*q0^2)
-;; ;;;                 = sqrt((2/k)*E0)
-;; ;;;
-;; ;;;  and   phi(q0,p0) = - atan((1/sqrt(k*m))*(p0/q0))
-;; ;;;
-;; ;;; Thus, with initial conditions q0, p0
-;; ;;;   we should get q(t) = q0*cos(sqrt(k/m)*t)+p0*sin(sqrt(k/m)*t)
-;; ;;;
-;; ;;; We can expand this as a Lie series:
-
-;; (define ((H-harmonic m k) state)
-;;   (let ((q (coordinate state))
-;;        (p (momentum state)))
-;;     (+ (/ (square p) (* 2 m))
-;;        (* 1/2 k (square q)))))
-
-;; ;;; This works, but it takes forever! -- hung in deriv, not in simplify!
-
-;; (series:for-each print-expression
-;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-;;                    state->q)
-;;                   (->H-state 0 'x_0 'p_0))
-;;                  6)
-;; x_0
-;; (/ (* dt p_0) m)
-;; (/ (* -1/2 (expt dt 2) k x_0) m)
-;; (/ (* -1/6 (expt dt 3) k p_0) (expt m 2))
-;; (/ (* 1/24 (expt dt 4) (expt k 2) x_0) (expt m 2))
-;; (/ (* 1/120 (expt dt 5) (expt k 2) p_0) (expt m 3))
-;;                                         ;Value: ...
-
-;; (series:for-each print-expression
-;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-;;                    momentum)
-;;                   (->H-state 0 'x_0 'p_0))
-;;                  6)
-;; p_0
-;; (* -1 dt k x_0)
-;; (/ (* -1/2 (expt dt 2) k p_0) m)
-;; (/ (* 1/6 (expt dt 3) (expt k 2) x_0) m)
-;; (/ (* 1/24 (expt dt 4) (expt k 2) p_0) (expt m 2))
-;; (/ (* -1/120 (expt dt 5) (expt k 3) x_0) (expt m 2))
-;;                                         ;Value: ...
-
-;; (series:for-each print-expression
-;;                  (((Lie-transform (H-harmonic 'm 'k) 'dt)
-;;                    (H-harmonic 'm 'k))
-;;                   (->H-state 0 'x_0 'p_0))
-;;                  6)
-;; (/ (+ (* 1/2 k m (expt x_0 2)) (* 1/2 (expt p_0 2))) m)
-;; 0
-;; 0
-;; 0
-;; 0
-;; 0
-;;                                         ;Value: ...
-;; |#
-;; 
-;; #|
-;; (define ((H-central-polar m V) state)
-;;   (let ((q (coordinate state))
-;;         (p (momentum state)))
-;;     (let ((r ((component 0) q))
-;;           (phi ((component 1) q))
-;;           (pr ((component 0) p))
-;;           (pphi ((component 1) p)))
-;;       (+ (/ (+ (square pr)
-;;               (square (/ pphi r)))
-;;            (* 2 m))
-;;          (V r)))))
-
-;; (series:for-each print-expression
-;;                  (((Lie-transform
-;;                     (H-central-polar 'm (literal-function 'U))
-;;                     'dt)
-;;                    state->q)
-;;                   (->H-state 0
-;;                             (coordinate-tuple 'r_0 'phi_0)
-;;                             (momentum-tuple 'p_r_0 'p_phi_0)))
-;;                  4)
-;; (up r_0 phi_0)
-;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-;; (up
-;;  (+ (/ (* -1/2 (expt dt 2) ((D U) r_0)) m)
-;;     (/ (* 1/2 (expt dt 2) (expt p_phi_0 2)) (* (expt m 2) (expt r_0 3))))
-;;  (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
-;; (up
-;;  (+
-;;   (/ (* -1/6 (expt dt 3) p_r_0 (((expt D 2) U) r_0)) (expt m 2))
-;;   (/ (* -1/2 (expt dt 3) (expt p_phi_0 2) p_r_0) (* (expt m 3) (expt r_0 4))))
-;;  (+ (/ (* 1/3 (expt dt 3) p_phi_0 ((D U) r_0)) (* (expt m 2) (expt r_0 3)))
-;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))
-;;     (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))))
-;;                                         ;Value: ...
-;; |#
-;; 
-;; #|
-;; (define ((L-central-polar m V) local)
-;;   (let ((q (coordinate local))
-;;         (qdot (velocity local)))
-;;     (let ((r (ref q 0))
-;;           (phi (ref q 1))
-;;           (rdot (ref qdot 0))
-;;           (phidot (ref qdot 1)))
-;;       (- (* 1/2 m
-;;             (+ (square rdot)
-;;                (square (* r phidot))) )
-;;          (V r)))))
-
-
-;; ;;; I left this one that uses the Lagrangian because it appears to be
-;; ;;; used for timings
-;; (show-time
-;;  (lambda ()
-;;          (series:print
-;;           (((Lie-transform
-;;              (Lagrangian->Hamiltonian
-;;              (L-central-polar 'm (lambda (r) (- (/ 'GM r)))))
-;;              'dt)
-;;             state->q)
-;;            (->H-state 0
-;;                      (coordinate-tuple 'r_0 'phi_0)
-;;                      (momentum-tuple 'p_r_0 'p_phi_0)))
-;;           4)))
-;; #|
-;; ;;; 13 March 2012: I changed the system so that the original
-;; ;;; normalization is available, without causing the original gcd bug.
-;; ;;; This is done by adding an additional stage of simplification.
-;; ;;; This new stage is enabled by "(divide-numbers-through-simplify
-;; ;;; true/false)" The control is in simplify/rules.scm.  The default is
-;; ;;; now true, yielding the old representation.
-;; (up r_0 phi_0)
-;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-;; (up
-;;  (+ (/ (* -1/2 GM (expt dt 2)) (* m (expt r_0 2)))
-;;     (/ (* 1/2 (* (expt dt 2) (expt p_phi_0 2))) (* (expt m 2) (expt r_0 3))))
-;;  (/ (* -1 (expt dt 2) p_r_0 p_phi_0) (* (expt m 2) (expt r_0 3))))
-;; (up
-;;  (+ (/ (* 1/3 (* GM (expt dt 3) p_r_0)) (* (expt m 2) (expt r_0 3)))
-;;     (/ (* -1/2 (expt dt 3) p_r_0 (expt p_phi_0 2)) (* (expt m 3) (expt r_0 4))))
-;;  (+ (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))
-;;     (/ (* 1/3 (* GM (expt dt 3) p_phi_0)) (* (expt m 2) (expt r_0 5)))
-;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))))
-;;                                         ;process time: 1570 (1570 RUN + 0 GC); real time: 1573#| ... |#
-
-
-;; ;;; 30 Jan 2011: I changed the normalization of rational functions to
-;; ;;; favor integer coefficients.  This was to eliminate a bug in the
-;; ;;; construction of polynomial gcds.
-;; ;;; This is the new result.  It is algebraically equivalent to the old
-;; ;;; result.
-;; (up r_0 phi_0)
-;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-;; (up
-;;  (+ (/ (* -1 GM (expt dt 2)) (* 2 m (expt r_0 2)))
-;;     (/ (* (expt dt 2) (expt p_phi_0 2)) (* 2 (expt m 2) (expt r_0 3))))
-;;  (/ (* -1 (expt dt 2) p_r_0 p_phi_0) (* (expt m 2) (expt r_0 3))))
-;; (up
-;;  (+ (/ (* GM (expt dt 3) p_r_0) (* 3 (expt m 2) (expt r_0 3)))
-;;     (/ (* -1 (expt dt 3) (expt p_phi_0 2) p_r_0) (* 2 (expt m 3) (expt r_0 4))))
-;;  (+ (/ (* (expt dt 3) (expt p_r_0 2) p_phi_0) (* (expt m 3) (expt r_0 4)))
-;;     (/ (* GM (expt dt 3) p_phi_0) (* 3 (expt m 2) (expt r_0 5)))
-;;     (/ (* -1 (expt dt 3) (expt p_phi_0 3)) (* 3 (expt m 3) (expt r_0 6)))))
-;; ;;; Binah 30 Jan 2011
-;;                                         ;process time: 1600 (1600 RUN + 0 GC); real time: 1607#| ... |#
-;; |#
-;; #|
-;; (up r_0 phi_0)
-;; (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-;; (up
-;;  (+ (/ (* -1/2 GM (expt dt 2)) (* m (expt r_0 2)))
-;;     (/ (* 1/2 (expt dt 2) (expt p_phi_0 2)) (* (expt m 2) (expt r_0 3))))
-;;  (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
-;; (up
-;;  (+
-;;   (/ (* 1/3 GM (expt dt 3) p_r_0) (* (expt m 2) (expt r_0 3)))
-;;   (/ (* -1/2 (expt dt 3) (expt p_phi_0 2) p_r_0) (* (expt m 3) (expt r_0 4))))
-;;  (+ (/ (* (expt dt 3) p_phi_0 (expt p_r_0 2)) (* (expt m 3) (expt r_0 4)))
-;;     (/ (* 1/3 GM (expt dt 3) p_phi_0) (* (expt m 2) (expt r_0 5)))
-;;     (/ (* -1/3 (expt dt 3) (expt p_phi_0 3)) (* (expt m 3) (expt r_0 6)))))
-;; |#
-;; ;;; Binah: 9 December 2009
-;; ;;;  With simple-derivative-internal memoized
-;; ;;;   process time: 2830 (2830 RUN + 0 GC); real time: 2846
-;; ;;;  Without memoization
-;; ;;;   process time: 1360 (1360 RUN + 0 GC); real time: 1377
-;; ;;;  But memoization makes some stuff feasible (see calculus/tensor.scm).
-;; ;;;
-;; ;;; Earlier
-;; ;;; MAHARAL
-;; ;;;         process time: 3940 (3710 RUN + 230 GC); real time: 3956
-;; ;;; HOD
-;; ;;;         process time: 14590 (13610 RUN + 980 GC); real time: 14588
-;; ;;; PLANET003 600MHz PIII
-;; ;;;         process time: 19610 (17560 RUN + 2050 GC); real time: 19610
-;; ;;; HEIFETZ xeon 400MHz 512K
-;; ;;;         process time: 27380 (24250 RUN + 3130 GC); real time: 27385
-;; ;;; GEVURAH 300 MHz
-;; ;;;         process time: 36070 (33800 RUN + 2270 GC); real time: 36072
-;; ;;; MAHARAL
-;; ;;;         process time: 56390 (50970 RUN + 5420 GC); real time: 56386
-;; ;;; ACTION1 200MHz Pentium Pro
-;; ;;;         process time: 55260 (49570 RUN + 5690 GC); real time: 55257
-;; ;;; PPA     200MHz Pentium Pro
-;; ;;;         process time: 58840 (56500 RUN + 2340 GC); real time: 59165
-;; ;;; ZOHAR   33MHz 486
-;; ;;;         process time: 463610 (443630 RUN + 19980 GC); real time: 485593
-;; |#
-
-
-;; TODO its from sections.scm. AND that code has some shit that I absolutely
-;; want to visualize.
-
-(comment
-  ;;; Now to do the Poincare section.
-;;;  Map explorer:
-;;;   Left button starts a trajectory.
-;;;   Middle button continues a trajectory.
-;;;   Right button interrogates coordinates.
-
-  ;; (define (explore-map window poincare-map #!optional mode-or-n)
-  ;;   (let* ((default-n 1000)
-  ;;          (collector
-  ;;           (cond ((default-object? mode-or-n)
-  ;;                 (default-collector (default-monitor window)
-  ;;                                    poincare-map
-  ;;                                    default-n))
-  ;;                ((number? mode-or-n)
-  ;;                 (default-collector (default-monitor window)
-  ;;                                    poincare-map
-  ;;                                    mode-or-n))
-  ;;                (else poincare-map))))
-  ;;     (define (button-loop ox oy)
-  ;;       (pointer-coordinates window
-  ;;                            (lambda (x y button)
-  ;;                                    (case button
-  ;;                                      ((0)
-  ;;                                       (display "Started: ")
-  ;;                                       (write-line (list x y))
-  ;;                                       (collector x y button-loop map-failed))
-  ;;                                      ((1)
-  ;;                                       (if (eq? ox 'ignore)
-  ;;                                         (button-loop 'ignore oy)
-  ;;                                         (begin (display "Continued: ")
-  ;;                                                (write-line (list ox oy))
-  ;;                                                (collector ox oy button-loop map-failed))))
-  ;;                                      ((2)
-  ;;                                       (display "Hit: ")
-  ;;                                       (write-line (list x y))
-  ;;                                       (button-loop ox oy))))))
-  ;;     (define (map-failed)
-  ;;       (display "Illegal point \n")
-  ;;       (button-loop 'ignore 'ignore))
-  ;;     (newline)
-  ;;     (display "Left button starts a trajectory.")
-  ;;     (newline)
-  ;;     (display "Middle button continues a trajectory.")
-  ;;     (newline)
-  ;;     (display "Right button interrogates coordinates.")
-  ;;     (newline)
-  ;;     (button-loop 'ignore 'ignore)))
-  ;;
-  ;; (define ((default-collector monitor pmap n) x y done fail)
-  ;;   (let lp ((n n) (x x) (y y))
-  ;;        (monitor x y)
-  ;;        (if (fix:> n 0)
-  ;;          (pmap x y
-  ;;                (lambda (nx ny)
-  ;;                        (lp (fix:- n 1) nx ny))
-  ;;                fail)
-  ;;          (done x y))))
-
-  ;; (define ((default-monitor win) x y)
-  ;;   (plot-point win x y))
-
-  ;; (define (pointer-coordinates window continue)
-  ;;   (beep)
-  ;;   (get-pointer-coordinates window continue))
-
-  ;; #| ;;; Test for standard map
-  ;; (define win (frame 0.0 v/twopi 0.0 v/twopi))
-  ;; (explore-map win (standard-map 1.0))
-  ;; (explore-map win (standard-map 1.0) 5000)
-  ;; (graphics-clear win)
-  ;; (graphics-close win)
-  ;; |#
-
-  ;; #|
-;;; This is used to zero in on crossings in autonomous systems,
-;;;  such as Henon-Heiles.
-
-  ;; TODO this was commented out but can we keep it?
-  (define (refine-crossing sec-eps advance state)
-    (let lp ((state state))
-         (let ((x (g:ref state 1 0))
-               (xd (g:ref state 2 0)))
-           (let ((zstate (advance state (- (/ x xd)))))
-             (if (< (abs (g:ref zstate 1 0))
-                    sec-eps)
-               zstate
-               (lp zstate))))))
-
-  (define (display-map window poincare-map x y n)
-    (plot-point window x y)
-    (if (fix:> n 0)
-      (poincare-map
-       x y
-       (lambda (nx ny)
-               (display-map window poincare-map nx ny (fix:- n 1)))
-       (lambda ()
-               (newline)
-               (display "Illegal point: ")
-               (write (list x y))))))
-  )
-
-;; TODO go to sections.scm.
+(defn flow-transform
+  "The generalization of Lie-transform to include time dependence."
+  [H delta-t]
+  (o/make-operator
+   (g/exp (* delta-t (flow-derivative H)))
+   `(~'flow-transform ~H ~delta-t)))
 
 (defn standard-map
-  ;; from sections.
   [K]
-  (fn [theta I return _]
-    (let [nI (+ I (* K (sin theta)))]
-      (return ((v/principal-value v/twopi) (+ theta nI))
-              ((v/principal-value v/twopi) nI)))))
+  (let [pv (v/principal-value v/twopi)]
+    (fn [theta I return _fail]
+      (let [nI (+ I (* K (sin theta)))]
+        (return
+         (pv (+ theta nI))
+         (pv nI))))))
+
 
 (comment
   ;; TODO for comparison:
@@ -695,13 +319,6 @@
   )
 
 ;;; This is the 0-v/twopi principal value:
-
-(comment
-  (define (flo:pv x)
-    (clojure.core/-
-     x (clojure.core/*
-        v/twopi
-        (Math/floor (clojure.core// x v/twopi))))))
 
 (defn iterated-map
   "f is a function of (x y continue fail), which calls continue with
@@ -747,11 +364,10 @@
 ;; To compute the K (addition to the Hamiltonian) from a time-dependent
 ;; coordinate transformation F.
 
-;; TODO replace p with (momentum H-state once we import lagrangian)
 (defn F->K [F]
-  (fn [[_ _ p :as H-state]]
+  (fn [H-state]
     (- (* (g/solve-linear-right
-           p
+           (momentum H-state)
            (((partial 1) F) H-state))
           (((partial 0) F) H-state)))))
 
@@ -761,18 +377,7 @@
     (+  (/ (g/square p) (* 2 m))
         (V (g/abs q)))))
 
-(comment
-  ;; TODO test for H-central, for some point transformation code
-  (is (= (+ (V r)
-            (/ (* 1/2 (expt p_r 2)) m)
-            (/ (* 1/2 (expt p_phi 2)) (* m (expt r 2))))
-         ((compose (H-central 'm (literal-function 'V))
-                   (F->CT p->r))
-          (->H-state 't
-                     (coordinate-tuple 'r 'phi)
-                     (momentum-tuple 'p_r 'p_phi))))))
 
-;; page numbers here are references to the PDF; probably
 ;; do not correspond to 1ed.
 
 ;; TODO NOW we are cribbing from canonical.scm
@@ -829,31 +434,7 @@
                    (Phi* ((D C) s))))
      (s/compatible-shape s))))
 
-;; TODO tests or check ch5?
-;; #|
-;; (print-expression
-;;  ((time-independent-canonical? (F->CT p->r))
-;;   (up 't
-;;       (coordinate-tuple 'r 'phi)
-;;       (momentum-tuple 'p_r 'p_phi))))
-;; (up 0 (up 0 0) (down 0 0))
 
-
-;; ;;; but not all transforms are
-
-;; (define (a-non-canonical-transform Istate)
-;;   (let ((t (time Istate))
-;;         (theta (coordinate Istate))
-;;        (p (momentum Istate)))
-;;     (let ((x (* p (sin theta)))
-;;          (p_x (* p (cos theta))))
-;;       (up t x p_x))))
-
-;; (print-expression
-;;  ((time-independent-canonical? a-non-canonical-transform)
-;;   (up 't 'theta 'p)))
-;; (up 0 (+ (* -1 p x8102) x8102) (+ (* p x8101) (* -1 x8101)))
-;; |#
 
 ;; from time-varying.scm
 (defn qp-canonical?
@@ -867,72 +448,7 @@
           (J-func
            ((D (f/compose H C)) s))))))
 
-;; (define ((canonical-K? C K) s)
-;;   (let ((s* (compatible-shape s)))
-;;     (- (T-func s*)
-;;        (+ (* ((D C) s) (J-func ((D K) s)))
-;;          (((partial 0) C) s)))))
 
-
-;; (define ((canonical-K? C K) s)
-;;   (let ((DCs ((D C) s))
-;;        (s* (compatible-shape s)))
-;;     (- (T-func s*)
-;;        (* DCs ((Hamiltonian->state-derivative K) s)))))
-;; |#
-;; 
-;; #|
-;; (define ((rotating n) state)
-;;   (let ((t (time state))
-;;        (q (coordinate state)))
-;;     (let ((x (ref q 0))
-;;          (y (ref q 1))
-;;          (z (ref q 2)))
-;;       (coordinate-tuple (+ (* (cos (* n t)) x) (* (sin (* n t)) y))
-;;                        (- (* (cos (* n t)) y) (* (sin (* n t)) x))
-;;                        z))))
-
-;; (define (C-rotating n) (F->CT (rotating n)))
-
-;; (define ((K n) s)
-;;   (let ((q (coordinate s))
-;;        (p (momentum s)))
-;;     (let ((x (ref q 0)) (y (ref q 1))
-;;          (px (ref p 0)) (py (ref p 1)))
-;;       (* n (- (* x py) (* y px))))))
-
-;; (define a-state
-;;   (up 't
-;;       (coordinate-tuple 'x 'y 'z)
-;;       (momentum-tuple 'p_x 'p_y 'p_z)))
-
-
-;; (pe ((canonical-K? (C-rotating 'n) (K 'n)) a-state))
-;; (up 0 (up 0 0 0) (down 0 0 0))
-
-;; ;;; or getting K directly from F
-;; (pe ((canonical-K? (C-rotating 'n) (F->K (rotating 'n))) a-state))
-;; (up 0 (up 0 0 0) (down 0 0 0))
-
-;; (pe ((- (F->K (rotating 'n))
-;;        (K 'n))
-;;      a-state))
-;; 0
-
-;; ;;; not all K's work
-
-;; (define ((bad-K n) s)
-;;   (- ((K n) s)))
-
-;; (pe ((canonical-K? (C-rotating 'n) (bad-K 'n)) a-state))
-;; (up
-;;  0
-;;  (up (+ (* 2 n x (sin (* n t))) (* -2 n y (cos (* n t))))
-;;      (+ (* 2 n x (cos (* n t))) (* 2 n y (sin (* n t))))
-;;      0)
-;;  (down (+ (* 2 n p_x (sin (* n t))) (* -2 n p_y (cos (* n t))))
-;;        (+ (* 2 n p_x (cos (* n t))) (* 2 n p_y (sin (* n t))))
-;;        0))
 
 ;; back to previous file:
 (defn polar-canonical
@@ -943,64 +459,16 @@
           p_x (* (g/sqrt (* 2 alpha I)) (cos theta))]
       (up t x p_x))))
 
-(comment
-  (define ((polar-canonical-inverse alpha) s)
-    (let ((t (time s))
-          (x (coordinate s))
-          (p (momentum s)))
-      (let ((I (/ (+ (* alpha (square x))
-                     (/ (square p) alpha))
-                  2)))
-        (let ((theta (atan (/ x (sqrt (/ (* 2 I) alpha)))
-                           (/ p (sqrt (* 2 I alpha))))))
-          (up t theta I))))))
+(defn polar-canonical-inverse [alpha]
+  (fn [[t x p]]
+    (let [I (/ (+ (* alpha (g/square x))
+                  (/ (g/square p) alpha))
+               2)
+          theta (g/atan (/ x (g/sqrt (/ (* 2 I) alpha)))
+                        (/ p (g/sqrt (* 2 I alpha))))]
+      (up t theta I))))
 
-;; TODO move to tests:
-;; #|
-;; (pe
-;;  ((compose (polar-canonical-inverse 'alpha)
-;;           (polar-canonical 'alpha))
-;;   (up 't 'x 'p)))
-;; (up t x p)
 
-;; (print-expression
-;;  ((time-independent-canonical? (polar-canonical 'alpha))
-;;   (up 't 'a 'I)))
-;; (up 0 0 0)
-;; |#
-;; 
-;; #|
-;; (define (Cmix H-state)
-;;   (let ((t (time H-state))
-;;        (q (coordinate H-state))
-;;        (p (momentum H-state)))
-;;     (up t
-;;         (coordinate-tuple (ref q 0) (- (ref p 1)))
-;;         (momentum-tuple   (ref p 0) (ref q 1)))))
-
-;; (define a-state
-;;   (up 't
-;;       (coordinate-tuple 'x 'y)
-;;       (momentum-tuple 'p_x 'p_y)))
-
-;; (print-expression
-;;  ((time-independent-canonical? Cmix)
-;;   a-state))
-;; (up 0 (up 0 0) (down 0 0))
-
-;; (define (Cmix2 H-state)
-;;   (let ((t (time H-state))
-;;        (q (coordinate H-state))
-;;        (p (momentum H-state)))
-;;     (up t
-;;         (flip-outer-index p)
-;;         (- (flip-outer-index q)))))
-
-;; (print-expression
-;;  ((time-independent-canonical? Cmix2)
-;;   a-state))
-;; (up 0 (up 0 0) (down 0 0))
-;; |#
 
 (comment
   (define ((two-particle-center-of-mass m0 m1) H-state)
@@ -1081,7 +549,7 @@
 ;;        (up 'v_x 'v_y)))
 ;; (+ (* a p_x v_x) (* b p_x v_y) (* c p_y v_x) (* d p_y v_y))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define ((time-independent-canonical? C) s)
 ;;   (let ((s* (compatible-shape s)))
@@ -1119,7 +587,7 @@
 ;;   (up 't 'a 'I)))
 ;; (up (up 0 0 0) (up 0 0 0) (up 0 0 0))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
@@ -1152,7 +620,7 @@
 ;;   a-state))
 ;; (up 0 (up 0 0) (down 0 0))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define ((C m0 m1) state)
 ;;   (let ((x (coordinate state))
@@ -1234,7 +702,7 @@
 ;;   (up 't 'theta 'p)))
 ;; (up (up 0 0 0) (up 0 0 (+ -1 p)) (up 0 (+ 1 (* -1 p)) 0))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define (Cmix H-state)
 ;;   (let ((t (time H-state))
@@ -1269,7 +737,7 @@
 ;;     (up (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0)))
 ;;     (down (up 0 (up 0 0) (down 0 0)) (up 0 (up 0 0) (down 0 0))))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define ((C m0 m1) state)
 ;;   (let ((x (coordinate state))
@@ -1385,7 +853,7 @@
 ;;                 (list 0 0 0 0 0)
 ;;                 (list 0 0 0 0 0))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (define (Cmix2 H-state)
 ;;   (let ((t (time H-state))
@@ -1491,7 +959,7 @@
 ;;                (list 0 0 0 0)
 ;;                (list 0 0 0 0))
 ;; |#
-;; 
+;;
 ;; #|
 ;; (print-expression
 ;;  ((symplectic-transform? a-non-canonical-transform)
