@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- #508 adds `sicmutils.mechanics.noether` namespace, with `Noether-integral`.
+
 - #502 begins the port of the remaining items in the scmutils `mechanics`
   package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
   which contains functions from many files in the original `mechanics` folder.
