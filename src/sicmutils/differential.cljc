@@ -1167,6 +1167,7 @@
 ;; Any function built out of these components will work with
 ;; the [[sicmutils.calculus.derivative/D]] operator.
 
+#_
 (defmethod g/simplify [::differential] [d]
   (->Differential
    (mapv (fn [term]

@@ -150,6 +150,8 @@
                  (simplify)
                  (e/->JavaScript :deterministic? true)))))))
 
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
 (deftest section-3-5
   (testing "p.221"
     (let [H ((e/Lagrangian->Hamiltonian

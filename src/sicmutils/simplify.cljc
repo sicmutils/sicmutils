@@ -40,15 +40,13 @@
     (a/make-analyzer rf/analyzer gensym)))
 
 (def ^:dynamic *poly-simplify*
-  (memoize
-   (a/expression-simplifier
-    (poly-analyzer))))
+  (a/expression-simplifier
+   (poly-analyzer)))
 
 (def ^:dynamic *rf-simplify*
   (unless-timeout
-   (memoize
-    (a/expression-simplifier
-     (rational-function-analyzer)))))
+   (a/expression-simplifier
+    (rational-function-analyzer))))
 
 (defn hermetic-simplify-fixture
   "Returns the result of executing the supplied `thunk` in an environment where
@@ -62,14 +60,16 @@
                               (poly-analyzer)))]
     (thunk)))
 
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
 (defn- simplify-and-flatten [expr]
-  (*poly-simplify*
-   (*rf-simplify* expr)))
+  (let [rf (p :simple/ratfun (*rf-simplify* expr))]
+    (p :simple/poly (*poly-simplify* rf))))
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]
   (fn [expr]
-    (let [new-expr (rule-simplify expr)]
+    (let [new-expr (p :simple/rules-stable (rule-simplify expr))]
       (if (= expr new-expr)
         expr
         (let [canonicalized-expr (canonicalize new-expr)]
@@ -83,13 +83,13 @@
 (defn- simplify-and-canonicalize
   [rule-simplify canonicalize]
   (fn [expr]
-    (let [new-expr (rule-simplify expr)]
+    (let [new-expr (p :simple/rules (rule-simplify expr))]
       (if (= expr new-expr)
         expr
         (canonicalize new-expr)))))
 
 (def ^:private clear-square-roots-of-perfect-squares
-  (-> (comp (rules/universal-reductions #'*rf-simplify*)
+  (-> (comp (rules/universal-reductions identity)
             factor/root-out-squares)
       (simplify-and-canonicalize simplify-and-flatten)))
 
@@ -100,17 +100,20 @@
     f
     identity))
 
-(let [universal-reductions (rules/universal-reductions #'*rf-simplify*)
-      sqrt-contract (rules/sqrt-contract #'*rf-simplify*)
-      sqrt-expand (rules/sqrt-expand #'*rf-simplify*)
-      log-contract (rules/log-contract #'*rf-simplify*)
-      sincos-random (rules/sincos-random #'*rf-simplify*)
-      sincos-flush-ones (rules/sincos-flush-ones #'*rf-simplify*)]
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
+(let [
+      universal-reductions (rules/universal-reductions identity)
+      sqrt-contract (rules/sqrt-contract identity)
+      sqrt-expand (rules/sqrt-expand identity)
+      log-contract (rules/log-contract identity)
+      sincos-random (rules/sincos-random identity)
+      sincos-flush-ones (rules/sincos-flush-ones identity)]
 
   (defn simplify-expression
     "Simplifies an expression representing a complex number. TODO say more!"
     [expr]
-    (let [syms (x/variables-in expr)
+    (let [syms (p :third/variables-in (x/variables-in expr))
           sqrt? (rules/occurs-in? #{'sqrt} syms)
           full-sqrt? (and rules/*sqrt-factor-simplify?*
                           (rules/occurs-in? #{'sqrt} syms))

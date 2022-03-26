@@ -311,6 +311,8 @@
 
         :else 1))
 
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
 (defn ^:no-doc ->reduced
   "Given a numerator `u` and denominator `v`, returns the result of:
 
@@ -342,7 +344,7 @@
                   [u v]
                   [(g/mul factor u)
                    (g/mul factor v)])
-        g (g/gcd u' v')
+        g (p :ratfun/->reduced-gcd (g/gcd u' v'))
         [u'' v''] (if (v/one? g)
                     [u' v']
                     [(p/evenly-divide u' g)
@@ -403,6 +405,8 @@
 ;; The following functions act on full numerator, denominator pairs, and are
 ;; suitable for use as the `uv-op` argument to [[binary-combine]].
 
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
 (defn- uv:+
   "Returns the `[numerator, denominator]` pair resulting from rational function
   addition of `(/ u u')` and `(/ v v')`.
@@ -426,25 +430,26 @@
                   [n d]
                   [(p/evenly-divide n g)
                    (p/evenly-divide d g)]))))]
-    (if (v/= u' v')
-      ;; Denominators are equal:
-      (let [n (p/add u v)]
-        (divide-through n u'))
-      (let [g (g/gcd u' v')]
-        (if (v/one? g)
-          ;; Denominators are relatively prime:
-          (divide-through
-           (p/add (p/mul u v')
-                  (p/mul u' v))
-           (p/mul u' v'))
+    (p :ratfun/add
+       (if (v/= u' v')
+         ;; Denominators are equal:
+         (let [n (p/add u v)]
+           (divide-through n u'))
+         (let [g (g/gcd u' v')]
+           (if (v/one? g)
+             ;; Denominators are relatively prime:
+             (divide-through
+              (p/add (p/mul u v')
+                     (p/mul u' v))
+              (p/mul u' v'))
 
-          ;; Denominators are NOT relatively prime:
-          (let [u':g (p/evenly-divide u' g)
-                v':g (p/evenly-divide v' g)]
-            (divide-through
-             (p/add (p/mul u v':g)
-                    (p/mul u':g v))
-             (p/mul u':g v'))))))))
+             ;; Denominators are NOT relatively prime:
+             (let [u':g (p/evenly-divide u' g)
+                   v':g (p/evenly-divide v' g)]
+               (divide-through
+                (p/add (p/mul u v':g)
+                       (p/mul u':g v))
+                (p/mul u':g v')))))))))
 
 (defn- uv:-
   "Returns the `[numerator, denominator]` pair resulting from rational function
@@ -452,31 +457,34 @@
 
   Similar to [[uv:+]]; inverts `v` before calling [[uv:+]] with the supplied arguments."
   [u u' v v']
-  (uv:+ u u' (p/negate v) v'))
+  (p :ratfun/sub
+     (uv:+ u u' (p/negate v) v')))
 
 (defn- uv:*
   "Returns the `[numerator, denominator]` pair resulting from rational function
   multiplication of `(/ u u')` and `(/ v v')`."
   [u u' v v']
-  (if (or (v/zero? u) (v/zero? v))
-    [0 1]
-    (let [d1 (g/gcd u v')
-          d2 (g/gcd u' v)
-          u'' (p/mul (p/evenly-divide u d1)
-                     (p/evenly-divide v d2))
-          v'' (p/mul (p/evenly-divide u' d2)
-                     (p/evenly-divide v' d1))]
-      [u'' v''])))
+  (p :ratfun/times
+     (if (or (v/zero? u) (v/zero? v))
+       [0 1]
+       (let [d1 (g/gcd u v')
+             d2 (g/gcd u' v)
+             u'' (p/mul (p/evenly-divide u d1)
+                        (p/evenly-divide v d2))
+             v'' (p/mul (p/evenly-divide u' d2)
+                        (p/evenly-divide v' d1))]
+         [u'' v'']))))
 
 (defn- uv:gcd
   "Returns the `[numerator, denominator]` pair that represents the greatest common
   divisor of `(/ u u')` and `(/ v v')`."
   [u u' v v']
-  (let [d1     (g/gcd u v)
-        d2     (g/lcm u' v')
-        result (make d1 d2)]
-    [(r/numerator result)
-     (r/denominator result)]))
+  (p :ratfun/uv-gcd
+     (let [d1     (p (g/gcd u v))
+           d2     (g/lcm u' v')
+           result (make d1 d2)]
+       [(r/numerator result)
+        (r/denominator result)])))
 
 ;; ## RationalFunction versions
 ;;
@@ -607,7 +615,7 @@
   appropriate handling of [[RationalFunction]], [[polynomial/Polynomial]] or
   coefficients of neither type on either side. "
   [r s]
-  (binary-combine r s g/gcd uv:gcd))
+  (p :ratfun/gcd (binary-combine r s g/gcd uv:gcd)))
 
 ;; ## Function Evaluation, Composition
 ;;
@@ -737,16 +745,26 @@
   NOTE See [[analyzer]] for an instance usable
   by [[sicmutils.expression.analyze/make-analyzer]]."
   ([expr]
+
    (expression-> expr vector compare))
   ([expr cont]
+
    (expression-> expr cont compare))
   ([expr cont v-compare]
-   (let [vars     (-> (x/variables-in expr)
-                      (set/difference operators-known))
+
+   (let [vars     (let [vs (p :ratfun/get-variables
+                              (x/variables-in expr))]
+                    (set/difference vs operators-known))
          arity    (count vars)
-         sorted   (sort v-compare vars)
+         sorted   (p :ratfun/sort-variables
+                     (sort v-compare vars))
+
+         ;; so it might be the case that the intense list-based structural
+         ;; sharing he does, with canonical-copy, is really important.
          sym->var (zipmap sorted (p/new-variables arity))
-         rf       (x/evaluate expr sym->var operator-table)]
+         ;; so only nine seconds once we get here??
+         rf       (p :ratfun/expr-evaluate
+                     (x/evaluate expr sym->var operator-table))]
      (cont rf sorted))))
 
 (defn from-points
@@ -780,10 +798,12 @@
       (expression-> expr cont))
 
     (expression-> [_ expr cont v-compare]
-      (expression-> expr cont v-compare))
+      (p :ratfun-analyzer/expression->
+         (expression-> expr cont v-compare)))
 
     (->expression [_ rf vars]
-      (->expression rf vars))
+      (p :ratfun-analyzer/->expression
+         (->expression rf vars)))
 
     (known-operation? [_ o]
       (contains? operators-known o))))

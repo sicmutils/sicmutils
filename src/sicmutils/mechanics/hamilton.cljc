@@ -204,28 +204,60 @@
 
 ;; SO I am seeing that there are a ton of calls here, and they take a really
 ;; long time down below.
+;;
+;; we get the same number of calls to everything in scmutils vs here. But we are
+;; INSANELY slow.
+;;
+;; okay, ideas next:
+;;
+;; - what is slow is the `simplify` call. Something crazy must be happening on
+;; - the scmutils side, some insane memoization. How else could it work?
+;;
+;; Evaluate the following form, then run in `sicm.ch-3`
+
+(comment
+  (profile
+   {}
+   (let [top-state (up 't
+                       (up 'theta 'phi 'psi)
+                       (down 'p_theta 'p_phi 'p_psi))
+         H (e/Lagrangian->Hamiltonian
+            (top/L-axisymmetric 'A 'C 'gMR))
+         sysder (e/Hamiltonian->state-derivative H)]
+
+     (simplify (sysder top-state)))))
+
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+(tufte/add-basic-println-handler! {})
+
+;; more observations for now:
+;;
+;; - variables-in was a factor. If you speed it up, great. But NOT for the GJS
+;; - one apparently since we are faster at that! He must be totally skipping
+;; - this insane thing. But his expressions are blowing up??
+
 (do (defn ^:no-doc Legendre-transform-procedure [F]
       (let [w-of-v (D F)]
         (letfn [(putative-G [w]
                   (let [z (s/compatible-zero w)
                         M ((D w-of-v) z)
                         b (w-of-v z)]
-                    (prn "up here")
-                    (if (time (v/zero?
-                               (g/simplify
-                                (g/determinant M))))
-                      (throw
-                       (ex-info "Legendre Transform Failure: determinant=0"
-                                {:F F :w w}))
-                      (let [v (g/solve-linear-left M (- w b))]
-                        (- (* w v) (F v))))))]
+                    (if false #_(v/zero?
+                                 (let [det (p :generate/determinant
+                                              (g/determinant M))]
+                                   (p :simplify/det (g/simplify det))))
+                        (throw
+                         (ex-info "Legendre Transform Failure: determinant=0"
+                                  {:F F :w w}))
+                        (let [v (g/solve-linear-left M (- w b))]
+                          (- (* w v) (F v))))))]
           (fn G [w]
-            (let [thing (s/typical-object w)]
-              (prn "down here")
-              (if (time (v/= (g/simplify
-                              ((f/compose w-of-v (D putative-G))
-                               thing))
-                             (g/simplify thing)))
+            (let [thing (s/typical-object w)
+                  inner (p :generate/outer
+                           ((f/compose w-of-v (D putative-G))
+                            thing))]
+              (if (v/= (p :simplify/outer (g/simplify inner))
+                       (p :simplify/thing (g/simplify thing)))
                 (putative-G w)
                 (throw
                  (ex-info "Legendre Transform Failure: not quadratic"

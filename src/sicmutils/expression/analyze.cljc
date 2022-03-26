@@ -125,6 +125,11 @@
     "Returns true if the symbolic operation `x` is considered fundamental by
     `analyzer`, false otherwise."))
 
+(require '[taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+
+(defn doink! [f xs]
+  (doall (map f xs)))
+
 (defn make-analyzer
   "Make-analyzer takes an analyzer `backend` (which implements [[ICanonicalize]])
   and returns a dictionary with the apparatus necessary to prepare expressions
@@ -162,7 +167,7 @@
 
              (ianalyze [expr]
                (if (unquoted-list? expr)
-                 (let [analyzed-expr (doall (map ianalyze expr))]
+                 (let [analyzed-expr (doink! ianalyze expr)]
                    (if (and (known-operation? backend (sym/operator analyzed-expr))
                             (not (and *inhibit-expt-simplify*
                                       (sym/expt? analyzed-expr)
@@ -170,13 +175,16 @@
                                             (second
                                              (sym/operands analyzed-expr)))))))
                      analyzed-expr
-                     (if-let [existing-expr (@expr->var analyzed-expr)]
+                     (if-let [existing-expr (@expr->var
+                                             analyzed-expr
+                                             #_(v/freeze analyzed-expr))]
                        existing-expr
                        (new-kernels analyzed-expr))))
                  expr))
 
              (analyze [expr]
-               (let [vcompare (make-vcompare (x/variables-in expr))]
+               (let [vcompare (make-vcompare (p :analyze/variables-in-called
+                                                (x/variables-in expr)))]
                  (reset! compare-fn vcompare))
                (ianalyze expr))
 
@@ -184,7 +192,9 @@
              ;; NOTE: use `doall` to force the variable-binding side effects
              ;; of `base-simplify`.
              (new-kernels [expr]
-               (let [simplified-expr (doall (map base-simplify expr))
+               #_(prn "new kernels" expr)
+               #_(Thread/sleep 300)
+               (let [simplified-expr (doink! base-simplify expr)
                      op (sym/operator simplified-expr)]
                  (if-let [v (sym/symbolic-operator op)]
                    (let [w (apply v (sym/operands simplified-expr))]
@@ -213,34 +223,49 @@
 
              (add-symbols! [expr]
                ;; NOTE: FORCE the side effect of binding all symbols.
-               (let [new (doall (map add-symbol! expr))]
+               (let [new (doink! add-symbol! expr)]
                  (add-symbol! new)))
 
              (backsubstitute [expr]
-               (cond (sequential? expr) (doall
-                                         (map backsubstitute expr))
+               (cond (sequential? expr) (doink! backsubstitute expr)
                      (symbol? expr) (if-let [w (@var->expr expr)]
                                       (backsubstitute w)
                                       expr)
                      :else expr))
 
              (base-simplify [expr]
+               ;; this should not be happening.
+               #_(prn "base-simplify!")
+               #_(Thread/sleep 300)
                (if (unquoted-list? expr)
-                 (expression-> backend
-                               expr
-                               #(->expression backend %1 %2)
-                               v-compare)
+                 (let [ret (expression-> backend
+                                         expr
+                                         (fn [b vars]
+                                           (->expression backend b vars))
+                                         v-compare)]
+                   ret)
                  expr))
 
              (analyze-expression [expr]
                (binding [sym/*incremental-simplifier* false]
-                 (base-simplify
-                  (analyze expr))))
+                 (let [analyzed (analyze expr)]
+                   ;; so analysis is good. BUT THEN this calls base-simplify,
+                   ;; and it starts recursing down again. AND somehow loop back
+                   ;; up to analysis.
+                   #_#_(prn "analyzing done, coming in!")
+                   (prn (count analyzed))
+                   ;; but in scheme this does not happen, that it them maps??
+
+                   (base-simplify analyzed))))
 
              ;; Simplify relative to existing tables.
              (simplify-expression [expr]
-               (backsubstitute
-                (analyze-expression expr)))
+               #_(prn "simplify getting called again")
+               (let [ret (analyze-expression expr)]
+                 #_(prn "analyze expr done, backsubbing")
+                 (let [final (backsubstitute ret)]
+                   #_(prn final)
+                   final)))
 
              ;; Default simplifier
              (simplify [expr]

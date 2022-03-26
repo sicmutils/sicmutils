@@ -187,9 +187,14 @@
   `expr` is either a symbol, a [[Literal]] instance or some sequence
   representing a symbolic expression."
   [expr]
+  ;; I THINK what is happening is that differentials are ALL getting their own
+  ;; tags here. This is going to be a big win!!!
   (cond (symbol? expr) #{expr}
         (literal? expr) (recur (expression-of expr))
-        :else (into #{} (filter symbol?) (flatten expr))))
+        :else (into #{}
+                    (filter symbol?)
+                    (tree-seq sequential? seq expr))))
+
 
 (defn evaluate
   "Walk the unwrapped expression `expr` in postorder, replacing symbols found
