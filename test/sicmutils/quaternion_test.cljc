@@ -916,3 +916,14 @@
                       (g/* k q/K-tensor)))
                   "Build up the tensor, check that it matches the matrix
                   version."))))
+
+(deftest rotation-matrix-tests
+  (checking "to and from 3x3 rotation matrices" 100
+            [x (sg/quaternion)]
+            (let [x (q/normalize x)]
+              (is (ish? (q/->rotation-matrix x)
+                        (q/->rotation-matrix
+                         (q/from-rotation-matrix
+                          (q/->rotation-matrix x))))
+                  "Ending in matrix land gets rid of ambiguities about which
+                direction to rotate when there's a tie."))))
