@@ -171,7 +171,6 @@
 
   )
 
-(declare q:i q:j q:k rotation-matrix->quaternion) ;; TODO delete once quat is in
 (deftest quaternion-evolution-tests
   (letfn [(qw-sysder [A B C]
             (let [B-C-over-A (/ (- B C) A)
@@ -181,10 +180,9 @@
                 (let [tdot 1
                       qdot ;; driven quaternion
                       (* (/ -1 2)
-                         ;; TODO these are the quaternion rotation matrices
-                         (+ (* omega**a q:i)
-                            (* omega**b q:j)
-                            (* omega**c q:k))
+                         (+ (* omega**a q/I-matrix)
+                            (* omega**b q/J-matrix)
+                            (* omega**c q/K-matrix))
                          q)
                       omegadot  ;; Euler's equations
                       (up (* B-C-over-A omega**b omega**c)
@@ -201,7 +199,7 @@
                           (up 0.1 0.1 0.1))
           M (rotation/Euler->M (L/coordinates Euler-state))
           q (q/->vector
-             (rotation-matrix->quaternion M))
+             (q/from-rotation-matrix M))
           qw-state0
           (up (L/time Euler-state)
               q

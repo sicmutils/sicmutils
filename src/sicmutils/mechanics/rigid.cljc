@@ -178,15 +178,11 @@
   (fn [qw-state]
     ((L-body A B C) (get qw-state 2))))
 
-;; TODO delete!
-(declare quaternion->rotation-matrix)
-
-;; TODO gah, can't activate this damned thing until we get quat->rot in.
 (defn qw-state->L-space [A B C]
   (fn [qw-state]
     (let [q (L/coordinates qw-state)
           Lbody ((qw-state->L-body A B C) qw-state)
-          M (quaternion->rotation-matrix (q/make q))]
+          M     (q/->rotation-matrix (q/make q))]
       (* Lbody (g/transpose M)))))
 
 (defn T-quaternion-state [A B C]
