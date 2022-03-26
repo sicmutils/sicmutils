@@ -156,7 +156,7 @@
                         d:dr d:dr)
                        ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))))
 
-        (testing "Conservation of energy-momentum (13s)"
+        (testing "Conservation of energy-momentum (13s, 5s in parallel)"
           (with-literal-functions [R p rho]
             (let [metric (FLRW-metric 'c 'k R)
                   basis (e/coordinate-system->basis spacetime-sphere)
@@ -168,21 +168,22 @@
                              (* -3 (expt c 2) (rho t) ((D R) t))
                              (* -3 ((D R) t) (p t))) (R t))
                        0 0 0]
-                     (map (fn [i]
-                            (simplify
-                             ((e/contract
-                               (fn [ej wj]
-                                 (* (metric ej (nth es i))
-                                    (e/contract
-                                     (fn [ei wi]
-                                       (((nabla ei)
-                                         (Tperfect-fluid rho p 'c metric))
-                                        wj
-                                        wi))
-                                     basis)))
-                               basis)
-                              ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
-                          (range 4))))))))))
+                     (#?(:cljs map :clj pmap)
+                      (fn [i]
+                        (simplify
+                         ((e/contract
+                           (fn [ej wj]
+                             (* (metric ej (nth es i))
+                                (e/contract
+                                 (fn [ei wi]
+                                   (((nabla ei)
+                                     (Tperfect-fluid rho p 'c metric))
+                                    wj
+                                    wi))
+                                 basis)))
+                           basis)
+                          ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
+                      (range 4))))))))))
 
   (deftest einstein-field-equations-fast
     (testing "final challenge, actually fast enough to enable"
@@ -193,19 +194,20 @@
                      (e/Christoffel->Cartan
                       (e/metric->Christoffel-2 metric basis)))
               ws    (e/basis->oneform-basis basis)]
-          (is (= ['(/ (+ (* (expt c 2) ((D rho) t) (R t))
+          (is (= '[(/ (+ (* (expt c 2) (R t) ((D rho) t))
                          (* 3 (expt c 2) ((D R) t) (rho t))
                          (* 3 ((D R) t) (p t)))
                       (* (expt c 2) (R t)))
-                  0 0 0]
-                 (map (fn [i]
-                        (simplify
-                         ((e/contract
-                           (fn [ei wi]
-                             (((nabla ei)
-                               (Tperfect-fluid rho p 'c metric))
-                              (nth ws i)
-                              wi))
-                           basis)
-                          ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
-                      (range 4)))))))))
+                   0 0 0]
+                 (#?(:cljs map :clj pmap)
+                  (fn [i]
+                    (simplify
+                     ((e/contract
+                       (fn [ei wi]
+                         (((nabla ei)
+                           (Tperfect-fluid rho p 'c metric))
+                          (nth ws i)
+                          wi))
+                       basis)
+                      ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))
+                  (range 4)))))))))

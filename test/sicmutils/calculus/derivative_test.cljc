@@ -51,8 +51,8 @@
     (is (= 2 ((D #(* 2 %)) 'w))))
 
   (testing "square, cube"
-    (is (= (+ 'z 'z)
-           ((D g/square) 'z)))
+    (is (= (* 2 'z) ((D g/square) 'z)))
+    (is (= (* 3 (g/expt 'z 2)) ((D g/cube) 'z)))
     (is (= (* 3 (g/expt 'y 2))
            ((D #(g/expt % 3)) 'y))))
 

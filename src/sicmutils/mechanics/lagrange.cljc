@@ -557,7 +557,9 @@
    (coordinate local)))
 
 (defn rectangular->spherical [[x y z]]
-  (let [r (g/sqrt (+ (* x x) (* y y) (* z z)))
+  (let [r (g/sqrt (+ (g/square x)
+                     (g/square y)
+                     (g/square z)))
         theta (g/acos (/ z r))
         phi (g/atan y x)]
     (coordinate-tuple r theta phi)))

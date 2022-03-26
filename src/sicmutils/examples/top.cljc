@@ -7,7 +7,7 @@
 
 (defn L
   [A B C gMR]
-  (let [T (rigid/T-rigid-body A B C)
+  (let [T (comp e/simplify (rigid/T-rigid-body A B C))
         V (fn [[_ [theta _ _]]]
             (* gMR (cos theta)))]
     (- T V)))

@@ -200,32 +200,44 @@
 ;;  F(u) = 1/2 A u u + b u + c
 ;;  then v = A u + b, so u = A^(-1) (v - b)
 
-;; From GJS: This ugly version tests for correctness of the result.
+(def ^{:dynamic true
+       :doc "If true, the state passed to the fn returned
+       by [[Legendre-transform]] is checked for correctness. If `false` errors
+       may occur. See the code body for more detail.
 
-(defn ^:no-doc Legendre-transform-procedure [F]
-  (let [w-of-v (D F)]
+       Defaults to `false`."}
+  *validate-Legendre-transform?*
+  false)
+
+(defn ^:no-doc Legendre-transform-procedure
+  "Note from GJS: This ugly version tests for correctness of the result."
+  [F]
+  (let [w-of-v  (D F)
+        Dw-of-v (D w-of-v)]
     (letfn [(putative-G [w]
               (let [z (s/compatible-zero w)
-                    M ((D w-of-v) z)
+                    M (Dw-of-v z)
                     b (w-of-v z)]
-                (if (v/zero?
-                     (g/simplify
-                      (g/determinant M)))
+                (if (and *validate-Legendre-transform?*
+                         (v/zero?
+                          (g/simplify
+                           (g/determinant M))))
                   (throw
-                   (ex-info "Legendre Transform Failure: determinant=0"
+                   (ex-info "Legendre Transform Failure: determinant = 0"
                             {:F F :w w}))
                   (let [v (g/solve-linear-left M (- w b))]
                     (- (* w v) (F v))))))]
-      (memoize
-       (fn G [w]
-         (let [thing (s/typical-object w)]
-           (if (v/= (g/simplify
-                     (w-of-v ((D putative-G) thing)))
-                    (g/simplify thing))
-             (putative-G w)
-             (throw
-              (ex-info "Legendre Transform Failure: not quadratic"
-                       {:F F :w w})))))))))
+      (let [Dpg (D putative-G)]
+        (fn G [w]
+          (if (and *validate-Legendre-transform?*
+                   (let [thing (s/typical-object w)]
+                     (not (v/= thing
+                               (g/simplify
+                                (w-of-v (Dpg thing)))))))
+            (throw
+             (ex-info "Legendre Transform Failure: not quadratic"
+                      {:F F :w w}))
+            (putative-G w)))))))
 
 (def Legendre-transform
   (o/make-operator Legendre-transform-procedure
