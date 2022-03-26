@@ -17,7 +17,60 @@
       `quaternion-state->omega-space`, `qw-state->L-body`, `qw-state->L-space`,
       `T-quaternion-state`
 
+- #503:
+
+  - Changes the default implementation of `square` and `cube` for differentials
+    to use `(expt <> 2)` etc instead of `(* <> <>)`.
+
+    This is a _big deal!_ For certain expressions there's a huge blowup when you
+    square a big symbolic term, and taking the derivative of it TWICE is very
+    messy.
+
+    With this change, differentials use the chain rule to calculuate the
+    derivative of $x^2$ as $2x*x'$, instead of using the product rule and
+    achieving a SECOND differentiatation of the same form and another
+    multiplication: $xx' + x'x$.
+
+    Before a judicious `simplify` call I added, this change dropped the runtime
+    of the `sicmutils.sicm.ch3-test` suite down by 6x. After the simplify change
+    in `sicmutils.examples.top` the tests were still 40% faster in that
+    namespace.
+
+  - Fixes a bug where the `RationalFunction` cube implementation actually called
+    `square`.
+
+  - adds `sicmutils.mechanics.lagrange/Lagrangian` for building function
+    signatures of Lagrangians.
+
+  - adds the `sicmutils.mechanics.time-evolution` namespace
+
+  - adds `sicmutils.mechanics.lagrange/L-axisymmetric-top`, more efficient than
+    the version in `sicmutils.examples.top`
+
+  - Fleshes out `sicmutils.mechanics.hamilton`:
+
+    - New functions: `H-state?`, `compatible-H-state?`, `state->p`, `momenta`,
+      `P`, `literal-Hamiltonian-state`, `L-state->H-state`, `H-state->L-state`,
+      `H-state->matrix`, `matrix->H-state`, `make-Hamiltonian`, `D-phase-space`,
+      `Hamiltonian->Lagrangian-procedure`, `Hamiltonian->Lagrangian`,
+      `flow-derivative`, `flow-transform`, `standard-map-inverse`, `F->K`,
+      `J-func`, `T-func`, `canonical-H?`, `canonical-K?`,
+      `linear-function->multiplier`, `Phi`, `Phi*`, `qp-canonical?`,
+      `polar-canonical-inverse`, `two-particle-center-of-mass` ,
+      `two-particle-center-of-mass-canonical`, `transpose-function`,
+      `multiplicative-transpose`, `symplectic-two-form`, `canonical-transform?`,
+      `J-matrix`, `symplectic?`
+
+    - `F->CH` moves to `F->CT` (`F->CT` is now an alias)
+
+    - `Legendre-transform-fn` becomes `Legendre-transform-procedure` and gains
+      more correctness tests, toggled on and off by the
+      `*validate-Legendre-transform?*` dynamic variable.
+
 - #508 adds `sicmutils.mechanics.noether` namespace, with `Noether-integral`.
+
+- #506 tidies up the build by removing unneeded reader conditionals and
+  replacing renames like `core-=` with a proper require of `clojure.core`.
 
 - #502 begins the port of the remaining items in the scmutils `mechanics`
   package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,

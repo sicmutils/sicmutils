@@ -12,6 +12,7 @@
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.laws :as sl]
+            [sicmutils.matrix :as m]
             [sicmutils.quaternion :as q]
             [sicmutils.simplify]
             [sicmutils.structure :as s]
@@ -872,3 +873,46 @@
             (q/from-angle-axis
              'theta
              ['x 'y (g/sqrt (g/- 1 (g/square 'x) (g/square 'y)))])))))))
+
+(deftest complex-matrix-rep-tests
+  (checking "to and from complex matrices" 100
+            [x (sg/quaternion)]
+            (is (= x (q/from-complex-matrix
+                      (q/->complex-matrix x)))))
+
+  (checking "to and from complex matrices" 100
+            [x (sg/quaternion)]
+            (is (= (q/->complex-pair x)
+                   (first
+                    (q/->complex-matrix x)))
+                "The first row of the associated complex matrix matches
+                ->complex-pair.")) )
+
+(deftest four-by-four-matrix-tests
+  (checking "to and from 4x4 matrices" 100 [x (sg/quaternion)]
+            (is (= x (q/from-4x4-matrix
+                      (q/->4x4-matrix x)))))
+
+  (checking "Building quaternions out of 4x4 matrices" 100 [x (sg/quaternion)]
+            (let [[r i j k] x
+                  M (q/->4x4-matrix x)]
+              (is (= M (g/+
+                        (g/* r q/ONE-matrix)
+                        (g/* i q/I-matrix)
+                        (g/* j q/J-matrix)
+                        (g/* k q/K-matrix)))
+                  "Fine, this is the definition, BUT it's an important
+                  relationship!"))))
+
+(deftest tensor-tests
+  (checking "Building quaternions out of tensors" 100 [x (sg/quaternion)]
+            (let [[r i j k] x]
+              (is (= (m/->structure
+                      (q/->4x4-matrix x))
+                     (g/+
+                      (g/* r q/ONE-tensor)
+                      (g/* i q/I-tensor)
+                      (g/* j q/J-tensor)
+                      (g/* k q/K-tensor)))
+                  "Build up the tensor, check that it matches the matrix
+                  version."))))

@@ -37,7 +37,7 @@
                 (doseq [->q [L/coordinate L/state->q
                              L/coordinates L/Q]]
                   (is (= q (->q state))
-                      "time lookup works correctly"))
+                      "coordinate lookup works correctly"))
 
                 (doseq [->v [L/velocity L/state->qdot
                              L/velocities L/Qdot]]
@@ -432,10 +432,7 @@
             ((L/Dt (L/Dt (comp square L/coordinate)))
              (up 't 'x 'v 'a 'j)))))
 
-    (let [L (f/literal-function 'L '(-> (UP Real
-                                            (UP Real Real)
-                                            (UP Real Real))
-                                        Real))]
+    (let [L (f/literal-function 'L (L/Lagrangian 2))]
       ;; (simplify
       ;;  ((Dt L) (up 't (up 'x 'y) (up 'vx 'vy))))
       ;; <error, not enuf args>@

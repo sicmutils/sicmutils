@@ -855,7 +855,7 @@
 (defmethod g/negate [::rational-function] [a] (negate a))
 (defmethod g/invert [::rational-function] [a] (invert a))
 (defmethod g/square [::rational-function] [a] (square a))
-(defmethod g/cube [::rational-function] [a] (square a))
+(defmethod g/cube [::rational-function] [a] (cube a))
 
 (defmethod g/expt [::rational-function ::v/integral] [b x]
   (expt b x))

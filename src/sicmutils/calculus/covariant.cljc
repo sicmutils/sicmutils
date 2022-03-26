@@ -19,35 +19,34 @@
 ;; This comes from `Lie.scm`.
 
 (defn- vector-field-Lie-derivative [X]
-  (o/make-operator
-   (fn [Y]
-     (cond (f/function? Y)      (X Y)
-           (vf/vector-field? Y) (o/commutator X Y)
+  (let [freeze-X (v/freeze X)
+        op-name `(~'Lie-derivative ~freeze-X)]
+    (-> (fn rec [Y]
+          (cond (f/function? Y)      (X Y)
+                (vf/vector-field? Y) (o/commutator X Y)
 
-           (ff/form-field? Y)
-           (let [k (ff/get-rank Y)
-                 op (fn [& vectors]
-                      (let [vectors (into [] vectors)]
-                        (assert (= k (count vectors))
-                                `(~'≠ ~k ~(count vectors)
-                                  ~@vectors
-                                  ~@(map meta vectors)))
-                        (g/- ((g/Lie-derivative X) (apply Y vectors))
-                             (ua/generic-sum
-                              (fn [i]
-                                (let [xs (update vectors i (g/Lie-derivative X))]
-                                  (apply Y xs)))
-                              0 k))))
-                 name `((~'Lie-derivative ~(v/freeze X))
-                        ~(v/freeze Y))]
-             (ff/procedure->nform-field op k name))
+                (ff/form-field? Y)
+                (let [k (ff/get-rank Y)
+                      op (fn [& vectors]
+                           (let [vectors (into [] vectors)]
+                             (assert (= k (count vectors))
+                                     `(~'≠ ~k ~(count vectors)
+                                       ~@vectors
+                                       ~@(map meta vectors)))
+                             (g/- ((g/Lie-derivative X) (apply Y vectors))
+                                  (ua/generic-sum
+                                   (fn [i]
+                                     (let [xs (update vectors i (g/Lie-derivative X))]
+                                       (apply Y xs)))
+                                   0 k))))
+                      name `((~'Lie-derivative ~freeze-X) ~(v/freeze Y))]
+                  (ff/procedure->nform-field op k name))
 
-           (s/structure? Y)
-           (s/mapr (vector-field-Lie-derivative X) Y)
+                (s/structure? Y)
+                (s/mapr (vector-field-Lie-derivative X) Y)
 
-           :else (u/unsupported "Bad argument: Lie Derivative")))
-   `(~'Lie-derivative
-     ~(v/freeze X))))
+                :else (u/unsupported "Bad argument: Lie Derivative")))
+        (o/make-operator op-name))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V]
   (vector-field-Lie-derivative V))

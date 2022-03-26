@@ -1214,11 +1214,18 @@
 (defunary g/negate (lift-1 g/negate))
 (defbinary g/sub (lift-2 g/sub))
 
-(let [mul (lift-2 g/mul)]
+(let [mul  (lift-2 g/mul)
+      expt (lift-2 g/expt)]
   (defbinary g/mul mul)
-  (defunary g/square (fn [x] (mul x x)))
-  (defunary g/cube (fn [x] (mul x (mul x x))))
-  (defbinary g/dot-product mul))
+  (defbinary g/dot-product mul)
+  (defbinary g/expt expt)
+
+  ;; NOTE that it's important that these stay exponents vs repeated
+  ;; multiplication. It is cheaper to compute the derivative just once using the
+  ;; chain rule, vs performing a full multiplication and then taking the
+  ;; derivative of the result.
+  (defunary g/square (fn [x] (expt x 2)))
+  (defunary g/cube (fn [x] (expt x 3))))
 
 (defunary g/invert (lift-1 g/invert))
 (defbinary g/div (lift-2 g/div))
@@ -1264,7 +1271,6 @@
   (defbinary g/solve-linear-right div))
 
 (defunary g/sqrt (lift-1 g/sqrt))
-(defbinary g/expt (lift-2 g/expt))
 (defunary g/log (lift-1 g/log))
 (defunary g/exp (lift-1 g/exp))
 

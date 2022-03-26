@@ -2,7 +2,8 @@
 
 (ns sicmutils.mechanics.lagrange
   (:refer-clojure :exclude [+ - * / partial time])
-  (:require [sicmutils.calculus.derivative :refer [D partial]]
+  (:require [pattern.rule :as r :include-macros true]
+            [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.numerical.minimize :as m]
@@ -32,10 +33,20 @@
 ;; Kinematic states and their derivatives are represented as Scheme vectors,
 ;; with components time, configuration, and derivatives.
 
+(defn Lagrangian
+  "Returns a function signature for a Lagrangian with n degrees of freedom (or an
+  unrestricted number if n is not given).
+
+  Useful for constructing Lagrangian literal functions."
+  ([] '(-> (UP Real (UP* Real) (UP* Real)) Real))
+  ([n]
+   (r/template
+    (-> (UP Real (UP* Real ~n) (UP* Real ~n)) Real))))
+
 (defn ->L-state
-  "Given a time `t`, coordinate tuple `q`, velocity tuple `qdot` and any number of
-  additional higher-order derivative tuples, returns a 'Local tuple', ie, the
-  state expected by a Lagrangian."
+  "Given a time `t`, coordinate tuple (or scalar) `q`, velocity tuple (or scalar)
+  `qdot` and any number of additional higher-order derivative tuples (or
+  scalars), returns a 'Local tuple', ie, the state expected by a Lagrangian."
   [t q qdot & derivs]
   (apply up t q qdot derivs))
 
@@ -223,6 +234,15 @@
           (+ (g/square rdot)
              (g/square (* r phidot))) )
        (/ (* GM m) r))))
+
+(defn L-axisymmetric-top [A C gMR]
+  (fn [[_ [theta] [thetadot phidot psidot]]]
+    (+ (* (/ 1 2) A
+          (+ (g/square thetadot)
+             (g/square (* phidot (sin theta)))))
+       (* (/ 1 2) C
+          (g/square (+ psidot (* phidot (cos theta)))))
+       (* -1 gMR (cos theta)))))
 
 ;; Coupled harmonic oscillators.
 
@@ -537,7 +557,9 @@
    (coordinate local)))
 
 (defn rectangular->spherical [[x y z]]
-  (let [r (g/sqrt (+ (* x x) (* y y) (* z z)))
+  (let [r (g/sqrt (+ (g/square x)
+                     (g/square y)
+                     (g/square z)))
         theta (g/acos (/ z r))
         phi (g/atan y x)]
     (coordinate-tuple r theta phi)))
