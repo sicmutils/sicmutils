@@ -679,8 +679,8 @@
       (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y))
                    (g/+ (g/* 'c 'x) (g/* 'd 'y)))
              (g/* M u)))
-      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b))
-                     (g/+ (g/* 'x 'c) (g/* 'y 'd)))
+      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'c))
+                     (g/+ (g/* 'x 'b) (g/* 'y 'd)))
              (g/* d M)))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (g/* u M)))
@@ -1183,6 +1183,29 @@
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))
                (g/divide H)))))))
+
+(deftest matrix-times-structure-tests
+  (let [M (m/by-rows ['a 'b 'c]
+                     ['d 'e 'f]
+                     ['g 'h 'i])
+        v (s/up 'x 'y 'z)
+        d (g/transpose v)]
+    (is (= (m/column-matrix->up
+            (g/* M (m/column* v)))
+           (g/* M v))
+        "multiplying by up directly matches conversion to matrix first.")
+
+    (is (= (m/row-matrix->down
+            (g/* (m/row* d) M))
+           (g/* d M))
+        "multiplying by down directly matches conversion to matrix first.")
+
+    (is (v/zero?
+         (g/simplify
+          (g/- (g/transpose (g/* M v))
+               (g/* (g/transpose v)
+                    (g/transpose M)))))
+        "transpose law works with structural multiplication")))
 
 (deftest two-tensor-tests
   (testing "solve-linear right and left between scalar, 2-tensor"

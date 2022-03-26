@@ -20,8 +20,8 @@
    [(- y) x 0]))
 
 (defn antisymmetric->column-matrix
-  "Given an antisymmetric matrix-structure of dimension 3,
-  return the column vector of its positive components."
+  "Given an antisymmetric matrix `a` of dimension 3, returns a column vector of
+  its positive components."
   [a]
   {:pre [(matrix/antisymmetric? a)]}
   (matrix/column
@@ -94,10 +94,11 @@
 
 ;; Assuming Euler angles rotate principal axes from reference orientation.
 ;;
-;; Although this just appears to summarize (M->omega-body r/Euler->M) it is
-;; actually essential to prevent intermediate expression explosion.
+
 
 (defn Euler-state->omega-body
+  "Although this implementation appears to summarize `(M->omega-body r/Euler->M)`,
+  it is actually essential to prevent intermediate expression explosion."
   [[_ [theta _ psi] [thetadot phidot psidot]]]
   (let [omega-a (+ (* (sin psi) (sin theta) phidot)
                    (* (cos psi) thetadot))
@@ -129,7 +130,8 @@
       (* ((L-body-Euler A B C) local)
          (g/transpose (r/Euler->M angles))))))
 
-(def Euler-state->L-space L-space-Euler)
+(def ^{:doc "Alias for [[L-space-Euler]]."}
+  Euler-state->L-space L-space-Euler)
 
 (defn rigid-sysder [A B C]
   (L/Lagrangian->state-derivative
@@ -138,62 +140,60 @@
 ;; ## Quaternion representation
 
 (defn quaternion-state->omega-body [[_ q qdot]]
-  (let [m**2 (g/dot-product q q)
-        omega**a
-        (/ (* 2 (g/dot-product q (* q/I qdot))) m**2)
-
-        omega**b
-        (/ (* 2 (g/dot-product q (* q/J qdot))) m**2)
-
-        omega**c
-        (/ (* 2 (g/dot-product q (* q/K qdot))) m**2)]
+  (let [two-q-norm (/ (* 2 q)
+                      (g/dot-product q q))
+        omega**a (g/dot-product two-q-norm (* q/I-matrix qdot))
+        omega**b (g/dot-product two-q-norm (* q/J-matrix qdot))
+        omega**c (g/dot-product two-q-norm (* q/K-matrix qdot))]
     (up omega**a omega**b omega**c)))
 
-(defn quaternion-state->omega-space [[_ q qdot]]
-  (let [q:a (matrix/by-rows
-             (list  0 +1  0  0)
-             (list -1  0  0  0)
-             (list  0  0  0 +1)
-             (list  0  0 -1  0))
-        q:b (matrix/by-rows
-             (list  0  0 +1  0)
-             (list  0  0  0 -1)
-             (list -1  0  0  0)
-             (list  0 +1  0  0))
-        q:c (matrix/by-rows
-             (list  0  0  0 +1)
-             (list  0  0 +1  0)
-             (list  0 -1  0  0)
-             (list -1  0  0  0))
-        Q     (matrix/up->column-matrix q)
-        QdotT (matrix/transpose
-               (matrix/up->column-matrix qdot))
-        m**2 (get-in (* (matrix/transpose Q) Q) [0 0])
-        omega**x (/ (get-in (* -2 QdotT q:a Q) [0 0]) m**2)
-        omega**y (/ (get-in (* -2 QdotT q:b Q) [0 0]) m**2)
-        omega**z (/ (get-in (* -2 QdotT q:c Q) [0 0]) m**2)]
-    (up omega**x omega**y omega**z)))
+;; I'm not sure what these are in Quaternion land, so I'll leave them here as
+;; private for now.
+
+(let [q:a (matrix/by-rows
+           [0 1 0 0]
+           [-1 0 0 0]
+           [0 0 0 1]
+           [0 0 -1 0])
+      q:b (matrix/by-rows
+           [0 0 1 0]
+           [0 0 0 -1]
+           [-1 0 0 0]
+           [0 1 0 0])
+      q:c (matrix/by-rows
+           [0 0 0 1]
+           [0 0 1 0]
+           [0 -1 0 0]
+           [-1 0 0 0])]
+  (defn quaternion-state->omega-space [[_ q qdot]]
+    (let [Q     (matrix/up->column-matrix q)
+          QdotT (matrix/row* qdot)
+          two-m**2-inv (/ -2 (g/dot-product q q))
+          omega**x (* two-m**2-inv (get-in (* QdotT q:a Q) [0 0]))
+          omega**y (* two-m**2-inv (get-in (* QdotT q:b Q) [0 0]))
+          omega**z (* two-m**2-inv (get-in (* QdotT q:c Q) [0 0]))]
+      (up omega**x omega**y omega**z))))
 
 (defn qw-state->L-body [A B C]
-  (fn [qw-state]
-    ((L-body A B C) (get qw-state 2))))
+  (fn [[_ _ omega]]
+    ((L-body A B C) omega)))
 
 (defn qw-state->L-space [A B C]
-  (fn [qw-state]
-    (let [q (L/coordinates qw-state)
-          Lbody ((qw-state->L-body A B C) qw-state)
-          M     (q/->rotation-matrix (q/make q))]
-      (* Lbody (g/transpose M)))))
+  (let [state->body (qw-state->L-body A B C)]
+    (fn [[_ q :as qw-state]]
+      (let [Lbody (state->body qw-state)
+            M     (q/->rotation-matrix (q/make q))]
+        (* Lbody (g/transpose M))))))
 
 (defn T-quaternion-state [A B C]
   (fn [[_ q qdot]]
-    (let [Q (matrix/up->column-matrix q)
-          Qdot (matrix/up->column-matrix qdot)
-          m**2 (get-in (* (matrix/transpose Q) Q) [0 0])
-          x (/ (* q/I Qdot) m**2)
-          y (/ (* q/J Qdot) m**2)
-          z (/ (* q/K Qdot) m**2)
-          M (* Q (matrix/transpose Q))]
+    (let [Q        (matrix/up->column-matrix q)
+          Qdot     (matrix/up->column-matrix qdot)
+          m**2-inv (g/invert (get-in (* (matrix/transpose Q) Q) [0 0]))
+          x        (* m**2-inv q/I-matrix Qdot)
+          y        (* m**2-inv q/J-matrix Qdot)
+          z        (* m**2-inv q/K-matrix Qdot)
+          M        (* Q (matrix/transpose Q))]
       (* 2 (+ (* A (get-in (* (matrix/transpose x) M x) [0 0]))
               (* B (get-in (* (matrix/transpose y) M y) [0 0]))
               (* C (get-in (* (matrix/transpose z) M z) [0 0])))))))

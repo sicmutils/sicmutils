@@ -4,18 +4,21 @@
 
 - new PR:
 
-  - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}`
+  - Fixes a bug with `down*Matrix` multiplication, and adds tests for
+    correctness.
 
-  - `sicmutils.mechanics.rigid`:
+  - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}` predicates
 
-    - New functions `three-vector-components->antisymmetric`, `T-body`,
-      `L-body`, `L-space`, `Euler->omega`, `Euler->omega-body`, `T-body-Euler`
-      and alias `T-rigid-body` (this used to be its own function, impl now lives
-      in `T-body-Euler`), `L-body-Euler` and alias `Euler-state->L-body` (same
-      situation!), `L-space-Euler` and alias `Euler-state->L-space` (same
-      situation!), `quaternion-state->omega-body`,
-      `quaternion-state->omega-space`, `qw-state->L-body`, `qw-state->L-space`,
-      `T-quaternion-state`
+  - The mechanics port continues with `sicmutils.mechanics.rigid`:
+
+    - `T-rigid-body` moves to `T-body-Euler` with an alias back to its original
+      name. Same situation for `Euler-state->L-body` => `L-body-Euler` and
+      `Euler-state->L-space` => `L-space-Euler`.
+
+    - New functions: `three-vector-components->antisymmetric`, `T-body`,
+      `L-body`, `L-space`, `Euler->omega`, `Euler->omega-body`,
+      `quaternion-state->omega-body`, `quaternion-state->omega-space`,
+      `qw-state->L-body`, `qw-state->L-space`, `T-quaternion-state`
 
 - This PR focuses on adding more rotations and efficiency to
   `sicmutils.quaternion`. Specifically:

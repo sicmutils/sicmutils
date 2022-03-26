@@ -2,9 +2,10 @@
 
 (ns sicmutils.mechanics.rigid-test
   (:refer-clojure :exclude [+ - * / partial])
-  (:require [clojure.test :refer [is deftest use-fixtures]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish?]]
             [sicmutils.abstract.function :as f :include-macros true]
-            [sicmutils.calculus.derivative :refer [partial]]
+            [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.matrix :as m]
             [sicmutils.mechanics.lagrange :as L]
@@ -47,8 +48,8 @@
              't)))))
 
   (is (= '(column-matrix
-           (+ (* phidot (sin theta) (sin psi)) (* thetadot (cos psi)))
-           (+ (* phidot (sin theta) (cos psi)) (* -1 thetadot (sin psi)))
+           (+ (* phidot (sin psi) (sin theta)) (* thetadot (cos psi)))
+           (+ (* phidot (cos psi) (sin theta)) (* -1 thetadot (sin psi)))
            (+ (* phidot (cos theta)) psidot))
          (simplify
           ((rig/M->omega-body rotation/Euler->M)
@@ -61,9 +62,9 @@
                            (up 'theta 'phi 'psi)
                            (up 'thetadot 'phidot 'psidot))]
     (is (= '(+ (* A phidot (expt (sin psi) 2) (expt (sin theta) 2))
-               (* B phidot (expt (cos psi) 2) (expt (sin theta) 2))
-               (* A thetadot (cos psi) (sin psi) (sin theta))
-               (* -1 B thetadot (cos psi) (sin psi) (sin theta))
+               (* B phidot (expt (sin theta) 2) (expt (cos psi) 2))
+               (* A thetadot (sin psi) (sin theta) (cos psi))
+               (* -1 B thetadot (sin psi) (sin theta) (cos psi))
                (* C phidot (expt (cos theta) 2))
                (* C psidot (cos theta)))
            (simplify
@@ -73,103 +74,130 @@
 
     (is (v/zero?
          (simplify
+          ;; this first is the fucked up one
           (- (-> ((rig/L-space-Euler 'A 'B 'C) an-Euler-state)
                  ;; $L_z$
-                 (get 2))
+                 (nth 2))
              (-> (((partial 2) (rig/T-body-Euler 'A 'B 'C)) an-Euler-state)
                  ;; $p_\phi$
-                 (get 1))))))
+                 (nth 1))))))
 
     (is (= '(* A B C (expt (sin theta) 2))
            (simplify
-            (m/determinant
+            (g/determinant
              (((comp (partial 2) (partial 2))
                (rig/T-body-Euler 'A 'B 'C))
               an-Euler-state)))))))
 
 (deftest rigid-sysder-tests
-  ;; (let ((A 1.) (B (sqrt 2.)) (C 2.)
-  ;;       (state0 (up 0.0
-  ;;                  (up 1. 0. 0.)
-  ;;                  (up 0.1 0.1 0.1))))
-  ;;   (let ((L0 ((L-space-Euler A B C) state0))
-  ;;        (E0 ((T-body-Euler A B C) state0)))
-  ;;     ((evolve rigid-sysder A B C)
-  ;;      state0
-  ;;      (monitor-errors win A B C L0 E0)
-  ;;      0.1
-  ;;      100.0
-  ;;      1.0e-12)))
+  (let [A 1.0
+        B (Math/sqrt 2.0)
+        C 2.0
+        state0 (up 0.0 (up 1.0 0.0 0.0) (up 0.1 0.1 0.1))]
+    (is (ish?
+         (up 99.99999999999909
+             (up 0.6319896958404042
+                 1.3610271540831438
+                 17.43790048472884)
+             (up -0.12343716197081755
+                 0.09016109524917856
+                 0.07567921658551353))
+         ((ode/evolve rig/rigid-sysder A B C)
+          state0
+          0.1
+          100.0
+          {:compile? true
+           :epsilon 1.0e-12}))
+        "ODE solver example from rigid.scm."))
 
-  ;; (up 99.99999999999864
-  ;;     (up .6319896958334494 1.3610271540875034 17.437900484737938)
-  ;;     (up -.12343716197181527 .09016109524808046 .07567921658605782))
+  (is (= '(+ (* (/ 1 2) A (expt phidot 2) (expt (sin theta) 2))
+             (* (/ 1 2) C (expt phidot 2) (expt (cos theta) 2))
+             (* C phidot psidot (cos theta))
+             (* (/ 1 2) A (expt thetadot 2))
+             (* (/ 1 2) C (expt psidot 2)))
+         (simplify
+          ((rig/T-body-Euler 'A 'A 'C)
+           (up 't
+               (up 'theta 'phi 'psi)
+               (up 'thetadot 'phidot 'psidot))))))
 
-  ;; (simplify
-  ;;  ((T-body-Euler 'A 'A 'C)
-  ;;   (up 't
-  ;;       (up 'theta 'phi 'psi)
-  ;;       (up 'thetadot 'phidot 'psidot))))
-  ;; (+ (* (/ 1 2) A (expt phidot 2) (expt (sin theta) 2))
-  ;;    (* (/ 1 2) C (expt phidot 2) (expt (cos theta) 2))
-  ;;    (* C phidot psidot (cos theta))
-  ;;    (* (/ 1 2) A (expt thetadot 2))
-  ;;    (* (/ 1 2) C (expt psidot 2)))
+  (testing "Transformation of A(v):"
+    (let [Euler (up 'theta 'phi 'psi)
+          v (up 'x 'y 'z)
+          M (rotation/Euler->M Euler)]
+      (is (= '(matrix-by-rows
+               (up 0 0 0)
+               (up 0 0 0)
+               (up 0 0 0))
+             (simplify
+              (- (* (rig/three-vector-components->antisymmetric (* M v)) M)
+                 (* M (rig/three-vector-components->antisymmetric v)))))
+          "M^T A(Mv) M = A(v) for arbitrary v orthogonal M")))
 
-  ;; Transformation of A(v):
-  ;; M^T A(Mv) M = A(v) for arbitrary v orthogonal M
+  (is (= '(column-matrix
+           (+ (* (sin (psi t)) (sin (theta t)) ((D phi) t))
+              (* (cos (psi t)) ((D theta) t)))
+           (+ (* (cos (psi t)) (sin (theta t)) ((D phi) t))
+              (* -1 (sin (psi t)) ((D theta) t)))
+           (+ (* (cos (theta t)) ((D phi) t)) ((D psi) t)))
+         (f/with-literal-functions [theta phi psi]
+           (simplify
+            (let [Euler (up theta phi psi)]
+              (rig/antisymmetric->column-matrix
+               (* (g/transpose ((rotation/Euler->M Euler) 't))
+                  ((D (rotation/Euler->M Euler)) 't)))))))
+      "Configuration equations for Euler's equations with Euler angles")
 
-  ;; (print-expression
-  ;;  (let ((Euler (up 'theta 'phi 'psi))
-  ;;       (v (up 'x 'y 'z)))
-  ;;    (let ((M (r/Euler->M Euler)))
-  ;;      (- (* (three-vector-components->antisymmetric (* M v))
-  ;;           M)
-  ;;        (* M
-  ;;           (three-vector-components->antisymmetric v))))))
-  ;; (matrix-by-rows (list 0 0 0) (list 0 0 0) (list 0 0 0))
+  (letfn [(V_eff [p A C gMR]
+            (fn [theta]
+              (+ (/ (g/square p) (* 2 C))
+                 (* (/ (g/square p) (* 2 A))
+                    (g/square (g/tan (/ theta 2))))
+                 (* gMR (g/cos theta)))))]
+    (is (= '(/ (+ (* -1 A gMR) (* (/ 1 4) (expt p_c 2))) A)
+           (simplify
+            (((g/square D) (V_eff 'p_c 'A 'C 'gMR)) 0)))
+        "Critical value of bifurcation when D^2 V_eff (0) = 0"))
 
+  (is (ish? 1119.1203302763215
+            (* (/ 60 v/twopi) (/ 7.734804457773965e-3 6.6e-5)))
+      "critical angular speed in RPM, for docs"))
 
+(deftest quaternion-state-tests
+  (is (= '(up
+           (/ (+ (* 2 a vb) (* -2 b va) (* -2 c vd) (* 2 d vc))
+              (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2)))
+           (/ (+ (* 2 a vc) (* 2 b vd) (* -2 c va) (* -2 d vb))
+              (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2)))
+           (/ (+ (* 2 a vd) (* -2 b vc) (* 2 c vb) (* -2 d va))
+              (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2))))
+         (simplify
+          (rig/quaternion-state->omega-body
+           (up 1 (up 'a 'b 'c 'd)
+               (up 'va 'vb 'vc 'vd)))))
+      "symbolic expansion to omega-body")
 
-  ;; Configuration equations for Euler's equations with Euler angles
+  (is (= '(up (/ (+ (* 2 a vb) (* -2 b va) (* 2 c vd) (* -2 d vc))
+                 (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2)))
+              (/ (+ (* 2 a vc) (* -2 b vd) (* -2 c va) (* 2 d vb))
+                 (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2)))
+              (/ (+ (* 2 a vd) (* 2 b vc) (* -2 c vb) (* -2 d va))
+                 (+ (expt a 2) (expt b 2) (expt c 2) (expt d 2))))
+         (simplify
+          (rig/quaternion-state->omega-space
+           (up 't
+               (up 'a 'b 'c 'd)
+               (up 'va 'vb 'vc 'vd)))))
+      "Looks similar with some different - signs. Correct?? Matches scmutils,
+      anyway.")
 
-  ;; (print-expression
-  ;;  (let ((Euler (up (literal-function 'theta)
-  ;;                  (literal-function 'phi)
-  ;;                  (literal-function 'psi))))
-  ;;    (antisymmetric->column-matrix
-  ;;     (* (transpose ((r/Euler->M Euler) 't))
-  ;;       ((D (r/Euler->M Euler)) 't)))))
-  ;; (matrix-by-rows
-  ;;  (list
-  ;;   (+ (* ((D phi) t) (sin (psi t)) (sin (theta t)))
-  ;;      (* ((D theta) t) (cos (psi t)))))
-  ;;  (list
-  ;;   (+ (* ((D phi) t) (sin (theta t)) (cos (psi t)))
-  ;;      (* -1 (sin (psi t)) ((D theta) t))))
-  ;;  (list (+ (* (cos (theta t)) ((D phi) t)) ((D psi) t))))
-
-
-
-  ;; (define ((V_eff p A C gMR) theta)
-  ;;   (+ (/ (square p) (* 2 C))
-  ;;      (* (/ (square p) (* 2 A))
-  ;;        (square (tan (/ theta 2))))
-  ;;      (* gMR (cos theta))))
-
-
-  ;; Critical value of bifurcation when D^2 V_eff (0) = 0
-
-  ;; (print-expression
-  ;;  (((square derivative) (V_eff 'p_c 'A 'C 'gMR)) 0))
-  ;; (+ (* -1 gMR) (/ (* 1/4 (expt p_c 2)) A))
-
-  ;; critical angular speed in RPM is:
-  ;; (* (/ 60 2pi) (/ 7.734804457773965e-3 6.6e-5))
-  ;; Value: 1119.1203302763215
-
-
-  )
+  (is (= '(+ (* (/ 8 225) B)
+             (* (/ 2 225) C))
+         (simplify
+          ((rig/T-quaternion-state 'A 'B 'C)
+           (up 't (up 1 2 3 4) (up 2 3 4 5)))))
+      "A shamefully uninformed example, picked so we have some check against the
+  scmutils implementation."))
 
 (deftest quaternion-evolution-tests
   (letfn [(qw-sysder [A B C]
@@ -189,6 +217,7 @@
                           (* C-A-over-B omega**c omega**a)
                           (* A-B-over-C omega**a omega**b))]
                   (up tdot qdot omegadot)))))]
+
     ;; A, B, C == moments of inertia
     (let [A 1.0
           B (Math/sqrt 2.0)
@@ -204,11 +233,17 @@
           (up (L/time Euler-state)
               q
               (rig/Euler-state->omega-body Euler-state))]
-      ((ode/evolve qw-sysder A B C)
-       qw-state0
-       0.1                  ;; step between plotted points
-       100.0                ;; final time
-       {:compile? true
-        :epsilon 1.0e-12})))
+      (is (ish? (up 99.99999999999878
+                    (up -0.9501831654548522 -0.05699715799969905
+                        -0.3054905540187315 0.024058210063923138)
+                    (up -0.07215083472579442 -0.11343682989477462
+                        0.1484260290508369))
+                ((ode/evolve qw-sysder A B C)
+                 qw-state0
+                 0.1                  ;; step between plotted points
+                 100.0                ;; final time
+                 {:compile? true
+                  :epsilon 1.0e-12}))
+          "Big example from bottom of rigid.scm.")))
 
   )

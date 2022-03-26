@@ -617,14 +617,14 @@
   "Multiply a matrix `m` by down tuple `d` on the left. The return value has
   orientation `down`."
   [d m]
-  (when (not= (num-rows m) (count d))
+  (when (not= (count d) (num-rows m))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (s/down*
    (map (fn [i]
           (ua/generic-sum
            (fn [k]
              (g/* (get d k)
-                  (core/get-in m [i k])))
+                  (core/get-in m [k i])))
            0 (num-rows m)))
         (range (num-cols m)))))
 

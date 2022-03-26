@@ -49,7 +49,7 @@
                (((r/M-of-q->omega-body-of-t Euler->M) q) 't)))))
 
       (is (= '(column-matrix
-               (+ (* φdot (sin ψ) (sin θ)) (* θdot (cos ψ)))
+               (+ (* φdot (sin θ) (sin ψ)) (* θdot (cos ψ)))
                (+ (* φdot (cos ψ) (sin θ)) (* -1 θdot (sin ψ)))
                (+ (* φdot (cos θ)) ψdot))
              (e/freeze
