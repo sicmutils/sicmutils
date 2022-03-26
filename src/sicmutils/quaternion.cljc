@@ -12,6 +12,7 @@
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.matrix :as m]
             [sicmutils.structure :as ss]
             [sicmutils.util :as u]
             [sicmutils.util.logic :as ul]
@@ -1297,6 +1298,115 @@
             theta (g/mul 2 (g/atan v-mag (real-part q)))
             axis (g/div v v-mag)]
         [theta axis]))))
+
+;; ## Quaternion / Matrix Relationships
+;;
+;; ### Complex 2x2
+
+(defn from-complex-matrix
+  "Given a 2x2 complex matrix `M` of the form
+
+  ```
+  [ a + b i,  c + d i]
+  [ -c + d i, a - b i]
+  ```
+
+  Returns a [[Quaternion]] instance with coefficients `[a b c d]`."
+  [M]
+  (let [[[a+bi c+di]] (m/matrix->vector M)]
+    (->Quaternion
+     (g/real-part a+bi)
+     (g/imag-part a+bi)
+     (g/real-part c+di)
+     (g/imag-part c+di))))
+
+(defn ->complex-matrix
+  "Returns a 2x2 complex matrix representation of the supplied Quaternion `q`.
+
+  For a quaternion with coefficients `[a b c d]`, the returned matrix will have
+  the following form:
+
+  ```
+  [ a + b i,  c + d i]
+  [ -c + d i, a - b i]
+  ```
+
+  NOTE that this currently only works for quaternions `q` with real or symbolic
+  entries."
+  [q]
+  (let [[r i j k] q]
+    (m/by-rows
+     [(g/make-rectangular r i)
+      (g/make-rectangular j k)]
+     [(g/make-rectangular (g/negate j) k)
+      (g/make-rectangular r (g/negate i))])))
+
+;; ### Real 4x4 matrices
+
+(def ^{:doc "4x4 matrix representation of the quaternion [[ONE]]."}
+  ONE-matrix
+  (m/by-rows
+   [1 0 0 0]
+   [0 1 0 0]
+   [0 0 1 0]
+   [0 0 0 1]))
+
+(def ^{:doc "4x4 matrix representation of the quaternion [[I]]."}
+  I-matrix
+  (m/by-rows
+   [0 1 0 0]
+   [-1 0 0 0]
+   [0 0 0 -1]
+   [0 0 1 0]))
+
+(def ^{:doc "4x4 matrix representation of the quaternion [[J]]."}
+  J-matrix
+  (m/by-rows
+   [0 0 1 0]
+   [0 0 0 1]
+   [-1 0 0 0]
+   [0 -1 0 0]))
+
+(def ^{:doc "4x4 matrix representation of the quaternion [[K]]."}
+  K-matrix
+  (m/by-rows
+   [0 0 0 1]
+   [0 0 -1 0]
+   [0 1 0 0]
+   [-1 0 0 0]))
+
+(defn from-4x4-matrix
+  "Given a 4x4 matrix representation of a quaternion, returns the associated
+  quaternion by extracting the first row."
+  [four-matrix]
+  (make
+   (nth four-matrix 0)))
+
+(defn ->4x4-matrix
+  "Returns the 4x4 matrix representation of the supplied [[Quaternion]] `q`."
+  [q]
+  (g/+ (g/* (get-r q) ONE-matrix)
+       (g/* (get-i q) I-matrix)
+       (g/* (get-j q) J-matrix)
+       (g/* (get-k q) K-matrix)))
+
+;; ### Tensor Representations of Quaternions
+
+(def ^{:doc "4x4 down-up tensor representation of the quaternion [[ONE]]."}
+  ONE-tensor
+  (m/->structure ONE-matrix))
+
+(def ^{:doc "4x4 down-up tensor representation of the quaternion [[I]]."}
+  I-tensor
+  (m/->structure I-matrix))
+
+(def ^{:doc "4x4 down-up tensor representation of the quaternion [[J]]."}
+  J-tensor
+  (m/->structure J-matrix))
+
+(def ^{:doc "4x4 down-up tensor representation of the quaternion [[K]]."}
+  K-tensor
+  (m/->structure K-matrix))
 
 ;; ## Generic Method Installation
 ;;
