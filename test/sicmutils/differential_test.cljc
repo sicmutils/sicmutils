@@ -234,8 +234,8 @@
           (let [not-simple (g/square
                             (g/square (d/bundle-element 'x 1 0)))]
             (is (= '[Differential
-                     [[]  (* x x x x)]
-                     [[0] (+ (* x x (+ x x)) (* x x (+ x x)))]]
+                     [[]  (expt x 4)]
+                     [[0] (* 2 (expt x 2) 2 x)]]
                    (v/freeze not-simple))
                 "A frozen differential freezes each entry")
 

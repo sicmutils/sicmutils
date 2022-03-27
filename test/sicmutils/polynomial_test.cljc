@@ -50,7 +50,7 @@
                 (f 'x)))
             "verifying the result...")
 
-        (is (= (p/make [0 0 (g/+ 'x 'x)])
+        (is (= (p/make [0 0 (g/* 2 'x)])
                ((D f) 'x))
             "polynomial derivatives with respect to some coefficient work!")))
 

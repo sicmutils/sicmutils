@@ -850,7 +850,7 @@ defaults to `ln((1 + sqrt(1+x^2)) / x)`."
            (if (v/zero? x)
              x
              (sub (div (cos x) x)
-                  (div (sin x) (* x x)))))})
+                  (div (sin x) (square x)))))})
 
 (defmethod sinc :default [x]
   (if (v/zero? x)
@@ -886,7 +886,7 @@ defaults to `ln((1 + sqrt(1+x^2)) / x)`."
              x
              (let [sx (sec x)]
                (sub (div (* sx sx) x)
-                    (div (tan x) (* x x))))))})
+                    (div (tan x) (square x))))))})
 
 (defmethod tanc :default [x]
   (if (v/zero? x)
@@ -907,7 +907,7 @@ defaults to `ln((1 + sqrt(1+x^2)) / x)`."
            (if (v/zero? x)
              x
              (sub (div (cosh x) x)
-                  (div (sinh x) (* x x)))))})
+                  (div (sinh x) (square x)))))})
 
 (defmethod sinhc :default [x]
   (if (v/zero? x)
@@ -927,7 +927,7 @@ defaults to `ln((1 + sqrt(1+x^2)) / x)`."
              x
              (let [sx (sech x)]
                (sub (div (* sx sx) x)
-                    (div (tanh x) (* x x))))))})
+                    (div (tanh x) (square x))))))})
 
 (defmethod tanhc :default [x]
   (if (v/zero? x)
