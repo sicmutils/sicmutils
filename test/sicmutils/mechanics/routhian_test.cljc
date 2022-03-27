@@ -5,7 +5,6 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.abstract.function :as f :include-macros true]
             [sicmutils.generic :as g :refer [+ - * / square]]
-            [sicmutils.mechanics.lagrange :as l]
             [sicmutils.mechanics.routhian :as rn]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
