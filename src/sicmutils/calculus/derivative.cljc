@@ -3,7 +3,8 @@
 (ns sicmutils.calculus.derivative
   "This namespace implements a number of differential operators like [[D]], and
   the machinery to apply [[D]] to various structures."
-  (:refer-clojure :exclude [partial])
+  (:refer-clojure :rename {partial core-partial}
+                  #?@(:cljs [:exclude [partial]]))
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -441,9 +442,10 @@
 
 (defn D-as-matrix [F]
   (fn [s]
-    (matrix/s->m (s/compatible-shape (F s))
-	               ((D F) s)
-	               s)))
+    (matrix/s->m
+     (s/compatible-shape (F s))
+     ((D F) s)
+     s)))
 
 (defn partial
   "Returns an operator that, when applied to a function `f`, produces a function
@@ -492,3 +494,170 @@
 ;; (fn [x] (* (s/up 'dx 'dy)
 ;;           ((D f) x)))
 ;; ```
+
+#_
+(defn Taylor-series-coefficients
+  [f & args]
+  {:pre [(not (empty? args))]}
+  (letfn  [(output [result x dummy]
+             ((series:elementwise
+               (comp
+                g/simplify
+                (fn [term]
+                  (let [ans (atom term)]
+                    (letfn [(walk [x x dummy dummy]
+                              (cond (s/structure? x)
+                                    (let [n (count x)]
+                                      (loop [i 0]
+                                        (if (= i n)
+                                          :done
+                                          (do (walk (get x i) (get dummy i))
+                                              (recur (inc i))))))
+
+                                    (sequential? x)
+                                    (for-each walk x dummy)
+
+                                    :else (reset! ans (subst x dummy ans))))])
+                    @ans))
+                g/simplify))
+              result))]
+    (if (empty? (rest args))
+      (let [x (first args)
+            dummy (s/typical-object x)]
+        (output (((g/exp D) f) dummy) x dummy))
+      (let [x args
+            dummies (map s/typical-object x)]
+        (output (apply ((g/exp D) f) dummies) x dummies)))))
+
+;; #|
+;; ;;; Examples
+
+
+;; (ref (Taylor-series-coefficients exp 0) 0)
+;; #| 1 |#
+
+;; (ref (Taylor-series-coefficients exp 0) 1)
+;; #| 1 |#
+
+;; (ref (Taylor-series-coefficients exp 0) 2)
+;; #| 1/2 |#
+
+;; (ref (Taylor-series-coefficients exp 0) 3)
+;; #| 1/6 |#
+
+
+
+;; (define (f v)
+;;   (* (sin (* 3 (ref v 0)))
+;;      (cos (* 4 (ref v 1)))))
+
+
+;; (ref (Taylor-series-coefficients f (up 'a 'b)) 0)
+;; #|
+;; (* (cos (* 4 b)) (sin (* 3 a)))
+;; |#
+
+;; (ref (Taylor-series-coefficients f (up 'a 'b)) 1)
+;; #|
+;; (down (* 3 (cos (* 4 b)) (cos (* 3 a))) (* -4 (sin (* 3 a)) (sin (* 4 b))))
+;; |#
+
+;; (ref (Taylor-series-coefficients f (up 'a 'b)) 2)
+;; #|
+;; (down (down (* -9/2 (cos (* 4 b)) (sin (* 3 a))) (* -6 (sin (* 4 b)) (cos (* 3 a))))
+;;       (down (* -6 (sin (* 4 b)) (cos (* 3 a))) (* -8 (cos (* 4 b)) (sin (* 3 a)))))
+;; |#
+
+
+;; (ref
+;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+;;                             (up 'a 'b))
+;;  0)
+;; #|
+;; (G (up a b))
+;; |#
+
+;; (ref
+;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+;;                             (up 'a 'b))
+;;  1)
+;; #|
+;; (down (((partial 0) G) (up a b)) (((partial 1) G) (up a b)))
+;; |#
+
+;; (ref
+;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+;;                             (up 'a 'b))
+;;  2)
+;; #|
+;; (down
+;;  (down (* 1/2 (((partial 0) ((partial 0) G)) (up a b)))
+;;        (* 1/2 (((partial 0) ((partial 1) G)) (up a b))))
+;;  (down (* 1/2 (((partial 0) ((partial 1) G)) (up a b)))
+;;        (* 1/2 (((partial 1) ((partial 1) G)) (up a b)))))
+;; |#
+
+
+
+
+;; (ref
+;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
+;;                             'a 'b)
+;;  0)
+;; #|
+;; (H a b)
+;; |#
+
+;; (ref
+;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
+;;                             'a 'b)
+;;  3)
+;; #|
+;; (down
+;;  (down
+;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 0) H))) a b))
+;;         (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b)))
+;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
+;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))))
+;;  (down
+;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
+;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b)))
+;;   (down (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))
+;;         (* 1/6 (((partial 1) ((partial 1) ((partial 1) H))) a b)))))
+;; |#
+;; |#
+;; 
+;; ;;;; Bug!
+;; ;;; This does not produce a function.  It is a
+;; ;;; symbolic manipulation.
+
+;; #|
+;; (define (Taylor-series-coefficients f x)
+;;   (let ((dummy (generate-uninterned-symbol 'x)))
+;;     ((series:elementwise (compose
+;;                          simplify
+;;                          (lambda (term)
+;;                                  (subst x dummy term))
+;;                          simplify))
+;;      (((exp D) f) dummy))))
+
+
+;; ((D (lambda (y)
+;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
+;;  'a)
+;; #| 0 |#  ; Wrong
+
+;; ;;; Apparently due to simplify...
+
+;; (define (Taylor-series-coefficients f x)
+;;   (let ((dummy (generate-uninterned-symbol 'x)))
+;;     ((series:elementwise (lambda (term)
+;;                                 (subst x dummy term)))
+;;      (((exp D) f) dummy))))
+;; #| Taylor-series-coefficients |#
+
+;; ((D (lambda (y)
+;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
+;;  'a)
+;; #| 1 |#  ; Right
+;; |#
