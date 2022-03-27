@@ -2,7 +2,7 @@
 
 ## unreleased
 
-- This PR focuses on adding more rotations and efficiency to
+- #511 focuses on adding more rotations and efficiency to
   `sicmutils.quaternion`. Specifically:
 
   - `magnitude-sq` and `magnitude` are now more efficient.
