@@ -1210,7 +1210,73 @@
 ;; that represent rotations, and moving quaternions and other representations of
 ;; rotations in 3d and 4d space.
 ;;
+;; ### Rotating Vectors
+
+
+;; ### Rotating Vectors
+
+;; To rotate a 3-vector by the angle prescribed by a unit quaternion.
+
+;; TODO see if it's more efficient to do this, AND if so move the next one to
+;; the tests.
+
+;; check against https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L816-L844
+(defn rotate
+  "Rotate a vector with a quaternion."
+  [q v]
+  {:pre [(quaternion? q)
+         (vector? v)
+         (= 3 (count v))]}
+  (let [[vx vy vz] v
+        [qw qx qy qz] q]
+    [(g/+ (g/* qw qw vx)       (g/* 2 qy qw vz) (g/* -2 qz qw vy)    (g/* qx qx vx)
+          (g/* 2 qy qx vy)     (g/* 2 qz qx vz) (g/- (g/* qz qz vx)) (g/- (g/* qy qy vx)))
+     (g/+ (g/* 2 qx qy vx)     (g/* qy qy vy)   (g/* 2 qz qy vz)     (g/* 2 qw qz vx)
+          (g/- (g/* qz qz vy)) (g/* qw qw vy)   (g/* -2 qx qw vz)    (g/- (g/* qx qx vy)))
+     (g/+ (g/* 2 qx qz vx)     (g/* 2 qy qz vy) (g/* qz qz vz)       (g/* -2 qw qy vx)
+          (g/- (g/* qy qy vz)) (g/* 2 qw qx vy) (g/- (g/* qx qx vz)) (g/* qw qw vz))]))
+
+;; TODO see if this is better with symbolic?
+
+(defn ^:no-doc gjs-rotate [q]
+  {:pre [(quaternion? q)]}
+  ;; TODO copy rotation from above. This returns a rotation function??
+  ;;(assert (q:unit? q)) This assertion is really:
+
+  ;; TODO log this `assume-unit!` as a new function, have it throw on false.
+  ;;
+  ;; TODO move this implementation to the tests?
+  (let [vv (->vector q)
+        v  (g/simplify (g/dot-product vv vv))]
+    (ul/assume! (list '= v 1) 'rotate))
+  (let [q* (conjugate q)]
+    (fn the-rotation [three-v]
+      (three-vector
+       (mul q (make 0 three-v) q*)))))
+
+;; TODO Calculates the quaternion to rotate one vector onto the other
 ;;
+;; https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L941
+(defn from-between-vectors [_u _v])
+
+;; https://en.wikipedia.org/wiki/Slerp#Quaternion_Slerp
+;;
+;; TODO use defgeneric? can we take derivatives?
+;;
+;; https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L846-L901
+
+;; Spherically interpolates between quaternions a and b by ratio t. The parameter t is clamped to the range [0, 1].
+;;
+;; TODO more notes https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/index.htm
+;;
+;; MORE notes: https://blog.magnum.graphics/backstage/the-unnecessarily-short-ways-to-do-a-quaternion-slerp/
+(defn slerp [_q0 _q1 _t])
+
+;; description http://number-none.com/product/Understanding%20Slerp,%20Then%20Not%20Using%20It/
+
+;; TODO add this too??
+(defn lerp [])
+
 ;; ### Conversion to/from Angle-Axis
 
 (defn from-angle-normal-axis
@@ -1542,6 +1608,28 @@
                     (g// mag-sq))
                 (-> (g/+ q0**2 (g/negate q1**2) (g/negate q2**2) q3**2)
                     (g// mag-sq))])))
+
+;; ### Euler Angles
+;;
+;; https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+;;
+;;http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+
+;; fromEuler: https://github.com/infusion/Quaternion.js/blob/master/quaternion.js#L994
+(defn from-euler [])
+
+(defn ->euler [])
+
+;; ## Implementation Notes
+;;
+;; TODO slerp https://github.com/infusion/Quaternion.js/
+
+;; slerp notes: https://math.stackexchange.com/questions/93605/understanding-the-value-of-inner-product-of-two-quaternions-in-slerp
+;;
+;; TODO confirm we have ->3x3 matrix and ->4x4 matrix https://github.com/infusion/Quaternion.js/
+;;
+;; TODO quaternion sinum  https://github.com/typelevel/spire/blob/master/core/src/main/scala/spire/math/Quaternion.scala#L187
+
 
 ;; ## Generic Method Installation
 ;;
