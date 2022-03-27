@@ -199,7 +199,7 @@
                          (* 3 ((D R) t) (p t)))
                       (* (expt c 2) (R t)))
                    0 0 0]
-                 (#?(:cljs map :clj pmap)
+                 (map
                   (fn [i]
                     (simplify
                      ((e/contract

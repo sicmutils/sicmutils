@@ -2,6 +2,24 @@
 
 ## unreleased
 
+- #509:
+
+  - Fixes a bug with `down*Matrix` multiplication, and adds tests for
+    correctness.
+
+  - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}` predicates
+
+  - The mechanics port continues with `sicmutils.mechanics.rigid`:
+
+    - `T-rigid-body` moves to `T-body-Euler` with an alias back to its original
+      name. Same situation for `Euler-state->L-body` => `L-body-Euler` and
+      `Euler-state->L-space` => `L-space-Euler`.
+
+    - New functions: `three-vector-components->antisymmetric`, `T-body`,
+      `L-body`, `L-space`, `Euler->omega`, `Euler->omega-body`,
+      `quaternion-state->omega-body`, `quaternion-state->omega-space`,
+      `qw-state->L-body`, `qw-state->L-space`, `T-quaternion-state`
+
 - #511 focuses on adding more rotations and efficiency to
   `sicmutils.quaternion`. Specifically:
 

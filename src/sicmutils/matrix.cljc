@@ -617,14 +617,14 @@
   "Multiply a matrix `m` by down tuple `d` on the left. The return value has
   orientation `down`."
   [d m]
-  (when (not= (num-rows m) (count d))
+  (when (not= (count d) (num-rows m))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (s/down*
    (map (fn [i]
           (ua/generic-sum
            (fn [k]
              (g/* (get d k)
-                  (core/get-in m [i k])))
+                  (core/get-in m [k i])))
            0 (num-rows m)))
         (range (num-cols m)))))
 
@@ -1083,6 +1083,22 @@
                        :when (not= i j)
                        :let [entry (core/get-in m [i j])]]
                    (v/zero? entry))))))
+
+(defn symmetric?
+  "Returns true if the supplied matrix `M` is equal to its own transpose (ie,
+  symmetric), false otherwise."
+  [M]
+  (v/zero?
+   (g/simplify
+    (g/sub (transpose M) M))))
+
+(defn antisymmetric?
+  "Returns true if the supplied matrix `M` is equal to the negation of its own
+  transpose (ie, antisymmetric), false otherwise."
+  [M]
+  (v/zero?
+   (g/simplify
+    (g/add (transpose M) M))))
 
 (defn characteristic-polynomial
   "Returns the [characteristic
