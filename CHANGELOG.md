@@ -2,7 +2,7 @@
 
 ## unreleased
 
-- #509:
+- #512:
 
   - adds `sicmutils.mechanics.routhian`, with implementations of
     `Lagrangian->Routhian`, `Routh-equations`, `Routhian->acceleration`,
@@ -12,7 +12,7 @@
   - adds missing `sicmutils.mechanics.{routhian,time-evolution,noether}` to
     `sicmutils.env.sci`
 
-- new PR:
+- #509:
 
   - Fixes a bug with `down*Matrix` multiplication, and adds tests for
     correctness.
