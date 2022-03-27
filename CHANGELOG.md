@@ -20,7 +20,7 @@
       `quaternion-state->omega-body`, `quaternion-state->omega-space`,
       `qw-state->L-body`, `qw-state->L-space`, `T-quaternion-state`
 
-- This PR focuses on adding more rotations and efficiency to
+- #511 focuses on adding more rotations and efficiency to
   `sicmutils.quaternion`. Specifically:
 
   - `magnitude-sq` and `magnitude` are now more efficient.
