@@ -53,7 +53,7 @@
             [sicmutils.matrix :as matrix]
             [sicmutils.mechanics.hamilton]
             [sicmutils.mechanics.lagrange]
-            ['sicmutils.mechanics.noether]
+            [sicmutils.mechanics.noether]
             [sicmutils.mechanics.rigid]
             [sicmutils.mechanics.rotation]
             [sicmutils.mechanics.routhian]
