@@ -1435,3 +1435,117 @@
                     ((D (fn [x] (* x (* x y))))
                      (* y 3))))
                'x)))))))
+
+(deftest taylor-series-coefficient-tests
+  (is (= '[1 1 (/ 1 2) (/ 1 6) (/ 1 24)]
+         (->> (d/Taylor-series-coefficients exp 0)
+              (take 5)
+              (v/freeze))))
+
+  (letfn [(f [[a b]]
+            (* (sin (* 3 a))
+               (cos (* 4 b))))]
+    (is (= '[(* (sin (* 3 a)) (cos (* 4 b)))
+             (down (* 3 (cos (* 4 b)) (cos (* 3 a)))
+                   (* -4 (sin (* 3 a)) (sin (* 4 b))))
+             (down (down (* (/ -9 2) (sin (* 3 a)) (cos (* 4 b)))
+                         (* -6 (cos (* 3 a)) (sin (* 4 b))))
+                   (down (* -6 (cos (* 3 a)) (sin (* 4 b)))
+                         (* -8 (sin (* 3 a)) (cos (* 4 b)))))]
+           (->> (d/Taylor-series-coefficients f (s/up 'a 'b))
+                (take 3)
+                (v/freeze)))))
+
+  ;; (ref
+  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+  ;;                             (up 'a 'b))
+  ;;  0)
+  ;; #|
+  ;; (G (up a b))
+  ;; |#
+
+  ;; (ref
+  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+  ;;                             (up 'a 'b))
+  ;;  1)
+  ;; #|
+  ;; (down (((partial 0) G) (up a b)) (((partial 1) G) (up a b)))
+  ;; |#
+
+  ;; (ref
+  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
+  ;;                             (up 'a 'b))
+  ;;  2)
+  ;; #|
+  ;; (down
+  ;;  (down (* 1/2 (((partial 0) ((partial 0) G)) (up a b)))
+  ;;        (* 1/2 (((partial 0) ((partial 1) G)) (up a b))))
+  ;;  (down (* 1/2 (((partial 0) ((partial 1) G)) (up a b)))
+  ;;        (* 1/2 (((partial 1) ((partial 1) G)) (up a b)))))
+  ;; |#
+
+
+
+
+  ;; (ref
+  ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
+  ;;                             'a 'b)
+  ;;  0)
+  ;; #|
+  ;; (H a b)
+  ;; |#
+
+  ;; (ref
+  ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
+  ;;                             'a 'b)
+  ;;  3)
+  ;; #|
+  ;; (down
+  ;;  (down
+  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 0) H))) a b))
+  ;;         (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b)))
+  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
+  ;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))))
+  ;;  (down
+  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
+  ;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b)))
+  ;;   (down (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))
+  ;;         (* 1/6 (((partial 1) ((partial 1) ((partial 1) H))) a b)))))
+  ;; |#
+  ;; |#
+  ;; 
+  ;; ;;;; Bug!
+  ;; ;;; This does not produce a function.  It is a
+  ;; ;;; symbolic manipulation.
+
+  ;; #|
+  ;; (define (Taylor-series-coefficients f x)
+  ;;   (let ((dummy (generate-uninterned-symbol 'x)))
+  ;;     ((series:elementwise (compose
+  ;;                          simplify
+  ;;                          (lambda (term)
+  ;;                                  (subst x dummy term))
+  ;;                          simplify))
+  ;;      (((exp D) f) dummy))))
+
+
+  ;; ((D (lambda (y)
+  ;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
+  ;;  'a)
+  ;; #| 0 |#  ; Wrong
+
+  ;; ;;; Apparently due to simplify...
+
+  ;; (define (Taylor-series-coefficients f x)
+  ;;   (let ((dummy (generate-uninterned-symbol 'x)))
+  ;;     ((series:elementwise (lambda (term)
+  ;;                                 (subst x dummy term)))
+  ;;      (((exp D) f) dummy))))
+  ;; #| Taylor-series-coefficients |#
+
+  ;; ((D (lambda (y)
+  ;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
+  ;;  'a)
+  ;; #| 1 |#  ; Right
+  ;; |#
+  )

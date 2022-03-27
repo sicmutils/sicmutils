@@ -215,11 +215,15 @@
 (defn substitute
   "Returns a form similar to `expr`, with all instances of `old` replaced by
   `new`. Substitution occurs
-  in [postwalk](https://clojuredocs.org/clojure.walk/postwalk) order."
+  in [postwalk](https://clojuredocs.org/clojure.walk/postwalk) order.
+
+  NOTE that this now works for expressions too."
   ([expr old new]
    (substitute expr {old new}))
   ([expr s-map]
-   (w/postwalk-replace s-map expr)))
+   (if (literal? expr)
+     (fmap #(substitute % s-map) expr)
+     (w/postwalk-replace s-map expr))))
 
 (defn compare
   "Comparator for expressions. The rule is that types have the following ordering:
