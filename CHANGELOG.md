@@ -2,7 +2,7 @@
 
 ## unreleased
 
-- new PR:
+- #509:
 
   - Fixes a bug with `down*Matrix` multiplication, and adds tests for
     correctness.
