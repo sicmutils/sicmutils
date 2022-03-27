@@ -3,11 +3,10 @@
 (ns sicmutils.mechanics.rigid-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.abstract.function :as f :include-macros true]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.matrix :as m]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.rigid :as rig]
             [sicmutils.mechanics.rotation :as rotation]
@@ -90,25 +89,26 @@
               an-Euler-state)))))))
 
 (deftest rigid-sysder-tests
-  (let [A 1.0
-        B (Math/sqrt 2.0)
-        C 2.0
-        state0 (up 0.0 (up 1.0 0.0 0.0) (up 0.1 0.1 0.1))]
-    (is (ish?
-         (up 99.99999999999909
-             (up 0.6319896958404042
-                 1.3610271540831438
-                 17.43790048472884)
-             (up -0.12343716197081755
-                 0.09016109524917856
-                 0.07567921658551353))
-         ((ode/evolve rig/rigid-sysder A B C)
-          state0
-          0.1
-          100.0
-          {:compile? true
-           :epsilon 1.0e-12}))
-        "ODE solver example from rigid.scm."))
+  (with-comparator (v/within 1e-8)
+    (let [A 1.0
+          B (Math/sqrt 2.0)
+          C 2.0
+          state0 (up 0.0 (up 1.0 0.0 0.0) (up 0.1 0.1 0.1))]
+      (is (ish?
+           (up 99.99999999999909
+               (up 0.6319896958404042
+                   1.3610271540831438
+                   17.43790048472884)
+               (up -0.12343716197081755
+                   0.09016109524917856
+                   0.07567921658551353))
+           ((ode/evolve rig/rigid-sysder A B C)
+            state0
+            0.1
+            100.0
+            {:compile? true
+             :epsilon 1.0e-12}))
+          "ODE solver example from rigid.scm.")))
 
   (is (= '(+ (* (/ 1 2) A (expt phidot 2) (expt (sin theta) 2))
              (* (/ 1 2) C (expt phidot 2) (expt (cos theta) 2))
@@ -200,50 +200,49 @@
   scmutils implementation."))
 
 (deftest quaternion-evolution-tests
-  (letfn [(qw-sysder [A B C]
-            (let [B-C-over-A (/ (- B C) A)
-                  C-A-over-B (/ (- C A) B)
-                  A-B-over-C (/ (- A B) C)]
-              (fn the-deriv [[_ q [omega**a omega**b omega**c]]]
-                (let [tdot 1
-                      qdot ;; driven quaternion
-                      (* (/ -1 2)
-                         (+ (* omega**a q/I-matrix)
-                            (* omega**b q/J-matrix)
-                            (* omega**c q/K-matrix))
-                         q)
-                      omegadot  ;; Euler's equations
-                      (up (* B-C-over-A omega**b omega**c)
-                          (* C-A-over-B omega**c omega**a)
-                          (* A-B-over-C omega**a omega**b))]
-                  (up tdot qdot omegadot)))))]
+  (with-comparator (v/within 1e-8)
+    (letfn [(qw-sysder [A B C]
+              (let [B-C-over-A (/ (- B C) A)
+                    C-A-over-B (/ (- C A) B)
+                    A-B-over-C (/ (- A B) C)]
+                (fn the-deriv [[_ q [omega**a omega**b omega**c]]]
+                  (let [tdot 1
+                        qdot ;; driven quaternion
+                        (* (/ -1 2)
+                           (+ (* omega**a q/I-matrix)
+                              (* omega**b q/J-matrix)
+                              (* omega**c q/K-matrix))
+                           q)
+                        omegadot  ;; Euler's equations
+                        (up (* B-C-over-A omega**b omega**c)
+                            (* C-A-over-B omega**c omega**a)
+                            (* A-B-over-C omega**a omega**b))]
+                    (up tdot qdot omegadot)))))]
 
-    ;; A, B, C == moments of inertia
-    (let [A 1.0
-          B (Math/sqrt 2.0)
-          C 2.0
-          ;; initial state
-          Euler-state (up 0.0
-                          (up 1. 0.0 0.0)
-                          (up 0.1 0.1 0.1))
-          M (rotation/Euler->M (L/coordinates Euler-state))
-          q (q/->vector
-             (q/from-rotation-matrix M))
-          qw-state0
-          (up (L/time Euler-state)
-              q
-              (rig/Euler-state->omega-body Euler-state))]
-      (is (ish? (up 99.99999999999878
-                    (up -0.9501831654548522 -0.05699715799969905
-                        -0.3054905540187315 0.024058210063923138)
-                    (up -0.07215083472579442 -0.11343682989477462
-                        0.1484260290508369))
-                ((ode/evolve qw-sysder A B C)
-                 qw-state0
-                 0.1                  ;; step between plotted points
-                 100.0                ;; final time
-                 {:compile? true
-                  :epsilon 1.0e-12}))
-          "Big example from bottom of rigid.scm.")))
-
-  )
+      ;; A, B, C == moments of inertia
+      (let [A 1.0
+            B (Math/sqrt 2.0)
+            C 2.0
+            ;; initial state
+            Euler-state (up 0.0
+                            (up 1. 0.0 0.0)
+                            (up 0.1 0.1 0.1))
+            M (rotation/Euler->M (L/coordinates Euler-state))
+            q (q/->vector
+               (q/from-rotation-matrix M))
+            qw-state0
+            (up (L/time Euler-state)
+                q
+                (rig/Euler-state->omega-body Euler-state))]
+        (is (ish? (up 99.99999999999878
+                      (up -0.9501831654548522 -0.05699715799969905
+                          -0.3054905540187315 0.024058210063923138)
+                      (up -0.07215083472579442 -0.11343682989477462
+                          0.1484260290508369))
+                  ((ode/evolve qw-sysder A B C)
+                   qw-state0
+                   0.1                  ;; step between plotted points
+                   100.0                ;; final time
+                   {:compile? true
+                    :epsilon 1.0e-12}))
+            "Big example from bottom of rigid.scm.")))))
