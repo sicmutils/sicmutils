@@ -2,6 +2,21 @@
 
 ## unreleased
 
+- #511 focuses on adding more rotations and efficiency to
+  `sicmutils.quaternion`. Specifically:
+
+  - `magnitude-sq` and `magnitude` are now more efficient.
+
+  - New functions to get to and from quaternions and various matrix
+    representations: `from-rotation-matrix`, `->rotation-matrix`,
+    `from-complex-matrix`, `->complex-matrix`, `from-4x4-matrix`, `->4x4-matrix`
+
+  - New instances `ONE-matrix`, `I-matrix`, `J-matrix`, `K-matrix`, matrix
+    representations of the corresponding quaternion elements.
+
+  - Similar to the matrix elements, we also now have `ONE-tensor`, `I-tensor`,
+    `J-tensor`, `K-tensor`.
+
 - #503:
 
   - Changes the default implementation of `square` and `cube` for differentials
