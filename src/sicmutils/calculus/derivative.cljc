@@ -498,17 +498,25 @@
 ;; ```
 ;;
 (defn Taylor-series-coefficients
-  "Symbolic, say what we're doing!"
+  "Symbolic, say what we're doing!
+
+  the nested case is going to be tricky... see the example in the test and see
+  how the gensym leaks out.
+
+  TODO note that this handles differentials, but not things like series etc in
+  the coefficient position. We can deal later!"
   [f & xs]
   {:pre [(seq xs)]}
+
   (let [syms      (map s/typical-object xs)
         series    (apply ((g/exp D) f) syms)
         replace-m (zipmap (flatten syms)
                           (flatten xs))]
     (letfn [(process-term [term]
-              ;; TODO all that's left is to extract raw numbers and make them no
-              ;; longer symbolic.
               (g/simplify
-               (s/mapr #(x/substitute % replace-m)
+               (s/mapr (fn rec [x]
+                         (if (d/differential? x)
+                           (d/map-coefficients rec x)
+                           (x/substitute x replace-m)))
                        term)))]
       (series/fmap process-term series))))

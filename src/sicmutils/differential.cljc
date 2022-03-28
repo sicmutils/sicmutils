@@ -1167,13 +1167,17 @@
 ;; Any function built out of these components will work with
 ;; the [[sicmutils.calculus.derivative/D]] operator.
 
-(defmethod g/simplify [::differential] [d]
+(defn map-coefficients
+  "TODO move this up, test."
+  [f d]
   (->Differential
    (mapv (fn [term]
            (make-term (tags term)
-                      (g/simplify
-                       (coefficient term))))
+                      (f (coefficient term))))
          (bare-terms d))))
+
+(defmethod g/simplify [::differential] [d]
+  (map-coefficients g/simplify d))
 
 (defn- defunary
   "Given:

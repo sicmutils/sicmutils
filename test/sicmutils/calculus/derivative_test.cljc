@@ -246,7 +246,7 @@
 
       (testing "product rule for variation: δ(FG) = δF G + F δG"
         (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
-                              (* ((F q) 't) (((δη G) q) 't))))
+                            (* ((F q) 't) (((δη G) q) 't))))
                (simplify (((δη (* F G)) q) 't)))))
 
       (testing "path-independent chain rule for variation"
@@ -731,8 +731,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                      (fn [t] (g/* k t))
-                      (fn [t] (g/* k k t))))]
+                       (fn [t] (g/* k t))
+                       (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 
@@ -1456,96 +1456,64 @@
                 (take 3)
                 (v/freeze)))))
 
-  ;; (ref
-  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-  ;;                             (up 'a 'b))
-  ;;  0)
-  ;; #|
-  ;; (G (up a b))
-  ;; |#
+  (let [G (af/literal-function 'G '(-> (UP Real Real) Real))]
+    (is (= '[(G (up a b))
+             (down (((partial 0) G) (up a b)) (((partial 1) G) (up a b)))
+             (down
+              (down
+               (* (/ 1 2) (((expt (partial 0) 2) G) (up a b)))
+               (* (/ 1 2) (((* (partial 0) (partial 1)) G) (up a b))))
+              (down
+               (* (/ 1 2) (((* (partial 0) (partial 1)) G) (up a b)))
+               (* (/ 1 2) (((expt (partial 1) 2) G) (up a b)))))]
+           (->> (d/Taylor-series-coefficients G (s/up 'a 'b))
+                (take 3)
+                (v/freeze)))))
 
-  ;; (ref
-  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-  ;;                             (up 'a 'b))
-  ;;  1)
-  ;; #|
-  ;; (down (((partial 0) G) (up a b)) (((partial 1) G) (up a b)))
-  ;; |#
+  (let [H (af/literal-function 'H '(-> (X Real Real) Real))]
+    (is (= '((H a b)
+             (down (((partial 0) H) a b) (((partial 1) H) a b))
+             (down
+              (down
+               (* (/ 1 2) (((expt (partial 0) 2) H) a b))
+               (* (/ 1 2) (((* (partial 0) (partial 1)) H) a b)))
+              (down
+               (* (/ 1 2) (((* (partial 0) (partial 1)) H) a b))
+               (* (/ 1 2) (((expt (partial 1) 2) H) a b))))
+             (down
+              (down
+               (down
+                (* (/ 1 6) (((expt (partial 0) 3) H) a b))
+                (* (/ 1 6) (((* (expt (partial 0) 2) (partial 1)) H) a b)))
+               (down
+                (* (/ 1 6) (((* (expt (partial 0) 2) (partial 1)) H) a b))
+                (* (/ 1 6) (((* (partial 0) (expt (partial 1) 2)) H) a b))))
+              (down
+               (down
+                (* (/ 1 6) (((* (expt (partial 0) 2) (partial 1)) H) a b))
+                (* (/ 1 6) (((* (partial 0) (expt (partial 1) 2)) H) a b)))
+               (down
+                (* (/ 1 6) (((* (partial 0) (expt (partial 1) 2)) H) a b))
+                (* (/ 1 6) (((expt (partial 1) 3) H) a b))))))
+           (->> (d/Taylor-series-coefficients H 'a 'b)
+                (take 4)
+                (v/freeze)))))
 
-  ;; (ref
-  ;;  (Taylor-series-coefficients (literal-function 'G (-> (UP Real Real) Real))
-  ;;                             (up 'a 'b))
-  ;;  2)
-  ;; #|
-  ;; (down
-  ;;  (down (* 1/2 (((partial 0) ((partial 0) G)) (up a b)))
-  ;;        (* 1/2 (((partial 0) ((partial 1) G)) (up a b))))
-  ;;  (down (* 1/2 (((partial 0) ((partial 1) G)) (up a b)))
-  ;;        (* 1/2 (((partial 1) ((partial 1) G)) (up a b)))))
-  ;; |#
+  (is (v/= [0 1 0 0]
+           (take 4 ((D (fn [y]
+                         (d/Taylor-series-coefficients
+                          (fn [x] (g/* x y))
+                          0)))
+                    'a))))
 
+  (testing "compare, one stays symbolic:"
+    (letfn[(cake [[a b]]
+             (* (sin (* 3 a))
+                (cos (* 4 b))))]
 
+      (->> (d/taylor-series cake (s/up 1 2) 1)
+           (map g/simplify)
+           (take 4))
 
-
-  ;; (ref
-  ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
-  ;;                             'a 'b)
-  ;;  0)
-  ;; #|
-  ;; (H a b)
-  ;; |#
-
-  ;; (ref
-  ;;  (Taylor-series-coefficients (literal-function 'H (-> (X Real Real) Real))
-  ;;                             'a 'b)
-  ;;  3)
-  ;; #|
-  ;; (down
-  ;;  (down
-  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 0) H))) a b))
-  ;;         (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b)))
-  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
-  ;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))))
-  ;;  (down
-  ;;   (down (* 1/6 (((partial 0) ((partial 0) ((partial 1) H))) a b))
-  ;;         (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b)))
-  ;;   (down (* 1/6 (((partial 0) ((partial 1) ((partial 1) H))) a b))
-  ;;         (* 1/6 (((partial 1) ((partial 1) ((partial 1) H))) a b)))))
-  ;; |#
-  ;; |#
-  ;; 
-  ;; ;;;; Bug!
-  ;; ;;; This does not produce a function.  It is a
-  ;; ;;; symbolic manipulation.
-
-  ;; #|
-  ;; (define (Taylor-series-coefficients f x)
-  ;;   (let ((dummy (generate-uninterned-symbol 'x)))
-  ;;     ((series:elementwise (compose
-  ;;                          simplify
-  ;;                          (lambda (term)
-  ;;                                  (subst x dummy term))
-  ;;                          simplify))
-  ;;      (((exp D) f) dummy))))
-
-
-  ;; ((D (lambda (y)
-  ;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
-  ;;  'a)
-  ;; #| 0 |#  ; Wrong
-
-  ;; ;;; Apparently due to simplify...
-
-  ;; (define (Taylor-series-coefficients f x)
-  ;;   (let ((dummy (generate-uninterned-symbol 'x)))
-  ;;     ((series:elementwise (lambda (term)
-  ;;                                 (subst x dummy term)))
-  ;;      (((exp D) f) dummy))))
-  ;; #| Taylor-series-coefficients |#
-
-  ;; ((D (lambda (y)
-  ;;             (ref (Taylor-series-coefficients (lambda (x) (* x y)) 0) 1)))
-  ;;  'a)
-  ;; #| 1 |#  ; Right
-  ;; |#
-  )
+      (->> (d/Taylor-series-coefficients cake (s/up 1 2))
+           (take 4)))))

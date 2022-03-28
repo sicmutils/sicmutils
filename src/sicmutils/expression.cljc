@@ -189,7 +189,8 @@
   [expr]
   (cond (symbol? expr) #{expr}
         (literal? expr) (recur (expression-of expr))
-        :else (into #{} (filter symbol?) (flatten expr))))
+        :else (let [xs (rest (tree-seq sequential? seq expr))]
+                (into #{} (filter symbol?) xs))))
 
 (defn evaluate
   "Walk the unwrapped expression `expr` in postorder, replacing symbols found
