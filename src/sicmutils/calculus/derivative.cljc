@@ -504,10 +504,12 @@
   how the gensym leaks out.
 
   TODO note that this handles differentials, but not things like series etc in
-  the coefficient position. We can deal later!"
+  the coefficient position. We can deal later!
+
+  NOTE: this will break for functions that takes maps etc, basically just works now
+  for functions that match the derivative interface."
   [f & xs]
   {:pre [(seq xs)]}
-
   (let [syms      (map s/typical-object xs)
         series    (apply ((g/exp D) f) syms)
         replace-m (zipmap (flatten syms)
@@ -517,6 +519,7 @@
                (s/mapr (fn rec [x]
                          (if (d/differential? x)
                            (d/map-coefficients rec x)
-                           (x/substitute x replace-m)))
+                           (-> (g/simplify x)
+                               (x/substitute replace-m))))
                        term)))]
       (series/fmap process-term series))))
