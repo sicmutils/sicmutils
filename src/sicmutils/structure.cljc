@@ -69,8 +69,8 @@
   (one? [_] false)
   (identity? [_] false)
   (zero-like [_] (Structure. orientation (v/zero-like v) m))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (identity-like [o] (u/unsupported (str "identity-like: " o)))
+  (one-like [_] 1)
+  (identity-like [_] 1)
   (exact? [_] (every? v/exact? v))
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
@@ -279,8 +279,10 @@
        ]))
 
 #?(:clj
-   (defmethod print-method Structure [^Structure s ^java.io.Writer w]
-     (.write w (.toString s))))
+   (defmethod print-method Structure [^Structure s w]
+     (-> (list* ((.-orientation s) orientation->symbol)
+                (.-v s))
+         (print-method w))))
 
 ;; ## Component Accessors
 

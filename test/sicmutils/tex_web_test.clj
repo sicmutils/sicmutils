@@ -65,9 +65,9 @@
 ;; ## expansion
 
 (->tex
- (-> (taylor-series
-      (literal-function 'f (up 0 0) 0)
-      (up 'x 'y)
+ (-> ((taylor-series
+       (literal-function 'f (up 0 0) 0)
+       (up 'x 'y))
       (up 'dx 'dy))
      (series:sum 2)))
 
