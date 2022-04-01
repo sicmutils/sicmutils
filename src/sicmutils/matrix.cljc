@@ -606,11 +606,12 @@
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (s/up*
    (map (fn [i]
-          (ua/generic-sum
-           (fn [k]
-             (g/* (core/get-in m [i k])
-                  (get u k)))
-           0 (num-cols m)))
+          (let [row-i (nth m i)]
+            (ua/generic-sum
+             (fn [k]
+               (g/* (nth row-i k)
+                    (nth u k)))
+             0 (num-cols m))))
         (range (num-rows m)))))
 
 (defn- d*M

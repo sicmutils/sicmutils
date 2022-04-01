@@ -4,7 +4,8 @@
   (:refer-clojure :exclude [ns-map])
   (:require [sci.core :as sci]
             [sicmutils.env]
-            [sicmutils.env.sci.macros :as macros]))
+            [sicmutils.env.sci.macros :as macros]
+            [sicmutils.util :as u]))
 
 (def macro? (comp :macro meta))
 (def dynamic? (comp :dynamic meta))
@@ -125,9 +126,7 @@
  from this map. Since in normal (not self-hosted) ClojureScript `ns-publics`
  does not include macros, they are added explicitly."}
   namespaces
-  (let [ns-map (into {}
-                     (map (fn [[k v]] [k (sci-ns v)]))
-                     ns->publics)]
+  (let [ns-map (u/map-vals sci-ns ns->publics)]
     (merge-with merge ns-map macros/ns-bindings)))
 
 (def ^{:doc "Default sci context options required (currently only `:namespace`

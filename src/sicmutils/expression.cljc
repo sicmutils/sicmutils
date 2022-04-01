@@ -112,8 +112,8 @@
         (-write writer (str expression)))]))
 
 #?(:clj
-   (defmethod print-method Literal [^Literal s ^java.io.Writer w]
-     (.write w (.toString s))))
+   (defmethod print-method Literal [^Literal s w]
+     (print-method (.-expression s) w)))
 
 (defn make-literal
   "Constructs a [[Literal]] instance with the supplied type and an empty metadata
@@ -189,7 +189,8 @@
   [expr]
   (cond (symbol? expr) #{expr}
         (literal? expr) (recur (expression-of expr))
-        :else (into #{} (filter symbol?) (flatten expr))))
+        :else (let [xs (rest (tree-seq sequential? seq expr))]
+                (into #{} (filter symbol?) xs))))
 
 (defn evaluate
   "Walk the unwrapped expression `expr` in postorder, replacing symbols found
@@ -215,11 +216,15 @@
 (defn substitute
   "Returns a form similar to `expr`, with all instances of `old` replaced by
   `new`. Substitution occurs
-  in [postwalk](https://clojuredocs.org/clojure.walk/postwalk) order."
+  in [postwalk](https://clojuredocs.org/clojure.walk/postwalk) order.
+
+  NOTE that this now works for expressions too."
   ([expr old new]
    (substitute expr {old new}))
   ([expr s-map]
-   (w/postwalk-replace s-map expr)))
+   (if (literal? expr)
+     (fmap #(substitute % s-map) expr)
+     (w/postwalk-replace s-map expr))))
 
 (defn compare
   "Comparator for expressions. The rule is that types have the following ordering:

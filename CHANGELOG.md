@@ -2,6 +2,46 @@
 
 ## unreleased
 
+- #514:
+
+  - Modifies `sicmutils.calculus.derivative/taylor-series` to return a proper
+    `PowerSeries` instance, which the user can call with some `dx` to get back
+    the old behavior.
+
+    The new version can take any number of arguments in addition to `f`.
+    Supplying no arguments returns the expansion at 0; if you supply many
+    arguments (totally fine!), you'll need to wrap your `dx` components in a
+    vector before supplying them to the returned `PowerSeries`.
+
+  - `sicmutils.series/function->` works the same way now, and functions
+    identically, but with a different implementation. (previously it took a
+    single expansion point under a keyword argument `:x0`.)
+
+  - The new `sicmutils.calculus.derivative/symbolic-taylor-series` is a port of
+    `Taylor-series-coefficients` from `scmutils`. It has the same contract as
+    `taylor-series`, except that the full expansion is performed symbolically,
+    and the original arguments are substituted in after expansion and
+    simplification.
+
+  - Other changes:
+
+    - Installs `1` as the `one-like` and `identity-like` return values for
+      structures and vectors. A true identity element would be an identity
+      element compatible with all entries of the structure; but as defined now,
+      `1` is a fine choice and matches the `scmutils` implementation.
+
+    - new `sicmutils.differential/map-coefficients`, which makes `simplify`
+      slightly more efficient by filtering terms .
+
+    - more efficient `sicmutils.expression/variables-in`, maybe 30% faster for
+      big expressions; this makes a difference in the simplifier!
+
+    - `sicmutils.expression/substitute` now works for proper `Literal`
+      instances. Before it only worked for unwrapped literals.
+
+    - matrix walks made slightly faster by caching a row or column before
+      traversal
+
 - #512:
 
   - adds `sicmutils.mechanics.routhian`, with implementations of

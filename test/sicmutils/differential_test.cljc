@@ -337,6 +337,12 @@
                          d/d:+ (shuffle [pl pr tl tr])))
                   "adding the pieces in any order works!")))
 
+  (testing "map-coefficients"
+    (let [diff (d/from-terms {[0] 1 [1] 2 [2] 3})]
+      (is (= (d/from-terms {[1] 1 [2] 2})
+             (d/map-coefficients dec diff))
+          "the 0 coefficient term is filtered out.")))
+
   (testing "differential +, - unit tests"
     (let [dx     (d/from-terms {[0] 1})
           -dx    (d/from-terms {[0] -1})

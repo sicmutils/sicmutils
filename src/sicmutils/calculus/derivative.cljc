@@ -5,10 +5,12 @@
   the machinery to apply [[D]] to various structures."
   (:refer-clojure :exclude [partial])
   (:require [sicmutils.differential :as d]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
+            [sicmutils.series :as series]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -441,9 +443,10 @@
 
 (defn D-as-matrix [F]
   (fn [s]
-    (matrix/s->m (s/compatible-shape (F s))
-	               ((D F) s)
-	               s)))
+    (matrix/s->m
+     (s/compatible-shape (F s))
+     ((D F) s)
+     s)))
 
 (defn partial
   "Returns an operator that, when applied to a function `f`, produces a function
@@ -459,36 +462,61 @@
 ;; standard ways.
 
 (defn taylor-series
-  "Returns a [[sicmutils.series/Series]] of the coefficients of the [Taylor
+  "Given a differentiable function `f` and any number of arguments `xs`, returns
+  a [[sicmutils.series/PowerSeries]] representing the [Taylor
   series](https://en.wikipedia.org/wiki/Taylor_series) of the function `f`
-  evaluated at `x`, with incremental quantity `dx`.
+  expanded at `xs`.
 
-  The typical definition of a Taylor series at the point `x` is
+  Calling [[taylor-series]] with no arguments will return the [Maclaurin
+  series](https://en.wikipedia.org/wiki/Taylor_series#List_of_Maclaurin_series_of_some_common_functions)
+  of `f`, ie, the Taylor series expansion at `(= x 0)`.
 
-  $$f(x) = f(a) + \\frac{f'(a)}{1!}(x-a) +  \\frac{f''(a)}{2!} (x-a)^2 + \\ldots$$
+  Calling the returned power series with incremental argument `dx` will produce
+  a [[sicmutils.series/Series]] representing the terms of the Taylor series of
+  `f` expanded at `x` and evaluated at `x+dx`.
 
-  All derivatives of the original function and this Taylor series match at the
-  point `a`.
+  NOTE: Just like the [[D]] operator, functions `f` of multiple-arguments are
+  treated as a function of a single structural argument. If you pass multiple
+  arguments `xs`, you'll have to manually wrap your multiple-argument `dx` in
+  a [[sicmutils.structure/up]] or a vector before passing it to the returned
+  power series.
 
-  The argument `dx` is instead interpreted as an incremental difference
-  from `(x-a)`. So, passing 0 for `dx` would return the evaluation of the Taylor
-  series at the point `a`.
-  "
-  [f x dx]
-  (((g/exp (g/* (constantly dx) D)) f) x))
+  NOTE: The typical definition of a Taylor series of `f` expanded around some
+  point `x` is
 
-;; NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
-;; structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
-;; == `(up 'dx 'dy)` would expand to this:
+  $$T(p) = f(x) + \\frac{f'(x)}{1!}(p-x) + \\frac{f''(x)}{2!} (p-x)^2 + \\ldots,$$
 
-;; ```clojure
-;; (fn [x] (* (s/up ('dx x) ('dy x))
-;;           ((D f) x)))
-;; ```
-;;
-;; `constantly` delays the interpretation of `dx` one step:
-;;
-;; ```clojure
-;; (fn [x] (* (s/up 'dx 'dy)
-;;           ((D f) x)))
-;; ```
+  where `p` is the evaluation point. When `(= p x)`, all derivatives of the
+  Taylor series expansion of `f` will exactly match the derivatives of `f`
+  itself.
+
+  The Taylor series returned here (call it $T'$) is actually a function of `dx`,
+  where
+
+  $$T'(dx) = T(x+dx) = f(x) + \\frac{f'(x)}{1!}(dx) + \\frac{f''(x)}{2!} (dx)^2 + \\ldots.$$"
+  ([f] (taylor-series f 0))
+  ([f & xs]
+   (series/->function
+    (apply ((g/exp D) f) xs))))
+
+(defn symbolic-taylor-series
+  "Similar to [[taylor-series]], except `f` is evaluated with symbolic arguments,
+  and these arguments are only replaced with the values `xs` after Taylor series
+  expansion.
+
+  Please see the docs for [[taylor-series]]!"
+  ([f] (symbolic-taylor-series f 0))
+  ([f & xs]
+   (let [syms      (map s/typical-object xs)
+         replace-m (zipmap (flatten syms)
+                           (flatten xs))
+         series    (apply taylor-series f syms)]
+     (letfn [(process-term [term]
+               (g/simplify
+                (s/mapr (fn rec [x]
+                          (if (d/differential? x)
+                            (d/map-coefficients rec x)
+                            (-> (g/simplify x)
+                                (x/substitute replace-m))))
+                        term)))]
+       (series/fmap process-term series)))))
