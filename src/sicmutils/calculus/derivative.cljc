@@ -3,8 +3,7 @@
 (ns sicmutils.calculus.derivative
   "This namespace implements a number of differential operators like [[D]], and
   the machinery to apply [[D]] to various structures."
-  (:refer-clojure :rename {partial core-partial}
-                  #?@(:cljs [:exclude [partial]]))
+  (:refer-clojure :exclude [partial])
   (:require [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]

@@ -126,7 +126,6 @@
  from this map. Since in normal (not self-hosted) ClojureScript `ns-publics`
  does not include macros, they are added explicitly."}
   namespaces
-  ;; should be map values?
   (let [ns-map (u/map-vals sci-ns ns->publics)]
     (merge-with merge ns-map macros/ns-bindings)))
 
