@@ -331,7 +331,7 @@
               "  var t1 = Math.sin(x);\n"
               "  return -1/2 * Math.pow(dx, 2) * t1 + dx * Math.cos(x) + t1;\n"
               "}")
-         (s->JS (series/sum (taylor-series sin 'x 'dx) 2)
+         (s->JS (series/sum ((taylor-series sin 'x) 'dx) 2)
                 :symbol-generator (make-symbol-generator "t")
                 :parameter-order '[x dx])))
   (is (= "function(x, y) {\n  return [1, x + y, 2];\n}"
@@ -420,9 +420,9 @@
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
 
-      (let [expr (-> (taylor-series
-                      (af/literal-function 'f (up 0 0) 0)
-                      (up 'x 'y)
+      (let [expr (-> ((taylor-series
+                       (af/literal-function 'f (up 0 0) 0)
+                       (up 'x 'y))
                       (up 'dx 'dy))
                      (series/sum 2))]
         (is (= "1/2 dx² ∂₀²f(up(x, y)) + dx dy (∂₀ ∂₁)(f)(up(x, y)) + 1/2 dy² ∂₁²f(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"

@@ -5,6 +5,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.abstract.function :as af :include-macros true]
+            [sicmutils.abstract.number :refer [literal-number]]
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.differential :as sd]
@@ -551,44 +552,6 @@
                (* (expt dy 2) (((expt (partial 1) 2) f) x y)))
            (simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
-(deftest taylor
-  (is (= '(+ (* (/ 1 6)
-                (expt dx 3) (((expt (partial 0) 3) f) (up x y)))
-             (* (/ 1 2)
-                (expt dx 2) dy (((* (expt (partial 0) 2) (partial 1)) f) (up x y)))
-             (* (/ 1 2)
-                dx (expt dy 2) (((* (partial 0) (expt (partial 1) 2)) f) (up x y)))
-             (* (/ 1 6)
-                (expt dy 3) (((expt (partial 1) 3) f) (up x y)))
-             (* (/ 1 2)
-                (expt dx 2) (((expt (partial 0) 2) f) (up x y)))
-             (* dx dy (((* (partial 0) (partial 1)) f) (up x y)))
-             (* (/ 1 2)
-                (expt dy 2) (((expt (partial 1) 2) f) (up x y)))
-             (* dx (((partial 0) f) (up x y)))
-             (* dy (((partial 1) f) (up x y)))
-             (f (up x y)))
-         (->> (d/taylor-series
-               (af/literal-function 'f (s/up 0 0) 0)
-               (s/up 'x 'y)
-               (s/up 'dx 'dy))
-              (take 4)
-              (reduce +)
-              (simplify))))
-
-  (testing "eq. 5.291"
-    (let [V  (fn [[xi eta]]
-               (g/sqrt
-                (+ (g/square (+ xi 'R_0))
-                   (g/square eta))))
-          x  (s/up 0 0)
-          dx (s/up 'xi 'eta)]
-      (is (= '(R_0 xi (/ (* (/ 1 2) (expt eta 2))
-                         R_0))
-             (->> (d/taylor-series V x dx)
-                  (take 3)
-                  (simplify)))))))
-
 (deftest moved-from-structure-and-matrix
   (testing "as-matrix, D-as-matrix"
     (let [S (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y))
@@ -731,8 +694,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                       (fn [t] (g/* k t))
-                       (fn [t] (g/* k k t))))]
+                      (fn [t] (g/* k t))
+                      (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 
@@ -742,7 +705,7 @@
              (* dx (cos x))
              (sin x))
          (simplify
-          (-> (d/taylor-series g/sin 'x 'dx)
+          (-> ((d/taylor-series g/sin 'x) 'dx)
               (series/sum 4)))))
   (is (= '(1
            (* (/ 1 2) dx)
@@ -751,9 +714,9 @@
            (* (/ -5 128) (expt dx 4))
            (* (/ 7 256) (expt dx 5)))
          (simplify
-          (take 6 (d/taylor-series
-                   (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                   0 'dx))))))
+          (take 6 ((d/taylor-series
+                    (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                    0) 'dx))))))
 
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(af/literal-function 'f) (af/literal-function 'g)]
@@ -853,7 +816,7 @@
 
   (testing "d/taylor-series"
     (is (ish? (take 8 series/cos-series)
-              (take 8 (d/taylor-series g/cos 0 1)))
+              (take 8 (d/taylor-series g/cos 0)))
         "The taylor series expansion of g/cos around x=0 with dx=1 should be the
         original cos series."))
 
@@ -861,7 +824,7 @@
     (let [cos-approx (into [] (comp (take 10)
                                     (map u/double))
                            (series/partial-sums
-                            (d/taylor-series g/cos 0 1)))]
+                            (d/taylor-series g/cos 0)))]
       (is (ish? [1.0 1.0
                  0.5 0.5
                  0.5416666666666667 0.5416666666666667
@@ -873,7 +836,7 @@
       (with-comparator (v/within 1e-6)
         (letfn [(via-series [x]
                   (u/double
-                   (-> (d/taylor-series g/cos 0 x)
+                   (-> ((d/taylor-series g/cos 0) x)
                        (series/sum 10))))]
           (testing "The taylor series approximation of `g/cos` around 1 returns
           fairly accurate estimates of Math/cos at a few points."
@@ -1436,11 +1399,107 @@
                      (* y 3))))
                'x)))))))
 
-(deftest taylor-series-coefficient-tests
-  (is (= '[1 1 (/ 1 2) (/ 1 6) (/ 1 24)]
-         (->> (d/Taylor-series-coefficients exp 0)
-              (take 5)
-              (v/freeze))))
+(deftest taylor-expansion-tests
+  (testing "functions of a single structural arg"
+    (let [G (af/literal-function 'H '(-> (UP Real Real) Real))]
+      (is (= '[(H (up a b))
+               (+ (* da (((partial 0) H) (up a b)))
+                  (* db (((partial 1) H) (up a b))))
+               (+ (* (/ 1 2) (expt da 2) (((expt (partial 0) 2) H) (up a b)))
+                  (* da db (((* (partial 0) (partial 1)) H) (up a b)))
+                  (* (/ 1 2) (expt db 2) (((expt (partial 1) 2) H) (up a b))))]
+             (simplify
+              (take 3 ((d/taylor-series G ['a 'b]) ['da 'db]))))
+          "structural args work great.")))
+
+  (testing "multiple-arg functions"
+    (let [H (af/literal-function 'H '(-> (X Real Real) Real))]
+      (is (= '[(H a b)
+               (+ (* da (((partial 0) H) a b))
+                  (* db (((partial 1) H) a b)))
+               (+ (* (/ 1 2) (expt da 2) (((expt (partial 0) 2) H) a b))
+                  (* da db (((* (partial 0) (partial 1)) H) a b))
+                  (* (/ 1 2) (expt db 2) (((expt (partial 1) 2) H) a b)))]
+             (simplify
+              (take 3 ((d/taylor-series H 'a 'b) ['da 'db]))))
+          "We can supply MULTIPLE arguments to `taylor-series`... but notice
+          that we have to explicitly wrap the incremental input in a vector (or
+          `up` structure).")))
+
+  (let [f  (af/literal-function 'f (s/up 0 0) 0)
+        x  (s/up 'x 'y)
+        dx (s/up 'dx 'dy)]
+    (is (= '(+ (* (/ 1 6)
+                  (expt dx 3) (((expt (partial 0) 3) f) (up x y)))
+               (* (/ 1 2)
+                  (expt dx 2) dy (((* (expt (partial 0) 2) (partial 1)) f) (up x y)))
+               (* (/ 1 2)
+                  dx (expt dy 2) (((* (partial 0) (expt (partial 1) 2)) f) (up x y)))
+               (* (/ 1 6)
+                  (expt dy 3) (((expt (partial 1) 3) f) (up x y)))
+               (* (/ 1 2)
+                  (expt dx 2) (((expt (partial 0) 2) f) (up x y)))
+               (* dx dy (((* (partial 0) (partial 1)) f) (up x y)))
+               (* (/ 1 2)
+                  (expt dy 2) (((expt (partial 1) 2) f) (up x y)))
+               (* dx (((partial 0) f) (up x y)))
+               (* dy (((partial 1) f) (up x y)))
+               (f (up x y)))
+           (-> ((d/taylor-series f x) dx)
+               (series/sum 3)
+               (simplify)))
+        "taylor-series gives the expected expansion at dx, even with structural
+        args.")
+
+    (let [deriv-taylor  (d/taylor-series f x)
+          series-taylor (series/function-> f x)]
+      (is (and (series/power-series? deriv-taylor)
+               (series/power-series? series-taylor))
+          "We have a proper power series with the two-arg version.")
+
+      (is (= (simplify (take 3 deriv-taylor))
+             (simplify (take 3 series-taylor)))
+          "taylor-series matches function-> with expansion coefficients")
+
+      (let [deriv-applied  (deriv-taylor dx)
+            series-applied (series-taylor dx)]
+        (is (and (not (series/power-series? deriv-applied))
+                 (not (series/power-series? series-applied)))
+            "No longer a power series...")
+
+        (is (and (series/series? deriv-applied)
+                 (series/series? series-applied))
+            "but still a series.")
+
+        (is (= (simplify (take 3 deriv-applied))
+               (simplify (take 3 series-applied)))
+            "taylor-series matches function-> after application at dx"))))
+
+  (testing "eq. 5.291"
+    (let [V  (fn [[xi eta]]
+               (g/sqrt
+                (+ (g/square (+ xi 'R_0))
+                   (g/square eta))))
+          x  (s/up 0 0)
+          dx (s/up 'xi 'eta)]
+      (is (= '(R_0 xi (/ (* (/ 1 2) (expt eta 2))
+                         R_0))
+             (->> ((d/taylor-series V x) dx)
+                  (take 3)
+                  (simplify)))))))
+
+(deftest symbolic-taylor-series-tests
+  (let [xs (d/symbolic-taylor-series exp 0)]
+    (is (series/power-series? xs)
+        "we have a proper power series!")
+    (is (= '(1
+             dx
+             (* (/ 1 2) (expt dx 2))
+             (* (/ 1 6) (expt dx 3))
+             (* (/ 1 24) (expt dx 4)))
+           (simplify
+            (take 5 (xs 'dx))))
+        "expansion of exp, as expected"))
 
   (letfn [(f [[a b]]
             (* (sin (* 3 a))
@@ -1452,9 +1511,10 @@
                          (* -6 (cos (* 3 a)) (sin (* 4 b))))
                    (down (* -6 (cos (* 3 a)) (sin (* 4 b)))
                          (* -8 (sin (* 3 a)) (cos (* 4 b)))))]
-           (->> (d/Taylor-series-coefficients f (s/up 'a 'b))
+           (->> (d/symbolic-taylor-series f (s/up 'a 'b))
                 (take 3)
-                (v/freeze)))))
+                (v/freeze)))
+        "coefficients with structural input"))
 
   (let [G (af/literal-function 'G '(-> (UP Real Real) Real))]
     (is (= '[(G (up a b))
@@ -1466,11 +1526,19 @@
               (down
                (* (/ 1 2) (((* (partial 0) (partial 1)) G) (up a b)))
                (* (/ 1 2) (((expt (partial 1) 2) G) (up a b)))))]
-           (->> (d/Taylor-series-coefficients G (s/up 'a 'b))
+           (->> (d/symbolic-taylor-series G (s/up 'a 'b))
                 (take 3)
-                (v/freeze)))))
+                (v/freeze)))
+        "abstract function, coefficients with structural input"))
 
   (let [H (af/literal-function 'H '(-> (X Real Real) Real))]
+    (is (= [(literal-number '(H a b))
+            (s/down (literal-number '(((partial 0) H) a b))
+                    (literal-number '(((partial 1) H) a b)))]
+           (take 2 (d/symbolic-taylor-series H 'a 'b)))
+        "symbolic-taylor-series returns proper structures and literals, not just
+        frozen s-expressions.")
+
     (is (= '((H a b)
              (down (((partial 0) H) a b) (((partial 1) H) a b))
              (down
@@ -1495,25 +1563,41 @@
                (down
                 (* (/ 1 6) (((* (partial 0) (expt (partial 1) 2)) H) a b))
                 (* (/ 1 6) (((expt (partial 1) 3) H) a b))))))
-           (->> (d/Taylor-series-coefficients H 'a 'b)
+           (->> (d/symbolic-taylor-series H 'a 'b)
                 (take 4)
-                (v/freeze)))))
+                (v/freeze)))
+        "coefficients with a multi-arg function"))
 
   (is (v/= [0 1 0 0]
            (take 4 ((D (fn [y]
-                         (d/Taylor-series-coefficients
+                         (d/symbolic-taylor-series
                           (fn [x] (g/* x y))
                           0)))
-                    'a))))
+                    'a)))
+      "proper function when symbolic-taylor-series is used INSIDE of a call to
+      `D`; this shows that it can do proper symbolic replacement inside of
+      differential instances.")
 
   (testing "compare, one stays symbolic:"
-    (letfn[(cake [[a b]]
+    (letfn[(f [[a b]]
              (* (sin (* 3 a))
                 (cos (* 4 b))))]
 
-      (->> (d/taylor-series cake (s/up 1 2) 1)
-           (map g/simplify)
-           (take 4))
+      (is (ish? [-0.020532965943782493
+                 (s/down 0.4321318251769156 -0.558472974950351)]
+                (->> (d/taylor-series f (s/up 1 2))
+                     (map g/simplify)
+                     (take 2)))
+          "taylor-series happily evaluates numeric arguments, even if they
+          become inexact.")
 
-      (->> (d/Taylor-series-coefficients cake (s/up 1 2))
-           (take 4)))))
+      (is (= [(literal-number
+               '(* (sin 3) (cos 8)))
+              (s/down (literal-number
+                       '(* 3 (cos 8) (cos 3)))
+                      (literal-number
+                       '(* -4 (sin 3) (sin 8))))]
+             (->> (d/symbolic-taylor-series f (s/up 1 2))
+                  (take 2)))
+          "symbolic-taylor-series keeps the arguments symbolic, even when they
+          are numbers."))))

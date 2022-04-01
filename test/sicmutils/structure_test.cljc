@@ -73,12 +73,14 @@
              (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
 
     (testing "one-like"
-      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                   (v/one-like (s/up 1 2 3)))))
+      (let [one (v/one-like (s/up 1 2 3))]
+        (is (= 1 one))
+        (is (v/one? one))))
 
     (testing "identity-like"
-      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                   (v/identity-like (s/up 1 2 3)))))
+      (let [id (v/identity-like (s/up 1 2 3))]
+        (is (= 1 id))
+        (is (v/identity? id))))
 
     (testing "exact?"
       (is (v/exact? (s/up 1 2 3 4)))

@@ -45,9 +45,9 @@
               (is (= (v/kind v) (type v))
                   "Kind reflects type back out."))
 
-    (testing "v/one-like, v/identity-like throw"
-      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                   (v/one-like [1 2 3])))
+    (testing "v/one-like, v/identity-like return 1, the multiplicative identity for vectors"
+      (is (= 1 (v/one-like [1 2 3])))
+      (is (= 1 (v/identity-like [1 2 3])))
 
       (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                    (v/identity-like {:k "v"}))))

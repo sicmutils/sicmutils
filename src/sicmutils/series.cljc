@@ -400,31 +400,38 @@
 (defn function->
   "Returns a [[PowerSeries]] representing the [Taylor
   series](https://en.wikipedia.org/wiki/Taylor_series) expansion of `f` at the
-  value supplied via the keyword argument `:x0`. `:x0` defaults to 0.
+  point specified by `xs`. Multiple arguments are allowed. If no arguments `xs`
+  are supplied, the expansion point defaults to 0.
 
   The expansion at 0 is also called a 'Maclaurin series'.
-
-  NOTE: The argument of the returned [[PowerSeries]] is interepreted as `dx`,
-  some delta around the supplied point `0`. This differs from the
-  traditional [Taylor series](https://en.wikipedia.org/wiki/Taylor_series)
-  definition, where the returned series would align mostly closely
-  with `(function-> f :x0 <x0>)` when called with `x0` as an argument. We do
-  this because it's not possible to create a [[PowerSeries]] instance with the
-  that bakes in the `x - x0` shift.
 
   NOTE: this function takes derivatives internally, so if you pass a function
   make sure you require [[sicmutils.calculus.derivative]] to install the
   derivative implementation for functions. If you pass some other callable,
-  differentiable function-like thing, like a polynomial, this is not necessary."
-  [f & {:keys [x0]}]
-  (let [x0 (or x0 0)]
-    (letfn [(gen [i f fact-n]
-              (lazy-seq
-               (cons (g// (f x0) fact-n)
-                     (gen (inc i)
-                          (g/partial-derivative f [])
-                          (* fact-n i)))))]
-      (->PowerSeries (gen 1 f 1) nil))))
+  differentiable function-like thing, like a polynomial, this is not necessary.
+
+  NOTE: The typical definition of a Taylor series of `f` expanded around some
+  point `x` is
+
+  $$T(p) = f(x) + \\frac{f'(x)}{1!}(p-x) + \\frac{f''(x)}{2!} (p-x)^2 + \\ldots,$$
+
+  where `p` is the evaluation point. When `(= p x)`, all derivatives of the
+  Taylor series expansion of `f` will exactly match the derivatives of `f`
+  itself.
+
+  The Taylor series returned here (call it $T'$) is actually a function of `dx`,
+  where
+
+  $$T'(dx) = T(x+dx) = f(x) + \\frac{f'(x)}{1!}(dx) + \\frac{f''(x)}{2!} (dx)^2 + \\ldots.$$"
+  ([f] (function-> f 0))
+  ([f & xs]
+   (letfn [(gen [i f fact-n]
+             (lazy-seq
+              (cons (g// (apply f xs) fact-n)
+                    (gen (inc i)
+                         (g/partial-derivative f [])
+                         (* fact-n i)))))]
+     (->PowerSeries (gen 1 f 1) nil))))
 
 ;; ## Application
 ;;
@@ -561,7 +568,7 @@
   NOTE that [[sum]] sums the first `n + 1` terms, since a series starts with an
   order 0 term."
   [s n]
-  (transduce (take (inc n)) g/+ (seq s)))
+  (transduce (take (inc n)) g/+ s))
 
 ;; ## Power Series Specific Functions
 

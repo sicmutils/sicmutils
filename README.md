@@ -227,7 +227,7 @@ open-source release.
 [GPL v3](LICENSE).
 
 [CLJDOCS]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT
-[SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
+[SICM]: https://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics-second-edition
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/

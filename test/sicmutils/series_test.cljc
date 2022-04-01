@@ -314,11 +314,32 @@
                    (* (/ 1 2) (expt dx 2) (exp a))
                    (* dx (exp a))
                    (exp a))
-               (-> ((s/function-> g/exp :x0 'a) 'dx)
+               (-> ((s/function-> g/exp 'a) 'dx)
                    (s/sum 3)
                    (g/simplify)
                    (v/freeze)))
             "power series expansion of g/exp around 'a, evaluated at 'dx")
+
+        (is (= '(/ (+
+                    (* (expt a 4) (atan a b))
+                    (* 2 (expt a 2) (expt b 2) (atan a b))
+                    (* (expt b 4) (atan a b))
+                    (* -1 (expt a 3) db)
+                    (* (expt a 2) b da)
+                    (* (expt a 2) da db)
+                    (* -1 a (expt b 2) db)
+                    (* -1 a b (expt da 2))
+                    (* a b (expt db 2))
+                    (* (expt b 3) da)
+                    (* -1 (expt b 2) da db))
+                   (+ (expt a 4) (* 2 (expt a 2) (expt b 2)) (expt b 4)))
+               (-> ((s/function-> g/atan 'a 'b) ['da 'db])
+                   (s/sum 2)
+                   (g/simplify)
+                   (v/freeze)))
+            "power series expansion of g/atan around 'a and 'b, evaluated
+            at (the vector value) ['da 'db]. Shows that function-> can handle
+            multiple arguments without a structural wrapping.")
 
         (letfn [(check [f n]
                   (is (= (take n (g/simplify

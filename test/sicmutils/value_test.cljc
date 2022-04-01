@@ -40,8 +40,8 @@
     (is (= [(u/long 0) (u/int 0) 0]
            (v/zero-like [(u/long 1) (u/int 2) 3]))))
 
-  (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-               (v/one-like [1 2 3])))
+  (is (= 1 (v/one-like [1 2 3]))
+      "1 is the multiplicative identity for vector spaces.")
 
   (testing "exact?"
     (is (v/exact? [1 2 3 4]))

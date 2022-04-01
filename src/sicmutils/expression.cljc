@@ -112,8 +112,8 @@
         (-write writer (str expression)))]))
 
 #?(:clj
-   (defmethod print-method Literal [^Literal s ^java.io.Writer w]
-     (.write w (.toString s))))
+   (defmethod print-method Literal [^Literal s w]
+     (print-method (.-expression s) w)))
 
 (defn make-literal
   "Constructs a [[Literal]] instance with the supplied type and an empty metadata

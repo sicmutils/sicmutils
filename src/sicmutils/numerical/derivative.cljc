@@ -19,6 +19,7 @@
             [sicmutils.expression.render :refer [->infix]]
             [sicmutils.generic :as g]
             [sicmutils.polynomial.richardson :as r]
+            [sicmutils.series :as series]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -58,8 +59,8 @@
 ;; Here's the taylor series expansions of $f(x + h)$:
 
 (def ^:private fx+h
-  (->> (d/taylor-series func 'x 'h)
-       (transduce (take 5) g/+)))
+  (-> ((d/taylor-series func 'x) 'h)
+      (series/sum 4)))
 
 ;; Use `show` to print out its infix representation:
 
@@ -101,9 +102,8 @@
 ;; We could also expand $f(x - h)$:
 
 (def ^:private fx-h
-
-  (->> (d/taylor-series func 'x (g/negate 'h))
-       (transduce (take 5) g/+)))
+  (-> ((d/taylor-series func 'x) (g/negate 'h))
+      (series/sum 4)))
 
 (comment
   (show fx-h))
