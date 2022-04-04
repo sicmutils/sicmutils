@@ -2,6 +2,15 @@
 
 ## unreleased
 
+- #515:
+
+ - tidies up the `square` and `cube` speedups thanks to a tip from GJS
+
+ - Converts more `(mul x x)` to `square` in the derivatives of the
+   `sicmutils.generic` namespace.
+
+ - fixes a bug in the `numeric-zero?` check of exponent's derivative.
+
 - #514:
 
   - Modifies `sicmutils.calculus.derivative/taylor-series` to return a proper
