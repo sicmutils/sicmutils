@@ -170,14 +170,14 @@
   ([x y & more]
    (reduce * (* x y) more)))
 
-(declare div)
+(declare div square)
 
 (defgeneric invert 1
   "Returns the multiplicative inverse of `a`.
 
   Equivalent to `(/ 1 a)`."
   {:name '/
-   :dfdx (fn [x] (div -1 (mul x x)))})
+   :dfdx (fn [x] (div -1 (square x)))})
 
 (def ^{:dynamic true
        :no-doc true}
@@ -197,7 +197,7 @@
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
    :dfdy (fn [x y] (div (negate x)
-                        (mul y y)))})
+                       (square y)))})
 
 (defmethod div :default [a b]
   (if *in-default-invert*
@@ -284,7 +284,7 @@
   {:dfdx (fn [x y]
            (mul y (expt x (sub y 1))))
    :dfdy (fn [x y]
-           (if (and (v/number? x) (v/zero? y))
+           (if (and (v/number? x) (v/zero? x))
              (if (v/number? y)
                (if (not (negative? y))
                  0
@@ -333,10 +333,12 @@
     (default-expt s e)
     (exp (mul e (log s)))))
 
-(defgeneric square 1)
+(defgeneric square 1
+  {:dfdx (fn [x] (mul 2 x))})
 (defmethod square :default [x] (expt x 2))
 
-(defgeneric cube 1)
+(defgeneric cube 1
+  {:dfdx (fn [x] (mul 3 (square x)))})
 (defmethod cube :default [x] (expt x 3))
 
 (defgeneric sqrt 1
