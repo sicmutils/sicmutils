@@ -13,54 +13,52 @@
 
 ;;; Homoclinic tangles
 
-(comment
-  (define ((unstable-manifold T xe ye dx dy A eps) param)
-    (let ((n (floor->exact (/ (log (/ param eps)) (log A)))))
+(defn unstable-manifold [T xe ye dx dy A eps]
+  (fn [param]
+    (let [n (floor->exact (/ (g/log (/ param eps)) (log A)))]
       ((iterated-map T n) (+ xe (* dx (/ param (expt A n))))
        (+ ye (* dy (/ param (expt A n))))
        cons
-       (lambda ()
-               (error "Failed"))))))
+       (fn [] (throw (ex-info "Failed" {})))))))
 
-(comment
-  (define (fixed-point-eigen T xe ye eps cont)
-    (let ((M00 ((richardson-derivative
-                 (lambda (dx)
-                         (T (+ xe dx) ye
-                            (lambda (x y)
-                                    ((principal-value pi) (- x xe)))
-                            'failure))
-                 eps)
-                0.0))
-          (M01 ((richardson-derivative
-                 (lambda (dx)
-                         (T xe (+ ye dx)
-                            (lambda (x y)
-                                    ((principal-value pi) (- x xe)))
-                            'failure))
-                 eps)
-                0.0))
-          (M10 ((richardson-derivative
-                 (lambda (dx)
-                         (T (+ xe dx) ye
-                            (lambda (x y) y)
-                            'failure))
-                 eps)
-                0.0))
-          (M11 ((richardson-derivative
-                 (lambda (dx)
-                         (T xe (+ ye dx)
-                            (lambda (x y) y)
-                            'failure))
-                 eps)
-                0.0)))
-      (let ((trace (+ M00 M11))
-            (determinant (- (* M00 M11) (* M01 M10))))
-        (quadratic 1. (- trace) determinant
-                   (lambda (root1 root2)
-                           (cont root1 M01 (- root1 M00)
-                                 root2 M01 (- root2 M00))))))))
-;; 
+(defn fixed-point-eigen [T xe ye eps cont]
+  (let [M00 ((richardson-derivative
+              (fn [dx]
+                (T (+ xe dx) ye
+                   (fn [x y]
+                     ((principal-value pi) (- x xe)))
+                   'failure))
+              eps)
+             0.0)
+        M01 ((richardson-derivative
+              (fn [dx]
+                (T xe (+ ye dx)
+                   (fn [x y]
+                     ((principal-value pi) (- x xe)))
+                   'failure))
+              eps)
+             0.0)
+        M10 ((richardson-derivative
+              (fn [dx]
+                (T (+ xe dx) ye
+                   (fn [_ y] y)
+                   'failure))
+              eps)
+             0.0)
+        M11 ((richardson-derivative
+              (fn [dx]
+                (T xe (+ ye dx)
+                   (fn [_ y] y)
+                   'failure))
+              eps)
+             0.0)
+        trace (+ M00 M11)
+        determinant (- (* M00 M11) (* M01 M10))]
+    (quadratic 1.0 (- trace) determinant
+               (fn [root1 root2]
+                 (cont root1 M01 (- root1 M00)
+                       root2 M01 (- root2 M00))))))
+;;
 ;; #| in open.scm
 
 ;; (define (plot-parametric-fill win f a b near?)
@@ -74,7 +72,7 @@
 
 ;; (define (cylinder-near? eps)
 ;;   (let ((eps2 (square eps)))
-;;     (lambda (x y)
+;;     (fn (x y)
 ;;             (< (+ (square ((principal-value pi)
 ;;                            (- (car x) (car y))))
 ;;                   (square (- (cdr x) (cdr y))))
@@ -84,11 +82,11 @@
 ;;; Poincare-Birkhoff
 
 (comment
-  (define (radially-mapping-points map Jmin Jmax phi eps)
+  (defn radially-mapping-points [map Jmin Jmax phi eps]
     (bisect
-     (lambda (J)
-             ((principal-value pi)
-              (- phi (map phi J (lambda (phip Jp) phip) list))))
+     (fn [J]
+       ((principal-value pi)
+        (- phi (map phi J (fn (phip Jp) phip) list))))
      Jmin Jmax eps)))
 
 ;;; See indexed/driven-pend-evolution.scm
@@ -97,8 +95,8 @@
 ;;; Invariant Curves
 
 (comment
-  (define (find-invariant-curve map rn theta0 Jmin Jmax eps)
-    (bisect (lambda (J) (which-way? rn theta0 J map))
+  (defn find-invariant-curve [map rn theta0 Jmin Jmax eps]
+    (bisect (fn [J] (which-way? rn theta0 J map))
             Jmin Jmax eps)))
 
 ;; #|
@@ -115,21 +113,21 @@
 
 ;; (define (circle-map rotation-number)
 ;;   (let ((delta-theta (* :2pi rotation-number)))
-;;     (lambda (theta y result fail)
+;;     (fn (theta y result fail)
 ;;             (result ((principal-value :2pi) (+ theta delta-theta))
 ;;                     y))))
 
 ;; (define (orbit-stream the-map x y)
 ;;   (cons-stream (list x y)
 ;;                (the-map x y
-;;                         (lambda (nx ny)
+;;                         (fn (nx ny)
 ;;                                 (orbit-stream the-map nx ny))
-;;                         (lambda () 'fail))))
+;;                         (fn () 'fail))))
 
 ;; (define (position-stream cut orbit list)
 ;;   (insert! ((principal-value cut) (car (head orbit)))
 ;;            list
-;;            (lambda (nlist position)
+;;            (fn (nlist position)
 ;;                    (cons-stream
 ;;                     position
 ;;                     (position-stream cut (tail orbit) nlist)))))
@@ -167,24 +165,24 @@
 ;; |#
 
 (comment
-  (define (which-way? rotation-number x0 y0 map)
-    (let ((pv (principal-value (+ x0 pi))))
+  (defn which-way? [rotation-number x0 y0 map]
+    (let [pv (principal-value (+ x0 pi))]
       (let lp ((n 0)
                (z x0) (zmin (- x0 two-pi)) (zmax (+ x0 two-pi))
                (x x0) (xmin (- x0 two-pi)) (xmax (+ x0 two-pi)) (y y0))
            (let ((nz (pv (+ z (* two-pi rotation-number)))))
              (map x y
-                  (lambda (nx ny)
-                          (let ((nx (pv nx)))
-                            (cond ((< x0 z zmax)
-                                   (if (< x0 x xmax)
-                                     (lp (+ n 1) nz zmin z nx xmin x ny)
-                                     (if (> x xmax) 1 -1)))
-                                  ((< zmin z x0)
-                                   (if (< xmin x x0)
-                                     (lp (+ n 1) nz z zmax nx x xmax ny)
-                                     (if (< x xmin) -1 1)))
-                                  (else
-                                   (lp (+ n 1) nz zmin zmax nx xmin xmax ny)))))
-                  (lambda ()
-                          (error "Map failed" x y))))))))
+                  (fn (nx ny)
+                    (let ((nx (pv nx)))
+                      (cond ((< x0 z zmax)
+                             (if (< x0 x xmax)
+                               (lp (+ n 1) nz zmin z nx xmin x ny)
+                               (if (> x xmax) 1 -1)))
+                            ((< zmin z x0)
+                             (if (< xmin x x0)
+                               (lp (+ n 1) nz z zmax nx x xmax ny)
+                               (if (< x xmin) -1 1)))
+                            (else
+                             (lp (+ n 1) nz zmin zmax nx xmin xmax ny)))))
+                  (fn []
+                    (throw  (ex-info "Map failed" {:x x :y y})))))))))
