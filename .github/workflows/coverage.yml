@@ -25,15 +25,15 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/deps.edn') }}
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: clj -P -M:test:coverage
+        run: clojure -P -M:test:coverage
 
       - name: generate coverage report
         run: |
-            CLOVERAGE_VERSION=1.2.4 clj -M:test:coverage --codecov || :
+            CLOVERAGE_VERSION=1.2.4 clojure -M:test:coverage --codecov || :
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

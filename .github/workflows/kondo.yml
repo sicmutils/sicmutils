@@ -33,7 +33,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: clj -P -M:test:lint
+        run: clojure -P -M:test:lint
 
       - name: Cache kondo directory
         uses: actions/cache@v2
