@@ -1,4 +1,4 @@
-{:lein true
+{:deps {:aliases [:test :cljs]}
  :builds {:test
           {:target    :node-test
            :output-to "target/main/node-tests.js"

@@ -1,7 +1,6 @@
 {:paths ["src" "resources"]
  :deps
  {org.clojure/clojure {:mvn/version "1.10.1"}
-  org.clojure/clojurescript {:mvn/version "1.10.773"}
   org.clojure/core.match {:mvn/version "1.0.0"}
   org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
   cljsjs/bigfraction {:mvn/version "4.1.1-0"}
@@ -24,6 +23,11 @@
     "(do (require 'sicmutils.env) (in-ns 'sicmutils.env) (str \"Clojure \" (clojure-version)))"
     "-r"]
    :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]}
+
+  :cljs
+  {:extra-deps
+   {org.clojure/clojurescript {:mvn/version "1.11.4"}
+    thheller/shadow-cljs {:mvn/version "2.17.4"}}}
 
   :test
   ;; layer this in to get access to everything in the test directory, plus the
