@@ -25,11 +25,11 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: lein deps
+        run: clj -P -M:test:coverage
 
       - name: generate coverage report
         run: |
-            CLOVERAGE_VERSION=1.2.1 lein cloverage --codecov || :
+            CLOVERAGE_VERSION=1.2.4 clj -M:test:coverage --codecov || :
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

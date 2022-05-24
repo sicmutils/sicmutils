@@ -21,11 +21,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/deps.edn') }}
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: lein deps
+        run: clj -P -M:test:runner
 
       - name: Clojure tests
-        run: lein test :all
+        run: clj -X:test:runner

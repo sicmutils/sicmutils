@@ -5,7 +5,6 @@
 :uri-FDG: http://mitpress.mit.edu/books/functional-differential-geometry
 :uri-SICP: http://mitpress.mit.edu/sicp/
 :uri-GSCM: http://www.cs.rochester.edu/~gildea/guile-scmutils/
-:uri-LEIN: http://leiningen.org
 :uri-REFMAN: https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt
 
 == sicmutils
@@ -75,7 +74,7 @@ documented (yet). Some suggested next steps, for now:
 * We've ported the original {uri-REFMAN}[SCMUtils Reference Manual] over to
   SICMUtils. Visit the link:refman.adoc[SICMUtils Reference Manual] for a
   comprehensive overview of SICMUtils.
-* Clone this repository and run `lein repl` for a batteries included REPL
+* Clone this repository and run `bin/repl` for a batteries included REPL
   environment. All of the examples in the link:refman.adoc[SICMUtils refman]
   will work.
 * Browse the table of contents on the left hand side. Many of the pages are

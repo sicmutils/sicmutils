@@ -1,26 +1,58 @@
-{:aliases
- {:dev
+{:paths ["src" "resources"]
+ :deps
+ {org.clojure/clojure {:mvn/version "1.10.1"}
+  org.clojure/clojurescript {:mvn/version "1.10.773"}
+  org.clojure/core.match {:mvn/version "1.0.0"}
+  org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
+  cljsjs/bigfraction {:mvn/version "4.1.1-0"}
+  cljsjs/complex {:mvn/version "2.0.11-0"}
+  cljsjs/odex {:mvn/version "2.0.4-0"}
+  com.taoensso/timbre {:mvn/version "5.1.2"}
+  dm3/stopwatch {:mvn/version "0.1.1"}
+  hiccup/hiccup {:mvn/version "1.0.5"}
+  org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
+  org.babashka/sci {:mvn/version "0.3.2"}
+  potemkin/potemkin {:mvn/version "0.4.5"}}
+
+ :aliases
+ {;; This entry sets up the REPL environment for local development. Run a full
+  ;; repl with `clj -A:test:dev/repl`.
+  :dev/repl
   {:extra-paths ["dev"]
+   :main-opts
+   ["-e"
+    "(do (require 'sicmutils.env) (in-ns 'sicmutils.env) (str \"Clojure \" (clojure-version)))"
+    "-r"]
+   :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]}
+
+  :test
+  ;; layer this in to get access to everything in the test directory, plus the
+  ;; dependencies needed to run the tests.
+  {:extra-paths ["test"]
    :extra-deps
-   {io.github.nextjournal/clerk
-    {:git/sha "d08c26043efe19a92fe33dd9eb4499e304e4cff7"}}}
+   {io.github.cognitect-labs/test-runner {:git/tag "v0.5.0"
+                                          :git/sha "b3fd0d2"}
+    io.github.nextjournal/clerk
+    {:git/sha "d08c26043efe19a92fe33dd9eb4499e304e4cff7"}
+    org.clojure/test.check {:mvn/version "1.1.0"}
+    com.gfredericks/test.chuck {:mvn/version "0.2.13"}
+    same/ish {:mvn/version "0.1.4"}}}
 
-  :clj-kondo
-  {:replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
-   :main-opts ["-m" "clj-kondo.main"]}}
+  ;; See https://github.com/cognitect-labs/test-runner for invocation
+  ;; instructions.
+  :runner {:main-opts ["-m" "cognitect.test-runner"]
+           :exec-fn cognitect.test-runner.api/test
+           :exec-args ["test"]}
 
- :paths ["src" "resources"]
+  :coverage
+  ;; Invoke with clj -M:test:coverage <args>
+  {:main-opts ["-m" "cloverage.coverage"
+               "-p" "src"
+               "-s" "test"]
+   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}}
 
- :deps {org.clojure/clojure {:mvn/version "1.10.1"},
-        dm3/stopwatch {:mvn/version "0.1.1"},
-        cljsjs/odex {:mvn/version "2.0.4-0"},
-        org.apache.commons/commons-math3 {:mvn/version "3.6.1"},
-        org.clojure/clojurescript {:mvn/version "1.10.773"},
-        potemkin/potemkin {:mvn/version "0.4.5"},
-        org.clojure/math.numeric-tower {:mvn/version "0.0.4"},
-        com.taoensso/timbre {:mvn/version "5.1.2"},
-        hiccup/hiccup {:mvn/version "1.0.5"},
-        org.clojure/core.match {:mvn/version "1.0.0"},
-        cljsjs/complex {:mvn/version "2.0.11-0"},
-        org.babashka/sci {:mvn/version "0.3.2"},
-        cljsjs/bigfraction {:mvn/version "4.1.1-0"}}}
+  :lint
+  ;; Invoke with clj -M:test:lint <kondo-args>
+  {:extra-paths ["test"]
+   :main-opts ["-m" "clj-kondo.main"]
+   :replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}}}}
