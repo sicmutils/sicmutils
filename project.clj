@@ -1,5 +1,3 @@
-#_"SPDX-License-Identifier: GPL-3.0"
-
 (defproject sicmutils "0.22.0"
   :description "A port of the scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
@@ -20,29 +18,6 @@
                  [cljsjs/odex "2.0.4-0"]
                  [hiccup "1.0.5"]
                  [potemkin "0.4.5"]]
-  ;; :global-vars {*warn-on-reflection* true}
-  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
-  :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
-                 :welcome (set! nrepl.middleware.print/*print-fn*
-                                sicmutils.expression/expression->stream)
-                 :init-ns sicmutils.env}
-  :target-path "target/%s"
-  :test-selectors {:short (complement :long)
-                   :benchmark :benchmark}
-  :profiles {:dev
-             {:plugins [[lein-cloverage "1.2.1"]]
-              :source-paths ["dev"]
-              :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]
-              :repl-options {:nrepl-middleware
-                             [cider.piggieback/wrap-cljs-repl]}
-              :dependencies [[org.clojure/test.check "1.1.0"]
-                             [cider/piggieback "0.5.3"]
-                             [com.taoensso/tufte "2.2.0"]
-                             [com.gfredericks/test.chuck "0.2.13"]
-                             [io.github.nextjournal/clerk "0.6.387"]
-                             [nrepl "0.9.0"]
-                             [same/ish "0.1.4"]
-                             [thheller/shadow-cljs "2.17.4"]]}}
   :deploy-repositories [["clojars"
                          {:url "https://repo.clojars.org"
                           :username :env/clojars_username
