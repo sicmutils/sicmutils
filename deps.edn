@@ -7,10 +7,8 @@
   cljsjs/bigfraction {:mvn/version "4.1.1-0"}
   cljsjs/complex {:mvn/version "2.0.11-0"}
   cljsjs/odex {:mvn/version "2.0.4-0"}
-  com.taoensso/timbre {:mvn/version "5.1.2"
-                       :exclusions [org.clojure/clojurescript]}
-  dm3/stopwatch {:mvn/version "0.1.1"
-                 :exclusions [org.clojure/clojurescript]}
+  com.taoensso/timbre {:mvn/version "5.1.2"}
+  dm3/stopwatch {:mvn/version "0.1.1" :exclusions [org.clojure/clojurescript]}
   hiccup/hiccup {:mvn/version "1.0.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
   org.babashka/sci {:mvn/version "0.3.2"}
