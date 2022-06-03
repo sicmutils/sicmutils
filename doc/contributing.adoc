@@ -6,9 +6,10 @@ Here's a short overview. More info coming soon!
 
 === Developing in SICMUtils
 
-To run all tests in Clojure, you'll need the https://leiningen.org[Leiningen]
-build tool. The Clojurescript tests require https://nodejs.org/en/[Node.js]. If
-you're on a Mac, install https://brew.sh[Homebrew]:
+To run all tests in Clojure, you'll need to install the
+https://clojure.org/guides/install_clojure[Clojure CLI tool]. The Clojurescript
+tests require https://nodejs.org/en/[Node.js]. If you're on a Mac, install
+https://brew.sh[Homebrew]:
 
 [source, bash]
 ----
@@ -19,10 +20,23 @@ Then run
 
 [source, bash]
 ----
-brew install leiningen node
+brew install node clojure/tools/clojure
 ----
 
 To get both dependencies.
+
+deps.edn projects are configured by layering the various "aliases" defined in
+`deps.edn`. For example:
+
+- `clj` (or `clojure`) called by itself will activate a REPL with the project's
+core dependencies available.
+- `clj -A:test` will layer in the options specified in the `:test` entry under
+  `:aliases` in `deps.edn`; in this case, the `test` directory and the
+  dependencies required to run tests. `clj -X:test:runner` will additionally
+  layer in the `:runner` entry AND execute the `:exec-fn` specified.
+
+See the https://clojure.org/guides/deps_and_cli[Clojure Deps and CLI Guide] for
+more details.
 
 === Clojure Tests
 
@@ -30,19 +44,13 @@ To run the full Clojure test suite:
 
 [source, bash]
 ----
-lein test
+clojure -P -M:test:runner
 ----
 
 === Clojurescript Tests
 
-To run the full Clojurescript test suite:
-
-[source, bash]
-----
-lein test-cljs
-----
-
-We check for advanced compilation warnings using [shadow-cljs].
+We run the Clojurescript test suite and check for advanced compilation warnings
+using [shadow-cljs].
 
 In the ``sicmutils`` directory, run
 
@@ -51,9 +59,50 @@ In the ``sicmutils`` directory, run
 npm install
 ----
 
-Then, to compile cljs and see any warnings:
+to run the full Clojurescript test suite, call the following command (and make
+sure to note any warnings):
+
+[source, bash]
+----
+npm run-script test
+----
+
+The following command will start a process that recompiles the project when any
+file changes:
 
 [source, bash]
 ----
 shadow-cljs watch test
+----
+
+=== Linting with clj-kondo
+
+We use https://github.com/clj-kondo/clj-kondo[clj-kondo] to lint the project. To
+run the linter from the JVM, run:
+
+[source, bash]
+----
+clojure -M:test:lint --lint src:test
+----
+
+Or, install the binary by following
+https://github.com/clj-kondo/clj-kondo/blob/master/doc/install.md[this
+instructions] and lint with the following command:
+
+[source, bash]
+----
+clj-kondo --lint src:test
+----
+
+=== Code Coverage
+
+https://github.com/cloverage/cloverage[Cloverage] generates coverage reports for
+every pull request and the main branch in the repository. Coverage reports live
+at https://codecov.io/github/sicmutils/sicmutils[codecov.io].
+
+To invoke cloverage, call
+
+[source, bash]
+----
+clojure -M:test:coverage <args-to-cloverage>
 ----

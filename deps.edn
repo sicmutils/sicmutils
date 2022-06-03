@@ -48,11 +48,18 @@
     com.gfredericks/test.chuck {:mvn/version "0.2.13"}
     same/ish {:mvn/version "0.1.4"}}}
 
+  :build
+  ;; build.clj tool.
+  {:deps {io.github.clojure/tools.build {:git/tag "v0.8.2" :git/sha "ba1a2bf"}
+          slipset/deps-deploy {:mvn/version "0.2.0"}}
+   :ns-default build}
+
   ;; See https://github.com/cognitect-labs/test-runner for invocation
   ;; instructions.
-  :runner {:main-opts ["-m" "cognitect.test-runner"]
-           :exec-fn cognitect.test-runner.api/test
-           :exec-args ["test"]}
+  :runner
+  {:main-opts ["-m" "cognitect.test-runner"]
+   :exec-fn cognitect.test-runner.api/test
+   :exec-args ["test"]}
 
   :coverage
   ;; Invoke with clj -M:test:coverage <args>

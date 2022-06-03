@@ -29,10 +29,10 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies
-        run: lein deps
+        run: clojure -P -M:build
 
       - name: Release
-        run: lein deploy clojars
+        run: clojure -T:build publish
         env:
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
           CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
