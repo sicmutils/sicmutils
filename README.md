@@ -231,7 +231,6 @@ open-source release.
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
-[LEIN]: http://leiningen.org
 [REFMAN]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/reference-manual
 [PHYSICS_IN_CLOJURE]: https://www.youtube.com/watch?v=7PoajCqNKpg
 

@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
       - name: Setup Node.js for cljs
         uses: actions/setup-node@v2
         with:
@@ -26,7 +30,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/deps.edn') }}
           restore-keys: ${{ runner.os }}-m2
 
       - name: Install dependencies

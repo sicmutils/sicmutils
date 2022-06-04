@@ -76,7 +76,7 @@
 
 (def ^:private ratio-pattern #"([-+]?[0-9]+)/([0-9]+)")
 
-(defn ^boolean matches? [pattern s]
+(defn matches? [pattern s]
   (let [[match] (re-find pattern s)]
     (identical? match s)))
 

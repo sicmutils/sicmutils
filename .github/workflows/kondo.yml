@@ -12,6 +12,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
@@ -25,8 +29,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/deps.edn') }}
           restore-keys: ${{ runner.os }}-m2
+
+      - name: Install dependencies
+        run: clojure -P -M:test:lint
 
       - name: Cache kondo directory
         uses: actions/cache@v2
