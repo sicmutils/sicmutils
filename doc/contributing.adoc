@@ -106,3 +106,40 @@ To invoke cloverage, call
 ----
 clojure -M:test:coverage <args-to-cloverage>
 ----
+
+=== Jars & Releases
+
+We use Clojure's https://clojure.org/guides/tools_build[tools.build] system to
+produce and publish jars. This is configured in ``build.clj``.
+
+The library's current version is set by ``resources/SICMUTILS_VERSION``.
+
+The following command will produce a jar of the form
+``target/sicmutils-<version>.jar``:
+
+[source, bash]
+----
+clojure -T:build jar
+----
+
+Optionally, supply a suffix like ``:version-suffix "SOMETHING"`` to append
+``-SOMETHING`` to the version.
+
+To generate the jar and install it to the local Maven cache, run
+
+[source, bash]
+----
+clojure -T:build install
+----
+
+Deploying to Clojars requires the ``CLOJARS_USERNAME`` and ``CLOJARS_PASSWORD``
+variables to be set. Once those are configured, run
+
+[source, bash]
+----
+clojure -T:build publish
+----
+
+To push the latest code to Clojars. Only one push per release is allowed, while
+snapshots can be pushed multiple times (overwriting the previous SNAPSHOT
+build).
