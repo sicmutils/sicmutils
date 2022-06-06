@@ -5,14 +5,9 @@
   matcher combinators declared in [[pattern.match]], along with a series of
   combinators for building advanced term-rewriting systems."
   (:refer-clojure :exclude [replace while])
-  (:require #?(:clj [potemkin :refer [import-def]])
-            [pattern.consequence :as c]
+  (:require [pattern.consequence :as c]
             [pattern.match :as m]
-            [pattern.syntax :as ps]
-            [sicmutils.util :as u]
-            #?(:cljs
-               [sicmutils.util.def
-                :refer-macros [import-def]])))
+            [pattern.syntax :as ps]))
 
 ;; ## Rules
 ;;
@@ -46,9 +41,9 @@
 (def ^{:doc "Predicate that fails for all inputs."}
   !=> (constantly false))
 
-(import-def c/succeed)
-(import-def m/failure)
-(import-def m/failed?)
+(def succeed c/succeed)
+(def failure m/failure)
+(def failed? m/failed?)
 ;;
 ;; [[pattern*]] is effectively an alias for [[match/matcher]]; the macro
 ;; form, [[pattern]], is able to take a pattern with un-quoted forms like `?x`.
@@ -437,7 +432,10 @@
               processed)))
 
         (map? expr)
-        (let [processed (u/map-vals the-rule expr)]
+        (let [processed (reduce-kv (fn [acc k v]
+                                     (assoc acc k (the-rule v)))
+                                   (empty expr)
+                                   expr)]
           (if (= expr processed)
             expr
             processed))

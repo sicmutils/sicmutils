@@ -2,8 +2,7 @@
 
 (ns pattern.syntax
   "The syntax namespace defines the default syntax for patterns corresponding to
-  the matcher combinators defined in [[pattern.match]]."
-  (:require [sicmutils.util :as u]))
+  the matcher combinators defined in [[pattern.match]].")
 
 ;; ### Notes
 ;;
@@ -45,6 +44,12 @@
   [pattern]
   (= pattern '_))
 
+(defn- re-matches?
+  "Returns true if s matches the regex pattern re, false otherwise."
+  [re s]
+  #?(:clj  (.matches (re-matcher re s))
+     :cljs (.test re s)))
+
 (defn binding?
   "Returns true if `pattern` is a binding variable reference, false otherwise.
 
@@ -54,7 +59,7 @@
   - A sequence of the form `(? <binding> ...)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"^\?[^\?].*" (name pattern)))
+           (re-matches? #"^\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) '?))))
@@ -68,7 +73,7 @@
   - A sequence of the form `(?? <binding>)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"^\?\?[^\?].*" (name pattern)))
+           (re-matches? #"^\?\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) '??))))
@@ -83,7 +88,7 @@
   - A sequence of the form `(:$$ <binding>)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"^\$\$[^\$].*" (name pattern)))
+           (re-matches? #"^\$\$[^\$].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) '$$))))
@@ -232,6 +237,9 @@
             (compile-sequential pattern))
 
           (map? pattern)
-          (u/map-vals compile-pattern pattern)
+          (reduce-kv (fn [acc k v]
+                       (assoc acc k (compile-pattern v)))
+                     (empty pattern)
+                     pattern)
 
           :else pattern)))

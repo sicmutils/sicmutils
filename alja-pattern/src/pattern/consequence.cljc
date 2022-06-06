@@ -6,8 +6,7 @@
   transformation (or a failure!).
 
   See [[pattern.rule]] for a detailed treatment."
-  (:require [pattern.syntax :as ps]
-            [sicmutils.util :as u]))
+  (:require [pattern.syntax :as ps]))
 
 ;; ## Consequence Functions
 ;;
@@ -118,7 +117,10 @@
                   (into [] (ps/unquoted-form form))
 
                   (map? form)
-                  (u/map-vals compile form)
+                  (reduce-kv (fn [acc k v]
+                               (assoc acc k (compile v)))
+                             (empty form)
+                             form)
 
                   (vector? form)
                   `(vec ~(compile-sequential form))

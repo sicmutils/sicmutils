@@ -1,7 +1,8 @@
 {:paths ["src" "resources"]
  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
  :deps
- {org.clojure/clojure {:mvn/version "1.10.1"}
+ {org.mentat/alja-pattern {:local/root "./alja-pattern"}
+  org.clojure/clojure {:mvn/version "1.10.1"}
   org.clojure/core.match {:mvn/version "1.0.0"}
   org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
   cljsjs/bigfraction {:mvn/version "4.1.1-0"}
@@ -15,8 +16,9 @@
   potemkin/potemkin {:mvn/version "0.4.5"}}
 
  :aliases
- {:dev {:extra-paths ["dev"]
-        :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]}
+ {:dev
+  {:extra-paths ["dev"]
+   :jvm-opts ["-Xms6g" "-Xmx8g" "-server"]}
 
   ;; This entry sets up the REPL environment for local development. Run a full
   ;; repl with `clj -A:test:dev:repl`.
