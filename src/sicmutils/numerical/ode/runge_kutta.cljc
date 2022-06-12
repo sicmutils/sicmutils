@@ -1,17 +1,17 @@
 (ns sicmutils.numerical.ode.runge-kutta
-  (:require [sicmutils.generic :as g]
-            [sicmutils.value :as v]
+  (:require [clojure.core.reducers :as r]
+            [sicmutils.generic :as g]
             [sicmutils.structure :as s]
-            [clojure.core.reducers :as r]))
+            [sicmutils.value :as v]))
 
 (comment
-  ;; META REVIEWER NOTE: 
-  ;; Not sure how much of this we want in this file. Initially 
+  ;; META REVIEWER NOTE:
+  ;; Not sure how much of this we want in this file. Initially
   ;; I thought we could build up a sequence of RK functions leading
-  ;; toward the last one, but I decided not to do that (and also 
+  ;; toward the last one, but I decided not to do that (and also
   ;; I have resisted the temptation to "make it switchable" whether
-  ;; we have adaptive stepsize and dense output: I consider these 
-  ;; necessary.)  So you may find this "big comment" unhelpful: LMK  
+  ;; we have adaptive stepsize and dense output: I consider these
+  ;; necessary.)  So you may find this "big comment" unhelpful: LMK
 
 ;; The following implementation is guided by
 ;; "Solving Ordinary Differential Equations I:
@@ -112,7 +112,7 @@
 ;; -----+----------------
 ;;      | 1/6 2/3  0  1/6
 
-  (def runge-3
+  #_(def runge-3
     {:tableau [[0   1/6 []]
                [1/2 2/3 [1/2]]
                [1   0   [0 1]]
@@ -126,28 +126,28 @@
 ;; -----+-------------
 ;;      | 1/4  0  3/4
 
-  (def ^:private heun-3
+  #_(def ^:private heun-3
     {:tableau [[0   1/4  []]
                [1/3 0    [1/3]]
                [2/3 3/4  [0 2/3]]]})
 
-  (def ^:private the-runge-kutta
+  #_(def ^:private the-runge-kutta
     {:tableau [[0   1/6 []]
                [1/2 2/6 [1/2]]
                [1/2 2/6 [0 1/2]]
                [1   1/6 [0 0 1]]]})
 
-  (def ^:private three-eighths-rule
+  #_(def ^:private three-eighths-rule
     {:tableau [[0   1/8 []]
                [1/3 3/8 [1/3]]
                [2/3 3/8 [-1/3 1]]
                [1   1/8 [1 -1 1]]]})
 
-  ;; At this point we can realize the Runge-Kutta procedure as a 
+  ;; At this point we can realize the Runge-Kutta procedure as a
   ;; canonical closure reducing operator, which consumes a row
   ;; of the tableau to update $y_s$ and append a row to the $b$ array.
 
-  (defn- rk-step
+  #_(defn- rk-step
     [f x0 y0 h]
     (let [z (v/zero-like y0)]
       (fn
@@ -155,26 +155,25 @@
         ([[y k] [c b a]]
          (let [k' (f (+ x0 (* c h)) (g/+ y0 (g/* h (reduce g/+ z (map g/* a k)))))]
            [(g/+ y (g/* (* h b) k'))
-            (conj k k')])))))
-  )
+            (conj k k')]))))))
 
-;; For the ODE solver for this package, however, we will want 
-;; adaptive stepsize and dense output capabiity, so we will be 
+;; For the ODE solver for this package, however, we will want
+;; adaptive stepsize and dense output capabiity, so we will be
 ;; extending the example tableaux above with these capabilities.
 ;;
 ;; A common method of step size selection via error estimation is
-;; to form both an order $p$ and an order $p-1$ estimate of $y$; 
-;; if there is very little diffference between these two, then 
+;; to form both an order $p$ and an order $p-1$ estimate of $y$;
+;; if there is very little diffference between these two, then
 ;; the step size is small enough (the success of a weaker
-;; approximation suggests that the stronger approximation is 
+;; approximation suggests that the stronger approximation is
 ;; not only good enough but is not near the error margin).
 ;;
-;; In Runge Kutta methods, there's a convenient way to get the 
-;; lower order estimate almost for free: supply another row of 
+;; In Runge Kutta methods, there's a convenient way to get the
+;; lower order estimate almost for free: supply another row of
 ;; $b$ values, which we call $\hat{b}$, which supply a second
-;; estimate of y generated from values already present in the 
+;; estimate of y generated from values already present in the
 ;; $k$ tableau. For tableaux which possess the $\hat{b}$ values,
-;; we can enrich the reducing operator to compute the estimate 
+;; we can enrich the reducing operator to compute the estimate
 ;; $\hat{y}$ at the same time as $y$:
 
 (defn- rk-step-with-error-control
@@ -190,18 +189,18 @@
 
 (defn- scaled-norm
   "HNW define this norm in equation 4.11 (p.168), but analysis of their
-   Fortran implementation shows that the factor of $1/n$ in that equation 
+   Fortran implementation shows that the factor of $1/n$ in that equation
    is not used except when measuring the distance between $y$ and $\\hat{y}$.
-   We use the term `scaled-norm` for the step size computation cases, and 
+   We use the term `scaled-norm` for the step size computation cases, and
    `scaled-error` for the step rejection application, which is consistent
    with the Fortran and allows it to serve as a reference implementation."
   [y sc]
   (Math/sqrt (transduce (map #(Math/pow % 2)) + (s/elementwise / y sc))))
 
 (defn- initial-step-size
-  "Gather a quick and dirty estimate of the magnitude of first and 
-   second derivatives of the function being integrated and use this 
-   to solve for a step size consistent with the tolerance desired and 
+  "Gather a quick and dirty estimate of the magnitude of first and
+   second derivatives of the function being integrated and use this
+   to solve for a step size consistent with the tolerance desired and
    the order of the tableau in use. The calculation here is done before
    we have taken any official Runge-Kutta steps, so we have less information
    than we will have when we consider adapting the step size after each
@@ -224,39 +223,9 @@
              (g/expt (g// 0.01 maxd) (/ (inc order))))]
     (min (* 100 h0) h1)))
 
-(defn- runge-kutta-1
-  [f x0 x1 y0 n tableau]
-  (let [h (/ (- x1 x0) n)
-        stepper (partial rk-step-with-error-control f)]
-    (loop [i 0 x x0 y y0]
-      (if (= i n) y
-          (recur (inc i)
-                 (+ x h)
-                 (first
-                  (r/reduce
-                   (stepper x y h)
-                   (:tableau tableau))))))))
-
-(defn- runge-kutta-2
-  [f x0 x1 y0 tableau]
-  (let [atol (vec (repeat (count y0) 1e-4))
-        rtol atol
-        h (initial-step-size f y0 x0 atol rtol (:order tableau))
-        _ (println 'hInit h)
-        stepper (partial rk-step-with-error-control f)]
-    (loop [x x0 y y0 out []]
-      (if (>= x x1) out
-          (let [y1 (first
-                    (r/reduce
-                     (stepper x y h)
-                     (:tableau tableau)))]
-            (recur (+ x h)
-                   y1
-                   (conj out [(+ x h) y1])))))))
-
 (defn- scaled-error
   "See scaled norm: this is equation 4.11 of HNW as written, used to measure
-   the scaled difference between the two estimates of $y$ generated by 
+   the scaled difference between the two estimates of $y$ generated by
    the tableau."
   [y sc]
   (g/sqrt (/ (transduce (map #(Math/pow % 2)) + (s/elementwise / y sc))
@@ -271,9 +240,9 @@
    pair [accept, h-new] where accept is true if the current step is acceptable,
    and h-new represents the new estimate of the ideal step size."
   [y0 y1 yhat h atol rtol order]
-  (let [fac-min 1/3
+  (let [fac-min (/ 3)
         fac-max 6
-        fac-damp 4/5
+        fac-damp (/ 4 5)
         sc (g/+ atol (s/elementwise g/*
                                     (s/elementwise #(max (Math/abs %1) (Math/abs %2)) y0 y1) rtol))
         err (scaled-error (g/- y1 yhat) sc)
@@ -353,16 +322,28 @@
                         (step (:x1 solution) (:y1 solution) h')))))]
     (step x0 y0 h0)))
 
+;; Note: Clojurescript doesn't support rational literals without a reader
+;; macro prefix. Since there are a great many rational numbers in this tableau,
+;; it would be noisy to annotate each of them with #sicm/ratio. Instead we
+;; write the rationals as (/ a b), since we might as well convert them to
+;; floating point now rather than every time we use the tableau.
+
 (def ^:private dormand-prince-5-tableau
   {:order [5 4]
-   :tableau [[0 35/384 5179/57600 []]
-             [1/5 0 0 [1/5]]
-             [3/10 500/1113 7571/16695 [3/40 9/40]]
-             [4/5 125/192 393/640 [44/45 -56/15 32/9]]
-             [8/9 -2187/6784 -92097/339200 [19372/6561 -25360/2187 64448/6561 -212/729]]
-             [1 11/84 187/2100 [9017/3168 -355/33 46732/5247 49/176 -5103/18656]]
-             [1 0 1/40 [35/384 0 500/1113 125/192 -2187/6784 11/84]]]
-   :dense [-12715105075/11282082432 0 87487479700/32700410799 -10690763975/1880347072 701980252875/199316789632 -1453857185/822651844 69997945/29380423]})
+   :tableau [[0 (/ 35 384) (/ 5179 57600) []]
+             [(/ 1 5) 0 0 [(/ 1 5)]]
+             [(/ 3 10) (/ 500 1113) (/ 7571 16695) [(/ 3 40) (/ 9 40)]]
+             [(/ 4 5) (/ 125 192) (/ 393 640) [(/ 44 45) (/ -56 15) (/ 32 9)]]
+             [(/ 8 9) (/ -2187 6784) (/ -92097 339200) [(/ 19372 6561) (/ -25360 2187) (/ 64448 6561) (/ -212 729)]]
+             [1 (/ 11 84) (/ 187 2100) [(/ 9017 3168) (/ -355 33) (/ 46732 5247) (/ 49 176) (/ -5103 18656)]]
+             [1 0 (/ 1 40) [(/ 35 384) 0 (/ 500 1113) (/ 125 192) (/ -2187 6784) (/ 11 84)]]]
+   :dense [(/ -12715105075 11282082432)
+           0
+           (/ 87487479700 32700410799)
+           (/ -10690763975 1880347072)
+           (/ 701980252875 199316789632)
+           (/ -1453857185 822651844)
+           (/ 69997945 29380423)]})
 
 (def dormand-prince-5 (partial runge-kutta dormand-prince-5-tableau))
 
@@ -379,7 +360,6 @@
         (apply-solution-stream solutions (rest xs)))))))
 
 (comment
-  (require '[sicmutils.structure :as s])
   (defn brusselator [_x [y1 y2]] [(+ 1 (* y1 y1 y2) (* -4 y1)) (- (* 3 y1) (* y1 y1 y2))])
   (defn sincos [_x [y1 y2]] [y2 (- y1)])
   (defn expo [_x [y]] [y])
