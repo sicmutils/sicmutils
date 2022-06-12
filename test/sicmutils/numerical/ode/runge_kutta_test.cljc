@@ -34,9 +34,9 @@
             arenstorf (fn [_ [y1 y1p y2 y2p]]
                         (let [y2sq (Math/pow y2 2)
                               D1 (Math/pow
-                                  (+ (Math/pow (+ y1 mu) 2) y2sq) 3/2)
+                                  (+ (Math/pow (+ y1 mu) 2) y2sq) (/ 3 2))
                               D2 (Math/pow
-                                  (+ (Math/pow (- y1 nu) 2) y2sq) 3/2)]
+                                  (+ (Math/pow (- y1 nu) 2) y2sq) (/ 3 2))]
                           [y1p
                            (+ y1 (* 2 y2p) (* -1 nu (/ (+ y1 mu) D1)) (* -1 mu (/ (- y1 nu) D2)))
                            y2p
