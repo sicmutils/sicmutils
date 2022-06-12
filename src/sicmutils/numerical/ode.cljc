@@ -4,10 +4,10 @@
   "ODE solvers for working with initial value problems."
   (:require [sicmutils.expression.compile :as c]
             #?(:cljs [sicmutils.util :as u])
-            [sicmutils.value :as v]
             [sicmutils.structure :as struct]
-            #?(:clj [sicmutils.numerical.ode.runge-kutta :as rk])
             [sicmutils.util.stopwatch :as us]
+            [sicmutils.value :as v]
+            #?(:clj [sicmutils.numerical.ode.runge-kutta :as rk])
             [taoensso.timbre :as log]
             #?(:cljs ["odex" :as o])))
 
