@@ -962,7 +962,7 @@ structures of the same size, false otherwise."
 
 ;; ## Generic Method Installation
 
-(defn- elementwise
+(defn elementwise
   "Given a binary operator and two structures of the same size, return
   a structure with the same orientation as the first formed from the
   elementwise binary operation between corresponding elements of the
