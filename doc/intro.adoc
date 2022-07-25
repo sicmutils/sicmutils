@@ -81,7 +81,7 @@ documented (yet). Some suggested next steps, for now:
   populated with good information, and we're working hard to flesh this out
   further.
 * For a deep dive into classical mechanics using this library, visit the HTML
-  version of https://tgvaughan.github.io[Structure and Interpretation of
+  version of https://tgvaughan.github.io/sicm[Structure and Interpretation of
   Classical Mechanics]. Follow along with the solutions at
   link:https://github.com/sritchie/sicm[@sritchie's SICM solutions repository.]
 
