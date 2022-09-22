@@ -207,7 +207,7 @@ the Github page. Citation information is generated from
 Here is the generated BibTeX entry:
 
 ```
-@software{Ritchie_SICMUtils_Functional_Computer_2016,
+@software{Ritchie_SICMUtils_Functional_Computer_2016},
 author = {Ritchie, Sam and Smith, Colin},
 license = {GPL-3.0},
 month = {4},
@@ -215,7 +215,6 @@ title = {{SICMUtils: Functional Computer Algebra in Clojure}},
 url = {https://github.com/sicmutils/sicmutils},
 version = {0.22.0},
 year = {2016}
-}
 ```
 
 In the above BibTeX entry, the version number is intended to be that from
