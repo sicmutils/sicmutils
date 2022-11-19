@@ -489,6 +489,10 @@
       (fn [[x]]
         (str "\\lnot" (parenthesize x)))
 
+      'exp
+      (fn [[e]]
+        (str "\\exp" (parenthesize e)))
+
       'expt (fn [[x e]]
               (str (maybe-brace x) "^" (maybe-brace e)))
 

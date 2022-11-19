@@ -18,6 +18,102 @@
             [sicmutils.value :as v]
             [taoensso.timbre :as log]))
 
+;; GOAL:
+;;
+;; Try to get function compilation really freaking fast.
+;;
+;; go through and figure out in which cases we need to SUPPLY an array and in
+;; which cases we need to return an array. The derivative function here
+;; definitely needed to return an array!! So we are going to need both.
+
+(defn ->vec [^doubles arr]
+  (let [t        (aget arr 0)
+        theta    (aget arr 1)
+        thetadot (aget arr 2)]
+    [1.0 thetadot (* -9.8 (Math/sin theta))]))
+
+(defn vec->vec [[t theta thetadot]]
+  [1.0 thetadot (* -9.8 (Math/sin theta))])
+
+(defn ->array [^doubles arr]
+  (let [t        (aget arr 0)
+        theta    (aget arr 1)
+        thetadot (aget arr 2)]
+    (doto ^doubles (make-array Double/TYPE  3)
+      (aset 0 1.0)
+      (aset 1 thetadot)
+      (aset 2 (* -9.8 (Math/sin theta))))))
+
+(defn ->input-array [^doubles arr ^doubles out]
+  (let [t        (aget arr 0)
+        theta    (aget arr 1)
+        thetadot (aget arr 2)]
+    (doto out
+      (aset 0 1.0)
+      (aset 1 thetadot)
+      (aset 2 (* -9.8 (Math/sin theta))))))
+
+(defn ->input-array-param [g ^doubles arr ^doubles out]
+  (let [t        (aget arr 0)
+        theta    (aget arr 1)
+        thetadot (aget arr 2)]
+    (doto out
+      (aset 0 1.0)
+      (aset 1 thetadot)
+      (aset 2 (* g (Math/sin theta))))))
+
+(comment
+  ;; SO what I've learned here is that I need to both change the inputs to take
+  ;; arrays, and the outputs to produce vectors if that occurs.
+  (let [v [0 1 2]
+        xs (double-array [0 1 2])]
+    (time (dotimes [_ 100000000]
+            (vec->vec v)))
+
+    (time (dotimes [_ 100000000]
+            (->vec xs)))
+
+    (time (dotimes [_ 100000000]
+            (->array xs)))
+
+    (let [out ^doubles (make-array Double/TYPE  3)]
+      (time (dotimes [_ 100000000]
+              (->input-array xs out))))
+
+    (let [out ^doubles (make-array Double/TYPE  3)
+          params [-9.8]]
+      (time (dotimes [_ 100000000]
+              (->input-array-param params xs out))))))
+
+(defn vec-checker [arr]
+  (let [result (->vec arr)]
+    (= (result 1)
+       (result 2))))
+
+(defn array-checker [arr]
+  (let [result ^doubles (->array arr)]
+    (= (aget result 1)
+       (aget result 2))))
+
+(defn input-array-checker [^doubles arr ^doubles result]
+  (->input-array arr result)
+  (= (aget result 1)
+     (aget result 2)))
+
+(comment
+  ;; SO what I've learned here is that I need to both change the inputs to take
+  ;; arrays, and the outputs to produce vectors if that occurs.
+  (let [xs (double-array [0 1 2])]
+    (time (dotimes [_ 100000000]
+            (vec-checker xs)))
+
+    (time (dotimes [_ 100000000]
+            (array-checker xs)))
+
+    (let [out ^doubles (make-array Double/TYPE  3)]
+      (time (dotimes [_ 100000000]
+              (input-array-checker xs out))))))
+
 ;; # Function Compilation
 ;;
 ;; Functions built out of generic operations can be compiled down into fast,
@@ -30,8 +126,8 @@
 (let [f (fn [x] (g/sqrt
                 (g/+ (g/square (g/sin x))
                      (g/square (g/cos x)))))]
-(= '(sqrt (+ (expt (sin x) 2) (expt (cos x) 2)))
-   (x/expression-of (f 'x))))
+  (= '(sqrt (+ (expt (sin x) 2) (expt (cos x) 2)))
+     (x/expression-of (f 'x))))
 
 ;; 2. `g/simplify` the new function body. Sometimes this results in large
 ;;    simplifications:
@@ -79,7 +175,7 @@
        you wrote it with generic routines)."}
   compiled-fn-whitelist
   {'up {:sym `vector :f vector}
-   'down {:sym 'sicmutils.structure/down
+   'down {:sym `struct/down
           :f struct/down}
    '+ {:sym `+ :f +}
    '- {:sym `- :f -}
@@ -460,7 +556,7 @@
   - `params`: a seq of symbols equal in count to the original state function's
     args
   - `state-model`: a sequence of variables representing the structure of the
-    nested function returned by the state function
+    argument to the nested function returned by the state function
   - `opts`, a dictionary of compilation options.
 
   See [[compile-state-fn*]] for a description of the options accepted in

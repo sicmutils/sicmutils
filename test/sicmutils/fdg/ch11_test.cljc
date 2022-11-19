@@ -4,6 +4,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
+                                         compose
                                          zero?
                                          up
                                          rotate-x rotate-y rotate-z
@@ -34,7 +35,7 @@
     (testing "rotations, p177"
       (let [beta (up 'bx 'by 'bz)
             xi (e/make-four-tuple 'ct (up 'x 'y 'z))
-            R (compose
+            R (comp
                (rotate-x 'theta)
                (rotate-y 'phi)
                (rotate-z 'psi))

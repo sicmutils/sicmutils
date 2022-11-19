@@ -303,3 +303,9 @@
     (is (= '(+ a b (sin x) (cos y))
            (c/cse-form '(+ a b (sin x) (cos y))))
         "No substitutions means no let binding.")))
+
+
+(deftest new-test
+  (fn [[_t theta thetadot]]
+    [1.0 thetadot (* -9.8 (Math/sin theta))])
+  )
