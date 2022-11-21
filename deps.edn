@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
  :deps
- {org.mentat/alja-pattern {:local/root "./alja-pattern"}
+ {org.mentat/emmy-pattern {:local/root "./emmy-pattern"}
   org.clojure/clojure {:mvn/version "1.10.1"}
   org.clojure/core.match {:mvn/version "1.0.0"}
   org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
