@@ -456,22 +456,43 @@
   numeric-whitelist
   (dissoc compiled-fn-whitelist 'up 'down))
 
+(defn ^:no-doc struct->array
+  "Converts a structure to array lookups."
+  ([xs]
+   (struct->array
+    xs
+    #?(:clj  (make-array Double/TYPE ~(count xs))
+       :cljs (make-array ~(count xs)))))
+  ([xs output]
+   (let [output (or output)]
+     `(doto ~output
+        ~@(map-indexed (fn [i x]
+                         `(aset ~i ~x))
+                       xs)))))
+
+#_([body]
+   (apply-numeric-ops
+    body
+    #?(:clj  (make-array Double/TYPE ~(count xs))
+       :cljs (make-array ~(count xs)))))
+
 (defn ^:no-doc apply-numeric-ops
   "Takes a function body and returns a new body with all numeric operations
   like `(/ 1 2)` evaluated and all numerical literals converted to `double` or
   `js/Number`."
-  [body]
-  (w/postwalk
-   (fn [expr]
-     (cond (v/real? expr) (u/double expr)
-           (sequential? expr)
-           (let [[f & xs] expr]
-             (if-let [m (and (every? number? xs)
-                             (numeric-whitelist f))]
-               (u/double (apply (:f m) xs))
-               expr))
-           :else expr))
-   body))
+
+  ([body]
+   (w/postwalk
+    (fn [expr]
+      (cond (v/real? expr) (u/double expr)
+            (sequential? expr)
+            (let [[f & xs] expr]
+              (if-let [m (and (every? number? xs)
+                              (numeric-whitelist f))]
+                (u/double (apply (:f m) xs))
+                expr))
+            :else expr))
+    body)))
 
 ;; ### SCI vs Native Compilation
 ;;
@@ -561,15 +582,9 @@
 
   See [[compile-state-fn*]] for a description of the options accepted in
   `opts`."
-  [params state-model {:keys [flatten? generic-params?]
-                       :or {flatten? true
-                            generic-params? true}}]
-  (let [state (into [] (if flatten?
-                         (into [] (flatten state-model))
-                         state-model))]
-    (if generic-params?
-      [state (into [] params)]
-      [state])))
+  [params state-model output]
+  (let [state (into [] (into [] (flatten state-model)))]
+    [state params output]))
 
 ;; The following two functions compile state functions in either native or SCI
 ;; mode. The primary difference is that native compilation requires us to
@@ -601,6 +616,23 @@
   [f-form]
   (sci/eval-form (sci/fork sci-context) f-form))
 
+(defn ^:no-doc array-bindings
+  "vs is the variables actually used"
+  [vs arr inputs]
+  (into [] (comp (map-indexed
+                  (fn [i v]
+                    (when (vs v)
+                      [v `(aget ~arr ~i)])))
+                 cat)
+        (flatten inputs)))
+
+(comment
+  (= '[t (clojure.core/aget arr 0)
+       thetadot (clojure.core/aget arr 2)]
+     (array-inputs '(+ t thetadot) 'arr '[t theta thetadot])))
+
+;; TODO add docs for the `output` arg
+
 (defn- compile-state->source
   "Returns a natively-evaluated Clojure function that implements `body`, given:
 
@@ -609,9 +641,16 @@
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  [params state-model body opts]
-  (let [body (w/postwalk-replace sym->resolved-form body)]
-    `(fn ~(state-argv params state-model opts) ~body)))
+  [params state-model body output _opts]
+  (let [state-sym (with-meta (gensym) {:tag 'doubles})
+        param-sym (with-meta (gensym) {:tag 'doubles})
+        body      (w/postwalk-replace sym->resolved-form body)
+        vs        (x/variables-in body)]
+    ;; TODO maybe tidy up, no empty let binding if no params etc?
+    `(fn [~state-sym ~param-sym ~output]
+       (let ~(array-bindings vs state-sym (flatten state-model))
+         (let ~(array-bindings vs param-sym params)
+           ~body)))))
 
 (defn- compile-state-native
   "Returns a natively-evaluated Clojure function that implements `body`, given:
@@ -621,9 +660,9 @@
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  [params state-model body opts]
+  [params state-model body output opts]
   (eval
-   (compile-state->source params state-model body opts)))
+   (compile-state->source params state-model body output opts)))
 
 (defn- compile-state-sci
   "Returns a Clojure function evaluated using SCI. The returned fn implements
@@ -634,9 +673,9 @@
   - `state-model`: a sequence of variables representing the structure of the
     nested function returned by the state function
   - `body`: a function body making use of any symbol in the args above"
-  ([params state-model body opts]
+  ([params state-model body output opts]
    (sci-eval
-    (compile-state->source params state-model body opts))))
+    (compile-state->source params state-model body output opts))))
 
 ;; ### State Fn Interface
 ;;
@@ -644,7 +683,7 @@
 ;; versions of the following function exist, one that uses the global cache
 ;; defined above and one that doesn't.
 
-(defn- state->argv
+(defn state->argv
   "Given a (structural) initial `state` and a `gensym-fn` function from symbol =>
   generated symbol walks the structure and converts all structures to vectors
   and all non-structural elements to gensymmed symbols."
@@ -655,29 +694,66 @@
               (gensym-fn 'y)))]
     (rec state)))
 
+;; TODO -
+;;
+;; `:flatten?`, `:generic-params?` need to get killed in favor of
+;;
+;; - `:parameters`, where if these are MISSING we assume they've already been
+;;    supplied, and if present, then we act like `"generic-params?`" is true.
+;;
+(defn flatten-structs [x]
+  (letfn [(sym-struct? [expr]
+            (and (sequential? expr)
+                 (struct/symbol-set (first expr))))]
+    (filter (complement sym-struct?)
+            (rest (tree-seq sym-struct? rest x)))))
+
+(defn ^:no-doc ->output [body output]
+  (if (= `let (first body))
+    `(~@(take 2 body)
+      ~(->output (nth body 2) output))
+    `(doto ~output
+       ~@(map-indexed (fn [i x]
+                        `(aset ~i ~x))
+                      (flatten-structs body)))))
+
+(comment
+  (= '(clojure.core/doto output
+        (clojure.core/aset 0 t)
+        (clojure.core/aset 1 x0)
+        (clojure.core/aset 2 x1)
+        (clojure.core/aset 3 v0)
+        (clojure.core/aset 4 v1))
+     (->output
+      '(up t (up x0 x1) (up v0 v1))
+      'output)))
+
 (defn compile-state-fn*
   "Returns a compiled, simplified function with signature `(f state params)`,
   given:
 
-  - a state function that can accept a symbolic arguments
+  - a (possibly parametric) function `f` of state => state that can accept a
+    symbolic arguments
 
-  - `params`; really any sequence of count equal to the number of arguments
-    taken by `f`. The values are ignored.
-
-  - `initial-state`: Some structure of the same shape as the argument expected
-    by the fn returned by the state function `f`. Only the shape matters; the
-    values are ignored.
+  - `prototype`: Some structure of the same shape as the argument expected by
+    the fn returned by the state function `f`. Only the shape matters; the values
+    are ignored.
 
   - an optional argument `opts`. Options accepted are:
 
     - `:flatten?`: if `true` (default), the returned function will have
       signature `(f <flattened-state> [params])`. If `false`, the first arg of the
-      returned function will be expected to have the same shape as `initial-state`
+      returned function will be expected to have the same shape as `initial-state`.
 
-    - `:generic-params?`: if `true` (default), the returned function will take a
-      second argument for the parameters of the state derivative and keep params
-      generic. If false, the returned function will take a single state argument,
-      and the supplied params will be hardcoded.
+    - `:parameters`; Prototype of params TODO more details
+
+      any sequence of count equal to the number of arguments taken by `f`. The
+      values are ignored. TODO EDIT:: if `true` (default), the returned function
+      will take a second argument for the parameters of the state derivative and
+      keep params generic. If false, the returned function will take a single state
+      argument, and the supplied params will be hardcoded.
+
+    - `:genysym-fn`:
 
     - `:mode`: Explicitly set the compilation mode to one of the values
       in [[valid-modes]]. Explicit alternative to dynamically binding [[*mode*]].
@@ -689,30 +765,32 @@
 
   NOTE this function uses no cache. To take advantage of the global compilation
   cache, see `compile-state-fn`."
-  ([f params initial-state]
-   (compile-state-fn* f params initial-state {}))
-  ([f params initial-state {:keys [generic-params?
-                                   gensym-fn
-                                   mode]
-                            :or {generic-params? true
-                                 gensym-fn gensym}
-                            :as opts}]
+  ([f prototype]
+   (compile-state-fn* f prototype {}))
+  ([f prototype {:keys [parameters
+                        gensym-fn
+                        mode]
+                 :or {gensym-fn gensym}
+                 :as opts}]
    (let [sw            (us/stopwatch)
-         params        (if generic-params?
-                         (for [_ params] (gensym-fn 'p))
-                         params)
-         generic-state (state->argv initial-state gensym-fn)
-         g             (apply f params)
+         ;; this needs to be the actual, structural argv at this stage.
+         generic-state (state->argv prototype gensym-fn)
+         [params g]    (if parameters
+                         (let [ps (for [_ parameters] (gensym-fn 'p))]
+                           [ps (apply f ps)])
+                         [nil f])
+         output        (with-meta (gensym) {:tag 'doubles})
          body          (-> (g generic-state)
                            (g/simplify)
                            (v/freeze)
                            (cse-form)
-                           (apply-numeric-ops))
+                           (apply-numeric-ops)
+                           (->output output))
          compiler      (case (validate-mode! (or mode *mode*))
                          :source compile-state->source
                          :native compile-state-native
                          :sci compile-state-sci)
-         compiled-fn   (compiler params generic-state body opts)]
+         compiled-fn   (compiler params generic-state body output opts)]
      (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
      compiled-fn)))
 
@@ -724,16 +802,16 @@
 
   NOTE that this function makes use of a global compilation cache, keyed by the
   value of `f`. Passing in the same `f` twice, even with different arguments for
-  `param` and `initial-state` and different compilation modes, will return the
-  cached value. See `compile-state-fn*` to avoid the cache."
-  ([f params initial-state]
-   (compile-state-fn f params initial-state {}))
-  ([f params initial-state opts]
+  `prototype`, `opts` and different compilation modes, will return the cached
+  value. See `compile-state-fn*` to avoid the cache."
+  ([f prototype]
+   (compile-state-fn f prototype {}))
+  ([f prototype opts]
    (if-let [cached (@fn-cache f)]
      (do
        (log/info "compiled state function cache hit")
        cached)
-     (let [compiled (compile-state-fn* f params initial-state opts)]
+     (let [compiled (compile-state-fn* f prototype opts)]
        (swap! fn-cache assoc f compiled)
        compiled))))
 

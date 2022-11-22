@@ -81,18 +81,18 @@
   - `:counter` an atom containing a `Long` that increments every time derivative fn
     is called."
   [state-derivative derivative-args initial-state
-   {:keys [compile? epsilon] :or {epsilon 1e-8}}]
+   {:keys [compile? epsilon] :or {epsilon 1e-8 compile? true}}]
   (let [evaluation-time  (us/stopwatch :started? false)
         evaluation-count (atom 0)
         dimension        (count (flatten initial-state))
+        param-array      (double-array derivative-args)
         derivative-fn    (if compile?
-                           (let [f' (c/compile-state-fn state-derivative derivative-args initial-state)]
-                             (fn [y] (f' y derivative-args)))
+                           (c/compile-state-fn
+                            state-derivative initial-state {:parameters (or derivative-args [])})
                            (do (log/warn "Not compiling function for ODE analysis")
                                (let [d:dt (apply state-derivative derivative-args)
                                      array->state #(struct/unflatten % initial-state)]
                                  (comp d:dt array->state))))
-
         state->array     #?(:clj
                             (comp double-array flatten)
 
@@ -101,18 +101,24 @@
                               (->> (flatten state)
                                    (map u/double)
                                    (into-array))))
-
         equations        #?(:clj
-                            (reify FirstOrderDifferentialEquations
-                              (computeDerivatives [_ _ y out]
-                                (us/start evaluation-time)
-                                (swap! evaluation-count inc)
-                                (let [y' (-> (derivative-fn y)
-                                             (state->array)
-                                             (doubles))]
-                                  (System/arraycopy y' 0 out 0 (alength y')))
-                                (us/stop evaluation-time))
-                              (getDimension [_] dimension))
+                            (if compile?
+                              (reify FirstOrderDifferentialEquations
+                                (computeDerivatives [_ _ y out]
+                                  (us/start evaluation-time)
+                                  (swap! evaluation-count inc)
+                                  (derivative-fn y param-array out)
+                                  (us/stop evaluation-time))
+                                (getDimension [_] dimension))
+                              (reify FirstOrderDifferentialEquations
+                                (computeDerivatives [_ _ y out]
+                                  (us/start evaluation-time)
+                                  (swap! evaluation-count inc)
+                                  (let [y' (state->array
+                                            (derivative-fn y))]
+                                    (System/arraycopy y' 0 out 0 dimension))
+                                  (us/stop evaluation-time))
+                                (getDimension [_] dimension)))
 
                             :cljs
                             (fn [_ y]
@@ -226,7 +232,7 @@
   The state derivative is expected to map a structure to a structure of the same
   shape, and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
-  (let [I (make-integrator state-derivative state-derivative-args)]
+  (let [I (make-integrator state-derivative (or state-derivative-args []))]
     (fn call
       ([initial-state t]
        (call initial-state t {}))
