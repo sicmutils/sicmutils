@@ -70,6 +70,12 @@
      (let [handler (step-handler observe step-size initial-state)]
        (.addStepHandler integrator handler))))
 
+;; TODO okay, what have I learned...
+;;
+;; - the stopwatch is killing me, delete that shit!!
+;; - I want some way to NOT trigger a re-render... but to get some state shoved into the system.
+;; - JS compilation is really janky now and needs to get better, tighten up that CODE!
+
 (defn integration-opts
   "Returns a map with the following kv pairs:
 
@@ -85,10 +91,15 @@
   (let [evaluation-time  (us/stopwatch :started? false)
         evaluation-count (atom 0)
         dimension        (count (flatten initial-state))
-        param-array      (double-array derivative-args)
+        param-array      #?(:cljs (atom (double-array derivative-args))
+                            :clj (double-array derivative-args))
         derivative-fn    (if compile?
-                           (c/compile-state-fn
-                            state-derivative initial-state {:parameters (or derivative-args [])})
+                           #?(:cljs
+                              (c/compile-js
+                               state-derivative
+                               initial-state {:parameters (or derivative-args [])})
+                              :clj (c/compile-state-fn*
+                                    state-derivative initial-state {:parameters (or derivative-args [])}))
                            (do (log/warn "Not compiling function for ODE analysis")
                                (let [d:dt (apply state-derivative derivative-args)
                                      array->state #(struct/unflatten % initial-state)]
@@ -121,12 +132,20 @@
                                 (getDimension [_] dimension)))
 
                             :cljs
-                            (fn [_ y]
-                              (us/start evaluation-time)
-                              (swap! evaluation-count inc)
-                              (let [y' (state->array (derivative-fn y))]
-                                (us/stop evaluation-time)
-                                y')))
+                            (if compile?
+                              (let [out (make-array dimension)]
+                                (fn [_ y]
+                                  (derivative-fn y @param-array out)
+                                  out))
+
+                              ;; TODO get this branch going as well
+                              (let [out (make-array dimension)]
+                                (fn [_ y]
+                                  (us/start evaluation-time)
+                                  (swap! evaluation-count inc)
+                                  (derivative-fn y @param-array out)
+                                  (us/stop evaluation-time)
+                                  out))))
         integrator #?(:clj
                       (GraggBulirschStoerIntegrator. 0. 1.
                                                      (double epsilon)

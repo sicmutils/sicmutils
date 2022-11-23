@@ -90,20 +90,26 @@
                  (v/integral? num)
                  (or (nil? denom)
                      (v/integral? denom))))
-          (precedence [op] (or (precedence-map op)
-                               (cond (seq? op)
-                                     ;; Some special cases:
-                                     ;; - give (expt X n) the precedence of X
-                                     ;; - give (partial ...) the precedence of D
-                                     ;; - otherwise (...) has the precedence of application
-                                     (cond (and (= 3 (count op))
-                                                (= 'expt (first op))) (recur (second op))
-                                           (= 'partial (first op)) (precedence-map 'D)
-                                           :else (precedence-map :apply))
-                                     (symbol? op) (precedence-map :apply)
-                                     :else 0)))
-          (precedence> [a b] (> (precedence a) (precedence b)))
-          (precedence<= [a b] (not (precedence> a b)))
+          (precedence [op]
+            (or (precedence-map op)
+                (cond (seq? op)
+                      ;; Some special cases:
+                      ;; - give (expt X n) the precedence of X
+                      ;; - give (partial ...) the precedence of D
+                      ;; - otherwise (...) has the precedence of application
+                      (cond (and (= 3 (count op))
+                                 (= 'expt (first op))) (recur (second op))
+                            (= 'partial (first op)) (precedence-map 'D)
+                            :else (precedence-map :apply))
+                      (symbol? op) (precedence-map :apply)
+                      :else 0)))
+
+          (precedence> [a b]
+            (> (precedence a) (precedence b)))
+
+          (precedence<= [a b]
+            (not (precedence> a b)))
+
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
 
@@ -665,17 +671,20 @@
                                 'and (fn [[a b]] (str a " && " b))
                                 'or (fn [[a b]] (str a " || " b))
                                 '/ render-infix-ratio}))]
-    (fn [x & {:keys [symbol-generator parameter-order deterministic?]
+    (fn [x & {:keys [symbol-generator
+                    parameter-order
+                    deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
       (let [x      (v/freeze x)
+            ;; TODO
             params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
                              parameter-order)
             callback (fn [new-expression new-vars]
                        (doseq [[var val] new-vars]
-                         (print "  var ")
+                         (print " let ")
                          (print (str var " = "))
                          (print (R val))
                          (print ";\n"))

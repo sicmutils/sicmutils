@@ -6,6 +6,7 @@
   functions."
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
+            [clojure.string :as cs]
             [clojure.walk :as w]
             [sci.core :as sci]
             [sicmutils.expression :as x]
@@ -423,7 +424,7 @@
   wrapped in a `let` binding with one binding per extracted common
   subexpression.
 
-  ## Optional Arguments
+  ## Optional Arguments TODO say `see blah for options`
 
   `:symbol-generator`: side-effecting function that returns a new, unique symbol
   on each invocation. These generated symbols are used to create unique binding
@@ -479,8 +480,9 @@
 (defn ^:no-doc apply-numeric-ops
   "Takes a function body and returns a new body with all numeric operations
   like `(/ 1 2)` evaluated and all numerical literals converted to `double` or
-  `js/Number`."
+  `js/Number`.
 
+  TODO expand this??"
   ([body]
    (w/postwalk
     (fn [expr]
@@ -648,7 +650,7 @@
         vs        (x/variables-in body)]
     ;; TODO maybe tidy up, no empty let binding if no params etc?
     `(fn [~state-sym ~param-sym ~output]
-       (let ~(array-bindings vs state-sym (flatten state-model))
+       (let ~(array-bindings vs state-sym state-model)
          (let ~(array-bindings vs param-sym params)
            ~body)))))
 
@@ -715,6 +717,15 @@
     `(doto ~output
        ~@(map-indexed (fn [i x]
                         `(aset ~i ~x))
+                      (flatten-structs body)))))
+
+(defn ^:no-doc ->js-output [body output]
+  (if (= `let (first body))
+    `(~@(take 2 body)
+      ~(->output (nth body 2) output))
+    `(do
+       ~@(map-indexed (fn [i x]
+                        `(aset ~output ~i ~x))
                       (flatten-structs body)))))
 
 (comment
@@ -814,6 +825,193 @@
      (let [compiled (compile-state-fn* f prototype opts)]
        (swap! fn-cache assoc f compiled)
        compiled))))
+
+;; ## To JavaScript
+
+(defn- make-symbol-generator [p]
+  (let [i (atom 0)]
+    (fn [] (symbol
+           #?(:clj
+              (format "%s%04x" p (swap! i inc))
+
+              :cljs
+              (let [suffix (-> (swap! i inc)
+                               (.toString 16)
+                               (.padStart 4 "0"))]
+                (str p suffix)))))))
+
+(def infix-set
+  '#{* + - / u- =})
+
+(def js-renames
+  {'sin "Math.sin"
+   'cos "Math.cos"
+   'tan "Math.tan"
+   'asin "Math.asin"
+   'acos "Math.acos"
+   'atan "Math.atan"
+   'cosh "Math.cosh"
+   'sinh "Math.sinh"
+   'tanh "Math.tanh"
+   'asinh "Math.asinh"
+   'acosh "Math.acosh"
+   'atanh "Math.atanh"
+   'sqrt "Math.sqrt"
+   'abs "Math.abs"
+   'expt "Math.pow"
+   'log "Math.log"
+   'exp "Math.exp"
+   'floor "Math.floor"
+   'ceiling "Math.ceil"
+   'integer-part "Math.trunc"
+   'not "!"})
+
+;; TODO pull in from render... and TODO add the `else` case in `render`.
+
+(defn- render-infix-ratio
+  "renders a pair of the form `[numerator denominator]` as a infix ratio of the
+  form `num/denom`.
+
+  If the pair contains only one entry `x`, it's coerced to `[1 x]` (and treated
+  as a denominator)."
+  [[num denom :as xs]]
+  (let [n (count xs)]
+    (cond (and (= n 1) (v/integral? num))
+          (str "1/" num)
+
+          (and (= n 2)
+               (v/integral? num)
+               (v/integral? denom))
+          (str num "/" denom)
+
+          :else (str num " / " denom))))
+
+(def js-handlers
+  (let [->parens #(str "(" % ")")
+        ->js-vector #(str \[ (cs/join ", " %) \])]
+    {'up ->js-vector
+     'down ->js-vector
+     'modulo (fn [[a b]]
+               (-> (str a " % " b)
+                   (->parens)
+                   (str " + " b)
+                   (->parens)
+                   (str " % " b)
+                   (->parens)))
+     'remainder (fn [[a b]]
+                  (str a " % " b))
+     'and (fn [[a b]] (str a " && " b))
+     'or  (fn [[a b]] (str a " || " b))
+
+     ;; TODO this is dumb for now!!
+     'do  (fn [xs] (apply str xs))
+     `aset
+     (fn [[a i v]] (str "  " a "[" (int i) "] = " v ";\n"))
+     '/ render-infix-ratio}))
+
+;; TODO return `(js/Function. "s" "p" "out" "body")`
+(let [->parens #(str "(" % ")")]
+  (defn ->js [xs]
+    (str
+     (w/postwalk
+      (fn [expr]
+        (cond (symbol? expr) expr
+              (v/real? expr) (u/double expr)
+              (sequential? expr)
+              (let [[f & xs] expr]
+                (if-let [m (and (every? number? xs)
+                                (numeric-whitelist f))]
+                  (u/double (apply (:f m) xs))
+                  (or (when-let [f' (js-handlers f)]
+                        (f' xs))
+
+                      ;; infix
+                      (when-let [sym (infix-set f)]
+                        (->parens
+                         (cs/join (str " " sym " ") xs)))
+
+                      ;; prefix
+                      (when-let [f-name (js-renames f)]
+                        (str f-name
+                             (->parens
+                              (cs/join " , " xs))))
+
+                      (u/illegal (str "Unknown op: " f)))))
+              :else expr))
+      xs))))
+
+(comment
+  (let [xs '(+ (* x y z)
+               (- (* a b c)
+                  (/ d g)))]
+    (->js xs)))
+
+;; TODO I expect that the guts here will be mostly the same...
+(defn compile-js
+  ([f prototype]
+   (compile-js f prototype {}))
+  ([f prototype {:keys [parameters
+                        gensym-fn
+                        mode]
+                 :or {gensym-fn gensym}
+                 :as opts}]
+   (let [sw            (us/stopwatch)
+         callback      (fn [new-expression new-vars]
+                         (str (cs/join
+                               (->> (for [[var val] new-vars]
+                                      (str "  var " var " = " (->js val) ";\n"))
+                                    (apply str)))
+                              (->js new-expression) ";"))
+         ;; this needs to be the actual, structural argv at this stage.
+         generic-state (state->argv prototype gensym-fn)
+         [params g]    (if parameters
+                         (let [ps (for [_ parameters] (gensym-fn 'p))]
+                           [ps (apply f ps)])
+                         [nil f])
+         state-sym     (with-meta (gensym) {:tag 'doubles})
+         param-sym     (with-meta (gensym) {:tag 'doubles})
+         output-sym    (with-meta (gensym) {:tag 'doubles})
+         body (-> (g generic-state)
+                  (g/simplify)
+                  (v/freeze))
+         vs (x/variables-in body)
+         body (-> body
+                  (->js-output output-sym)
+                  (extract-common-subexpressions callback opts))
+         s-bindings (transduce
+                     (comp (map-indexed
+                            (fn [i v]
+                              (when (vs v)
+                                [(str "  " v " = " state-sym "[" i "];\n")])))
+                           cat)
+                     str
+                     (flatten generic-state))
+         p-bindings (transduce
+                     (comp (map-indexed
+                            (fn [i v]
+                              (when (vs v)
+                                [(str "  " v " = " param-sym "[" i "];\n")])))
+                           cat)
+                     str
+                     params)
+         body-str (str s-bindings p-bindings body)]
+     (log/info "compiled state function in" (us/repr sw) "with mode :js")
+     #_(js/console.log
+        (str state-sym)
+        (str param-sym)
+        (str output-sym)
+        body-str)
+     #?(:clj
+        {:params [(str state-sym)
+                  (str param-sym)
+                  (str output-sym)]
+         :body body-str}
+        :cljs
+        (js/Function.
+         (str state-sym)
+         (str param-sym)
+         (str output-sym)
+         body-str)))))
 
 ;; ## Non-State-Functions
 ;;
