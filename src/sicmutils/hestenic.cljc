@@ -167,8 +167,7 @@
 
 (defn- accordion-down [hest-elmt]
   (downRungify
-   (spankOutNothingness
-    hest-elmt)))
+   (spankOutNothingness hest-elmt)))
 
 
 ;;
@@ -380,6 +379,24 @@
   (.write w (str "#g" (comment (grade grdl)) "("
                  (clojure.string/join " " (bladoids grdl))
                  ")")))
+
+(defn- gradeling-as-vect [gling]
+  (if (or (not (= (class gling) Gradeling))
+          (not (= 1 (grade gling))))
+    (throw (Exception. "arg must be a Gradeling of grade unity, Chet."))
+    (loop [vee (vec '())
+           ind 0
+           bls (bladoids gling)]
+      (if (empty? bls)
+        (Vect. (vec vee))
+        (let [bld (first bls)]
+          (if (= ind (get (basis bld) 0))
+            (recur (conj vee (coef bld))
+                   (inc ind)
+                   (rest bls))
+            (recur (conj vee 0.0)
+                   (inc ind)
+                   bls)))))))
 
 
 ;;
@@ -699,9 +716,12 @@
     (asMV this))
   (downRungify [this]
     (let [bls (bladoids this)]
-      (if (= 1 (count bls))
-        (downRungify (first bls))
-        this))))
+      (cond (= 1 (count bls))
+            (downRungify (first bls))
+            (= 1 (grade this))
+            (gradeling-as-vect this)
+            :else
+            this))))
 
 (extend-type MV
   IScamperUpAndDownLadder
@@ -969,7 +989,7 @@
                        (gradelings this))]
       (if (empty? grdl)
         the-zero-element
-        (first grdl)))))
+        (accordion-down (first grdl))))))
 
 
 (extend-type Vect
@@ -999,9 +1019,11 @@
   (quo [this otha]
     (prd this (inv otha)))
   (dot [this otha]
-    (reduce +
-            (map *
-                 (coefs this) (coefs otha))))
+    (if (different-rung? this otha)
+      (dot (asMV this) (asMV otha))
+      (reduce +
+              (map *
+                   (coefs this) (coefs otha)))))
   (wdg [this otha]
     (if (different-rung? this otha)
       (wdg (asMV this) (asMV otha))
