@@ -8,28 +8,43 @@
    geo'tric calculus)")
 
 ;;
-;; the approach we'll use here is protocol-rich... or -heavy, depending
-;; on your taste. but in general we wish to represent elements in GA
+;; The approach we'll use here is protocol-rich... or -heavy, depending
+;; on your taste. But in general we wish to represent elements in GA
 ;; at a few natural levels: weighted basis blades ('Bladoid');
 ;; collections of a number of Bladoids of uniform grade ('Gradeling'),
 ;; sorted lexicographically on basis; collections of Gradelings of
 ;; heterogeneous grade ('MV', for multivector), sorted on grade; and
-;; vector itself ('Vect'). in addition, for the moment we have a special
+;; vector itself ('Vect'). In addition, for the moment we have a special
 ;; class to represent the zero element ('ZeroElement'), which is identical
 ;; for all grades. These different representations (or GA elements) are
 ;; called here in the source file 'rungs'.
 ;;
-;; the protocol immediately following is the (presently malnourished but
+;; The protocol immediately following is the (presently malnourished but
 ;; still growing) set of canonical operations applicable to each of the
-;; aforenamed elements. it might be argued that the final protocol in
+;; aforenamed elements. It might be argued that the final protocol in
 ;; this section ('IScamperUpAndDownLadder') could reasonably be merged
 ;; with the basic protocol ('IHestenic'), but from the current insomniac
 ;; perspective it seems cognitively useful to keep 'em separate.
 ;;
-;; note that we extend many of these protocols too to java.lang.Number
+;; Note that we extend many of these protocols too to java.lang.Number
 ;; to enjoy automatic interop of existing numeric types with the GA
-;; system. thanks, lisp dialect!
+;; system. Thanks, lisp dialect!
 ;;
+;; This implementation is knowably inefficient, and that to a ridiculous
+;; degree; but it intends to articulate via code the mechanics of GA
+;; calculations in a clean and efficient way. We assume that this one
+;; will be followed by a far more parsimonious implementation.
+;;
+;; Note, more pleasingly, that the implementation is effectively
+;; dimension-independent. None of the representations requires or
+;; indeed expresses any particular dimension -- if you wedge e0 and
+;; e1 and e2, then you're "in" three dimensions; but if you then
+;; wedge that with e4, well, you're in 5D. There are of course
+;; operations that require asserting a dimension: at the moment,
+;; only the pseudoscalar (and derived bits, like dualization) takes
+;; a 'dim' argument.
+;;
+
 
 (defprotocol IHestenic
   (scl [this s]
@@ -81,9 +96,15 @@
      the conventional dot product unless either argument is a scalar
      (i.e. of grade zero), whereupon the product vanishes.")
   (eq? [this otha]
-    "equality test for GA elements.")
+    "whether the two GA elements are the same mathematial object.")
   (scalar? [this]
     "whether the thing is of grade zero, i.e. a real.")
+  (invertible? [this]
+    "whether the GA eleement has an inverse.")
+  (monograde? [this]
+    "whether the GA eleement comprises a single grade (i.e. is
+    'homogeneous', as they say).")
+
   (grade-part [this n]
     "the GA element's grade 'n' part."))
 
@@ -107,10 +128,12 @@
   (hip [this otha])
   (eq? [this otha])
   (scalar? [this])
+  (invertible? [this])
+  (monograde? [this])
   (grade-part [this n]))
 )
 
-(defprotocol IGradable
+(defprotocol IMonograded
   (grade [this]))
 
 (defprotocol IAsBladoid
@@ -214,7 +237,7 @@
   (same-basis? [this otha]
     (= (basis this) (basis otha)))
 
-  IGradable
+  IMonograded
   (grade [_] (count f_basis))
 
   Object
@@ -224,8 +247,10 @@
 (defn bladoid
   ([]
    (Bladoid. 1.0 []))
-  ([c]
-   (Bladoid. c []))
+  ([c_or_b]
+   (if (sequential? c_or_b)
+     (Bladoid. 1.0 (vec (sort c_or_b)))
+     (Bladoid. c_or_b [])))
   ([c b]
    (Bladoid. c (vec (sort b)))))  ;; force sort to give back the same type.
 
@@ -323,7 +348,7 @@
     (first (filter (fn [el] (= (basis el) b))
                    f_bladoids)))
 
-  IGradable
+  IMonograded
   (grade [_] f_grade)
 
   Object
@@ -405,7 +430,7 @@
   IVect
   (coefs [_] f_coefs)
 
-  IGradable
+  IMonograded
   (grade [_] 1)
 
   Object
@@ -433,7 +458,7 @@
 ;;
 
 (deftype ZeroElement []
-  IGradable
+  IMonograded
   (grade [_] 0)
 
   IScamperUpAndDownLadder
@@ -464,6 +489,8 @@
     (or (instance? (class this) otha)
         (and (number? otha) (zero? otha))))
   (scalar? [this] true)  ;; well, actually a conundrum
+  (invertible? [this] false)
+  (monograde? [this] true)  ;; also troublingly conundrifying...
   (grade-part [this n] this))
 
 
@@ -579,7 +606,7 @@
   (prd hest-elmt (inverse-pseudoscalar dim)))
 
 (defn scp [hest-elmt otha]
-  (grade-part (prd hest-elmt otha) 0))
+  (accordion-down (grade-part (prd hest-elmt otha) 0)))
 
 
 ;;
@@ -786,6 +813,9 @@
            (= (basis this) (basis otha)))))
   (scalar? [this]
     (= 0 (grade this)))
+  (invertible? [this]
+    (not (zero? (dot this this))))
+  (monograde? [this] true)
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -822,7 +852,9 @@
         (prd (asMV this) (asMV otha)))
       (accordion-down
        (gradeling-mult-gradeling this otha))))
-  (inv [this] nil)
+  (inv [this]
+    (let [s (/ 1.0 (scp this this))]
+      (scl this s)))
   (quo [this otha] (prd this (inv otha)))
   (dot [this otha]
     (if (different-rung? this otha)
@@ -860,6 +892,9 @@
                    (map eq? (bladoids this) (bladoids otha))))))
   (scalar? [this]
     (= 0 (grade this)))
+  (invertible? [this]
+    (not (zero? (dot this this))))
+  (monograde? [this] true)
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -896,7 +931,9 @@
     (if (number? otha)
       (scl this otha)
       (mv-bimap-via-gradelings prd this (asMV otha))))
-  (inv [this])
+  (inv [this]
+    (let [s (/ 1.0 (scp this this))]
+      (scl this s)))
   (quo [this otha]
     (prd this (asMV (inv otha))))
   (dot [this otha]
@@ -918,6 +955,10 @@
     (let [grdls (gradelings this)]
       (and (= 1 (count grdls))
            (= 0 (grade (first grdls))))))
+  (invertible? [this]
+    (not (zero? (scp this this))))
+  (monograde? [this]
+    (= 1 (count (gradelings this))))
   (grade-part [this n]
     (let [grdl (filter (fn [g] (= (grade g) n))
                        (gradelings this))]
@@ -979,6 +1020,9 @@
         (and (= (count thc) (count otc))
              (every? true? (map == thc otc))))))
   (scalar? [this] false)
+  (invertible? [this]
+    (not (zero? (dot this this))))
+  (monograde? [this] true)
   (grade-part [this n]
     (if (= n 1)
       this
@@ -990,6 +1034,9 @@
 ;;
 
 (extend-type java.lang.Number
+  IMonograded
+  (grade [_] 0)
+
   IAsBladoid
   (asBladoid [this]
     (Bladoid. this []))
@@ -1048,6 +1095,9 @@
       (eq? (asMV this) otha)
       (== this otha)))
   (scalar? [this] true)
+  (invertible? [this]
+    (not (zero? this)))
+  (monograde? [this] true)
   (grade-part [this n]
     (if (= n 0)
       this
