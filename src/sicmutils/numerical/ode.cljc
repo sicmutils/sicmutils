@@ -28,6 +28,10 @@
              (+ step-size))
          n))))
 
+;; TODO: we want the ODE code to be able to just TAKE the derivatives, and deal
+;; in terms of arrays only. That is the lowest level. Then we can provide some
+;; code that wraps an uncompiled one to go back and forth between the arrays.
+
 #?(:clj
    (defn step-handler
      "Generates a StepHandler instance that can be attached to an integrator.
@@ -91,13 +95,16 @@
   (let [evaluation-time  (us/stopwatch :started? false)
         evaluation-count (atom 0)
         dimension        (count (flatten initial-state))
-        param-array      #?(:cljs (atom (double-array derivative-args))
+        param-array      #?(:cljs derivative-args
                             :clj (double-array derivative-args))
         derivative-fn    (if compile?
                            #?(:cljs
                               (c/compile-js
                                state-derivative
-                               initial-state {:parameters (or derivative-args [])})
+                               initial-state {:parameters
+                                              (or
+                                               (into [] @derivative-args)
+                                               [])})
                               :clj (c/compile-state-fn*
                                     state-derivative initial-state {:parameters (or derivative-args [])}))
                            (do (log/warn "Not compiling function for ODE analysis")
@@ -135,6 +142,7 @@
                             (if compile?
                               (let [out (make-array dimension)]
                                 (fn [_ y]
+
                                   (derivative-fn y @param-array out)
                                   out))
 
