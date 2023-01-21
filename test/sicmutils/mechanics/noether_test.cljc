@@ -2,7 +2,7 @@
 
 (ns sicmutils.mechanics.noether-test
   (:require [clojure.test :refer [is deftest]]
-            [sicmutils.abstract.function :as f :include-macros true]
+            [sicmutils.abstract.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.mechanics.lagrange :as l]
             [sicmutils.mechanics.noether :as n]

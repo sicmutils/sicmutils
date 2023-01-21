@@ -4,7 +4,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
-            [sicmutils.abstract.function :as f :include-macros true]
+            [sicmutils.abstract.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numerical.quadrature.boole :as qb]
             [sicmutils.numerical.quadrature.trapezoid :as qt]

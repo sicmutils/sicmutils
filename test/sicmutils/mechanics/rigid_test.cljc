@@ -4,7 +4,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator] :include-macros true]
-            [sicmutils.abstract.function :as f :include-macros true]
+            [sicmutils.abstract.function :as f]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.mechanics.lagrange :as L]

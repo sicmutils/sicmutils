@@ -10,7 +10,7 @@
   (:refer-clojure :exclude [min max count])
   (:require [clojure.core :as core]
             [sicmutils.generic :as g]
-            [sicmutils.util.def :as ud :include-macros true]))
+            [sicmutils.util.def :as ud]))
 
 ;; ## Folds and Scans
 ;;

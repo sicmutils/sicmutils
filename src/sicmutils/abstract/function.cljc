@@ -18,7 +18,9 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang IFn))))
+     (:import (clojure.lang IFn)))
+  #?(:cljs
+     (:require-macros [sicmutils.abstract.function])))
 
 ;; ## Abstract Function
 ;;

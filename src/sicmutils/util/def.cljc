@@ -2,7 +2,9 @@
 
 (ns sicmutils.util.def
   #?(:clj
-     (:import (clojure.lang Keyword RT))))
+     (:import (clojure.lang Keyword RT)))
+  #?(:cljs
+     (:require-macros [sicmutils.util.def])))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
