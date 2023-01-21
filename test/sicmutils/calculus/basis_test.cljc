@@ -4,8 +4,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.abstract.function :refer [literal-function]]
             [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.coordinate :as c
-             #?(:clj :refer :cljs :refer-macros) [let-coordinates]]
+            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]

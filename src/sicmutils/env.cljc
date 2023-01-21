@@ -79,8 +79,7 @@
             [sicmutils.structure :as structure]
             [sicmutils.util]
             [sicmutils.util.aggregate]
-            #?(:cljs [sicmutils.util.def
-                      :refer-macros [import-def import-vars]])
+            #?(:cljs [sicmutils.util.def :refer [import-def import-vars]])
             [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v])
@@ -91,10 +90,9 @@
   "Bootstraps a repl or Clojure namespace by requiring all public vars
   from [[sicmutils.env]].
 
-  (This will only work at a repl in Clojurescript.)
+  (This will only work at a repl in ClojureScript.)
 
-  TODO add support for `refer-macros` in Clojurescript
-  TODO add rename, exclude support."
+  TODO add `:rename`, `:exclude` support."
   []
   `(require '~['sicmutils.env
                :refer
