@@ -176,6 +176,12 @@
                (garray/defaultCompare this o-value)
                (throw (js/Error. (str "Cannot compare " this " to " other)))))))
 
+       IHash
+       (-hash [this]
+         (bit-xor
+          (-hash (numerator this))
+          (-hash (denominator this))))
+
        Object
        (toString [r]
          (let [x (v/freeze r)]

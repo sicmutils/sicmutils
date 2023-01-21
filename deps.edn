@@ -2,12 +2,9 @@
  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
  :deps
  {org.clojure/clojure {:mvn/version "1.10.1"}
-  org.clojure/core.match {:mvn/version "1.0.0"}
+  org.clojure/core.match {:mvn/version "1.0.1"}
   org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
-  cljsjs/bigfraction {:mvn/version "4.1.1-0"}
-  cljsjs/complex {:mvn/version "2.0.11-0"}
-  cljsjs/odex {:mvn/version "2.0.4-0"}
-  com.taoensso/timbre {:mvn/version "5.1.2"}
+  com.taoensso/timbre {:mvn/version "6.0.4"}
   dm3/stopwatch {:mvn/version "0.1.1" :exclusions [org.clojure/clojurescript]}
   hiccup/hiccup {:mvn/version "1.0.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
@@ -30,19 +27,20 @@
 
   :cljs
   {:extra-deps
-   {org.clojure/clojurescript {:mvn/version "1.11.4"}
-    thheller/shadow-cljs {:mvn/version "2.17.4"}}}
+   {org.clojure/clojurescript {:mvn/version "1.11.60"}
+    thheller/shadow-cljs {:mvn/version "2.20.14"}}}
 
   :test
   ;; layer this in to get access to everything in the test directory, plus the
   ;; dependencies needed to run the tests.
   {:extra-paths ["test"]
    :extra-deps
-   {io.github.cognitect-labs/test-runner {:git/tag "v0.5.0"
-                                          :git/sha "b3fd0d2"}
+   {io.github.cognitect-labs/test-runner
+    {:git/tag "v0.5.0"
+     :git/sha "b3fd0d2"}
     io.github.nextjournal/clerk
     {:git/sha "d08c26043efe19a92fe33dd9eb4499e304e4cff7"}
-    org.clojure/test.check {:mvn/version "1.1.0"}
+    org.clojure/test.check {:mvn/version "1.1.1"}
     com.gfredericks/test.chuck {:mvn/version "0.2.13"}
     same/ish {:mvn/version "0.1.4"}}}
 

@@ -430,7 +430,6 @@
   returning its input on a failed match."
   [the-rule expr]
   (cond (sequential? expr)
-        ;; TODO good change??
         (let [processed (doall (map the-rule expr))]
           (if (= expr processed)
             expr
