@@ -2,6 +2,31 @@
 
 ## unreleased
 
+- #531:
+
+  - Fixes a typo in one of the rules in
+    `sicmutils.simplify.rules/expand-multiangle`, closing #530
+
+  - Adds proper self-require forms to all `cljc` namespaces with macros; this
+    removes the need for `:include-macros true` or `:refer-macros` and makes the
+    life of consumers simpler.
+
+  - Upgrades sci, test.check, core.match, timbre, clojurescript, shadow-cljs
+    dependencies to remove various warnings.
+
+  - Drops cljsjs dependencies in favor of `deps.cljs` entries
+
+  - Forces the subexpression walk in `pattern.rule/try-subexpressions` with
+    `doall`
+
+  - Adds type hints to all remaining `Complex` calls in js, to fix issues with
+    advanced compilation (thanks to @mhuebert for finding this)
+
+  - Adds `sicmutils.structure/symbol-set`
+
+  - Adds `IHash` implementations for `js/BigInt`, `goog.math.Long`,
+    `goog.map.Integer` and `Ratio` types
+
 - #515:
 
  - tidies up the `square` and `cube` speedups thanks to a tip from GJS
