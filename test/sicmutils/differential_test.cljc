@@ -253,7 +253,7 @@
 (deftest differential-fn-tests
   (testing "differentials can take branches inside functions, PROVIDED (with
             clojure.core/=) the perturbed variable is on the
-            left! (Clojurescript can handle equals on either side.)"
+            left! (ClojureScript can handle equals on either side.)"
     (let [f (fn [x]
               (let [g (if #?(:clj (= x 10) :cljs (= 10 x))
                         (g/* x g/square)

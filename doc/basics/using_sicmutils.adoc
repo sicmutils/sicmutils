@@ -50,7 +50,7 @@ and hitting ``<space>`` in any block, and evaluating the following form:
 (nextjournal.env/load! :sicmutils)
 ----
 
-Any subsequent Clojurescript block will have every function in
+Any subsequent ClojureScript block will have every function in
 https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.env[``sicmutils.env``]
 available.
 

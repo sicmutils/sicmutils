@@ -2,7 +2,7 @@
 
 A Clojure(script) implementation of the
 [scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
-for math and physics investigations in the Clojure and Clojurescript languages.
+for math and physics investigations in the Clojure and ClojureScript languages.
 SICMUtils provides facilities for
 
 - [symbolic
@@ -75,7 +75,7 @@ Math works as expected (see
 for the full menu of operations), but notice that the numeric tower includes
 [complex
 numbers](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/complex),
-and proper ratios in Clojurescript:
+and proper ratios in ClojureScript:
 
 ```clojure
 (- (* 7 (/ 1 2)) 2)

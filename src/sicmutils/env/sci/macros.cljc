@@ -178,7 +178,12 @@
 (def ns-bindings
   {'pattern.rule pattern-macros
 
-   'sicmutils.env all
+   'sicmutils.env
+   (select-keys all ['literal-function
+                     'with-literal-functions
+                     'let-coordinates
+                     'using-coordinates
+                     'define-coordinates])
 
    'sicmutils.abstract.function
    (select-keys all ['with-literal-functions])

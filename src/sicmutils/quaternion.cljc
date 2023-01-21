@@ -2,7 +2,7 @@
 
 (ns sicmutils.quaternion
   "This namespace provides a number of functions and constructors for working
-  with [[Quaternion]] instances in Clojure and Clojurescript, and
+  with [[Quaternion]] instances in Clojure and ClojureScript, and
   installs [[Quaternion]] into the SICMUtils generic arithmetic system.
 
   For other numeric extensions, see [[sicmutils.ratio]], [[sicmutils.complex]]
@@ -1426,7 +1426,7 @@
   NOTE this routine uses non-generic [[clojure.core/>=]]
   and [[clojure.core/max]] internally, so if you use numeric entries (or if your
   entries simplify down to numbers), make sure that they work with these native
-  operations. No `BigInt` in Clojurescript for now, for example."
+  operations. No `BigInt` in ClojureScript for now, for example."
   [M]
   (let [[[r11 r12 r13] [r21 r22 r23] [r31 r32 r33]] M
         q0-2 (g/* quarter (g/+ 1 r11 r22 r33))

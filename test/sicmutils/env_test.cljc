@@ -49,7 +49,7 @@
        (is (= [] (ref []))))
 
      :clj
-     ;; Clojurescript doesn't have refs.
+     ;; ClojureScript doesn't have refs.
      (testing "works clojure-style"
        (let [r (ref [])
              s (ref {} :meta {:a "apple"})]

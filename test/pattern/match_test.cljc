@@ -86,7 +86,7 @@
   (testing "bind with constraint"
     (is (= {:x 6} ((m/bind :x integer?) {} 6 identity)))
 
-    ;; Clojurescript treats floats with no mantissa as integers.
+    ;; ClojureScript treats floats with no mantissa as integers.
     (let [expected #?(:clj nil
                       :cljs {:x 6.0})]
       (is (= expected ((m/bind :x integer?) {} 6.0 identity))))

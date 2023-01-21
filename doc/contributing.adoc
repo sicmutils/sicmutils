@@ -7,7 +7,7 @@ Here's a short overview. More info coming soon!
 === Developing in SICMUtils
 
 To run all tests in Clojure, you'll need to install the
-https://clojure.org/guides/install_clojure[Clojure CLI tool]. The Clojurescript
+https://clojure.org/guides/install_clojure[Clojure CLI tool]. The ClojureScript
 tests require https://nodejs.org/en/[Node.js]. If you're on a Mac, install
 https://brew.sh[Homebrew]:
 
@@ -47,9 +47,9 @@ To run the full Clojure test suite:
 clojure -P -M:test:runner
 ----
 
-=== Clojurescript Tests
+=== ClojureScript Tests
 
-We run the Clojurescript test suite and check for advanced compilation warnings
+We run the ClojureScript test suite and check for advanced compilation warnings
 using [shadow-cljs].
 
 In the ``sicmutils`` directory, run
@@ -59,7 +59,7 @@ In the ``sicmutils`` directory, run
 npm install
 ----
 
-to run the full Clojurescript test suite, call the following command (and make
+to run the full ClojureScript test suite, call the following command (and make
 sure to note any warnings):
 
 [source, bash]

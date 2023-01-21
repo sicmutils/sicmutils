@@ -21,7 +21,7 @@
   (testing "parse-complex can round-trip Complex instances. These show up as
   code snippets when you call `read-string` directly, and aren't evaluated into
   Clojure. The fork in the test here captures the different behavior that will
-  appear in evaluated Clojure, vs self-hosted Clojurescript."
+  appear in evaluated Clojure, vs self-hosted ClojureScript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
               :cljs '(sicmutils.complex/complex 1 2))
 

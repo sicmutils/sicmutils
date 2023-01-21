@@ -3,4 +3,4 @@ following for their help:
 
 @alexgian: early testing, patience, and excellent advice!
 @kloimhardt: SICM chapter 1 example notebook
-@sritchie: Clojurescript port, functional numerical implementations
+@sritchie: ClojureScript port, functional numerical implementations

@@ -5,13 +5,11 @@
   matcher combinators declared in [[pattern.match]], along with a series of
   combinators for building advanced term-rewriting systems."
   (:refer-clojure :exclude [replace while])
-  (:require #?(:clj [potemkin :refer [import-def]])
-            [pattern.consequence :as c]
+  (:require [pattern.consequence :as c]
             [pattern.match :as m]
             [pattern.syntax :as ps]
             [sicmutils.util :as u]
-            #?(:cljs
-               [sicmutils.util.def :refer [import-def]]))
+            [sicmutils.util.def :refer [import-def]])
   #?(:cljs
      (:require-macros [pattern.rule])))
 
