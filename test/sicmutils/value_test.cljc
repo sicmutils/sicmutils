@@ -67,6 +67,15 @@
 
             (is (v/identity? (v/identity-like n))))
 
+  (checking "all numbers act as hashmap keys" 100
+            [ks (gen/set sg/real {:num-elements 50})
+             vs (gen/vector sg/real 50)]
+            (let [ks (vec ks)
+                  m  (zipmap ks vs)]
+              (is (= (sort-by first (map vector ks vs))
+                     (sort-by key m))
+                  "Any numeric key works in a hash-map and round-trips.")))
+
   (testing "zero-like sticks with precision"
     (is (= 0 (v/zero-like 2)))
     (is (= 0.0 (v/zero-like 3.14))))

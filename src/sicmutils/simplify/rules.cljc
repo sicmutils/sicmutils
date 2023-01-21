@@ -1098,10 +1098,10 @@ out of the first term of the argument."}
       => (+ (* 4 (expt (cos (* ?x ??y)) 3)) (* -3 (cos (* ?x ??y))))
 
       ;; at least one f:
-      (sin (* (? ?n exact-integer>3?) ?f ??fs))
-      => (+ (* (sin (* (? #(g/- (% '?n) 1)) ?f ??fs))
+      (sin (* (? n exact-integer>3?) ?f ??fs))
+      => (+ (* (sin (* (? #(g/- (% 'n) 1)) ?f ??fs))
                (cos (* ?f ??fs)))
-            (* (cos (* (? #(g/- (% '?n) 1)) ?f ??fs))
+            (* (cos (* (? #(g/- (% 'n) 1)) ?f ??fs))
                (sin (* ?f ??fs))))
 
       ;; at least one y:
@@ -1111,9 +1111,9 @@ out of the first term of the argument."}
 
       ;; at least one f:
       (cos (* (? n exact-integer>3?) ?f ??fs))
-      => (- (* (cos (* (? #(g/- (% '?n) 1)) ?f ??fs))
+      => (- (* (cos (* (? #(g/- (% 'n) 1)) ?f ??fs))
                (cos (* ?f ??fs)))
-            (* (sin (* (? #(g/- (% '?n) 1)) ?f ??fs))
+            (* (sin (* (? #(g/- (% 'n) 1)) ?f ??fs))
                (sin (* ?f ??fs))))
 
       ;; at least one y:

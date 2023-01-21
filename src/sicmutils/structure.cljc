@@ -29,6 +29,9 @@
 (def ^:no-doc orientation->symbol
   {::up 'up ::down 'down})
 
+(def ^:no-doc symbol-set
+  #{'up 'down})
+
 (def ^:no-doc orientation->separator
   {::up "↑" ::down "_"})
 

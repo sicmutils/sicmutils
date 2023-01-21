@@ -1507,7 +1507,9 @@
 
   [[->rotation-matrix]] will still work if `q` isn't normalized; but if
   a [[Quaternion]] isn't normalized it doesn't make sense to interpret it as a
-  rotation."
+  rotation.
+
+  See https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Quaternion-derived_rotation_matrix"
   [q]
   {:pre [(quaternion? q)]}
   (let [q0 (get-r q) q1 (get-i q) q2 (get-j q) q3 (get-k q)

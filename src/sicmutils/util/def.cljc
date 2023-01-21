@@ -113,6 +113,7 @@
                            `(def ~d ~sym))]
     `(do ~@expanded-imports)))
 
+#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn careful-def
   "Given some namespace `ns`, returns a function of some binding symbol and a form
   to bind. The function returns either

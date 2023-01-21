@@ -109,7 +109,7 @@
      IEquiv
      (-equiv [this other]
        (cond (complex? other)
-             (.equals this other)
+             (.equals ^js this other)
 
              (v/real? other)
              (and (zero? (imaginary this))
@@ -140,7 +140,7 @@
   (zero? [c]
     #?(:clj (and (zero? (real c))
                  (zero? (imaginary c)))
-       :cljs (.isZero c)))
+       :cljs (.isZero ^js c)))
 
   (one? [c]
     (and (v/one? (real c))
@@ -198,7 +198,8 @@
           (g/negate z)
           z)
 
-        (v/real? z) (Math/abs z)
+        (v/real? z)
+        (Math/abs ^double (u/double z))
 
         :else (u/illegal "not supported!")))
 
@@ -259,9 +260,18 @@
 
 (defmethod g/real-part [::complex] [a] (real a))
 (defmethod g/imag-part [::complex] [a] (imaginary a))
-(defmethod g/magnitude [::complex] [^Complex a] (.abs a))
-(defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
-(defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
+
+(defmethod g/magnitude [::complex] [a]
+  #?(:clj (.abs ^Complex a)
+     :cljs (.abs ^js a)))
+
+(defmethod g/angle [::complex] [a]
+  #?(:clj (.getArgument ^Complex a)
+     :cljs (.arg ^js a)))
+
+(defmethod g/conjugate [::complex] [a]
+  #?(:clj (.conjugate ^Complex a)
+     :cljs (.conjugate ^js a)))
 
 (defmethod g/dot-product [::complex ::complex] [a b]
   (+ (* (real a) (real b))
@@ -269,8 +279,9 @@
 (defmethod g/dot-product [::complex ::v/real] [a b] (* (real a) b))
 (defmethod g/dot-product [::v/real ::complex] [a b] (* a (real b)))
 
-(defmethod v/= [::complex ::complex] [^Complex a ^Complex b]
-  (.equals a b))
+(defmethod v/= [::complex ::complex] [a b]
+  #?(:clj (.equals ^Complex a ^Complex b)
+     :cljs (.equals ^js a b)))
 
 (defmethod v/= [::complex ::v/real] [^Complex a n]
   (and (zero? (imaginary a))
@@ -280,42 +291,88 @@
   (and (zero? (imaginary a))
        (v/= n (real a))))
 
-(defmethod g/add [::complex ::complex] [^Complex a ^Complex b]
-  (.add a b))
+(defmethod g/add [::complex ::complex] [a b]
+  #?(:clj (.add ^Complex a ^Complex b)
+     :cljs (.add ^js a b)))
 
-(defmethod g/add [::complex ::v/real] [^Complex a n]
-  (.add a ^double (u/double n)))
+(defmethod g/add [::complex ::v/real] [a n]
+  #?(:clj (.add ^Complex a ^double (u/double n))
+     :cljs (.add ^js a (u/double n))))
 
-(defmethod g/add [::v/real ::complex] [n ^Complex a]
-  (.add a ^double (u/double n)))
+(defmethod g/add [::v/real ::complex] [n a]
+  #?(:clj (.add ^Complex a ^double (u/double n))
+     :cljs (.add ^js a (u/double n))))
 
-(defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
+(defmethod g/expt [::complex ::complex] [a b]
+  #?(:clj (.pow ^Complex a ^Complex b)
+     :cljs (.pow ^js a b)))
 
 (let [choices [1 I -1 -I]]
-  (defmethod g/expt [::complex ::v/real] [^Complex a n]
+  (defmethod g/expt [::complex ::v/real] [a n]
     (if (= a I)
       (choices (mod n 4))
-      (.pow a ^double (u/double n)))))
-(defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+      #?(:clj (.pow ^Complex a ^double (u/double n))
+         :cljs (.pow ^js a ^double (u/double n))))))
+
+(defmethod g/expt [::v/real ::complex] [n a]
+  #?(:clj (.pow ^Complex (complex n) ^Complex a)
+     :cljs (.pow ^js (complex n) a)))
 
 ;; Take advantage of the `expt` optimizations above for `I`.
 (defmethod g/square [::complex] [z] (g/expt z 2))
 (defmethod g/cube [::complex] [z] (g/expt z 3))
 
-(defmethod g/abs [::complex] [^Complex a] (.abs a))
-(defmethod g/exp [::complex] [^Complex a] (.exp a))
-(defmethod g/log [::complex] [^Complex a] (.log a))
-(defmethod g/sqrt [::complex] [^Complex a] (.sqrt a))
+(defmethod g/abs [::complex] [a]
+  #?(:clj (.abs ^Complex a)
+     :cljs (.abs ^js a)))
 
-(defmethod g/sin [::complex] [^Complex a] (.sin a))
-(defmethod g/cos [::complex] [^Complex a] (.cos a))
-(defmethod g/tan [::complex] [^Complex a] (.tan a))
-(defmethod g/asin [::complex] [^Complex a] (.asin a))
-(defmethod g/acos [::complex] [^Complex a] (.acos a))
-(defmethod g/atan [::complex] [^Complex a] (.atan a))
-(defmethod g/cosh [::complex] [^Complex a] (.cosh a))
-(defmethod g/sinh [::complex] [^Complex a] (.sinh a))
-(defmethod g/tanh [::complex] [^Complex a] (.tanh a))
+(defmethod g/exp [::complex] [a]
+  #?(:clj (.exp ^Complex a)
+     :cljs (.exp ^js a)))
+
+(defmethod g/log [::complex] [a]
+  #?(:clj (.log ^Complex a)
+     :cljs (.log ^js a)))
+
+(defmethod g/sqrt [::complex] [a]
+  #?(:clj (.sqrt ^Complex a)
+     :cljs (.sqrt ^js a)))
+
+(defmethod g/sin [::complex] [a]
+  #?(:clj (.sin ^Complex a)
+     :cljs (.sin ^js a)))
+
+(defmethod g/cos [::complex] [a]
+  #?(:clj (.cos ^Complex a)
+     :cljs (.cos ^js a)))
+
+(defmethod g/tan [::complex] [a]
+  #?(:clj (.tan ^Complex a)
+     :cljs (.tan ^js a)))
+
+(defmethod g/asin [::complex] [a]
+  #?(:clj (.asin ^Complex a)
+     :cljs (.asin ^js a)))
+
+(defmethod g/acos [::complex] [a]
+  #?(:clj (.acos ^Complex a)
+     :cljs (.acos ^js a)))
+
+(defmethod g/atan [::complex] [a]
+  #?(:clj (.atan ^Complex a)
+     :cljs (.atan ^js a)))
+
+(defmethod g/cosh [::complex] [a]
+  #?(:clj (.cosh ^Complex a)
+     :cljs (.cosh ^js a)))
+
+(defmethod g/sinh [::complex] [a]
+  #?(:clj (.sinh ^Complex a)
+     :cljs (.sinh ^js a)))
+
+(defmethod g/tanh [::complex] [a]
+  #?(:clj (.tanh ^Complex a)
+     :cljs (.tanh ^js a)))
 
 (defmethod g/integer-part [::complex] [a]
   (let [re (g/integer-part (real a))
@@ -342,15 +399,15 @@
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.
    (do
-     (defmethod g/cot [::complex] [^Complex a] (.cot a))
-     (defmethod g/sec [::complex] [^Complex a] (.sec a))
-     (defmethod g/csc [::complex] [^Complex a] (.csc a))
-     (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
-     (defmethod g/sech [::complex] [^Complex a] (.sech a))
-     (defmethod g/csch [::complex] [^Complex a] (.csch a))
-     (defmethod g/acosh [::complex] [^Complex a] (.acosh a))
-     (defmethod g/asinh [::complex] [^Complex a] (.asinh a))
-     (defmethod g/atanh [::complex] [^Complex a] (.atanh a))))
+     (defmethod g/cot [::complex] [a] (.cot ^js a))
+     (defmethod g/sec [::complex] [a] (.sec ^js a))
+     (defmethod g/csc [::complex] [a] (.csc ^js a))
+     (defmethod g/tanh [::complex] [a] (.tanh ^js a))
+     (defmethod g/sech [::complex] [a] (.sech ^js a))
+     (defmethod g/csch [::complex] [a] (.csch ^js a))
+     (defmethod g/acosh [::complex] [a] (.acosh ^js a))
+     (defmethod g/asinh [::complex] [a] (.asinh ^js a))
+     (defmethod g/atanh [::complex] [a] (.atanh ^js a))))
 
 ;;The remaining methods have different names in the Clojure vs JS
 ;;implementations.
@@ -387,19 +444,20 @@
 
    :cljs
    (do
-     (defmethod g/floor [::complex] [^Complex a] (.floor a))
-     (defmethod g/ceiling [::complex] [^Complex a] (.ceil a))
-     (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.sub a b))
-     (defmethod g/sub [::complex ::v/real] [^Complex a n] (.sub a (u/double n)))
-     (defmethod g/sub [::v/real ::complex] [n ^Complex a] (.add (.neg a) (u/double n)))
+     (defmethod g/floor [::complex] [a] (.floor ^js a))
+     (defmethod g/ceiling [::complex] [a] (.ceil ^js a))
+     (defmethod g/sub [::complex ::complex] [a b] (.sub ^js a b))
+     (defmethod g/sub [::complex ::v/real] [a n] (.sub ^js a (u/double n)))
+     (defmethod g/sub [::v/real ::complex] [n a] (.add ^js (.neg ^js a) (u/double n)))
 
-     (defmethod g/mul [::complex ::complex] [^Complex a ^Complex b] (.mul a b))
-     (defmethod g/mul [::complex ::v/real] [^Complex a n] (.mul a (u/double n)))
-     (defmethod g/mul [::v/real ::complex] [n ^Complex a] (.mul a (u/double n)))
+     (defmethod g/mul [::complex ::complex] [a b] (.mul ^js a b))
+     (defmethod g/mul [::complex ::v/real] [a n] (.mul ^js a (u/double n)))
+     (defmethod g/mul [::v/real ::complex] [n a] (.mul ^js a (u/double n)))
 
-     (defmethod g/div [::complex ::complex] [^Complex a ^Complex b] (.div a b))
-     (defmethod g/div [::complex ::v/real] [^Complex a n] (.div a (u/double n)))
-     (defmethod g/div [::v/real ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (u/double n)))
+     (defmethod g/div [::complex ::complex] [a b] (.div ^js a b))
+     (defmethod g/div [::complex ::v/real] [a n] (.div ^js a (u/double n)))
+     (defmethod g/div [::v/real ::complex] [n a]
+       (.mul ^js (.inverse ^js a) (u/double n)))
 
-     (defmethod g/negate [::complex] [^Complex a] (.neg a))
-     (defmethod g/invert [::complex] [^Complex a] (.inverse a))))
+     (defmethod g/negate [::complex] [a] (.neg ^js a))
+     (defmethod g/invert [::complex] [a] (.inverse ^js a))))

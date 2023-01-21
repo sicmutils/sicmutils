@@ -11,7 +11,7 @@
   dm3/stopwatch {:mvn/version "0.1.1" :exclusions [org.clojure/clojurescript]}
   hiccup/hiccup {:mvn/version "1.0.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
-  org.babashka/sci {:mvn/version "0.3.2"}
+  org.babashka/sci {:mvn/version "0.6.37"}
   potemkin/potemkin {:mvn/version "0.4.5"}}
 
  :aliases

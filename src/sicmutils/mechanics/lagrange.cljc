@@ -151,6 +151,7 @@
 ;; state space. If such a path is described in terms of generalized coordinates,
 ;; we have
 
+#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn Gamma
   "Gamma takes a path function (from time to coordinates) to a state
   function (from time to local tuple)."
