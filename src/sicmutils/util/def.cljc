@@ -2,7 +2,9 @@
 
 (ns sicmutils.util.def
   #?(:clj
-     (:import (clojure.lang Keyword RT))))
+     (:import (clojure.lang Keyword RT)))
+  #?(:cljs
+     (:require-macros [sicmutils.util.def])))
 
 (defmacro ^:no-doc fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -113,6 +115,7 @@
                            `(def ~d ~sym))]
     `(do ~@expanded-imports)))
 
+#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn careful-def
   "Given some namespace `ns`, returns a function of some binding symbol and a form
   to bind. The function returns either

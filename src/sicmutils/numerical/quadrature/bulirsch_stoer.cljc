@@ -1,7 +1,7 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numerical.quadrature.bulirsch-stoer
-  (:require [sicmutils.numerical.quadrature.common :as qc :include-macros true]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
             [sicmutils.polynomial.interpolate :as poly]

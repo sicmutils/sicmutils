@@ -3,7 +3,7 @@
 (ns sicmutils.operator
   (:refer-clojure :exclude [get identity name])
   (:require [clojure.core :as core]
-            [pattern.rule :refer [rule-simplifier] :include-macros true]
+            [pattern.rule :refer [rule-simplifier]]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]

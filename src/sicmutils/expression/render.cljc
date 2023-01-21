@@ -6,7 +6,7 @@
   (:require [clojure.set :as set]
             [clojure.string :as s]
             [clojure.zip :as z]
-            [pattern.rule :as R :refer [=>] :include-macros true]
+            [pattern.rule :as R :refer [=>]]
             [sicmutils.expression :as x]
             [sicmutils.expression.compile :as compile]
             [sicmutils.ratio :as r]

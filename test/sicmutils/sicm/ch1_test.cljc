@@ -9,8 +9,7 @@
                      Lagrange-equations
                      F->C p->r s->r ->local
                      coordinate velocity
-                     Rx Ry Rz]
-             :include-macros true]
+                     Rx Ry Rz]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.pendulum :as pendulum]
             [sicmutils.mechanics.lagrange :as L]

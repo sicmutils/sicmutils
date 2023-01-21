@@ -5,7 +5,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              :include-macros true]
-            [sicmutils.abstract.function :as f :include-macros true]
+            [sicmutils.abstract.function :as f]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * /]]

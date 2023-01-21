@@ -3,4 +3,4 @@
      (cider-default-cljs-repl . node)))
  (clojurec-mode
   . ((cider-preferred-build-tool . clojure-cli)
-     (cider-clojure-cli-aliases . ":test:dev/repl"))))
+     (cider-clojure-cli-aliases . ":test:cljs:dev/repl"))))

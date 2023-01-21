@@ -2,8 +2,7 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.rule :as pr :refer [rule-simplifier template]
-             :include-macros true]
+            [pattern.rule :as pr :refer [rule-simplifier template]]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.numbers]

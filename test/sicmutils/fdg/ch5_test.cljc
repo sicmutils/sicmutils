@@ -11,8 +11,7 @@
                                          up
                                          point chart wedge
                                          R2-rect
-                                         define-coordinates]
-             :include-macros true]
+                                         define-coordinates]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

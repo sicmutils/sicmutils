@@ -3,7 +3,7 @@
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.core :as core]
-            [pattern.rule :as r :include-macros true]
+            [pattern.rule :as r]
             [sicmutils.calculus.derivative :refer [D D-as-matrix partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [sin cos + - * /]]

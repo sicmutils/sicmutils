@@ -11,8 +11,7 @@
                                          point chart wedge
                                          R2-rect R2-polar R3-rect
                                          R1-rect S2-spherical
-                                         let-coordinates]
-             :include-macros true]
+                                         let-coordinates]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))

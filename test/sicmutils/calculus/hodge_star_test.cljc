@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.coordinate :refer [let-coordinates]
-             :include-macros true]
+            [sicmutils.calculus.coordinate :refer [let-coordinates]]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.hodge-star :as hs]

@@ -3,7 +3,7 @@
 (ns sicmutils.mechanics.routhian-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.abstract.function :as f :include-macros true]
+            [sicmutils.abstract.function :as f]
             [sicmutils.generic :as g :refer [+ - * / square]]
             [sicmutils.mechanics.routhian :as rn]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]

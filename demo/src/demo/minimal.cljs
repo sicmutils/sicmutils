@@ -2,7 +2,7 @@
   (:require
    ;; sicmutils.env has aliases for common functions. If you are using a REPL, run
    ;; `sicmutils.env/bootstrap-repl!` to pull in all the aliases into the current namespace.
-   [sicmutils.env :as e :include-macros true]))
+   [sicmutils.env :as e]))
 
 (defn output [expr]
   ;; `simplify` collapses expressions while `->infix` prints them using Unicode operators.

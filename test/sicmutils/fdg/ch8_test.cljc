@@ -9,8 +9,7 @@
                                          up
                                          point chart
                                          R2-rect R2-polar
-                                         define-coordinates]
-             :include-macros true]
+                                         define-coordinates]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))

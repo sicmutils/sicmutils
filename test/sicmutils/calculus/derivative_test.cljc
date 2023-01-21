@@ -4,7 +4,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator] :include-macros true]
-            [sicmutils.abstract.function :as af :include-macros true]
+            [sicmutils.abstract.function :as af]
             [sicmutils.abstract.number :refer [literal-number]]
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
@@ -217,7 +217,7 @@
 
 (deftest delta-eta-tests
   (af/with-literal-functions [η q f g]
-    (let [I (fn [q] (fn [t] (q t)))
+    (let [I (fn [q] q)
           F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
           q+εη (+ q (* 'ε η))

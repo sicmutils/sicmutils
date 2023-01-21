@@ -318,6 +318,9 @@
 
 #?(:cljs
    (extend-type js/BigInt
+     IHash
+     (-hash [this] (hash (.toString this 16)))
+
      IEquiv
      (-equiv [this o]
        (let [other (.valueOf o)]
@@ -338,10 +341,16 @@
    ;; that modification.
    (do
      (extend-type goog.math.Long
+       IHash
+       (-hash [this] (.hashCode this))
+
        Object
        (valueOf [this] (.toNumber this)))
 
      (extend-type goog.math.Integer
+       IHash
+       (-hash [this] (hash (.toString this 16)))
+
        Object
        (valueOf [this] (.toNumber this)))))
 

@@ -7,8 +7,9 @@
   - data structures implementing various integration intervals."
   (:refer-clojure :exclude [infinite?])
   (:require [sicmutils.util.stream :as us]
-            [taoensso.timbre :as log]))
-
+            [taoensso.timbre :as log])
+  #?(:cljs
+     (:require-macros [sicmutils.numerical.quadrature.common])))
 
 ;; This dynamic variable holds the default "roundoff cutoff" used by all
 ;; integrators to decide when to return an estimate based on a single slice, vs

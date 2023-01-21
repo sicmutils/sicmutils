@@ -9,7 +9,7 @@
   for a discussion of generic function arithmetic."
   (:refer-clojure :exclude [get get-in memoize])
   (:require [clojure.core :as core]
-            [clojure.core.match :refer [match] :include-macros true]
+            [clojure.core.match :refer [match]]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])

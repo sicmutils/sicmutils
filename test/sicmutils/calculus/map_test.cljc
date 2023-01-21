@@ -5,8 +5,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]
-             :include-macros true]
+            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as man
              :refer [R1-rect R2-rect R3-rect R3-cyl S2-spherical]]

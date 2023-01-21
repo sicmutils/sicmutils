@@ -67,6 +67,19 @@
 
             (is (v/identity? (v/identity-like n))))
 
+  (let [n 50]
+    (checking "all numbers act as hashmap keys" 100
+              [ks (gen/set sg/real {:num-elements n})
+               vs (gen/vector sg/real n)]
+              ;; NOTE that test.check seems to have a bug where it will happily
+              ;; generate a set containing 0 and (js/BigInt. 0), for example,
+              ;; without distinct-ing.
+              (let [ks (distinct (vec ks))
+                    m  (zipmap ks vs)]
+                (is (= (sort-by first v/compare (map vector ks vs))
+                       (sort-by key v/compare m))
+                    "Any numeric key works in a hash-map and round-trips."))))
+
   (testing "zero-like sticks with precision"
     (is (= 0 (v/zero-like 2)))
     (is (= 0.0 (v/zero-like 3.14))))

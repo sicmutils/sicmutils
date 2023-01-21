@@ -7,8 +7,7 @@
              :refer [+ - * / D ref compose
                      up down sin cos square
                      p->r s->m F->CT
-                     literal-function]
-             :include-macros true]
+                     literal-function]]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

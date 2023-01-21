@@ -4,6 +4,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
+                                         compose
                                          zero?
                                          up
                                          rotate-x rotate-y rotate-z

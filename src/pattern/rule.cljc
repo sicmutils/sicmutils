@@ -11,8 +11,9 @@
             [pattern.syntax :as ps]
             [sicmutils.util :as u]
             #?(:cljs
-               [sicmutils.util.def
-                :refer-macros [import-def]])))
+               [sicmutils.util.def :refer [import-def]]))
+  #?(:cljs
+     (:require-macros [pattern.rule])))
 
 ;; ## Rules
 ;;
@@ -429,7 +430,7 @@
   returning its input on a failed match."
   [the-rule expr]
   (cond (sequential? expr)
-        (let [processed (map the-rule expr)]
+        (let [processed (doall (map the-rule expr))]
           (if (= expr processed)
             expr
             (if (vector? expr)
