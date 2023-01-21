@@ -557,7 +557,7 @@
     (let [*   (d/lift-n g/* (fn [_] 1) (fn [_ y] y) (fn [x _] x))
           Df7 (derivative
                (fn x**7 [x] (* x x x x x x x)))
-          Df1 (derivative (fn [x] (* x)))
+          Df1 (derivative *)
           Df0 (derivative (fn [_] (*)))]
       (is (v/= '(* 7 (expt x 6))
                (g/simplify (Df7 'x)))

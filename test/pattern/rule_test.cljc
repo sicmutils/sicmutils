@@ -38,6 +38,7 @@
             {'?x 1 '?y 2 'y 3}))
         "consequence can splice in a matching symbol")))
 
+#_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (deftest template-tests
   ;; `f` is here to check the linter.
   (let [f identity]

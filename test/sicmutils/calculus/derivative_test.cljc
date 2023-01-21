@@ -217,7 +217,7 @@
 
 (deftest delta-eta-tests
   (af/with-literal-functions [η q f g]
-    (let [I (fn [q] (fn [t] (q t)))
+    (let [I (fn [q] q)
           F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
           q+εη (+ q (* 'ε η))
