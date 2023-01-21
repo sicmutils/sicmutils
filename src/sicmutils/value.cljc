@@ -317,7 +317,12 @@
            (= this (.valueOf other)))))))
 
 #?(:cljs
+   ;; TODO get this in??
    (extend-type js/BigInt
+     IHash
+     (-hash
+       [this] (hash (.toString this 16)))
+
      IEquiv
      (-equiv [this o]
        (let [other (.valueOf o)]

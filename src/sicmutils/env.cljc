@@ -83,7 +83,9 @@
                       :refer-macros [import-def import-vars]])
             [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:cljs
+     (:require-macros [sicmutils.env])))
 
 (defmacro bootstrap-repl!
   "Bootstraps a repl or Clojure namespace by requiring all public vars

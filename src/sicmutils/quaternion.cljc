@@ -1415,6 +1415,10 @@
 
 (def ^:private quarter (g// 1 4))
 
+;; TODO can we revise on this here??
+;; https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+;; I think we probably can...
+
 (defn from-rotation-matrix
   "Given an orthogonal 3x3 matrix M representing a rotation in 3-space, returns
   the unit quaternion that corresponds to the same transformation.
@@ -1507,7 +1511,9 @@
 
   [[->rotation-matrix]] will still work if `q` isn't normalized; but if
   a [[Quaternion]] isn't normalized it doesn't make sense to interpret it as a
-  rotation."
+  rotation.
+
+  See https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation#Quaternion-derived_rotation_matrix"
   [q]
   {:pre [(quaternion? q)]}
   (let [q0 (get-r q) q1 (get-i q) q2 (get-j q) q3 (get-k q)
