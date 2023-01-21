@@ -72,8 +72,8 @@
              vs (gen/vector sg/real 50)]
             (let [ks (vec ks)
                   m  (zipmap ks vs)]
-              (is (= (sort-by first (map vector ks vs))
-                     (sort-by key m))
+              (is (= (sort-by first v/compare (map vector ks vs))
+                     (sort-by key v/compare m))
                   "Any numeric key works in a hash-map and round-trips.")))
 
   (testing "zero-like sticks with precision"
