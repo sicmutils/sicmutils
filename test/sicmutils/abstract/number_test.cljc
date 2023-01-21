@@ -5,7 +5,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test
              :refer [checking] :include-macros true]
-            [pattern.rule :as rule :refer [=>] :include-macros true]
+            [pattern.rule :as rule :refer [=>]]
             [same :refer [ish?]]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]

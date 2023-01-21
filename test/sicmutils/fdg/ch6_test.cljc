@@ -10,8 +10,7 @@
                                          point chart
                                          R1-rect R2-rect R3-rect
                                          S2-spherical
-                                         let-coordinates]
-             :include-macros true]
+                                         let-coordinates]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

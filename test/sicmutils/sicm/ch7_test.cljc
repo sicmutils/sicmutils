@@ -7,8 +7,7 @@
              :refer [+ - * = D I simplify compose
                      literal-function
                      up down
-                     sin cos square cube exp]
-             :include-macros true]
+                     sin cos square cube exp]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :refer [within]]))
 

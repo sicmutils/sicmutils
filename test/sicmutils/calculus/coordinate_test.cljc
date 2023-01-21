@@ -4,10 +4,11 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.coordinate :as c
-             #?(:clj :refer :cljs :refer-macros) [let-coordinates
-                                                  using-coordinates]]
-            [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar
-                                                       R3-rect R3-cyl]]
+             :refer [let-coordinates
+                     using-coordinates]]
+            [sicmutils.calculus.manifold :as m
+             :refer [R2-rect R2-polar
+                     R3-rect R3-cyl]]
             [sicmutils.function :refer [compose]]
             [sicmutils.generic :as g :refer [+ * /]]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]

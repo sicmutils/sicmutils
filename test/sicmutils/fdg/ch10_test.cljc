@@ -9,8 +9,7 @@
                                          wedge
                                          down up
                                          point
-                                         define-coordinates]
-             :include-macros true]
+                                         define-coordinates]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 

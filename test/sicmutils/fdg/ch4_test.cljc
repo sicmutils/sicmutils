@@ -12,8 +12,7 @@
                                          point chart
                                          R2-rect R2-polar R3-rect
                                          Euler-angles
-                                         let-coordinates]
-             :include-macros true]
+                                         let-coordinates]]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-z-matrix]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

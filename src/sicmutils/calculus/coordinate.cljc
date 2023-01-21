@@ -6,7 +6,9 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.util.def :as ud]))
+            [sicmutils.util.def :as ud])
+  #?(:cljs
+     (:require-macros [sicmutils.calculus.coordinate])))
 
 (defn coordinate-functions
   "Returns a structure similar to the [[manifold/coordinate-prototype]] of

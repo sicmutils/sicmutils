@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ zero? up down literal-function]
-             :include-macros true]
+             :refer [+ zero? up down literal-function]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.top :as top]
             [sicmutils.mechanics.hamilton :as H]

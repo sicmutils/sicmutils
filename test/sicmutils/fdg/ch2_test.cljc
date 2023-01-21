@@ -10,8 +10,7 @@
                                          up cos square cube sqrt atan
                                          point chart
                                          S2-spherical S2-Riemann
-                                         define-coordinates]
-             :include-macros true]
+                                         define-coordinates]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

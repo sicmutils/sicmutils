@@ -17,8 +17,7 @@
   (:refer-clojure :exclude [even? odd?])
   (:require [clojure.set :as cs]
             [pattern.match :as pm]
-            [pattern.rule :as r :refer [=> ruleset rule-simplifier]
-             :include-macros true]
+            [pattern.rule :as r :refer [=> ruleset rule-simplifier]]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]

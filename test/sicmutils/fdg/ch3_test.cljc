@@ -10,8 +10,7 @@
                                          up down
                                          square exp
                                          point chart
-                                         define-coordinates]
-             :include-macros true]
+                                         define-coordinates]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 

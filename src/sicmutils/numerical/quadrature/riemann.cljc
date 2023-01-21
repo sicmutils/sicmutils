@@ -1,7 +1,7 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numerical.quadrature.riemann
-  (:require [sicmutils.numerical.quadrature.common :as qc :include-macros true]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.polynomial.richardson :as pr]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))

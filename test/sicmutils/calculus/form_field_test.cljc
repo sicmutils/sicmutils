@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.abstract.function :as af]
-            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]
-             :include-macros true]
+            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.vector-field :as vf]

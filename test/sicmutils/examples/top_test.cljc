@@ -3,8 +3,7 @@
 (ns sicmutils.examples.top-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [deftest is use-fixtures]]
-            [sicmutils.env :as e :refer [up literal-function]
-             :include-macros true]
+            [sicmutils.env :as e :refer [up literal-function]]
             [sicmutils.examples.top :as t]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

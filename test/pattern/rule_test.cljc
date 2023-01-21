@@ -6,7 +6,7 @@
             [com.gfredericks.test.chuck.clojure-test
              :refer [checking] :include-macros true]
             [pattern.match :as m]
-            [pattern.rule :as r :refer [=> !=>] :include-macros true]
+            [pattern.rule :as r :refer [=> !=>]]
             [sicmutils.ratio]))
 
 (deftest consequence-tests

@@ -1,7 +1,7 @@
 #_"SPDX-License-Identifier: GPL-3.0"
 
 (ns sicmutils.numerical.quadrature.boole
-  (:require [sicmutils.numerical.quadrature.common :as qc :include-macros true]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.polynomial.richardson :as pr]))
 

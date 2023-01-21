@@ -6,9 +6,7 @@
             [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.connection :as conn]
-            [sicmutils.calculus.coordinate :as c
-             :refer [let-coordinates]
-             :include-macros true]
+            [sicmutils.calculus.coordinate :as c :refer [let-coordinates]]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]

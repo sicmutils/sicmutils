@@ -13,8 +13,7 @@
                                          orientation up down
                                          ->infix
                                          cross-product
-                                         cot csc sec]
-             :include-macros true]
+                                         cot csc sec]]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
             [sicmutils.value :as v]))

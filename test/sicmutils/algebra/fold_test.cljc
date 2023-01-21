@@ -5,7 +5,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test
              :refer [checking] :include-macros true]
-            [sicmutils.algebra.fold :as af :include-macros true]
+            [sicmutils.algebra.fold :as af]
             [sicmutils.numbers]))
 
 (deftest fold-tests
