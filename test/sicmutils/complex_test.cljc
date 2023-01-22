@@ -3,8 +3,7 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
-            [com.gfredericks.test.chuck.clojure-test
-             :refer [checking] :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.complex :as c]
             [sicmutils.generators :as sg]

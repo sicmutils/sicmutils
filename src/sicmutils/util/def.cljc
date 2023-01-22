@@ -102,17 +102,14 @@
       (let [vr (resolve sym)
             m (meta vr)
             n (or name (:name m))
-            arglists (:arglists m)
             protocol (:protocol m)]
         (when-not vr
           (throw (IllegalArgumentException. (str "Don't recognize " sym))))
         (when (:macro m)
           (throw (IllegalArgumentException.
                   (str "Calling import-fn on a macro: " sym))))
-
         `(do
-           (def ~(with-meta n {:arglists arglists
-                               :protocol protocol})
+           (def ~(with-meta n {:protocol protocol})
              (deref ~vr))
            (alter-meta! (var ~n) merge (dissoc (meta ~vr) :name))
            (link-vars ~vr (var ~n))
@@ -210,30 +207,30 @@
      `(do ~@expanded-imports))
 
    :clj
-   (let [unravel (fn unravel [x]
-                   (if (sequential? x)
-                     (->> x
-                          rest
-                          (mapcat unravel)
-                          (map
-                           #(symbol
-                             (str (first x)
-                                  (when-let [n (namespace %)]
-                                    (str "." n)))
-                             (name %))))
-                     [x]))
-         imports (mapcat unravel imports)]
-     `(do
-        ~@(map
-           (fn [sym]
-             (let [vr (resolve sym)
-                   m (meta vr)]
-               (cond
-                 (nil? vr)     `(throw (ex-info (format "`%s` does not exist" '~sym) {}))
-                 (:macro m)    `(import-macro ~sym)
-                 (:arglists m) `(import-fn ~sym)
-                 :else         `(import-def ~sym))))
-           imports)))))
+   (letfn [(unravel [x]
+             (if (sequential? x)
+               (->> x
+                    rest
+                    (mapcat unravel)
+                    (map
+                     #(symbol
+                       (str (first x)
+                            (when-let [n (namespace %)]
+                              (str "." n)))
+                       (name %))))
+               [x]))]
+     (let [imports (mapcat unravel imports)]
+       `(do
+          ~@(map
+             (fn [sym]
+               (let [vr (resolve sym)
+                     m (meta vr)]
+                 (cond
+                   (nil? vr)     `(throw (ex-info (format "`%s` does not exist" '~sym) {}))
+                   (:macro m)    `(import-macro ~sym)
+                   (:arglists m) `(import-fn ~sym)
+                   :else         `(import-def ~sym))))
+             imports))))))
 
 #_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn careful-def

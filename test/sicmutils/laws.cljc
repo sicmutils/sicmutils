@@ -5,8 +5,7 @@
   that implement the sicmutils.generic operations, and the additive and
   multiplicative options in sicmutils.value.Value."
   (:require [clojure.test :refer [is]]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [same :refer [ish?]]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))

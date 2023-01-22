@@ -64,7 +64,7 @@ sure to note any warnings):
 
 [source, bash]
 ----
-npm run-script test
+npm run test
 ----
 
 The following command will start a process that recompiles the project when any

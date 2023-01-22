@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [-]]
