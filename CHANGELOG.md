@@ -2,6 +2,22 @@
 
 ## unreleased
 
+- #532:
+
+  - Removes the `potemkin` dependency by importing only what we need directly
+    into `sicmutils.util.def`. This makes sense since our versions add a `fork`
+    call so that they work for ClojureScript as well.
+
+  - Moves all `examples` into the tests so that we don't ship them with the
+    library. These will eventually be converted to Clerk notebooks.
+
+  - Removes the `hiccup` dependency.
+
+  - Upgrades `test.chuck` and removes all `:include-macros true` calls for that
+    library. Only `same/ish` requires them now!
+
+  - Capitalizes the "Script" in ClojureScript everywhere it appears.
+
 - #531:
 
   - Fixes a typo in one of the rules in
