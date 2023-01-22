@@ -73,12 +73,55 @@
        (defmethod ~f [~kwd-klass] [k#]
          (~attr k#)))))
 
+#?(:clj
+   (defn link-vars
+     "Makes sure that all changes to `src` are reflected in `dst`.
+
+  NOTE that [[link-vars]] comes
+  from [`potemkin.namespaces`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj);
+  we import it here to avoid importing the full library."
+     [src dst]
+     (add-watch
+      src dst
+      (fn [_ src _old _new]
+        (alter-var-root dst (constantly @src))
+        (alter-meta! dst merge (dissoc (meta src) :name))))))
+
+#?(:clj
+   (defmacro import-macro
+     "Given a macro in another namespace, defines a macro with the same name in
+   the current namespace. Argument lists, doc-strings, and original line-numbers
+   are preserved.
+
+  NOTE that [[import-macro]] comes
+  from [`potemkin.namespaces`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj);
+  we import it here to avoid importing the full library."
+     ([sym]
+      `(import-macro ~sym nil))
+     ([sym name]
+      (let [vr (resolve sym)
+            m (meta vr)
+            n (or name (with-meta (:name m) {}))]
+        (when-not vr
+          (throw (IllegalArgumentException. (str "Don't recognize " sym))))
+        (when-not (:macro m)
+          (throw (IllegalArgumentException.
+                  (str "Calling import-macro on a non-macro: " sym))))
+        `(do
+           (def ~n ~(resolve sym))
+           (alter-meta! (var ~n) merge (dissoc (meta ~vr) :name))
+           (.setMacro (var ~n))
+           (link-vars ~vr (var ~n))
+           ~vr)))))
+
 (defmacro import-def
   "Given a regular def'd var from another namespace, defined a new var with the
    same name in the current namespace.
 
-  This macro is modeled after `potemkin.namespaces/import-def` but meant to be
-  usable from Clojurescript. In Clojurescript, it's not possible to:
+  NOTE that this macro is taken
+  from [`potemkin.namespaces/import-def`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj)
+  with an additional internal branch for ClojureScript support. but meant to be
+  usable from ClojureScript. In ClojureScript, it's not possible to:
 
   - alter the metadata of a var after definition
   - call `resolve` at macro-time
@@ -88,16 +131,37 @@
   ([sym]
    `(import-def ~sym nil))
   ([sym var-name]
-   (let [n (or var-name (symbol (name sym)))]
-     `(def ~n ~sym))))
+   (fork
+    :cljs
+    (let [n (or var-name (symbol (name sym)))]
+      `(def ~n ~sym))
+
+    :clj
+    (let [vr (resolve sym)
+          m  (meta vr)
+          n  (or var-name (:name m))
+          n  (with-meta n (if (:dynamic m) {:dynamic true} {}))]
+      (when-not vr
+        (throw (IllegalArgumentException. (str "Don't recognize " sym))))
+      (when (:macro m)
+        (throw (IllegalArgumentException.
+                (str "Calling import-def on a macro: " sym))))
+      `(do
+         (def ~n @~vr)
+         (alter-meta! (var ~n) merge (dissoc (meta ~vr) :name))
+         (link-vars ~vr (var ~n))
+         ~vr)))))
 
 (defmacro import-vars
-  "import multiple defs from multiple namespaces. works for vars and fns. not
-  macros.
+  "import multiple defs from multiple namespaces. works for vars and fns, macros
+  only work in Clojure.
 
-  [[import-vars]] has the same syntax as `potemkin.namespaces/import-vars`:
+  NOTE that [[import-vars]] is a copy
+  of [`potemkin.namespaces/import-vars`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj),
+  with an additional fork for ClojureScript support. The syntax is the same as
+  Potemkin's macro:
 
-   ```clojure
+   ```clj
   (import-vars
      [m.n.ns1 a b]
      [x.y.ns2 d e f]) =>
@@ -108,12 +172,39 @@
     ... etc
   ```"
   [& imports]
-  (let [expanded-imports (for [[from-ns & defs] imports
-                               d defs
-                               :let [sym (symbol (str from-ns)
-                                                 (str d))]]
-                           `(def ~d ~sym))]
-    `(do ~@expanded-imports)))
+  (fork
+   :cljs
+   `(do
+      ~@(for [[from-ns & defs] imports
+              d defs
+              :let [sym (symbol (str from-ns)
+                                (str d))]]
+          `(def ~d ~sym)))
+
+   :clj
+   (letfn [(unravel [x]
+             (if (sequential? x)
+               (->> x
+                    rest
+                    (mapcat unravel)
+                    (map
+                     #(symbol
+                       (str (first x)
+                            (when-let [n (namespace %)]
+                              (str "." n)))
+                       (name %))))
+               [x]))]
+     (let [imports (mapcat unravel imports)]
+       `(do
+          ~@(map
+             (fn [sym]
+               (let [vr (resolve sym)
+                     m  (meta vr)]
+                 (cond
+                   (nil? vr)     `(throw (ex-info (format "`%s` does not exist" '~sym) {}))
+                   (:macro m)    `(import-macro ~sym)
+                   :else         `(import-def ~sym))))
+             imports))))))
 
 #_{:clj-kondo/ignore [:redundant-fn-wrapper]}
 (defn careful-def
@@ -129,7 +220,7 @@
   `clojure.core`. Symbols bound with `def` that are already imported from other
   namespaces cause an exception, hence this more careful workaround.
 
-  (In Clojurescript, only forms like `(def ~sym ~form)` are emitted, since the
+  (In ClojureScript, only forms like `(def ~sym ~form)` are emitted, since the
   compiler does not currently error in case 2 and already handles emitting the
   warning for us.)"
   [#?(:clj ns :cljs _)]

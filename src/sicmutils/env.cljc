@@ -26,7 +26,6 @@
              infinite? abs
              ref partial =])
   (:require [clojure.core :as core]
-            #?(:clj [potemkin :refer [import-def import-vars]])
             [sicmutils.abstract.function :as af]
             [sicmutils.abstract.number]
             [sicmutils.algebra.fold]
@@ -79,7 +78,7 @@
             [sicmutils.structure :as structure]
             [sicmutils.util]
             [sicmutils.util.aggregate]
-            #?(:cljs [sicmutils.util.def :refer [import-def import-vars]])
+            [sicmutils.util.def :refer [import-def import-vars]]
             [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v])

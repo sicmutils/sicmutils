@@ -1169,7 +1169,7 @@
 
 #?(:cljs
    (defn- ->big
-     "Clojurescript multiplication doesn't autopromote; we expect large values
+     "ClojureScript multiplication doesn't autopromote; we expect large values
      in [[pseudo-remainder]], and use [[->big]] to pre-cast the factors
      to [[util/bigint]] so they don't overflow."
      [c]

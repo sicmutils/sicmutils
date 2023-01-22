@@ -195,7 +195,7 @@
 (defmethod g/remainder [::v/real ::v/real] [a b] (rem a b))
 (defmethod g/modulo [::v/real ::v/real] [a b] (mod a b))
 
-;; This section defines methods that act differently between Clojurescript and
+;; This section defines methods that act differently between ClojureScript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
 ;; type system.
 #?(:clj
@@ -274,7 +274,7 @@
          a
          (r/rationalize 1 a)))))
 
-;; Clojurescript and Javascript have a number of numeric types available that
+;; ClojureScript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
 ;; implementations.
 #?(:cljs

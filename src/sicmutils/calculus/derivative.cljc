@@ -194,7 +194,7 @@
 ;; ## Protocol Implementation
 ;;
 ;; The implementation for functions handles functions, multimethods, and, in
-;; Clojurescript, [[MetaFn]] instances. Metadata in the original function is
+;; ClojureScript, [[MetaFn]] instances. Metadata in the original function is
 ;; preserved through tag replacement and extraction.
 
 (extend-protocol d/IPerturbed

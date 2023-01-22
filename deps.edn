@@ -6,10 +6,8 @@
   org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
   com.taoensso/timbre {:mvn/version "6.0.4"}
   dm3/stopwatch {:mvn/version "0.1.1" :exclusions [org.clojure/clojurescript]}
-  hiccup/hiccup {:mvn/version "1.0.5"}
   org.apache.commons/commons-math3 {:mvn/version "3.6.1"}
-  org.babashka/sci {:mvn/version "0.6.37"}
-  potemkin/potemkin {:mvn/version "0.4.5"}}
+  org.babashka/sci {:mvn/version "0.6.37"}}
 
  :aliases
  {:dev {:extra-paths ["dev"]
@@ -35,13 +33,14 @@
   ;; dependencies needed to run the tests.
   {:extra-paths ["test"]
    :extra-deps
-   {io.github.cognitect-labs/test-runner
+   {com.gfredericks/test.chuck {:mvn/version "0.2.14"}
+    io.github.cognitect-labs/test-runner
     {:git/tag "v0.5.0"
      :git/sha "b3fd0d2"}
     io.github.nextjournal/clerk
     {:git/sha "d08c26043efe19a92fe33dd9eb4499e304e4cff7"}
     org.clojure/test.check {:mvn/version "1.1.1"}
-    com.gfredericks/test.chuck {:mvn/version "0.2.13"}
+    hiccup/hiccup {:mvn/version "1.0.5"}
     same/ish {:mvn/version "0.1.4"}}}
 
   :build

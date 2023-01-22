@@ -7,9 +7,6 @@
 
  :output {:exclude-files ["src/data_readers.clj"]}
 
- :hooks
- {:analyze-call {potemkin/import-def
-                 hooks.sicmutils.util.def/import-def}}
  :linters
  {:unsorted-required-namespaces {:level :warning}
   :redundant-fn-wrapper {:level :warning}

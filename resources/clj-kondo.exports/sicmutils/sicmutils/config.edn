@@ -46,6 +46,7 @@
    hooks.sicmutils.abstract.function/with-literal-functions
 
    sicmutils.util.def/import-def hooks.sicmutils.util.def/import-def
+   sicmutils.util.def/import-macro hooks.sicmutils.util.def/import-def
 
    pattern.rule/consequence hooks.pattern.rule/consequence
    pattern.rule/pattern hooks.pattern.rule/pattern

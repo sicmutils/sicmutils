@@ -385,7 +385,7 @@
                :else (throw (js/Error. (str "Cannot compare " this " to " o))))))))
 
 #?(:cljs
-   ;; Clojurescript-specific implementations of Value.
+   ;; ClojureScript-specific implementations of Value.
    (let [big-zero (js/BigInt 0)
          big-one (js/BigInt 1)]
 

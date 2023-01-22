@@ -3,8 +3,7 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
-            [com.gfredericks.test.chuck.clojure-test
-             :refer [checking] :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [same :refer [ish? with-comparator] :include-macros true]
             [sicmutils.complex :as c]
             [sicmutils.generators :as sg]
@@ -21,7 +20,7 @@
   (testing "parse-complex can round-trip Complex instances. These show up as
   code snippets when you call `read-string` directly, and aren't evaluated into
   Clojure. The fork in the test here captures the different behavior that will
-  appear in evaluated Clojure, vs self-hosted Clojurescript."
+  appear in evaluated Clojure, vs self-hosted ClojureScript."
     (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
               :cljs '(sicmutils.complex/complex 1 2))
 

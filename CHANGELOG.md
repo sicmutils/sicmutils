@@ -2,6 +2,22 @@
 
 ## unreleased
 
+- #532:
+
+  - Removes the `potemkin` dependency by importing only what we need directly
+    into `sicmutils.util.def`. This makes sense since our versions add a `fork`
+    call so that they work for ClojureScript as well.
+
+  - Moves all `examples` into the tests so that we don't ship them with the
+    library. These will eventually be converted to Clerk notebooks.
+
+  - Removes the `hiccup` dependency.
+
+  - Upgrades `test.chuck` and removes all `:include-macros true` calls for that
+    library. Only `same/ish` requires them now!
+
+  - Capitalizes the "Script" in ClojureScript everywhere it appears.
+
 - #531:
 
   - Fixes a typo in one of the rules in
@@ -702,7 +718,7 @@
     `sicmutils.algebra.fold/kbk-n` in the SCI environment (you'll need to turn
     on access to `js/Math` or `java.lang.Math`).
 
-  - Fixed a type inference warning in Clojurescript in `sicmutils.complex`.
+  - Fixed a type inference warning in ClojureScript in `sicmutils.complex`.
 
   - Added support for `sicmutils.util.def` and its `fork` macro to the default
     SCI environment provided by SICMUtils. Helpful for macro-writing!
@@ -873,7 +889,7 @@
     permutation relative to its sorted version.
 
   - `sicmutils.complex/complex` can now take a single string argument in both
-    Clojure and Clojurescript.
+    Clojure and ClojureScript.
 
   - Expands the complex number literal parser to take these forms, in addition
     to the previously-supported string argument:
@@ -914,7 +930,7 @@
   - Converts many of the `sicmutils.fdg` test namespaces to use the new
     `define-coordinates` macro, making for a presentation closer to the book's.
 
-  - Fixes a Clojurescript warning in `sicmutils.util` warning due to
+  - Fixes a ClojureScript warning in `sicmutils.util` warning due to
     redefinition of `clojure.core/uuid`
 
 - #386:
@@ -1029,7 +1045,7 @@ The new `cljsjs` dependency has code compatible with advanced compilation.
 
 ## 0.19.1
 
-This is an incremental bugfix release to get Clojurescript advanced compilation
+This is an incremental bugfix release to get ClojureScript advanced compilation
 into shape.
 
 - #371:
@@ -1158,7 +1174,7 @@ for the detailed notes, and enjoy version 0.19.0!
 
   - `v/kind` now works for `sorted-map` instances.
 
-  - GCD in Clojurescript is now fast and efficient between all combinations of
+  - GCD in ClojureScript is now fast and efficient between all combinations of
     `js/BigInt` and `js/Number`, and in Clojure between all combinations of
     `clojure.lang.BigInt`, `BigInteger`, `Long` and `Integer`.
 
@@ -1328,13 +1344,13 @@ for the detailed notes, and enjoy version 0.19.0!
     `sicmutils.abstract.function`, making the Bianchi identity benchmarks run
     40% faster.
 
-  - In Clojurescript, `Range` instances now implement `sicmutils.value.Value`
+  - In ClojureScript, `Range` instances now implement `sicmutils.value.Value`
     and `sicmutils.differential.IPerturbed`, allowing them to be returned from
     derivative-taking functions
 
   - Major, unexpected performance improvement - it turns out
     `sicmutils.value/number?` was quite slow in Clojure (less so in
-    Clojurescript). Changing this function from an `isa?` check to a series of
+    ClojureScript). Changing this function from an `isa?` check to a series of
     explicit `instance?` checks cut the build time in half. This makes the
     numeric tower less extensible... but it wasn't terribly extensible to start
     with, and needs some attention to make it so. A big win!
@@ -1415,8 +1431,8 @@ for the detailed notes, and enjoy version 0.19.0!
 
 - #358:
 
-  - Converts the Clojurescript test build and REPL command from `lein-cljsbuild`
-    to `shadow-cljs`. This enables more formerly-slow tests for Clojurescript;
+  - Converts the ClojureScript test build and REPL command from `lein-cljsbuild`
+    to `shadow-cljs`. This enables more formerly-slow tests for ClojureScript;
     these are now fast enough to run, thanks to the performance improvements
     described below.
 
@@ -1435,7 +1451,7 @@ for the detailed notes, and enjoy version 0.19.0!
     failure.
 
   - fixed a heisenbug in `sicmutils.expression.analyze/make-analyzer` where, in
-    Clojurescript, using expressions containing a `js/BigInt` as a hashmap key
+    ClojureScript, using expressions containing a `js/BigInt` as a hashmap key
     caused certain simplifications to fail. (This is vague, but the bug was
     _really_ subtle.) The fix was to make sure we freeze keys in the symbol
     cache. This is now noted in the function body.
@@ -1849,12 +1865,12 @@ Enjoy the release!
       this operation
 
 - #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
-  Clojurescript only. This is available natively in Clojure.
+  ClojureScript only. This is available natively in Clojure.
 
 - #308 and #310 add:
 
   - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
-    aliased into `sicmutils.env` in Clojurescript. These are available natively
+    aliased into `sicmutils.env` in ClojureScript. These are available natively
     in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
     both platforms.
 
@@ -2163,7 +2179,7 @@ Detailed release notes:
 - #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
   and other `Var` metadata, thanks to
   [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
-  doesn't quite work in Clojurescript since we can't use `resolve` inside of a
+  doesn't quite work in ClojureScript since we can't use `resolve` inside of a
   macro (special form!).
 
 - Add a proper namespace to `demo.clj`, to make it easier to use outside of
@@ -2189,7 +2205,7 @@ Detailed release notes:
 ### Behavior changes, bug fixes
 
 - In JVM Clojure (as of #298), `sicmutils.expression.compile` defaults to
-  `clojure.core/eval` to compile functions, while Clojurescript defaults to
+  `clojure.core/eval` to compile functions, while ClojureScript defaults to
   [SCI](https://github.com/borkdude/sci). The performance is much faster for
   numerical routines and worth the slightly different default behavior.
 
@@ -2243,7 +2259,7 @@ like `Operator`, `Series`, `PowerSeries` and `Structure`. The system is now
 fully extensible, so if you want to differentiate functions that return custom
 records or Java collections, it's now no problem.
 
-SICMUtils can now differentiate functions in Clojurescript that use comparison
+SICMUtils can now differentiate functions in ClojureScript that use comparison
 operations like `<`, `=`, `<=` and friends. Clojure can't quite do this yet, but
 you can differentiate through `v/compare` and `v/=` calls.
 
@@ -2408,9 +2424,9 @@ On to the detailed release notes:
 
 - new `sicmutils.value/compare` function exposed in `sicmutils.env` returns a
   valid comparison bit between native numbers and numbers wrapped in
-  `Differential` or `Expression` in both JVM Clojure and Clojurescript (#236).
+  `Differential` or `Expression` in both JVM Clojure and ClojureScript (#236).
   The behavior matches `clojure.core/compare` for all reals on the JVM; it
-  doesn't in Clojurescript because native `compare` can't handle
+  doesn't in ClojureScript because native `compare` can't handle
   `goog.math.{Long,Integer}` or `js/BigInt`.
 
 ### Operator
@@ -2584,7 +2600,7 @@ On to the detailed release notes:
 
 ### Miscellaneous
 
-- expose `bootstrap-repl!` to Clojurescript, so that this is available in
+- expose `bootstrap-repl!` to ClojureScript, so that this is available in
   self-hosted CLJS (https://github.com/sicmutils/sicmutils/pull/157)
 
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
@@ -2626,12 +2642,12 @@ On to the detailed release notes:
 - added `sicmutils.value/sqrt-machine-epsilon`
   ([#170](https://github.com/sicmutils/sicmutils/pull/170))
 
-- fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
+- fixed issues in `function.cljc` and `operator.cljc` where the ClojureScript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
   ([#169](https://github.com/sicmutils/sicmutils/pull/169))
 
-- `g/sqrt` now maintains precision with Clojurescript's rational numbers.
+- `g/sqrt` now maintains precision with ClojureScript's rational numbers.
   `(g/sqrt #sicm/ratio 9/4)` for example returns `#sicm/ratio 3/2`.
   ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
@@ -2964,7 +2980,7 @@ I can now make some comments that clear up my former misunderstandings:
 
 
 - If you want to compare literal numbers and an expression like
-  `(an/literal-number 12)`, use `v/=`. In Clojurescript, this will work with
+  `(an/literal-number 12)`, use `v/=`. In ClojureScript, this will work with
   the built in `=` as well, since equality is implemented with a protocol that
   we can extend. For example:
 
@@ -3075,12 +3091,12 @@ the three).
 
 ## 0.13.0
 
-The main announcement for this release is _Clojurescript Support!_. Implementing
+The main announcement for this release is _ClojureScript Support!_. Implementing
 this resulted in a few upgrades along the way:
 
 - more powerful numerics, specifically `definite-integral` and native
   minimization routines
-- a generic numeric tower for Clojurescript
+- a generic numeric tower for ClojureScript
 - Many more tests! The test coverage was great before, and it's stayed high as
   we've added new implementations.
 - added explicit code coverage metrics via Codecov: [![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
@@ -3100,13 +3116,13 @@ Here are more explicit details on the release.
   but expands each term in order `n`.
 - many, many more tests!
 
-### Clojurescript Support
+### ClojureScript Support
 
-Full conversion of SICMUtils to Clojurescript. All functionality from v0.12.1
-now works in both Clojure and Clojurescript!
+Full conversion of SICMUtils to ClojureScript. All functionality from v0.12.1
+now works in both Clojure and ClojureScript!
 
 Most of the conversion was straightforward. The major missing piece was a
-numeric tower implementation for Clojurescript (complex numbers, ratios) that
+numeric tower implementation for ClojureScript (complex numbers, ratios) that
 bring it up to parity with Clojure:
 
 - Add the `bigfraction` implementation from
@@ -3176,12 +3192,12 @@ provides 3 new data reader literals:
 
 Use this with a ratio literal, like `#sicm/ratio 1/2`, or with a string like
 `#sicm/ratio "1/4"`. If the denominator is `1` this literal will return a
-`js/BigInt` in Clojurescript, or a Long in Clojure.
+`js/BigInt` in ClojureScript, or a Long in Clojure.
 
 - `#sicm/bigint`
 
 Use with a number literal, like, `#sicm/bigint 10`, or a string like
-`#sicm/bigint "10000012"` to generate a `js/BigInt` in Clojurescript, or a
+`#sicm/bigint "10000012"` to generate a `js/BigInt` in ClojureScript, or a
 `clojure.lang.BigInt` in Clojure.
 
 - `#sicm/complex`

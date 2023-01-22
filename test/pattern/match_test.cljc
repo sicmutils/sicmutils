@@ -3,8 +3,7 @@
 (ns pattern.match-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test
-             :refer [checking] :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [pattern.match :as m]
             [pattern.syntax :as ps]))
 
@@ -86,7 +85,7 @@
   (testing "bind with constraint"
     (is (= {:x 6} ((m/bind :x integer?) {} 6 identity)))
 
-    ;; Clojurescript treats floats with no mantissa as integers.
+    ;; ClojureScript treats floats with no mantissa as integers.
     (let [expected #?(:clj nil
                       :cljs {:x 6.0})]
       (is (= expected ((m/bind :x integer?) {} 6.0 identity))))

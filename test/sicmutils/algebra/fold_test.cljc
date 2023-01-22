@@ -3,8 +3,7 @@
 (ns sicmutils.algebra.fold-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test
-             :refer [checking] :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [sicmutils.algebra.fold :as af]
             [sicmutils.numbers]))
 

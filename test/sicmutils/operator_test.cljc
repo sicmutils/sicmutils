@@ -4,8 +4,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             :include-macros true]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f]
             [sicmutils.calculus.derivative :refer [D partial]]

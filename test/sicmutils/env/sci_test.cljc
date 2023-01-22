@@ -71,7 +71,7 @@
   (testing "sci-specific macro definitions"
     (is (= 2.0 (eval
                 '(do (require '[sicmutils.algebra.fold :as af])
-                     (let [sum (af/fold->sum-fn (kbk-n 2))]
+                     (let [sum (af/fold->sum-fn (af/kbk-n 2))]
                        (sum [1.0 1e100 1.0 -1e100])))))
         "compensated summation with a macro inside SCI")
 

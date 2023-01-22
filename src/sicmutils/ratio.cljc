@@ -2,9 +2,9 @@
 
 (ns sicmutils.ratio
   "This namespace provides a number of functions and constructors for working
-  with ratios in Clojure and Clojurescript.
+  with ratios in Clojure and ClojureScript.
 
-  [[clojure.lang.Ratio]] is native in Clojure. The Clojurescript implementation
+  [[clojure.lang.Ratio]] is native in Clojure. The ClojureScript implementation
   uses [Fraction.js](https://github.com/infusion/Fraction.js/).
 
   For other numeric extensions, see [[sicmutils.numbers]]

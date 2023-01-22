@@ -425,7 +425,7 @@
   #?(:cljs (set! *mode* mode)
      :clj  (alter-var-root #'*mode* (constantly mode))))
 
-;; Native compilation works on the JVM, and on Clojurescript if you're running
+;; Native compilation works on the JVM, and on ClojureScript if you're running
 ;; in a self-hosted CLJS environment. Enable this mode by wrapping your call in
 ;;
 ;; `(binding [*mode* :native] ,,,)`

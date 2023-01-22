@@ -107,7 +107,7 @@
 
     #?(:clj
        ;; even with the deterministic flag, this is not quite reproducing in
-       ;; Clojurescript.
+       ;; ClojureScript.
        (is (= (str "function(theta, psi, p_theta, p_psi) {\n"
                    "  var _0004 = - theta;\n"
                    "  var _000d = Math.pow(l_1, 2);\n"
