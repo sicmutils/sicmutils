@@ -104,7 +104,6 @@
                    0.07567921658551353))
            ((ode/evolve rig/rigid-sysder A B C)
             state0
-            0.1
             100.0
             {:compile? true
              :epsilon 1.0e-12}))
@@ -241,7 +240,6 @@
                           0.1484260290508369))
                   ((ode/evolve qw-sysder A B C)
                    qw-state0
-                   0.1                  ;; step between plotted points
                    100.0                ;; final time
                    {:compile? true
                     :epsilon 1.0e-12}))

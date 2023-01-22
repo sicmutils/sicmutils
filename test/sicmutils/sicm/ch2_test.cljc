@@ -100,11 +100,11 @@
                                           :cljs [4 :seconds])]
       ((e/evolve r/rigid-sysder A B C)
        state0
-       0.1
        10.0
        {:compile? true
         :epsilon 1.0e-12
-        :observe (monitor-errors A B C L0 E0)}))
+        :observe (monitor-errors A B C L0 E0)
+        :step-size 0.1}))
     ;; check that all observed errors over the whole interval are small
     (is (> 1e-10 (->> @points
                       (mapcat #(drop 1 %))

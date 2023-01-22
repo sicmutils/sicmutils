@@ -286,7 +286,7 @@
                               9.8
                               0.1
                               (* 2.0 (e/sqrt 9.8)))
-          answer (evolve-fn (up 0.0 1. 0.) 0.01 1.0 opts)
+          answer (evolve-fn (up 0.0 1. 0.) 1.0 opts)
           expected (up 1.0 -1.030115687 -1.40985359)
           delta (->> answer (- expected) flatten (map abs) (reduce max))]
       (is (< delta 1e-8)))))

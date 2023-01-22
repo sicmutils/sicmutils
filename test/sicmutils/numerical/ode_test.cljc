@@ -20,17 +20,18 @@
     (let [f (constantly identity)]
       (doseq [compile? [true false true true]]
         (let [states (atom [])
-              result ((o/evolve f)         ;; solve: y' = y
-                      (up 1.)                               ;;        y(0) = 1
-                      0.1                                   ;; ... with step size 0.1
-                      1                                     ;; solve until t = 1
+              result ((o/evolve f) ;; solve: y' = y
+                      (up 1.)      ;;        y(0) = 1
+                      1            ;; solve until t = 1
                       {:compile compile?
 
                        ;; accuracy desired
                        :epsilon 1e-10
 
                        ;; accumulate results
-                       :observe #(swap! states conj [%1 %2])})]
+                       :observe #(swap! states conj [%1 %2])
+                       ;; ... with step size 0.1
+                       :step-size 0.1})]
           (is (= 11 (count @states)))
           (is (near? (Math/exp 1) (first result)))))))
 
@@ -41,12 +42,12 @@
               ;; let u = y', then we have the first-order system {y' = u, u' = -y}
               ;; with initial conditions y(0) = 0, y'(0) = 1; we expect y = sin(x).
               result ((o/evolve f)
-                      (up 0. 1.)                            ;; y(0) = 0, y'(0) = 1
-                      0.1                                   ;; ... with step size 0.1
-                      (* 2 Math/PI)                       ;; over [0, 2π]
+                      (up 0. 1.)      ;; y(0) = 0, y'(0) = 1
+                      (* 2 Math/PI)   ;; over [0, 2π]
                       {:compile? compile?
                        :epsilon 1.e-10
-                       :observe #(swap! states conj [%1 %2])})]
+                       :observe #(swap! states conj [%1 %2])
+                       :step-size 0.1})]
           (is (= 64 (count @states)))     ;; 0.0 .. 6.2 by .1, plus 2π
           (is (near? 0 (first result)))
           (is (near? 1 (second result)))

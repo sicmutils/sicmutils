@@ -14,10 +14,10 @@
      (up 0.0
          (up θ0 φ0 ψ0)
          (up θdot0 φdot0 ψdot0))
-     dt
      t
      {:compile? true
       :epsilon 1.0e-6
       :observe (fn [t [_ [θ φ ψ] _ :as local]]
-                 (swap! state-history conj [t θ φ ψ (seq (L local))]))})
+                 (swap! state-history conj [t θ φ ψ (seq (L local))]))
+      :step-size dt})
     @state-history))

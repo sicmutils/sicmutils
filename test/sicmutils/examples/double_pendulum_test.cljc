@@ -56,7 +56,9 @@
                            't))))))
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
-      (double/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+      (double/evolver {:t (/ 3 60)
+                       :dt (/ 1 60)
+                       :observe observe})
       (is (= 4 (count @o))))))
 
 (deftest infix-forms

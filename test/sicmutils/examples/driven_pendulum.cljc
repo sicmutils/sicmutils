@@ -40,8 +40,8 @@
              a      ;; amplitude of drive
              omega) ;; frequency of drive
    (up 0.0 theta_0 thetadot_0)
-   dt
    t
    {:compile? true
     :epsilon 1.0e-6
-    :observe observe}))
+    :observe observe
+    :step-size dt}))

@@ -127,47 +127,94 @@
 ;; `u/counted` gets you back the counter.
 
 #?(:clj
-   (defn ->arr [a v]
-     (doall
-      (map-indexed
-       (fn [i ^double x]
-         (aset ^doubles a i x))
-       v))))
+   (defn ->arr
+     [^doubles arr ^Iterable xs]
+     (let [it (.iterator xs)]
+       (loop [i 0]
+         (when (.hasNext it)
+           (aset arr i (double (.next it)))
+           (recur (unchecked-inc i)))))))
 
 #?(:clj
-   (defn gragg
-     "TODO we should have more granular options!
+   (defn ^:no-doc gragg-equations
+     "TODO notes."
+     [f param-atom]
+     (if param-atom
+       (reify FirstOrderDifferentialEquations
+         (computeDerivatives [_ _ y out]
+           (deriv-fn y (.-state param-atom) out))
+         (getDimension [_] dimension))
+
+       (reify FirstOrderDifferentialEquations
+         (computeDerivatives [_ _ y out]
+           (deriv-fn y out))
+         (getDimension [_] dimension)))))
+#?(:clj
+   (defn gragg-bulirsch-stoer
+     "TODO we should have more granular options at the top level.
+
+  Takes `:param-atom`, if true, state passed as second arg to deriv-fn.
+
+  [JavaDocs](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html?org/apache/commons/math3/ode/nonstiff/GraggBulirschStoerIntegrator.html)
 
   TODO we need to recover the compile? etc function prep for this and the cljs
-  below."
-     [f prototype {:keys [epsilon] :or {epsilon 1e-8}}]
-     (let [dimension    (struct/dimension prototype)
+  below.
+
+  NOTE returned function takes
+
+  `:continue?` if true, the buffer is NOT touched and state evolution continues
+  from where it left off.
+
+  `:initial-state` if supplied and `:continue?` is false, overrides the existing
+  state. If not supplied and `:continue?` is false, the state is re-populated
+  from the prototype.
+
+  `:raw?` returns the actual buffer each time, please don't mutate it
+
+  `:t0` pick a new starting point."
+     [deriv-fn prototype {:keys [epsilon observe param-atom raw?] :or {epsilon 1e-8}}]
+     ;; all of this setup at the top is trying to save some object.
+     ;;
+     ;; `f` here is simplified by assuming it's already in the tightest form.
+     (let [flat-proto   (flatten prototype)
+           dimension    (count flat-proto)
            array->state #(struct/unflatten % prototype)
            eps          (double epsilon)
-           integrator   (GraggBulirschStoerIntegrator. 0. 1. eps eps)
-           equations    (reify FirstOrderDifferentialEquations
-                          (computeDerivatives [_ _ y out]
-                            (f y out))
-                          (getDimension [_] dimension))
-           buffer     (double-array dimension)
-           watcher    (atom nil)]
-       (fn [initial-state step-size t {:keys [observe] :as opts}]
-         (let [w @watcher]
-           (when (not= w [observe step-size])
-             (reset! watcher observe)
-             (when w (.clearStepHandlers integrator))
-             (when observe
-               (let [handler (step-handler
-                              (fn [t a]
-                                (observe t (array->state a)))
-                              step-size)]
-                 (.addStepHandler integrator handler)))))
-         (->arr buffer (flatten initial-state))
-         (.integrate integrator equations 0 buffer t buffer)
-         (array->state buffer)))))
+           integrator   (GraggBulirschStoerIntegrator. 0.0 1.0 eps eps)
+           equations    (gragg-equations deriv-fn param-atom)
+           buffer     (double-array dimension)]
+       (->arr buffer flat-proto)
+       (when observe
+         (let [{:keys [f step-size]} observe]
+           (assert (and f step-size) "both `:f` and `:step-size` required when supplying `:observe`.")
+           (let [f (if raw?
+                     f
+                     (fn [t a]
+                       (f t (array->state a))))
+                 handler (step-handler f step-size)]
+             (.addStepHandler integrator handler))))
+       ;; NOTE that I think this is kind of a bad API. Take a look at
+       ;; emmy-viewers and see how I'm using the animation code there. It might
+       ;; be that instead we WANT an initial state etc, but that we do NOT want
+       ;; the t specified; we want to be able to go from t1 to t2 and specify
+       ;; ourselves.
+       ;;
+       ;; yeah, in that use case, we are specifying TWO timesteps rather than
+       ;; the observe.
+       (fn [t {:keys [t0 initial-state continue? raw?] :or {t0 0.0}}]
+         (when-not continue?
+           (->arr buffer (if initial-state
+                           (flatten initial-state)
+                           flat-proto)))
+         (.integrate integrator equations t0 buffer t buffer)
+         (if raw?
+           buffer
+           (array->state buffer))))))
 
 #?(:cljs
-   (defn odex [f dimension {:keys [epsilon] :or {epsilon 1e-8}}]
+   ;; TODO finish this conversion once the API feels better. These are both
+   ;; versions of make-integrator below.
+   (defn gragg-bulirsch-stoer [f dimension {:keys [epsilon] :or {epsilon 1e-8}}]
      {:integrator (let [solver (o/Solver. dimension)]
                     (set! (.-absoluteTolerance solver) epsilon)
                     (set! (.-relativeTolerance solver) epsilon)
@@ -193,62 +240,69 @@
 
   If the `observe` function is not nil, it will be invoked with the time as
   first argument and integrated state as the second, at each intermediate step."
-  [state-derivative derivative-args]
-  #?(:cljs
-     (let [total-time (us/stopwatch :started? false)
-           latest     (atom 0)]
-       (fn call
-         ([initial-state step-size t]
-          (call initial-state step-size t {}))
-         ([initial-state step-size t {:keys [observe] :as opts}]
-          (us/start total-time)
-          (let [{:keys [integrator equations stopwatch counter]}
-                (integration-opts state-derivative derivative-args initial-state opts)
-                initial-state-array (into-array
-                                     (flatten initial-state))
-                array->state #(struct/unflatten % initial-state)
-                observe-fn    (when observe
-                                (set! (.-denseOutput integrator) true)
-                                (.grid integrator step-size
-                                       (fn [t y]
-                                         (reset! latest t)
-                                         (observe t (array->state y)))))
-                output (.solve integrator equations 0 initial-state-array t observe-fn)
-                ret    (array->state (.-y output))]
-            (when (and observe (not (near? t @latest)))
-              (observe t ret))
-            (us/stop total-time)
-            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
-            (us/reset total-time)
-            (reset! latest 0)
-            ret))))
+  ([state-derivative derivative-args]
+   (make-integrator state-derivative derivative-args {}))
+  ([state-derivative derivative-args outer-opts]
+   #?(:cljs
+      (let [total-time (us/stopwatch :started? false)
+            latest     (atom 0)]
+        (fn call
+          ([initial-state t]
+           (call initial-state t {}))
+          ([initial-state t {:keys [observe step-size] :as opts}]
+           (us/start total-time)
+           (let [{:keys [integrator equations stopwatch counter]}
+                 (integration-opts state-derivative derivative-args initial-state opts)
+                 initial-state-array (into-array
+                                      (flatten initial-state))
+                 array->state #(struct/unflatten % initial-state)
+                 observe-fn    (when observe
+                                 (assert
+                                  step-size
+                                  "`:step-size` required when supplying `:observe`.")
+                                 (set! (.-denseOutput integrator) true)
+                                 (.grid integrator step-size
+                                        (fn [t y]
+                                          (reset! latest t)
+                                          (observe t (array->state y)))))
+                 output (.solve integrator equations 0 initial-state-array t observe-fn)
+                 ret    (array->state (.-y output))]
+             (when (and observe (not (near? t @latest)))
+               (observe t ret))
+             (us/stop total-time)
+             (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+             (us/reset total-time)
+             (reset! latest 0)
+             ret))))
 
-     :clj
-     (let [total-time (us/stopwatch :started? false)]
-       (fn call
-         ([initial-state step-size t]
-          (call initial-state step-size t {}))
-         ([initial-state step-size t {:keys [observe] :as opts}]
-          (us/start total-time)
-          (let [{:keys [integrator equations dimension stopwatch counter]}
-                (integration-opts state-derivative derivative-args initial-state opts)
-                initial-state-array (double-array
-                                     (flatten initial-state))
-                array->state #(struct/unflatten % initial-state)
-                output-buffer (double-array dimension)]
-            (when observe
-              (.addStepHandler ^GraggBulirschStoerIntegrator integrator
-                               (step-handler
-                                (fn [t a]
-                                  (observe t (array->state a)))
-                                step-size)))
-            (.integrate ^GraggBulirschStoerIntegrator
-                        integrator equations 0
-                        initial-state-array t output-buffer)
-            (us/stop total-time)
-            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
-            (us/reset total-time)
-            (array->state output-buffer)))))))
+      :clj
+      (let [total-time (us/stopwatch :started? false)]
+        (fn call
+          ([initial-state t]
+           (call initial-state t {}))
+          ([initial-state t {:keys [observe step-size] :as opts}]
+           (us/start total-time)
+           (let [{:keys [integrator equations dimension stopwatch counter]}
+                 (integration-opts state-derivative derivative-args initial-state opts)
+                 initial-state-array (double-array
+                                      (flatten initial-state))
+                 array->state #(struct/unflatten % initial-state)
+                 output-buffer (double-array dimension)]
+             (when observe
+               (assert step-size
+                       "`:step-size` required when supplying `:observe`.")
+               (.addStepHandler ^GraggBulirschStoerIntegrator integrator
+                                (step-handler
+                                 (fn [t a]
+                                   (observe t (array->state a)))
+                                 step-size)))
+             (.integrate ^GraggBulirschStoerIntegrator
+                         integrator equations 0
+                         initial-state-array t output-buffer)
+             (us/stop total-time)
+             (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+             (us/reset total-time)
+             (array->state output-buffer))))))))
 
 (defn state-advancer
   "state-advancer takes a state derivative function constructor followed by the
@@ -273,9 +327,9 @@
   (let [I (make-integrator state-derivative state-derivative-args)]
     (fn call
       ([initial-state t]
-       (call initial-state t {}))
+       (I initial-state t {}))
       ([initial-state t opts]
-       (I initial-state 0 t opts)))))
+       (I initial-state t opts)))))
 
 (defn evolve
   "evolve takes a state derivative function constructor and its arguments, and
@@ -294,10 +348,11 @@
   of size dt"
   [state-derivative state-derivative-args initial-state t1 dt]
   (let [I (make-integrator state-derivative state-derivative-args)
-        out (atom [])
+        out (atom (transient []))
         collector (fn [_ state]
-                    (swap! out conj state))]
-    (I initial-state dt t1 {:compile? true
-                            :epsilon 1e-6
-                            :observe collector})
-    @out))
+                    (swap! out conj! state))]
+    (I initial-state t1 {:compile? true
+                         :epsilon 1e-6
+                         :observe collector
+                         :step-size dt})
+    (persistent! @out)))

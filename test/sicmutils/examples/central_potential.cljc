@@ -59,12 +59,11 @@
                           (up x_0    y_0    0 0)
                           (up xdot_0 ydot_0 0 0))]
     ((e/evolve state-derivative m M)
-     initial-state
-     dt
-     t
+     initial-state t
      {:compile? true
       :epsilon 1.0e-6
-      :observe observe})))
+      :observe observe
+      :step-size dt})))
 
 (defn equations
   []
