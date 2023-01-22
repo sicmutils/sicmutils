@@ -88,34 +88,6 @@
         (alter-meta! dst merge (dissoc (meta src) :name))))))
 
 #?(:clj
-   (defmacro import-fn
-     "Given a function in another namespace, defines a function with the same
-   name in the current namespace. Argument lists, doc-strings, and original
-   line-numbers are preserved.
-
-  NOTE that [[import-fn]] comes
-  from [`potemkin.namespaces`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj);
-  we import it here to avoid importing the full library."
-     ([sym]
-      `(import-fn ~sym nil))
-     ([sym name]
-      (let [vr (resolve sym)
-            m (meta vr)
-            n (or name (:name m))
-            protocol (:protocol m)]
-        (when-not vr
-          (throw (IllegalArgumentException. (str "Don't recognize " sym))))
-        (when (:macro m)
-          (throw (IllegalArgumentException.
-                  (str "Calling import-fn on a macro: " sym))))
-        `(do
-           (def ~(with-meta n {:protocol protocol})
-             (deref ~vr))
-           (alter-meta! (var ~n) merge (dissoc (meta ~vr) :name))
-           (link-vars ~vr (var ~n))
-           ~vr)))))
-
-#?(:clj
    (defmacro import-macro
      "Given a macro in another namespace, defines a macro with the same name in
    the current namespace. Argument lists, doc-strings, and original line-numbers
@@ -171,6 +143,9 @@
           n  (with-meta n (if (:dynamic m) {:dynamic true} {}))]
       (when-not vr
         (throw (IllegalArgumentException. (str "Don't recognize " sym))))
+      (when (:macro m)
+        (throw (IllegalArgumentException.
+                (str "Calling import-def on a macro: " sym))))
       `(do
          (def ~n @~vr)
          (alter-meta! (var ~n) merge (dissoc (meta ~vr) :name))
@@ -178,8 +153,8 @@
          ~vr)))))
 
 (defmacro import-vars
-  "import multiple defs from multiple namespaces. works for vars and fns. not
-  macros.
+  "import multiple defs from multiple namespaces. works for vars and fns, macros
+  only work in Clojure.
 
   NOTE that [[import-vars]] is a copy
   of [`potemkin.namespaces/import-vars`](https://github.com/clj-commons/potemkin/blob/master/src/potemkin/namespaces.clj),
@@ -199,12 +174,12 @@
   [& imports]
   (fork
    :cljs
-   (let [expanded-imports (for [[from-ns & defs] imports
-                                d defs
-                                :let [sym (symbol (str from-ns)
-                                                  (str d))]]
-                            `(def ~d ~sym))]
-     `(do ~@expanded-imports))
+   `(do
+      ~@(for [[from-ns & defs] imports
+              d defs
+              :let [sym (symbol (str from-ns)
+                                (str d))]]
+          `(def ~d ~sym)))
 
    :clj
    (letfn [(unravel [x]
@@ -224,11 +199,10 @@
           ~@(map
              (fn [sym]
                (let [vr (resolve sym)
-                     m (meta vr)]
+                     m  (meta vr)]
                  (cond
                    (nil? vr)     `(throw (ex-info (format "`%s` does not exist" '~sym) {}))
                    (:macro m)    `(import-macro ~sym)
-                   (:arglists m) `(import-fn ~sym)
                    :else         `(import-def ~sym))))
              imports))))))
 
