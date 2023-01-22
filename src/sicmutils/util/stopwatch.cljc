@@ -117,3 +117,18 @@
      (if started?
        (start watch)
        watch))))
+
+;; ## Utilities
+
+(defn timed
+  "Takes a function and returns a pair of:
+
+  - a stopwatch that  track of fn invocation time,
+  - the instrumented fn"
+  [f]
+  (let [sw (stopwatch :started? false)]
+    [sw (fn [& xs]
+          (start sw)
+          (let [ret (apply f xs)]
+            (stop sw)
+            ret))]))

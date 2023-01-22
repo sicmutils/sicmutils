@@ -42,16 +42,6 @@
                  (map #(- % x0) simplex))]
     (reduce max (map u/compute-abs coords))))
 
-(defn ^:private counted
-  "Takes a function and returns a pair of:
-  - an atom that keeps track of fn invocation counts,
-  - the instrumented fn"
-  [f]
-  (let [count (atom 0)]
-    [count (fn [x]
-             (swap! count inc)
-             (f x))]))
-
 (defn ^:private sort-by-f
   "Returns the two inputs `simplex` and `f(simplex)` sorted in ascending order by
   function value.
@@ -271,7 +261,7 @@
   [func x0 {:keys [callback] :as opts}]
   (let [callback      (or callback (constantly nil))
         dimension     (count x0)
-        [f-counter f] (counted func)
+        [f-counter f] (u/counted func)
         step          (step-fn f dimension opts)
         convergence?  (convergence-fn opts)
         stop?         (stop-fn f-counter dimension opts)

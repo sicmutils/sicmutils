@@ -30,7 +30,9 @@
 
 #?(:clj
    (defn step-handler
-     "Generates a StepHandler instance that can be attached to an integrator.
+     "
+
+  Generates a StepHandler instance that can be attached to an integrator.
 
   When used as an observation callback, the `StepHandler` is not invoked at
   every grid point; rather, it is invoked once in a while over a range of time
@@ -38,37 +40,21 @@
   we install does this, invoking the callback for each requested grid point
   within the valid range, ensuring that we also invoke the callback for the
   final point."
-     [observe step-size initial-state]
-     (let [array->state #(struct/unflatten % initial-state)]
-       (reify StepHandler
-         (init [_ _ _ _])
-         (handleStep [_ interpolator final-step?]
-           (let [it0         (.getPreviousTime interpolator)
-                 it1         (.getCurrentTime interpolator)
-                 t0          (round-up it0 step-size)
-                 final-state (when final-step?
-                               (array->state
-                                (.getInterpolatedState interpolator)))]
-             (doseq [t (range t0 it1 step-size)]
-               (.setInterpolatedTime interpolator t)
-               (observe t (array->state
-                           (.getInterpolatedState interpolator))))
+     [observe step-size]
+     (reify StepHandler
+       (init [_ _ _ _])
+       (handleStep [_ interpolator final-step?]
+         (let [it0         (.getPreviousTime interpolator)
+               it1         (.getCurrentTime interpolator)
+               t0          (round-up it0 step-size)]
+           (doseq [t (range t0 it1 step-size)]
+             (.setInterpolatedTime interpolator t)
+             (observe t (.getInterpolatedState interpolator)))
+           (when final-step?
              ;; `range` has an exclusive upper bound, so the final point will
              ;; never be observed in the `doseq`. Handle it here.
-             (when final-step?
-               (observe it1 final-state))))))))
-
-#?(:clj
-   (defn attach-handler
-     "We implement the observation callback by adding a StepHandler to the
-  integration. The StepHandler is not invoked at every grid point; rather, it is
-  invoked once in a while over a range of time within which the integrated
-  function may be accurately evaluated. The handler we install does this,
-  invoking the callback for each requested grid point within the valid range,
-  ensuring that we also invoke the callback for the final point."
-     [^GraggBulirschStoerIntegrator integrator observe step-size initial-state]
-     (let [handler (step-handler observe step-size initial-state)]
-       (.addStepHandler integrator handler))))
+             (.setInterpolatedTime interpolator it1)
+             (observe it1 (.getInterpolatedState interpolator))))))))
 
 (defn integration-opts
   "Returns a map with the following kv pairs:
@@ -84,7 +70,7 @@
    {:keys [compile? epsilon] :or {epsilon 1e-8}}]
   (let [evaluation-time  (us/stopwatch :started? false)
         evaluation-count (atom 0)
-        dimension        (count (flatten initial-state))
+        dimension        (struct/dimension initial-state)
         derivative-fn    (if compile?
                            (let [f' (c/compile-state-fn state-derivative derivative-args initial-state)]
                              (fn [y] (f' y derivative-args)))
@@ -136,6 +122,60 @@
      :dimension dimension
      :stopwatch evaluation-time
      :counter evaluation-count}))
+
+;; TODO note these simpler versions, that receive f already modified.
+;; `u/counted` gets you back the counter.
+
+#?(:clj
+   (defn ->arr [a v]
+     (doall
+      (map-indexed
+       (fn [i ^double x]
+         (aset ^doubles a i x))
+       v))))
+
+#?(:clj
+   (defn gragg
+     "TODO we should have more granular options!
+
+  TODO we need to recover the compile? etc function prep for this and the cljs
+  below."
+     [f prototype {:keys [epsilon] :or {epsilon 1e-8}}]
+     (let [dimension    (struct/dimension prototype)
+           array->state #(struct/unflatten % prototype)
+           eps          (double epsilon)
+           integrator   (GraggBulirschStoerIntegrator. 0. 1. eps eps)
+           equations    (reify FirstOrderDifferentialEquations
+                          (computeDerivatives [_ _ y out]
+                            (f y out))
+                          (getDimension [_] dimension))
+           buffer     (double-array dimension)
+           watcher    (atom nil)]
+       (fn [initial-state step-size t {:keys [observe] :as opts}]
+         (let [w @watcher]
+           (when (not= w observe)
+             (reset! watcher observe)
+             (when w (.clearStepHandlers integrator))
+             (when observe
+               (let [handler (step-handler (fn [t a]
+                                             (observe t (array->state a)))
+                                           step-size)]
+                 (.addStepHandler integrator handler)))))
+         (->arr buffer (flatten initial-state))
+         (.integrate integrator equations 0 buffer t buffer)
+         (array->state buffer)))))
+
+#?(:cljs
+   (defn odex [f dimension {:keys [epsilon] :or {epsilon 1e-8}}]
+     {:integrator (let [solver (o/Solver. dimension)]
+                    (set! (.-absoluteTolerance solver) epsilon)
+                    (set! (.-relativeTolerance solver) epsilon)
+                    solver)
+      :equations  (let [out (make-array dimension)]
+                    (fn [_ y]
+                      (f y out)
+                      out))
+      :dimension  dimension}))
 
 (defn make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -197,7 +237,11 @@
                 array->state #(struct/unflatten % initial-state)
                 output-buffer (double-array dimension)]
             (when observe
-              (attach-handler integrator observe step-size initial-state))
+              (.addStepHandler integrator
+                               (step-handler
+                                (fn [t a]
+                                  (observe t (array->state a)))
+                                step-size)))
             (.integrate ^GraggBulirschStoerIntegrator
                         integrator equations 0
                         initial-state-array t output-buffer)
