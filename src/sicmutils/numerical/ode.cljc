@@ -153,13 +153,14 @@
            watcher    (atom nil)]
        (fn [initial-state step-size t {:keys [observe] :as opts}]
          (let [w @watcher]
-           (when (not= w observe)
+           (when (not= w [observe step-size])
              (reset! watcher observe)
              (when w (.clearStepHandlers integrator))
              (when observe
-               (let [handler (step-handler (fn [t a]
-                                             (observe t (array->state a)))
-                                           step-size)]
+               (let [handler (step-handler
+                              (fn [t a]
+                                (observe t (array->state a)))
+                              step-size)]
                  (.addStepHandler integrator handler)))))
          (->arr buffer (flatten initial-state))
          (.integrate integrator equations 0 buffer t buffer)
@@ -189,7 +190,6 @@
   - the step size desired
   - the final time to seek, and
   - an error tolerance.
-
 
   If the `observe` function is not nil, it will be invoked with the time as
   first argument and integrated state as the second, at each intermediate step."
@@ -237,7 +237,7 @@
                 array->state #(struct/unflatten % initial-state)
                 output-buffer (double-array dimension)]
             (when observe
-              (.addStepHandler integrator
+              (.addStepHandler ^GraggBulirschStoerIntegrator integrator
                                (step-handler
                                 (fn [t a]
                                   (observe t (array->state a)))
