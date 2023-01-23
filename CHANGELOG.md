@@ -1,6 +1,8 @@
 # Changelog
 
-## unreleased
+## [unreleased]
+
+## [0.23.0]
 
 - #532:
 
