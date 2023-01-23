@@ -38,7 +38,7 @@ If `<O>` is an expression representing an operator then
 
 ----
 (o/operator? <any>)       ;;=> <boolean>
-(kind <O>)                ;;=> :sicmutils.operator/operator
+(kind <O>)                ;;=> :emmy.operator/operator
 ----
 
 Operators can be added, subtracted, multiplied, and scaled. If they are combined
@@ -49,4 +49,4 @@ The transcendental functions `exp`, `sin`, and `cos` are extended to take
 operator arguments. The resulting operators are expanded as power series.
 
 NOTE: this works for almost all of the trigonometric functions. If an operation
-is implemented for `:sicmutils.series/power-series` it will work for operators.
+is implemented for `:emmy.series/power-series` it will work for operators.

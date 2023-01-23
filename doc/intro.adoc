@@ -1,4 +1,4 @@
-= Introduction to SICMUtils
+= Introduction to Emmy
 
 :status:
 :uri-SICM: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
@@ -7,7 +7,7 @@
 :uri-GSCM: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 :uri-REFMAN: https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt
 
-== sicmutils
+== emmy
 
 A Clojure(script) implementation of the {uri-REFMAN}[Scmutils] system for math
 and physics investigations in the Clojure language.
@@ -18,25 +18,25 @@ Geometry] by G.J. Sussman and J. Wisdom.
 
 TIP: Need help getting started? Say hi on https://twitter.com/sritchie[Twitter]
 or http://clojurians.net/[Clojurians Slack] in
-https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils].
+https://clojurians.slack.com/archives/C01ECA9AA74[#emmy].
 
-image:https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=main[Build Status, link=https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22]
-image:https://img.shields.io/codecov/c/github/sicmutils/sicmutils/main.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/sicmutils/sicmutils]
-image:https://cljdoc.org/badge/sicmutils/sicmutils[cljdoc badge, link=https://cljdoc.org/d/sicmutils/sicmutils/CURRENT]
-image:https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[Clojars Project, link=https://clojars.org/sicmutils/sicmutils]
+image:https://github.com/emmy/emmy/workflows/Clojure%20CI/badge.svg?branch=main[Build Status, link=https://github.com/emmy/emmy/actions?query=workflow%3A%22Clojure+CI%22]
+image:https://img.shields.io/codecov/c/github/emmy/emmy/main.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/emmy/emmy]
+image:https://cljdoc.org/badge/emmy/emmy[cljdoc badge, link=https://cljdoc.org/d/emmy/emmy/CURRENT]
+image:https://img.shields.io/clojars/v/emmy/emmy.svg[Clojars Project, link=https://clojars.org/emmy/emmy]
 
 == Quickstart
 
-Install SICMUtils into your Clojure(script) project using the instructions at
+Install Emmy into your Clojure(script) project using the instructions at
 its Clojars page:
 
-image::https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[Clojars Project, link=https://clojars.org/sicmutils/sicmutils]
+image::https://img.shields.io/clojars/v/emmy/emmy.svg[Clojars Project, link=https://clojars.org/emmy/emmy]
 
 Initialize a REPL and simplify a trigonometric identity:
 
 [source, clojure]
 ----
-user=> (require '[sicmutils.env :as env])
+user=> (require '[emmy.env :as env])
 user=> (env/bootstrap-repl!)
 user=> (def render (comp ->infix simplify))
 user=> (render
@@ -72,10 +72,10 @@ Confused? You're not alone! This is a very dense library, and not well
 documented (yet). Some suggested next steps, for now:
 
 * We've ported the original {uri-REFMAN}[SCMUtils Reference Manual] over to
-  SICMUtils. Visit the link:refman.adoc[SICMUtils Reference Manual] for a
-  comprehensive overview of SICMUtils.
+  Emmy. Visit the link:refman.adoc[Emmy Reference Manual] for a
+  comprehensive overview of Emmy.
 * Clone this repository and run `bin/repl` for a batteries included REPL
-  environment. All of the examples in the link:refman.adoc[SICMUtils refman]
+  environment. All of the examples in the link:refman.adoc[Emmy refman]
   will work.
 * Browse the table of contents on the left hand side. Many of the pages are
   populated with good information, and we're working hard to flesh this out
@@ -118,5 +118,5 @@ experimentation and collaboration with them in modern environments.
 
 Please explore the documentation, and send us (`@sritchie`, `@colins`) in
 particular a note in the
-https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils channel on
+https://clojurians.slack.com/archives/C01ECA9AA74[#emmy channel on
 Clojurians slack] if you'd like to talk or have any questions at all!

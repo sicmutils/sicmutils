@@ -33,7 +33,7 @@ into how Brent's method works. It turns out there is a long history of this
 algorithm being cargo-culted along from library to library. I (@sritchie) now
 _do_ understand Brent's method, and I've tried to disgorge that understanding
 into the
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+https://github.com/emmy/emmy/blob/main/src/emmy/numerical/unimin/brent.cljc[`emmy.numerical.unimin.brent`]
 namespace. Expect this to get better over time.
 
 The actual procedure in the system is:
@@ -154,7 +154,7 @@ good an answer as we got with Brent.
 
 NOTE: The following section describing `local-minima` and `local-maxima` does
 not yet work. A port of this work is in progress at
-https://github.com/sicmutils/sicmutils/pull/108[this PR], if you'd like
+https://github.com/emmy/emmy/pull/108[this PR], if you'd like
 to follow along.
 
 We can find a number of local minima of a multimodal function using a search

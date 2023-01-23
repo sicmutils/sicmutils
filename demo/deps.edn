@@ -1,4 +1,0 @@
-{:paths ["src"]
- :deps {org.clojure/clojurescript {:mvn/version "1.10.866"}
-        sicmutils/sicmutils {:mvn/version "0.20.0"}
-        thheller/shadow-cljs {:mvn/version "2.14.4"}}}

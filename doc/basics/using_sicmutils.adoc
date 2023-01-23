@@ -1,33 +1,33 @@
-= How to Use SICMUtils
+= How to Use Emmy
 
-:uri-QUICKSTART: https://github.com/sicmutils/sicmutils#quickstart
+:uri-QUICKSTART: https://github.com/emmy/emmy#quickstart
 
-== SICMUtils Supported Environments
+== Emmy Supported Environments
 
 This section, like many others in the docs at the moment, is quite sparse. This
 will change in the coming months!
 
-SICMUtils is best experienced in an interactive environment like the
+Emmy is best experienced in an interactive environment like the
 https://clojure.org/guides/repl/introduction[Clojure REPL]. We support a number
 of environments with rich support for https://en.wikipedia.org/wiki/TeX[TeX]
 rendering and plotting. These are catalogued below., paired with "Getting
 Started" instructions.
 
 After setting up your environment with any of the listed methods, visit the
-{uri-QUICKSTART}[SICMUtils Quickstart] to get some ideas about how to use the
+{uri-QUICKSTART}[Emmy Quickstart] to get some ideas about how to use the
 library.
 
 === Clojure(script) REPL
 
-Install SICMUtils into your Clojure(script) project using the instructions at
+Install Emmy into your Clojure(script) project using the instructions at
 its Clojars page:
 
-image::https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[caption="SICMUtils Clojars Project", link="https://clojars.org/sicmutils/sicmutils"]
+image::https://img.shields.io/clojars/v/emmy/emmy.svg[caption="Emmy Clojars Project", link="https://clojars.org/emmy/emmy"]
 
-Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
+Initialize the `emmy.env` "Batteries Included" environment at the REPL:
 
 ```clojure
-(require '[sicmutils.env :as env])
+(require '[emmy.env :as env])
 (env/bootstrap-repl!)
 ```
 
@@ -35,7 +35,7 @@ And
 
 === Nextjournal
 
-You can access all SICMUtils namespaces from any
+You can access all Emmy namespaces from any
 https://nextjournal.com[Nextjournal] page by typing
 
 [source, clojure]
@@ -47,14 +47,14 @@ and hitting ``<space>`` in any block, and evaluating the following form:
 
 [source, clojure]
 ----
-(nextjournal.env/load! :sicmutils)
+(nextjournal.env/load! :emmy)
 ----
 
 Any subsequent ClojureScript block will have every function in
-https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.env[``sicmutils.env``]
+https://cljdoc.org/d/emmy/emmy/CURRENT/api/emmy.env[``emmy.env``]
 available.
 
-Visit the https://nextjournal.com/try/samritchie/sicmutils[SICMUtils Tutorial on
+Visit the https://nextjournal.com/try/samritchie/emmy[Emmy Tutorial on
 Nextjournal] to try all of the examples in the {uri-QUICKSTART}[Quickstart] in
 your browser with no setup required.
 

@@ -1,30 +1,30 @@
-# SICMUtils
+# Emmy
 
 A Clojure(script) implementation of the
 [scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
 for math and physics investigations in the Clojure and ClojureScript languages.
-SICMUtils provides facilities for
+Emmy provides facilities for
 
 - [symbolic
-  computation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/symbolic-expressions),
+  computation](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/data-types/symbolic-expressions),
   including state of the art TeX rendering and [expression
-  simplification](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/simplification)
-- [automatic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation),
-  [numerical](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/numerical-methods/numerical-derivative)
+  simplification](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/simplification)
+- [automatic](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/calculus/automatic-differentiation),
+  [numerical](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/numerical-methods/numerical-derivative)
   and
-  [symbolic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+  [symbolic](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/calculus/automatic-differentiation)
   differentiation
 - [numerical integration and
-  optimization](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/numerical-methods)
+  optimization](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/numerical-methods)
 - investigations in [differential
-  geometry](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/textbooks/functional-differential-geometry)
+  geometry](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/textbooks/functional-differential-geometry)
   and [Lagrangian and Hamiltonian
-  mechanics](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/textbooks/structure-and-interpretation-of-classical-mechanics)
+  mechanics](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/textbooks/structure-and-interpretation-of-classical-mechanics)
 
 And implementations of many different [mathematical
-objects](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types), all
+objects](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/data-types), all
 built on a tower of [generic, extensible mathematical
-operations](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics).
+operations](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/basics/generics).
 
 Scmutils is extensively used in the textbooks [The Structure and Interpretation
 of Classical Mechanics][SICM] and [Functional Differential Geometry][FDG] by
@@ -33,48 +33,48 @@ G.J. Sussman and J. Wisdom.
 > :wave: Need help getting started? Say hi on
 > [Twitter](https://twitter.com/sritchie) or [Clojurians
 > Slack](http://clojurians.net/) in
-> [#sicmutils](https://clojurians.slack.com/archives/C01ECA9AA74).
+> [#emmy](https://clojurians.slack.com/archives/C01ECA9AA74).
 
-[![Build Status](https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=main)](https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
-[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/sicmutils/sicmutils/blob/main/LICENSE)
-[![Codecov branch](https://img.shields.io/codecov/c/github/sicmutils/sicmutils/main.svg?maxAge=3600)](https://codecov.io/github/sicmutils/sicmutils)
-[![cljdoc badge](https://cljdoc.org/badge/sicmutils/sicmutils)](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT)
-[![Clojars Project](https://img.shields.io/clojars/v/sicmutils/sicmutils.svg)](https://clojars.org/sicmutils/sicmutils)
+[![Build Status](https://github.com/emmy/emmy/workflows/Clojure%20CI/badge.svg?branch=main)](https://github.com/emmy/emmy/actions?query=workflow%3A%22Clojure+CI%22)
+[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/emmy/emmy/blob/main/LICENSE)
+[![Codecov branch](https://img.shields.io/codecov/c/github/emmy/emmy/main.svg?maxAge=3600)](https://codecov.io/github/emmy/emmy)
+[![cljdoc badge](https://cljdoc.org/badge/emmy/emmy)](https://cljdoc.org/d/emmy/emmy/CURRENT)
+[![Clojars Project](https://img.shields.io/clojars/v/emmy/emmy.svg)](https://clojars.org/emmy/emmy)
 
 ## Quickstart
 
-> SICMUtils is best experienced in an interactive environment like the
+> Emmy is best experienced in an interactive environment like the
 > [REPL](https://clojure.org/guides/repl/introduction). We [support many
-> environments](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/how-to-use-sicmutils)
+> environments](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/basics/how-to-use-emmy)
 > with rich support for [TeX](https://en.wikipedia.org/wiki/TeX) rendering and
 > plotting.
 
-Install SICMUtils into your Clojure(script) project using the instructions at
+Install Emmy into your Clojure(script) project using the instructions at
 its Clojars page:
 
-[![Clojars Project](https://img.shields.io/clojars/v/sicmutils/sicmutils.svg)](https://clojars.org/sicmutils/sicmutils)
+[![Clojars Project](https://img.shields.io/clojars/v/emmy/emmy.svg)](https://clojars.org/emmy/emmy)
 
-Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
+Initialize the `emmy.env` "Batteries Included" environment at the REPL:
 
 ```clojure
-(require '[sicmutils.env :as env])
+(require '[emmy.env :as env])
 (env/bootstrap-repl!)
 ```
 
 See the [demo directory](./demo) for minimal examples of build configurations
-that use the SICMUtils library.
+that use the Emmy library.
 
-Alternatively, visit the [SICMUtils Tutorial on
-Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
+Alternatively, visit the [Emmy Tutorial on
+Nextjournal](https://nextjournal.com/try/samritchie/emmy) to try all of the
 examples below in your browser with no setup required:
 
 <img width="1152" alt="nje" src="https://user-images.githubusercontent.com/462255/109587851-9e1be280-7abc-11eb-9369-6d56519fb3cd.png">
 
 Math works as expected (see
-[Generics](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+[Generics](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/basics/generics)
 for the full menu of operations), but notice that the numeric tower includes
 [complex
-numbers](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/complex),
+numbers](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/data-types/complex),
 and proper ratios in ClojureScript:
 
 ```clojure
@@ -87,9 +87,9 @@ and proper ratios in ClojureScript:
 
 Symbols are interpreted as abstract complex numbers, and arithmetic on them
 generates symbolic expressions. You can render these with
-[`->TeX`](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.expression.render#->TeX)
+[`->TeX`](https://cljdoc.org/d/emmy/emmy/CURRENT/api/emmy.expression.render#->TeX)
 and
-[`->infix`](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.expression.render#->infix):
+[`->infix`](https://cljdoc.org/d/emmy/emmy/CURRENT/api/emmy.expression.render#->infix):
 
 ```clojure
 (def render (comp ->infix simplify))
@@ -102,11 +102,11 @@ and
 ```
 
 Use the
-[`D`](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.calculus.derivative#D)
+[`D`](https://cljdoc.org/d/emmy/emmy/CURRENT/api/emmy.calculus.derivative#D)
 operator to perform [forward-mode automatic
-differentiation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+differentiation](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/calculus/automatic-differentiation)
 and
-[`simplify`](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/simplification)
+[`simplify`](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/simplification)
 to collapse symbolic expressions into tidy form:
 
 ```clojure
@@ -121,7 +121,7 @@ to collapse symbolic expressions into tidy form:
 ;;-> "3 x²"
 ```
 
-SICMUtils is based on the engine behind [The Structure and Interpretation of
+Emmy is based on the engine behind [The Structure and Interpretation of
 Classical Mechanics][SICM], and has a built-in API for exploring Lagrangian and
 Hamiltonian mechanics.
 
@@ -154,20 +154,20 @@ for the `r` and `theta` coordinates:
 There is so much more! This is a dense library, and lots of documentation
 remains to be written. Some suggested next steps, for now:
 
-- Open up the live, interactive [SICMUtils tutorial on
-Nextjournal](https://nextjournal.com/try/samritchie/sicmutils), play with the
+- Open up the live, interactive [Emmy tutorial on
+Nextjournal](https://nextjournal.com/try/samritchie/emmy), play with the
 examples above and start to explore on your own.
-- Read the [SICMUtils Reference Manual][REFMAN] ("refman") for inspiration. All
+- Read the [Emmy Reference Manual][REFMAN] ("refman") for inspiration. All
   of the code snippets in the refman will work in the [Nextjournal
-  environment](https://nextjournal.com/try/samritchie/sicmutils). Use the two
+  environment](https://nextjournal.com/try/samritchie/emmy). Use the two
   together.
 - Visit our [CLJDocs][CLJDOCS] page for an introduction and detailed
   documentation
 - Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for an overview
-  of SICMUtils and its implementation
+  of Emmy and its implementation
 - Visit the HTML version of [Structure and Interpretation of Classical
   Mechanics](https://tgvaughan.github.io/sicm/). Many of the SICM exercises have
-  been worked using SICMUtils; they live at [this Nextjournal
+  been worked using Emmy; they live at [this Nextjournal
   page](https://nextjournal.com/sicm).
 
 ## Background
@@ -198,7 +198,7 @@ JS packages you like together with the mathematics system. It's my hope that
 continuing this project will extend the reach of SICM and FDG by allowing
 experimentation and collaboration with them in modern environments.
 
-## Citing SICMUtils
+## Citing Emmy
 
 To cite this repository, see the "Cite this Repository" link on the top right of
 the Github page. Citation information is generated from
@@ -207,12 +207,12 @@ the Github page. Citation information is generated from
 Here is the generated BibTeX entry:
 
 ```
-@software{Ritchie_SICMUtils_Functional_Computer_2016},
+@software{Ritchie_Emmy_Functional_Computer_2016},
 author = {Ritchie, Sam and Smith, Colin},
 license = {GPL-3.0},
 month = {4},
-title = {{SICMUtils: Functional Computer Algebra in Clojure}},
-url = {https://github.com/sicmutils/sicmutils},
+title = {{Emmy: Functional Computer Algebra in Clojure}},
+url = {https://github.com/emmy/emmy},
 version = {0.23.0},
 year = {2016}
 ```
@@ -225,12 +225,12 @@ open-source release.
 
 [GPL v3](LICENSE).
 
-[CLJDOCS]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT
+[CLJDOCS]: https://cljdoc.org/d/emmy/emmy/CURRENT
 [SICM]: https://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics-second-edition
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
-[REFMAN]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/reference-manual
+[REFMAN]: https://cljdoc.org/d/emmy/emmy/CURRENT/doc/reference-manual
 [PHYSICS_IN_CLOJURE]: https://www.youtube.com/watch?v=7PoajCqNKpg
 
 Copyright © 2016 Colin Smith

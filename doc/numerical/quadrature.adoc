@@ -26,7 +26,7 @@ Optionally you can supply a map of keyword arguments. The top level
   of the definite integral.
 * `*:method*`: Specifies the integration method used. Must be:
 ** a keyword naming one of the available methods in
-   https://github.com/sicmutils/sicmutils/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/sicmutils/numerical/quadrature.cljc#L65[`available-methods`]
+   https://github.com/emmy/emmy/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/emmy/numerical/quadrature.cljc#L65[`available-methods`]
 ** a function with the proper integrator signature
 ** a dictionary of integrator options with a `:method` key
 

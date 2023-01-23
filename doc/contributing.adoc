@@ -4,7 +4,7 @@
 
 Here's a short overview. More info coming soon!
 
-=== Developing in SICMUtils
+=== Developing in Emmy
 
 To run all tests in Clojure, you'll need to install the
 https://clojure.org/guides/install_clojure[Clojure CLI tool]. The ClojureScript
@@ -52,7 +52,7 @@ clojure -P -M:test:runner
 We run the ClojureScript test suite and check for advanced compilation warnings
 using [shadow-cljs].
 
-In the ``sicmutils`` directory, run
+In the ``emmy`` directory, run
 
 [source, bash]
 ----
@@ -98,7 +98,7 @@ clj-kondo --lint src:test
 
 https://github.com/cloverage/cloverage[Cloverage] generates coverage reports for
 every pull request and the main branch in the repository. Coverage reports live
-at https://codecov.io/github/sicmutils/sicmutils[codecov.io].
+at https://codecov.io/github/emmy/emmy[codecov.io].
 
 To invoke cloverage, call
 
@@ -112,10 +112,10 @@ clojure -M:test:coverage <args-to-cloverage>
 We use Clojure's https://clojure.org/guides/tools_build[tools.build] system to
 produce and publish jars. This is configured in ``build.clj``.
 
-The library's current version is set by ``resources/SICMUTILS_VERSION``.
+The library's current version is set by ``resources/EMMY_VERSION``.
 
 The following command will produce a jar of the form
-``target/sicmutils-<version>.jar``:
+``target/emmy-<version>.jar``:
 
 [source, bash]
 ----

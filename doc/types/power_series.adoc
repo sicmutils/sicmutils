@@ -9,7 +9,7 @@ existing power series. If `<p>` is an expression denoting a power series, then:
 [source, clojure]
 ----
 (series/series? <any>)    ;;=> <boolean>
-(kind <p>)                ;;=> :sicmutils.series/series
+(kind <p>)                ;;=> :emmy.series/series
 ----
 
 Series can be constructed in a variety of ways. If one has a procedure that
@@ -147,8 +147,8 @@ operations are defined for series:
 negate, invert, +, -, *, /, expt
 ----
 
-NOTE: `sicmutils.series` has many more operations than this that aren't
+NOTE: `emmy.series` has many more operations than this that aren't
 registered in the generic system. See the
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/series.cljc[`sicmutils.series`]
+https://github.com/emmy/emmy/blob/main/src/emmy/series.cljc[`emmy.series`]
 namespace for a Literate Programming-style exposition of the capabilities
-SICMUtils affords for series and power series.
+Emmy affords for series and power series.

@@ -1,4 +1,4 @@
-{sicm/bigint     sicmutils.util/parse-bigint
- sicm/ratio      sicmutils.ratio/parse-ratio
- sicm/complex    sicmutils.complex/parse-complex
- sicm/quaternion sicmutils.quaternion/parse-quaternion}
+{sicm/bigint     emmy.util/parse-bigint
+ sicm/ratio      emmy.ratio/parse-ratio
+ sicm/complex    emmy.complex/parse-complex
+ sicm/quaternion emmy.quaternion/parse-quaternion}

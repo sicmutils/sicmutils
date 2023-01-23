@@ -1,27 +1,27 @@
-= SICMUTILS Reference Manual
+= EMMY Reference Manual
 :toc: right
 :toclevels: 2
 
-== SICMUTILS Reference Manual
+== EMMY Reference Manual
 
 CAUTION: This is a port of the original reference manual for scmutils over to
-Clojure and the SICMUtils API. The goal here is to host an annotated version of
+Clojure and the Emmy API. The goal here is to host an annotated version of
 the original `refman.txt`, highlighting any difference in functionality,
 behavior and naming so that folks can transition between the systems. The code
 here assumes that you're working at a REPL initialized to the the
-`sicmutils.env` namespace.
+`emmy.env` namespace.
 
-This is a description of the SICMUtils system, an integrated library of
+This is a description of the Emmy system, an integrated library of
 procedures, embedded in the programming language Clojure, and intended to
 support teaching and research in mathematical physics and electrical
-engineering. SICMUtils and Clojure are particularly effective in work where the
+engineering. Emmy and Clojure are particularly effective in work where the
 almost-functional nature of Clojure is advantageous, such as classical
 mechanics, where many of the procedures are most easily formulated as quite
 abstract manipulations of functions.
 
 == Clojure and Functional Programming
 
-NOTE: https://github.com/sicmutils/sicmutils[SICMUtils] is written in
+NOTE: https://github.com/emmy/emmy[Emmy] is written in
 https://clojure.org/[Clojure]. The original
 https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt[`scmutils`] is
 written in Scheme, as noted by some of the comments in this historical intro.
@@ -133,7 +133,7 @@ in-person help.
 
 == Generic Arithmetic
 
-In the SICMUtils library arithmetic operators are generic over a variety of
+In the Emmy library arithmetic operators are generic over a variety of
 mathematical datatypes. For example, addition makes sense when applied to such
 diverse data as numbers, vectors, matrices, and functions. Additionally, many
 operations can be given a meaning when applied to different datatypes. For
@@ -359,7 +359,7 @@ any kind of number.
 
 == Structured Objects
 
-SICMUtils supports a variety of structured object types, such as
+Emmy supports a variety of structured object types, such as
 
 * lists
 * vectors
@@ -412,9 +412,9 @@ Clojure operation that we recommend you prefer):
 ----
 
 NOTE: `ref` is the name of this procedure in the original `scmutils`, so we
-alias it into `sicmutils.env` for compatibility. In Clojure, a `ref` is a
+alias it into `emmy.env` for compatibility. In Clojure, a `ref` is a
 https://clojure.org/reference/refs[transactional reference], used for safe,
-shared mutable state. [[sicmutils.env/ref]] will attempt to act like the native
+shared mutable state. [[emmy.env/ref]] will attempt to act like the native
 Clojure `nth` with one argument, or `get-in` for multiple arguments, and fall
 back to [[clojure.core/ref]] if it's not successful. You should become
 comfortable with [[clojure.core/nth]] and [[clojure.core/get-in]] and switch to
@@ -452,7 +452,7 @@ Other structured objects are more magical:
 
 The magic is due to Clojure's beautiful
 https://clojure.org/reference/sequences[Sequence API]. All native collections
-can be turned into generic sequences. SICMUtils containers all implement this
+can be turned into generic sequences. Emmy containers all implement this
 interface, and respond appropriately to `seq`.
 
 The number of components of a structured object can be found with the `count`
@@ -509,7 +509,7 @@ procedure to the corresponding components of the given structures.
 Thus, vector addition is equivalent to `(vector:elementwise +)`.
 
 CAUTION: These do not yet work! If you need any of these, please feel free to
-file an issue https://github.com/sicmutils/sicmutils/pulls[here].
+file an issue https://github.com/emmy/emmy/pulls[here].
 
 == Clojure Vectors
 
@@ -604,8 +604,8 @@ Makes the `n`-dimensional basis unit vector with zero in all components except
 for the `i`-th component, which is one.
 
 WARNING: The following functions are referenced in the `scmutils` refman, but
-don't yet exist in SICMUtils. Please
-https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
+don't yet exist in Emmy. Please
+https://github.com/emmy/emmy/pulls[file a ticket] if this is
 something you need, or hang on until we get there.
 
 [source, clojure]
@@ -637,7 +637,7 @@ an up structure with two numerical components, and the third is a down structure
 with two numerical components. Such a structure has size (or length) 3, but it
 has five dimensions.
 
-In SICMUtils, Clojure vectors are interpreted as up tuples, and the down tuples
+In Emmy, Clojure vectors are interpreted as up tuples, and the down tuples
 are distinguished. The predicate `structure?` is true of any down or up tuple,
 but the two can be distinguished by the predicates `up?` and `down?`.
 
@@ -656,7 +656,7 @@ The generic `kind` operation distinguishes the types:
 
 [source, clojure]
 ----
-(kind <s>) ;; => :sicmutils.structure/up or :sicmutils.structure/down
+(kind <s>) ;; => :emmy.structure/up or :emmy.structure/down
 ----
 
 We reserve the right to change this implementation to distinguish Clojure
@@ -1106,14 +1106,14 @@ and where `v=wM`.
 
 == Functions
 
-In SICMUtils, functions are data just like other mathematical objects, and the
+In Emmy, functions are data just like other mathematical objects, and the
 generic arithmetic system is extended to include them. If `<f>` is an expression
 denoting a function, then:
 
 [source, clojure]
 ----
 (fn? <any>)         ;;=> <boolean>
-(kind <f>)          ;;=> :sicmutils.value/function
+(kind <f>)          ;;=> :emmy.value/function
 ----
 
 Operations on functions generally construct new functions that are the
@@ -1218,7 +1218,7 @@ If `<O>` is an expression representing an operator then
 
 ----
 (o/operator? <any>)       ;;=> <boolean>
-(kind <O>)                ;;=> :sicmutils.operator/operator
+(kind <O>)                ;;=> :emmy.operator/operator
 ----
 
 Operators can be added, subtracted, multiplied, and scaled. If they are combined
@@ -1229,7 +1229,7 @@ The transcendental functions `exp`, `sin`, and `cos` are extended to take
 operator arguments. The resulting operators are expanded as power series.
 
 NOTE: this works for almost all of the trigonometric functions. If an operation
-is implemented for `:sicmutils.series/power-series` it will work for operators.
+is implemented for `:emmy.series/power-series` it will work for operators.
 
 == Power Series
 
@@ -1240,7 +1240,7 @@ existing power series. If `<p>` is an expression denoting a power series, then:
 [source, clojure]
 ----
 (series/series? <any>)    ;;=> <boolean>
-(kind <p>)                ;;=> :sicmutils.series/series
+(kind <p>)                ;;=> :emmy.series/series
 ----
 
 Series can be constructed in a variety of ways. If one has a procedure that
@@ -1378,11 +1378,11 @@ operations are defined for series:
 negate, invert, +, -, *, /, expt
 ----
 
-NOTE: `sicmutils.series` has many more operations than this that aren't
+NOTE: `emmy.series` has many more operations than this that aren't
 registered in the generic system. See the
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/series.cljc[`sicmutils.series`]
+https://github.com/emmy/emmy/blob/main/src/emmy/series.cljc[`emmy.series`]
 namespace for a Literate Programming-style exposition of the capabilities
-SICMUtils affords for series and power series.
+Emmy affords for series and power series.
 
 == Generic extensions
 
@@ -1447,7 +1447,7 @@ function. The procedure for producing the derivative of a function is named
 "derivative", though we also use the single-letter symbol `D` to denote this
 operator.
 
-NOTE: The differentation offered by SICMUtils uses "forward mode Automatic
+NOTE: The differentation offered by Emmy uses "forward mode Automatic
 Differentation". We plan to implement reverse-mode AD at some point, but it
 doesn't exist here yet.
 
@@ -1483,9 +1483,9 @@ It is possible to compute the derivative of any composition of functions:
 except that the computation of the value of the function may not require
 evaluating a conditional.
 
-NOTE: This note about conditionals is currently true in SICMUtils, but we're
+NOTE: This note about conditionals is currently true in Emmy, but we're
 working on it. See
-https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
+https://github.com/emmy/emmy/issues/191[this ticket] for
 information on the plan to make generic comparisons in conditionals work in
 automatic differentiation.
 
@@ -1591,7 +1591,7 @@ is named `partial`.
 
 NOTE: Clojure also has a `partial` function, that returns the partial
 application of some function `f` to whatever arguments you supply. In the
-`sicmutils.env` namespace this is aliased as `core-partial`.
+`emmy.env` namespace this is aliased as `core-partial`.
 
 For example:
 
@@ -1646,7 +1646,7 @@ representation as an expression is the symbol `'a`:
 [source, clojure]
 ----
 (kind (literal-number 'a))
-;;=>  :sicmutils.expression/numeric
+;;=>  :emmy.expression/numeric
 
 (freeze (literal-number 'a))
 ;;=>  a
@@ -1823,7 +1823,7 @@ So we can write specifications of more general functions:
 == Numerical Methods
 
 There are a great variety of numerical methods that are coded in Clojure and are
-available in the SICMUtils system. Here we give a a short description of a few
+available in the Emmy system. Here we give a a short description of a few
 that are needed in the
 http://groups.csail.mit.edu/mac/users/gjs/6946/index.html[Mechanics course] that
 follows the book
@@ -1863,7 +1863,7 @@ into how Brent's method works. It turns out there is a long history of this
 algorithm being cargo-culted along from library to library. I (@sritchie) now
 _do_ understand Brent's method, and I've tried to disgorge that understanding
 into the
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+https://github.com/emmy/emmy/blob/main/src/emmy/numerical/unimin/brent.cljc[`emmy.numerical.unimin.brent`]
 namespace. Expect this to get better over time.
 
 The actual procedure in the system is:
@@ -1984,7 +1984,7 @@ good an answer as we got with Brent.
 
 NOTE: The following section describing `local-minima` and `local-maxima` does
 not yet work. A port of this work is in progress at
-https://github.com/sicmutils/sicmutils/pull/108[this PR], if you'd like
+https://github.com/emmy/emmy/pull/108[this PR], if you'd like
 to follow along.
 
 We can find a number of local minima of a multimodal function using a search
@@ -2107,13 +2107,13 @@ wander off into oblivion:
 ----
 
 See
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+https://github.com/emmy/emmy/blob/main/src/emmy/numerical/multimin/nelder_mead.cljc#L238[the
 documentation for `nelder-mead`] for the full menu of options and an accounting
 of the available defaults.
 
 WARNING: The following section describes algorithms that aren't yet implemented
-in SICMUtils. If you need these, please
-https://github.com/sicmutils/sicmutils/pulls[file an issue] and we can
+in Emmy. If you need these, please
+https://github.com/emmy/emmy/pulls[file an issue] and we can
 help you get started.
 
 If we know more than just the function to minimize we can use that information
@@ -2175,7 +2175,7 @@ Optionally you can supply a map of keyword arguments. The top level
   of the definite integral.
 * `*:method*`: Specifies the integration method used. Must be:
 ** a keyword naming one of the available methods in
-   https://github.com/sicmutils/sicmutils/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/sicmutils/numerical/quadrature.cljc#L65[`available-methods`]
+   https://github.com/emmy/emmy/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/emmy/numerical/quadrature.cljc#L65[`available-methods`]
 ** a function with the proper integrator signature
 ** a dictionary of integrator options with a `:method` key
 
@@ -2280,9 +2280,9 @@ used can be set by the user:
 (set-ode-integration-method! 'explicit-gear)
 ----
 
-WARNING: In SICMUtils we currently only support the Gragg-Bulirsch-Stoer
+WARNING: In Emmy we currently only support the Gragg-Bulirsch-Stoer
 algorithm. If you need any of the others, please
-https://github.com/sicmutils/sicmutils/pulls[file a PR] and we can
+https://github.com/emmy/emmy/pulls[file a PR] and we can
 discuss how to get these in for you.
 
 The integration methods all automatically select the step sizes to maintain the
@@ -2451,7 +2451,7 @@ We could monitor the energy (the Hamiltonian):
 == Constants
 
 There are a few constants that we find useful, and are thus provided in
-SICMUtils.
+Emmy.
 
 [source, clojure]
 ----
@@ -2479,15 +2479,15 @@ makes a difference:
 NOTE: `scmutils` describes a number of units and constants in this section that
 aren't actually available in the original system. We're working on an
 implementation of the
-https://github.com/sicmutils/sicmutils/issues/181[units system] from
-`scmutils` at https://github.com/sicmutils/sicmutils/issues/181[this
+https://github.com/emmy/emmy/issues/181[units system] from
+`scmutils` at https://github.com/emmy/emmy/issues/181[this
 ticket]; follow along there for updates.
 
 == MORE TO BE DOCUMENTED
 
 NOTE: These are items mentioned in the original refman, included here for
-completeness. The definitely location of the SICMUtils documentation is our
-https://cljdoc.org/d/sicmutils/sicmutils/CURRENT[cljdoc site], so please visit
+completeness. The definitely location of the Emmy documentation is our
+https://cljdoc.org/d/emmy/emmy/CURRENT[cljdoc site], so please visit
 there for more information.
 
 - Solutions of Equations

@@ -1,6 +1,6 @@
 ## Linters
 
-SICMUtils ships with a configuration that allows
+Emmy ships with a configuration that allows
 [clj-kondo](https://github.com/clj-kondo/clj-kondo) to lint the library's
 macros. This page contains installation instructions, as well as a directory of
 all customizable linter warnings.
@@ -26,7 +26,7 @@ For all available linters offered by
 
 ### Installation
 
-To use the configuration exported by SICMUtils, you'll need to install it into
+To use the configuration exported by Emmy, you'll need to install it into
 your project.
 
 The steps listed here mirror the [instructions in the clj-kondo
@@ -34,14 +34,14 @@ repo](https://github.com/clj-kondo/clj-kondo/blob/master/doc/config.md#importing
 
 To install the exported linter configuration:
 
-1. Install the SICMUtils dependency into your project using the appropriate
-   entry listed at [Clojars](https://clojars.org/sicmutils). For example, If you
+1. Install the Emmy dependency into your project using the appropriate
+   entry listed at [Clojars](https://clojars.org/emmy). For example, If you
    are using `deps.edn`, add the project to the map under `:deps`:
 
 ```clj
-;; See https://clojars.org/sicmutils to pick an explicit version!
+;; See https://clojars.org/emmy to pick an explicit version!
 {:deps
- {sicmutils/sicmutils {:mvn/version "RELEASE"}}
+ {emmy/emmy {:mvn/version "RELEASE"}}
 ```
 
 2. Install clj-kondo using [these
@@ -56,24 +56,24 @@ To install the exported linter configuration:
 mkdir .clj-kondo
 ```
 
-3. Run `clj-kondo` using the following command. This will import the `sicmutils`
+3. Run `clj-kondo` using the following command. This will import the `emmy`
    config and populate clj-kondo's cache with linting information about all of
    your dependencies:
 
 ```shellsession
 # If you're using Leiningen:
 $ clj-kondo --copy-configs --dependencies --lint "$(lein classpath)"
-Imported config to .clj-kondo/sicmutils/sicmutils. To activate, add "sicmutils/sicmutils" to :config-paths in .clj-kondo/config.edn.
+Imported config to .clj-kondo/emmy/emmy. To activate, add "emmy/emmy" to :config-paths in .clj-kondo/config.edn.
 
 # If you're using deps.edn:
 $ clj-kondo --copy-configs --dependencies --lint "$(clojure -Spath)"
-Imported config to .clj-kondo/sicmutils/sicmutils. To activate, add "sicmutils/sicmutils" to :config-paths in .clj-kondo/config.edn.
+Imported config to .clj-kondo/emmy/emmy. To activate, add "emmy/emmy" to :config-paths in .clj-kondo/config.edn.
 ```
 
-5. As instructed, either create or edit `.clj-kondo/config.edn` so that it contains a `:config-paths` entry with `"sicmutils/sicmutils"`:
+5. As instructed, either create or edit `.clj-kondo/config.edn` so that it contains a `:config-paths` entry with `"emmy/emmy"`:
 
 ```clj
-{:config-paths ["sicmutils/sicmutils"]}
+{:config-paths ["emmy/emmy"]}
 ```
 
 6. Check the imported files into source control in your project.
@@ -89,20 +89,20 @@ docs](https://github.com/clj-kondo/clj-kondo/blob/master/doc/config.md#options).
 You can place a specific override directly on a particular form:
 
 ```clj
-;; Ignore any :sicmutils.pattern/ruleset-args warning emitted in the `(ruleset ...)` form:
+;; Ignore any :emmy.pattern/ruleset-args warning emitted in the `(ruleset ...)` form:
 
-#_{:clj-kondo/ignore [:sicmutils.pattern/ruleset-args]}
+#_{:clj-kondo/ignore [:emmy.pattern/ruleset-args]}
 (ruleset
  (+ (? x) (? y)) (fn [m] (- ('?x m) ('?y m))))
 ```
 
 Or you can add an entry for any of the linters to a map under `:linters` keyword
 in your project's `.clj-kondo/config.edn`. For example, this config will disable
-the `:sicmutils.pattern/ruleset-args` error:
+the `:emmy.pattern/ruleset-args` error:
 
 ```clj
 {:linters
- {:sicmutils.pattern/ruleset-args {:level :off}}}
+ {:emmy.pattern/ruleset-args {:level :off}}}
 ```
 
 Other valid levels are `:warning` and `:error`.
@@ -113,11 +113,11 @@ for more information.
 
 ## Linter Directory
 
-This section describes all of the custom warnings emitted by the SICMUtils clj-kondo config.
+This section describes all of the custom warnings emitted by the Emmy clj-kondo config.
 
 ### Invalid Pattern Binding Symbol
 
-*Keyword:* `:sicmutils.pattern/binding-sym`
+*Keyword:* `:emmy.pattern/binding-sym`
 
 *Description:* warn when a binding form like `(? x)` in the pattern argument to
 a `pattern.rule` macro contains anything other than a simple, non-qualified
@@ -128,7 +128,7 @@ symbol.
 *Example trigger:*
 
 ``` clojure
-(require '[sicmutils.rule :as r])
+(require '[emmy.rule :as r])
 
 (r/rule (+ (? "x") ?y) => "match!")
 ```
@@ -137,7 +137,7 @@ symbol.
 
 ### Ignored Segment Restriction
 
-*Keyword:* `:sicmutils.pattern/ignored-restriction`
+*Keyword:* `:emmy.pattern/ignored-restriction`
 
 *Description:* warn when a segment binding form like `(?? x)` or `($$ x)`
 contain restrictions like `(?? x all-odd?)`. These don't error but aren't
@@ -150,7 +150,7 @@ currently used.
 `.clj-kondo/config.edn`:
 
 ``` clojure
-(require '[sicmutils.rule :as r])
+(require '[emmy.rule :as r])
 
 (r/rule (+ (?? x odd?) ?y) => "match!")
 ```
@@ -159,7 +159,7 @@ currently used.
 
 ### Invalid Restriction in Consequence
 
-*Keyword:* `:sicmutils.pattern/consequence-restriction`
+*Keyword:* `:emmy.pattern/consequence-restriction`
 
 *Description:* warn when a binding form like `(? x)`, `(?? x)` or `($$ x)` in a
 consequence contains restrictions like `(? x odd?)`. These are meaningless in
@@ -170,7 +170,7 @@ consequences, and may error in the future.
 *Example trigger:*
 
 ``` clojure
-(require '[sicmutils.rule :as r])
+(require '[emmy.rule :as r])
 
 (r/rule (+ (? x) (? y)) => (+ (? y odd?) (? x)))
 ```
@@ -179,18 +179,18 @@ consequences, and may error in the future.
 
 ### Ruleset Argument Count
 
-*Keyword:* `:sicmutils.pattern/ruleset-args`
+*Keyword:* `:emmy.pattern/ruleset-args`
 
-*Description:* warn when the `sicmutils.pattern/ruleset` receives arguments that
+*Description:* warn when the `emmy.pattern/ruleset` receives arguments that
 aren't grouped into three. Each triplet should match the arguments you would
-supply to the 3-arity of `sicmutils.pattern/rule`.
+supply to the 3-arity of `emmy.pattern/rule`.
 
 *Default level:* `:error`
 
 *Example trigger:*
 
 ``` clojure
-(require '[sicmutils.rule :as r])
+(require '[emmy.rule :as r])
 
 (r/ruleset (+ (? x) (? y))
            (fn [m] (- ('?x m) ('?y m))))
@@ -200,11 +200,11 @@ supply to the 3-arity of `sicmutils.pattern/rule`.
 
 ### Invalid `with-literal-functions` Binding
 
-*Keyword:* `:sicmutils.abstract.function/invalid-binding`
+*Keyword:* `:emmy.abstract.function/invalid-binding`
 
 *Description:* warn when an binding entry passed to the first argument of
-`with-literal-functions` (in either `sicmutils.abstract.function` or
-`sicmutils.env`) is anything other than an unqualified symbol or a 3-vector
+`with-literal-functions` (in either `emmy.abstract.function` or
+`emmy.env`) is anything other than an unqualified symbol or a 3-vector
 containing a symbol, a domain and a range.
 
 *Default level:* `:error`
@@ -212,7 +212,7 @@ containing a symbol, a domain and a range.
 *Example trigger:*
 
 ``` clojure
-(require '[sicmutils.env :as e])
+(require '[emmy.env :as e])
 
 (e/with-literal-functions [x 10 y]
   [x y])
@@ -222,11 +222,11 @@ containing a symbol, a domain and a range.
 
 ### Invalid Coordinate System Bindings
 
-*Keyword:* `:sicmutils.calculus.coordinate/invalid-binding`
+*Keyword:* `:emmy.calculus.coordinate/invalid-binding`
 
 *Description:* warn when the left side of a binding pair passed to
 `let-coordinates` or `using-coordinates` (in either
-`sicmutils.calculus.coordinate` or `sicmutils.env`) is anything other than a
+`emmy.calculus.coordinate` or `emmy.env`) is anything other than a
 potentially-nested structure of vectors or lists beginning with `up` or `down`
 with unqualified symbols at the leaves.
 
@@ -235,7 +235,7 @@ with unqualified symbols at the leaves.
 *Example trigger:*
 
 ```clj
-(require '[sicmutils.env :as e])
+(require '[emmy.env :as e])
 
 (e/let-coordinates [[x (up {:key "val"})] R3-rect]
   ,,,)

@@ -3,7 +3,7 @@
 (ns pattern.syntax
   "The syntax namespace defines the default syntax for patterns corresponding to
   the matcher combinators defined in [[pattern.match]]."
-  (:require [sicmutils.util :as u]))
+  (:require [emmy.util :as u]))
 
 ;; ### Notes
 ;;

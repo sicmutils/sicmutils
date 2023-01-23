@@ -19,7 +19,7 @@ representation as an expression is the symbol `'a`:
 [source, clojure]
 ----
 (kind (literal-number 'a))
-;;=>  :sicmutils.expression/numeric
+;;=>  :emmy.expression/numeric
 
 (freeze (literal-number 'a))
 ;;=>  a

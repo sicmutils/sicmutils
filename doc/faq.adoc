@@ -4,9 +4,9 @@
 
 == FAQ
 
-=== Who is using SICMUtils?
+=== Who is using Emmy?
 
-- https://github.com/kloimhardt[@kloimhardt] has integrated SICMUtils into his
+- https://github.com/kloimhardt[@kloimhardt] has integrated Emmy into his
   https://scratch.mit.edu[Scratch]-like, blocks-based language at
   https://github.com/kloimhardt/clj-tiles[clj-tiles]. See
   https://kloimhardt.github.io/cljtiles.html?page=freeparticle[this demo] for a
@@ -20,23 +20,23 @@
 
 === How should I configure Emacs?
 
-The SICMUtils repository includes a
-https://github.com/sicmutils/sicmutils/blob/main/.dir-locals.el[dir-locals.el]
+The Emmy repository includes a
+https://github.com/emmy/emmy/blob/main/.dir-locals.el[dir-locals.el]
 file with a few variable settings that improve the Emacs experience with
-SICMUtils.
+Emmy.
 
 The main interesting dir-local variable to set is ``cider-print-fn``:
 
 [source, elisp]
 ----
 ((nil
-  . ((cider-print-fn . "sicmutils.expression/expression->stream"))))
+  . ((cider-print-fn . "emmy.expression/expression->stream"))))
 ----
 
 Setting CIDER's print function to ``expression->stream`` will cause the REPL to
 automatically simplify forms before rendering them.
 
 ``expression->stream`` currently uses ``clojure.pprint`` to print simplified
-values. Once https://github.com/sicmutils/sicmutils/issues/519[#519] is
+values. Once https://github.com/emmy/emmy/issues/519[#519] is
 completed, the ``pprint`` call will be replaced by a call you can bind to
 ``prn``, ``zprint`` or any other preferred printer.

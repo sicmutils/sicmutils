@@ -6,11 +6,11 @@ authors:
   orcid: "https://orcid.org/0000-0002-0545-6360"
 - family-names: "Smith"
   given-names: "Colin"
-title: "SICMUtils: Functional Computer Algebra in Clojure"
+title: "Emmy: Functional Computer Algebra in Clojure"
 version: 0.23.0
 date-released: 2016
 type: software
-url: "https://github.com/sicmutils/sicmutils"
+url: "https://github.com/emmy/emmy"
 license: GPL-3.0
 license-url: "https://www.gnu.org/licenses/gpl-3.0.en.html"
-repository-code: "https://github.com/sicmutils/sicmutils"
+repository-code: "https://github.com/emmy/emmy"

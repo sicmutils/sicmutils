@@ -7,7 +7,7 @@
 
   See [[pattern.rule]] for a detailed treatment."
   (:require [pattern.syntax :as ps]
-            [sicmutils.util :as u]))
+            [emmy.util :as u]))
 
 ;; ## Consequence Functions
 ;;

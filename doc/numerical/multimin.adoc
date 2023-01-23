@@ -86,13 +86,13 @@ wander off into oblivion:
 ----
 
 See
-https://github.com/sicmutils/sicmutils/blob/main/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+https://github.com/emmy/emmy/blob/main/src/emmy/numerical/multimin/nelder_mead.cljc#L238[the
 documentation for `nelder-mead`] for the full menu of options and an accounting
 of the available defaults.
 
 WARNING: The following section describes algorithms that aren't yet implemented
-in SICMUtils. If you need these, please
-https://github.com/sicmutils/sicmutils/pulls[file an issue] and we can
+in Emmy. If you need these, please
+https://github.com/emmy/emmy/pulls[file an issue] and we can
 help you get started.
 
 If we know more than just the function to minimize we can use that information

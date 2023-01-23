@@ -1,11 +1,11 @@
 (ns build
-  "tools.build declarations for the sicmutils library."
+  "tools.build declarations for the emmy library."
   (:require [clojure.tools.build.api :as b]))
 
 ;; ## Variables
 
-(def lib 'sicmutils/sicmutils)
-(def version (slurp "resources/SICMUTILS_VERSION"))
+(def lib 'emmy/emmy)
+(def version (slurp "resources/EMMY_VERSION"))
 
 (defn- ->version
   ([] version)

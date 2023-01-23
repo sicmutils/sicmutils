@@ -22,9 +22,9 @@ used can be set by the user:
 (set-ode-integration-method! 'explicit-gear)
 ----
 
-WARNING: In SICMUtils we currently only support the Gragg-Bulirsch-Stoer
+WARNING: In Emmy we currently only support the Gragg-Bulirsch-Stoer
 algorithm. If you need any of the others, please
-https://github.com/sicmutils/sicmutils/pulls[file a PR] and we can
+https://github.com/emmy/emmy/pulls[file a PR] and we can
 discuss how to get these in for you.
 
 The integration methods all automatically select the step sizes to maintain the
@@ -193,7 +193,7 @@ We could monitor the energy (the Hamiltonian):
 == Constants
 
 There are a few constants that we find useful, and are thus provided in
-SICMUtils.
+Emmy.
 
 [source, clojure]
 ----

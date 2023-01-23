@@ -18,8 +18,8 @@
   :repl
   {:main-opts
    ["-e"
-    "(do (require 'sicmutils.env)
-         (in-ns 'sicmutils.env)
+    "(do (require 'emmy.env)
+         (in-ns 'emmy.env)
          (str \"Clojure \" (clojure-version)))"
     "-r"]}
 

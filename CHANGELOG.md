@@ -7,7 +7,7 @@
 - #532:
 
   - Removes the `potemkin` dependency by importing only what we need directly
-    into `sicmutils.util.def`. This makes sense since our versions add a `fork`
+    into `emmy.util.def`. This makes sense since our versions add a `fork`
     call so that they work for ClojureScript as well.
 
   - Moves all `examples` into the tests so that we don't ship them with the
@@ -23,7 +23,7 @@
 - #531:
 
   - Fixes a typo in one of the rules in
-    `sicmutils.simplify.rules/expand-multiangle`, closing #530
+    `emmy.simplify.rules/expand-multiangle`, closing #530
 
   - Adds proper self-require forms to all `cljc` namespaces with macros; this
     removes the need for `:include-macros true` or `:refer-macros` and makes the
@@ -40,7 +40,7 @@
   - Adds type hints to all remaining `Complex` calls in js, to fix issues with
     advanced compilation (thanks to @mhuebert for finding this)
 
-  - Adds `sicmutils.structure/symbol-set`
+  - Adds `emmy.structure/symbol-set`
 
   - Adds `IHash` implementations for `js/BigInt`, `goog.math.Long`,
     `goog.map.Integer` and `Ratio` types
@@ -50,13 +50,13 @@
  - tidies up the `square` and `cube` speedups thanks to a tip from GJS
 
  - Converts more `(mul x x)` to `square` in the derivatives of the
-   `sicmutils.generic` namespace.
+   `emmy.generic` namespace.
 
  - fixes a bug in the `numeric-zero?` check of exponent's derivative.
 
 - #514:
 
-  - Modifies `sicmutils.calculus.derivative/taylor-series` to return a proper
+  - Modifies `emmy.calculus.derivative/taylor-series` to return a proper
     `PowerSeries` instance, which the user can call with some `dx` to get back
     the old behavior.
 
@@ -65,11 +65,11 @@
     arguments (totally fine!), you'll need to wrap your `dx` components in a
     vector before supplying them to the returned `PowerSeries`.
 
-  - `sicmutils.series/function->` works the same way now, and functions
+  - `emmy.series/function->` works the same way now, and functions
     identically, but with a different implementation. (previously it took a
     single expansion point under a keyword argument `:x0`.)
 
-  - The new `sicmutils.calculus.derivative/symbolic-taylor-series` is a port of
+  - The new `emmy.calculus.derivative/symbolic-taylor-series` is a port of
     `Taylor-series-coefficients` from `scmutils`. It has the same contract as
     `taylor-series`, except that the full expansion is performed symbolically,
     and the original arguments are substituted in after expansion and
@@ -82,13 +82,13 @@
       element compatible with all entries of the structure; but as defined now,
       `1` is a fine choice and matches the `scmutils` implementation.
 
-    - new `sicmutils.differential/map-coefficients`, which makes `simplify`
+    - new `emmy.differential/map-coefficients`, which makes `simplify`
       slightly more efficient by filtering terms .
 
-    - more efficient `sicmutils.expression/variables-in`, maybe 30% faster for
+    - more efficient `emmy.expression/variables-in`, maybe 30% faster for
       big expressions; this makes a difference in the simplifier!
 
-    - `sicmutils.expression/substitute` now works for proper `Literal`
+    - `emmy.expression/substitute` now works for proper `Literal`
       instances. Before it only worked for unwrapped literals.
 
     - matrix walks made slightly faster by caching a row or column before
@@ -96,22 +96,22 @@
 
 - #512:
 
-  - adds `sicmutils.mechanics.routhian`, with implementations of
+  - adds `emmy.mechanics.routhian`, with implementations of
     `Lagrangian->Routhian`, `Routh-equations`, `Routhian->acceleration`,
     `Routhian->state-derivative`, `Lagrangian-state->Routhian-state` and
     `Routhian-state->Lagrangian-state`.
 
-  - adds missing `sicmutils.mechanics.{routhian,time-evolution,noether}` to
-    `sicmutils.env.sci`
+  - adds missing `emmy.mechanics.{routhian,time-evolution,noether}` to
+    `emmy.env.sci`
 
 - #509:
 
   - Fixes a bug with `down*Matrix` multiplication, and adds tests for
     correctness.
 
-  - Adds `sicmutils.matrix.{symmetric?,antisymmetric?}` predicates
+  - Adds `emmy.matrix.{symmetric?,antisymmetric?}` predicates
 
-  - The mechanics port continues with `sicmutils.mechanics.rigid`:
+  - The mechanics port continues with `emmy.mechanics.rigid`:
 
     - `T-rigid-body` moves to `T-body-Euler` with an alias back to its original
       name. Same situation for `Euler-state->L-body` => `L-body-Euler` and
@@ -123,7 +123,7 @@
       `qw-state->L-body`, `qw-state->L-space`, `T-quaternion-state`
 
 - #511 focuses on adding more rotations and efficiency to
-  `sicmutils.quaternion`. Specifically:
+  `emmy.quaternion`. Specifically:
 
   - `magnitude-sq` and `magnitude` are now more efficient.
 
@@ -152,22 +152,22 @@
     multiplication: $xx' + x'x$.
 
     Before a judicious `simplify` call I added, this change dropped the runtime
-    of the `sicmutils.sicm.ch3-test` suite down by 6x. After the simplify change
-    in `sicmutils.examples.top` the tests were still 40% faster in that
+    of the `emmy.sicm.ch3-test` suite down by 6x. After the simplify change
+    in `emmy.examples.top` the tests were still 40% faster in that
     namespace.
 
   - Fixes a bug where the `RationalFunction` cube implementation actually called
     `square`.
 
-  - adds `sicmutils.mechanics.lagrange/Lagrangian` for building function
+  - adds `emmy.mechanics.lagrange/Lagrangian` for building function
     signatures of Lagrangians.
 
-  - adds the `sicmutils.mechanics.time-evolution` namespace
+  - adds the `emmy.mechanics.time-evolution` namespace
 
-  - adds `sicmutils.mechanics.lagrange/L-axisymmetric-top`, more efficient than
-    the version in `sicmutils.examples.top`
+  - adds `emmy.mechanics.lagrange/L-axisymmetric-top`, more efficient than
+    the version in `emmy.examples.top`
 
-  - Fleshes out `sicmutils.mechanics.hamilton`:
+  - Fleshes out `emmy.mechanics.hamilton`:
 
     - New functions: `H-state?`, `compatible-H-state?`, `state->p`, `momenta`,
       `P`, `literal-Hamiltonian-state`, `L-state->H-state`, `H-state->L-state`,
@@ -187,16 +187,16 @@
       more correctness tests, toggled on and off by the
       `*validate-Legendre-transform?*` dynamic variable.
 
-- #508 adds `sicmutils.mechanics.noether` namespace, with `Noether-integral`.
+- #508 adds `emmy.mechanics.noether` namespace, with `Noether-integral`.
 
 - #506 tidies up the build by removing unneeded reader conditionals and
   replacing renames like `core-=` with a proper require of `clojure.core`.
 
 - #502 begins the port of the remaining items in the scmutils `mechanics`
-  package over the Clojure. This PR focuses on `sicmutils.mechanics.lagrange`,
+  package over the Clojure. This PR focuses on `emmy.mechanics.lagrange`,
   which contains functions from many files in the original `mechanics` folder.
 
-  - `momentum-tuple` moves here from `sicmutils.mechanics.hamilton`
+  - `momentum-tuple` moves here from `emmy.mechanics.hamilton`
 
   - New functions `->L-state`, `->local`, `->state`,`state->n-dof`, `time`,
     `state->{q,qdot,qddot}`, `coordinates`, `velocities`, `accelerations`, `Q`,
@@ -207,7 +207,7 @@
     the wrapping operator `Dt`, `Euler-lagrange-operator` (with
     `Lagrange-equations-operator` and `LE` aliases), `generalized-LE`.
 
-  - Many of these are aliased into `sicmutils.env`. Ask if you think more should
+  - Many of these are aliased into `emmy.env`. Ask if you think more should
     be there!
 
   - many new built-in Lagrangians: `L-Kepler-polar`, `L-coupled-harmonic`,
@@ -223,15 +223,15 @@
     `rectangular->spherical` that operate on coordinates, with associated `r->p`
     (new), `p->r`, `s->r` and `r->s` (new).
 
-- #501 moves `elliptic-integrals` from `sicmutils.special.elliptical-test`
-  `sicmutils.special.elliptical`, as it's needed by the upcoming
-  `sicmutils.mechanics.pendulum` namespace.
+- #501 moves `elliptic-integrals` from `emmy.special.elliptical-test`
+  `emmy.special.elliptical`, as it's needed by the upcoming
+  `emmy.mechanics.pendulum` namespace.
 
 ## [0.22.0]
 
 - #497:
 
-  - `sicmutils.expression.compile/compile-state-fn` and its non-memoized version
+  - `emmy.expression.compile/compile-state-fn` and its non-memoized version
     can now take an explicit `:mode` argument; this will override the
     dynamically bound `*mode*`.
 
@@ -246,13 +246,13 @@
 
 - #496:
 
-  - replaces the function values in `sicmutils.expression.compile` with symbols;
+  - replaces the function values in `emmy.expression.compile` with symbols;
     I hadn't realized before that substituting in symbolic `Math/sqrt`, for
     example, was possible, vs a `#(Math/sqrt %)` function value. Compiled
     functions are now faster!
 
     A simulation run of the double pendulum example in the [clerk-demo
-    repository](https://github.com/nextjournal/clerk-demo/blob/20a404a271bea29ef98ee4e60a05e54345aa43ba/notebooks/sicmutils.clj)
+    repository](https://github.com/nextjournal/clerk-demo/blob/20a404a271bea29ef98ee4e60a05e54345aa43ba/notebooks/emmy.clj)
     now runs in 350ms vs the former 2.2 seconds, a major win.
 
   - Function compilation now pre-simplifies numerical forms encountered inside a
@@ -263,7 +263,7 @@
     either `double` on the JVM or `js/Number` in javascript; this way no
     `BigInt` values etc are left around.
 
-  - In `sicmutils.expression.compile`:
+  - In `emmy.expression.compile`:
 
     - gains a new, validating `compiler-mode` function for fetching the compiler
       function.
@@ -288,14 +288,14 @@
     display-able with Clerk. To run these, start a REPL and follow the
     instructions in `dev/user.clj`.
 
-    - `sicmutils.calculus.derivative` and `sicmutils.differential` now render as
+    - `emmy.calculus.derivative` and `emmy.differential` now render as
       proper literate essays, with all TeX bugs fixed.
 
   - Bumps the shadow-cljs dependency to version `2.17.4`, and the included
-    `cljs` version to `1.11.4`. `sicmutils.collection` properly handles the new
+    `cljs` version to `1.11.4`. `emmy.collection` properly handles the new
     cljs `IntegerRange` class.
 
-  - `sicmutils.polynomial.factor` now memoizes `poly->factored-expression` by
+  - `emmy.polynomial.factor` now memoizes `poly->factored-expression` by
     default. If polynomial GCD fails inside that function the computation now
     proceeds with a warning instead of failing.
 
@@ -303,15 +303,15 @@
   metadata from the original token, not just `:row` and `:col`. This fixes the
   ability to override or ignore individual warnings.
 
-- #490 adds `sicmutils.numerical.roots.bisect` with implementations of bisection
+- #490 adds `emmy.numerical.roots.bisect` with implementations of bisection
   search, secant search and a mixed method found in `scmutils`. These all live
   under a `bisect` function.
 
   The data structure returned is similar to the minimization functions in the
-  `sicmutils.numeric.{unimin, multimin}` namespaces. As more root-finding
+  `emmy.numeric.{unimin, multimin}` namespaces. As more root-finding
   methods come online this should all standardize nicely.
 
-- #491 adds `sicmutils.mechanics.rotation/M->Euler`, for converting from a
+- #491 adds `emmy.mechanics.rotation/M->Euler`, for converting from a
   rotation matrix to a triple of Euler angles. Now we can successfully round
   trip.
 
@@ -323,21 +323,21 @@
   - Removes most `js*` calls using `coercive-=` and `js-mod`. This form is
     internal and should be avoided.
 
-- #484 adds `sicmutils.polynomial/from-power-series`, for generating a
+- #484 adds `emmy.polynomial/from-power-series`, for generating a
   polynomial instance from some prefix of a (univariate) power series.
 
 ## [0.21.1]
 
 - #481:
 
-  - fixes a long-standing (test-only) bug in `sicmutils.polynomial-test` around
+  - fixes a long-standing (test-only) bug in `emmy.polynomial-test` around
     palindromic polynomials
 
-  - Adds a new `x-degree` argument to `sicmutils.polynomial/univariate->dense`,
+  - Adds a new `x-degree` argument to `emmy.polynomial/univariate->dense`,
     for padding the result with zeros in the case that you want to guarantee a
     certain dense degree in the result.
 
-- #480: `sicmutils.numerical.quadrature/definite-integral` now coerces the
+- #480: `emmy.numerical.quadrature/definite-integral` now coerces the
   result of non-compiled integrands in cljs to double. This prevents the
   @kloimhardt bug where certain paths would produce `BigInt` instances and fail
   in quadrature calls.
@@ -368,32 +368,32 @@
 
   - I found the following bugs with the help of the linter:
 
-    - Deleted the unused `sicmutils.differential/d:apply`.
+    - Deleted the unused `emmy.differential/d:apply`.
 
-    - Fixed a bug with `sicmutils.expression.render/->JavaScript` not using the
+    - Fixed a bug with `emmy.expression.render/->JavaScript` not using the
       second argument to `remainder`.
 
-    - deleted `sicmutils.numerical.quadrature.common` in favor of
-      `sicmutils.generic/infinite?`
+    - deleted `emmy.numerical.quadrature.common` in favor of
+      `emmy.generic/infinite?`
 
-    - Fixed a broken integrator in `sicmutils.numerical.quadrature.simpson38`,
+    - Fixed a broken integrator in `emmy.numerical.quadrature.simpson38`,
       and fixed the tests to actually stress this code.
 
     - Fixed a bug where
-      `sicmutils.numerical.quadrature.substitute/exponential-upper` was not
+      `emmy.numerical.quadrature.substitute/exponential-upper` was not
       actually using its input function!
 
     - unused `simplify` argument removed from
-      `sicmutils.simplify.rules/non-negative-factors!` and all uses.
+      `emmy.simplify.rules/non-negative-factors!` and all uses.
 
-    - Bug fix in `sicmutils.special.elliptic/jacobi-elliptic-functions`; deep in
+    - Bug fix in `emmy.special.elliptic/jacobi-elliptic-functions`; deep in
       the gnarly fn, one of the branches returned nil instead of its required
       values. Thank you, linter!
 
     - `pattern.rule` patterns can now handle spliced and unquote-spliced inputs in
       their symbol position.
 
-    - `sicmutils.pattern/template` will no longer error in the 1-arity case when
+    - `emmy.pattern/template` will no longer error in the 1-arity case when
       some form contains a binding entry like `(? (fn [m] ...))`. Instead, the
       function will be passed an empty map.
 
@@ -406,7 +406,7 @@
 
 - #469:
 
-  - `sicmutils.matrix` gains:
+  - `emmy.matrix` gains:
 
     - `literal-column-matrix`, `literal-row-matrix` for generating slightly
       tidier matrices of literal entries. (See `literal-matrix` for the prior
@@ -453,13 +453,13 @@
     - new `solve-linear-right` between row-matrix+square-matrix,
       down+square-matrix and scalar+structure.
 
-  - Fixes an infinite loop with `sicmutils.matrix/some`.
+  - Fixes an infinite loop with `emmy.matrix/some`.
 
   - Renames `square-structure->` to `two-tensor->`, and
     `square-structure-operation` to `two-tensor-operation`. These functions now
     work with rectangular 2 tensors, not just square.
 
-  - `sicmutils.structure` gains `down-of-ups?`, `up-of-downs?`, `two-up?`,
+  - `emmy.structure` gains `down-of-ups?`, `up-of-downs?`, `two-up?`,
     `two-down?`, `two-tensor?` and `two-tensor-info` for working with "2
     tensors", ie, structures that contain structural entries of matching
     orientation and size.
@@ -473,16 +473,16 @@
 
   - tweaks the default gcd implementation so that two identical values `x`, even
     if they are floating point, will return `x` from `(gcd x x)`. (default gcd
-    in `sicmutils.euclid` can handle cases now where the terms are equal and of
+    in `emmy.euclid` can handle cases now where the terms are equal and of
     opposite sign.)
 
   - adds `exact-divide` handling of non-integral numbers when the inputs are
     either equal or of opposite sign.
 
-- #398 adds a `sicmutils.generic/gcd` implementation for complex numbers,
+- #398 adds a `emmy.generic/gcd` implementation for complex numbers,
   closing the long-standing #58. Thanks to @adamhaber for this!
 
-- #461 adds `sicmutils.quaternion`, with a full arithmetic implementation and
+- #461 adds `emmy.quaternion`, with a full arithmetic implementation and
   the beginnings of a rotation API. Quaternions are implemented like vectors of
   length 4, and implement all appropriate Clojure protocols. All arithmetic is
   compatible with all scalars and complex numbers.
@@ -515,21 +515,21 @@
 
 - #468:
 
-  - adds `sicmutils.polynomial/touchard`, implementing a constructor for the
+  - adds `emmy.polynomial/touchard`, implementing a constructor for the
     type of polynomial known as a "complete Bell polynomial" or ["Touchard
     polynomial"](https://en.wikipedia.org/wiki/Touchard_polynomials).
 
-  - adds `sicmutils.special.factorial/bell` for computing the nth [Bell
+  - adds `emmy.special.factorial/bell` for computing the nth [Bell
     number](https://en.wikipedia.org/wiki/Bell_number)
 
-  - `sicmutils.series/bell-series` returns an infinite sequence of bell numbers.
+  - `emmy.series/bell-series` returns an infinite sequence of bell numbers.
 
 - #276 adds an `integration-opts` to
-  `sicmutils.mechanics.lagrange/Lagrangian-action`. All options are passed on to
+  `emmy.mechanics.lagrange/Lagrangian-action`. All options are passed on to
   `definite-integral`. By default, `parametric-path-action` passes `:compile?
   false`, since we do NOT want to compile the polynomial.
 
-- #463 adds a new 1-arity to `sicmutils.matrix/characteristic-polynomial` that
+- #463 adds a new 1-arity to `emmy.matrix/characteristic-polynomial` that
   returns an actual polynomial instance. Creating this polynomial once and
   calling it many times is much more efficient. Closes #209.
 
@@ -541,13 +541,13 @@
     `(= (= 'a 'b) 'c')`, which is NOT correct. (if `(= 'a 'b)` is true, then the
     expression evaluates to `false`, since `(= true 'c')` is false.)
 
-  - adds `sicmutils.series/function->`, for generating a Maclaurin series from a
+  - adds `emmy.series/function->`, for generating a Maclaurin series from a
     function.
 
 - #449:
 
-  - All missing trigonometric functions have been filled in `sicmutils.generic`
-    and aliased in `sicmutils.env`:
+  - All missing trigonometric functions have been filled in `emmy.generic`
+    and aliased in `emmy.env`:
 
     - Inverse cotangent: `acot`
     - inverse secant: `asec`
@@ -573,38 +573,38 @@
 
   - All trig functions now have derivatives and docstrings.
 
-  - New `sinc`, `tanc`, `sinhc`, `tanhc` functions live in `sicmutils.generic`
-    and are aliased into `sicmutils.env`. These are generically defined as `(/
+  - New `sinc`, `tanc`, `sinhc`, `tanhc` functions live in `emmy.generic`
+    and are aliased into `emmy.env`. These are generically defined as `(/
     (sin x) x)`, `(/ (tan x) x)` (and similar with `sinh` and `tanh`), with
     correct definitions for 0 and infinite-valued inputs.
 
     These functions all support derivatives as well.
 
-  - New default `acot` implementation in `sicmutils.series`.
+  - New default `acot` implementation in `emmy.series`.
 
 - #450:
 
-  - Adds `sicmutils.series/harmonic-series`, the infinite series of [harmonic
+  - Adds `emmy.series/harmonic-series`, the infinite series of [harmonic
     numbers](https://en.wikipedia.org/wiki/Harmonic_number)
 
-  - moves `sicmutils.numerical.elliptic` to the `sicmutils.special` package, as
-    `sicmutils.special.elliptic`.
+  - moves `emmy.numerical.elliptic` to the `emmy.special` package, as
+    `emmy.special.elliptic`.
 
-  - New `sicmutils.special.factorial` namespace!
-    `sicmutils.util.permute/factorial` moves here, and the forgotten duplicate
-    `sicmutils.generic/factorial` is now gone.
+  - New `emmy.special.factorial` namespace!
+    `emmy.util.permute/factorial` moves here, and the forgotten duplicate
+    `emmy.generic/factorial` is now gone.
 
     - New functions: `falling-factorial`, `rising-factorial`,
       `double-factorial`, `multi-factorial`, `subfactorial`,
       `binomial-coefficient`, `stirling-first-kind`, `stirling-second-kind`.
 
-  - New `sicmutils.util.permute/multichoose` function, implementing the
+  - New `emmy.util.permute/multichoose` function, implementing the
     definition [described here](https://mathworld.wolfram.com/Multichoose.html).
 
-  - better `number-of-combinations` impl in `sicmutils.util.permute`, using
-    `sicmutils.special.factorial/falling-factorial`
+  - better `number-of-combinations` impl in `emmy.util.permute`, using
+    `emmy.special.factorial/falling-factorial`
 
-  - sci bindings for`sicmutils.special.factorial`, `sicmutils.util.permute`.
+  - sci bindings for`emmy.special.factorial`, `emmy.util.permute`.
 
 - #458:
 
@@ -617,50 +617,50 @@
     would not correctly respond to `simplify` calls.
 
   - Slight efficiency improvement in
-    `sicmutils.polynomial.gcd/->content+primitive`.
+    `emmy.polynomial.gcd/->content+primitive`.
 
-  - `sicmutils.rational-function/from-points` now correctly builds its function.
+  - `emmy.rational-function/from-points` now correctly builds its function.
     Before, it was unhygienic; if `'x` appeared in the coefficients the results
     would be incorrect.
 
 - #456:
 
-  - `sicmutils.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
-    existing `Gamma` and `Gamma-bar` functions. The `sicmutils.env` aliases are
+  - `emmy.mechanics.lagrange/{Γ,Γ-bar}` are removed in favor of the
+    existing `Gamma` and `Gamma-bar` functions. The `emmy.env` aliases are
     gone as well.
 
-  - `sicmutils.mechanics.lagrange/Lagrange-interpolation-function` now returns
+  - `emmy.mechanics.lagrange/Lagrange-interpolation-function` now returns
     an actual polynomial instance. Because polynomials support `IFn` and respond
     to the derivative operator `D`, this makes the `find-path` example on pages
     22/23 of SICM run about 5x faster.
 
   - Richardson extrapolation is now implemented as a functional fold. The
-    exposition in `sicmutils.polynomial.richardson` discusses this; the
+    exposition in `emmy.polynomial.richardson` discusses this; the
     namespaces gains `richardson-fold`, `richardson-sum` and `richardson-scan`.
 
-- #455 makes `sicmutils.util.aggregate/scan` and
-  `sicmutils.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
+- #455 makes `emmy.util.aggregate/scan` and
+  `emmy.algebra.fold/fold->scan-fn` slightly more efficient by dropping the
   first element of the returned sequence before mapping the `present` function.
 
 - #453:
 
-  - Adds `sicmutils.polynomial/from-points` and
-    `sicmutils.rational-function/from-points` for generating `Polynomial` and
+  - Adds `emmy.polynomial/from-points` and
+    `emmy.rational-function/from-points` for generating `Polynomial` and
     `RationalFunction` instances from sequences of points.
 
 - #451:
 
-  - new `sicmutils.algebra.fold` namespace:
+  - new `emmy.algebra.fold` namespace:
 
     - New folds: `kahan-babushka-neumaier` (aliased as `kbn`),
       `kahan-babushka-klein` and and `kbk-n` macro for generating higher-order
       `kahan-babushka-klein` variants. `generic-sum-fold` folds using
-      `sicmutils.generic/+`.
+      `emmy.generic/+`.
 
-    - `sicmutils.util.aggregate/kahan-fold` now lives here, named `kahan`.
+    - `emmy.util.aggregate/kahan-fold` now lives here, named `kahan`.
 
     - `fold->sum-fn` and `fold->scan-fn` generate functions like
-      `sicmutils.util.aggregate.{sum,scan}` specialized to the supplied fold.
+      `emmy.util.aggregate.{sum,scan}` specialized to the supplied fold.
       See the docstrings for the multiple arities supported
 
     - fold primitives: `count`, `constant`, `min`, `max`.
@@ -668,7 +668,7 @@
     - fold combinator `join` allows compound folds to be built out of primitive
       folds.
 
-  - Upgrades to `sicmutils.util.aggregate`:
+  - Upgrades to `emmy.util.aggregate`:
 
     - `scanning-sum` renamed to `scan`
 
@@ -686,10 +686,10 @@
       for summing vectors. Use the dynamic binding `*cutoff*` to set where
       `pairwise-sum` bails out to normal summation.
 
-  - Upgrades to `sicmutils.rational-function.polynomial`:
+  - Upgrades to `emmy.rational-function.polynomial`:
 
     - The folds in this namespace now follow the fold contract laid out in
-      `sicmutils.algebra.fold`, implementing all three arities correctly.
+      `emmy.algebra.fold`, implementing all three arities correctly.
 
     - I realized that the fold implementation here should /not/ return a full
       row every time it processes a previous row; a far better `present`
@@ -700,7 +700,7 @@
 
     - added a bunch to the exposition to make the advantages clear.
 
-  - Upgrades to `sicmutils.rational-function.interpolate`:
+  - Upgrades to `emmy.rational-function.interpolate`:
 
     - `fold` interface upgraded, similar to the polynomial interpolation notes.
 
@@ -717,31 +717,31 @@
       "summing" the sequence. I can see this changing down the road...
 
     See `context-opts` for instructions on how to enable
-    `sicmutils.algebra.fold/kbk-n` in the SCI environment (you'll need to turn
+    `emmy.algebra.fold/kbk-n` in the SCI environment (you'll need to turn
     on access to `js/Math` or `java.lang.Math`).
 
-  - Fixed a type inference warning in ClojureScript in `sicmutils.complex`.
+  - Fixed a type inference warning in ClojureScript in `emmy.complex`.
 
-  - Added support for `sicmutils.util.def` and its `fork` macro to the default
-    SCI environment provided by SICMUtils. Helpful for macro-writing!
+  - Added support for `emmy.util.def` and its `fork` macro to the default
+    SCI environment provided by Emmy. Helpful for macro-writing!
 
-  - `sicmutils.numerical.quadrature.adaptive` now uses the dynamically bound
-    `sicmutils.util.aggregate/*fold*` to accumulate its numerical integral
+  - `emmy.numerical.quadrature.adaptive` now uses the dynamically bound
+    `emmy.util.aggregate/*fold*` to accumulate its numerical integral
     pieces, instead of a hardcoded `kahan-sum`.
 
-  - `sicmutils.numerical.quadrature.bulirsch-stoer` now uses the functional scan
+  - `emmy.numerical.quadrature.bulirsch-stoer` now uses the functional scan
     versions of polynomial and rational function interpolation, as these are a
     bit faster than the originals!
 
-  - `sicmutils.util.stream/scan` deleted in favor of
-    `sicmutils.util.aggregate/scan` with a dynamic binding for `*fold*` to
+  - `emmy.util.stream/scan` deleted in favor of
+    `emmy.util.aggregate/scan` with a dynamic binding for `*fold*` to
     customize.
 
 - #448:
 
   - new `g/infinite?` generic with implementations for all numeric types,
     complex numbers, `differential` instances. Defaults to `false` for all other
-    types. (Also aliased into `sicmutils.env/infinite?`).
+    types. (Also aliased into `emmy.env/infinite?`).
 
   - The infix, TeX and JavaScript renderers (`->infix`, `->TeX` and
     `->JavaScript`) all properly render `##Inf` and `##-Inf`. Infix uses the
@@ -757,20 +757,20 @@
     adds only to the real part). OR in cases, like in the matrix PR, where we
     convert the scalar in addition to `<scalar>*I*`.
 
-    - This caused some problems with `sicmutils.matrix` tests that were not well
+    - This caused some problems with `emmy.matrix` tests that were not well
       typed.
 
   - The default `expt` implementation is now available as a function to call
-    directly (`sicmutils.generic/default-expt`) without going through the
+    directly (`emmy.generic/default-expt`) without going through the
     dispatch system.
 
 - #447 contains a grab-bag of fixes and additions, many related to complex
   numbers:
 
   - Use `Math/E` instead of `(Math/exp 1)` for euler's constant in
-    `sicmutils.env`.
+    `emmy.env`.
 
-  - Fix bug in `sicmutils.calculus.indexed`, in a case where either input was
+  - Fix bug in `emmy.calculus.indexed`, in a case where either input was
     missing an `up` or `down`index type.
 
   - symbolic `dot-product` and `inner-product`
@@ -783,14 +783,14 @@
     complex numbers to survive simplification, since they freeze to `(complex
     <re> <im>)`.
 
-    - big rewrite in `sicmutils.simplify.rules`, to convert all of the frozen
+    - big rewrite in `emmy.simplify.rules`, to convert all of the frozen
       matchers like `(complex 1 2)` into matchers that actually bind to a
       complex number.
 
     - more rules in `complex-trig`, it can now handle bigger products inside of
       `sin` and `cos` multiplied by `I`.
 
-  - Various improvements to `sicmutils.complex`:
+  - Various improvements to `emmy.complex`:
 
     - complex implementations for `dot-product` between complex and real types
 
@@ -799,7 +799,7 @@
     - complex `zero?` now returns true for inputs like `(complex -0.0 -0.0)`,
       where a negative zero lives in the real or imaginary slots
 
-    - new `sicmutils.complex/-I` binding, set to `(g/negate c/I)`
+    - new `emmy.complex/-I` binding, set to `(g/negate c/I)`
 
     - `g/expt` for complex numbers optimizes the inputs equal to `I` by
       returning exact 1, -1, `I` or `-I` depending on the input. This applies to
@@ -809,7 +809,7 @@
   sequence matchers.
 
   In `pattern.match` and all rules, things that respond true to `sequential?`
-  but not `seq?` or `vector?` (many of the sicmutils types, like structures and
+  but not `seq?` or `vector?` (many of the emmy types, like structures and
   the upcoming Quaternion type) were being converted to `seq` and treated as
   sequence matchers vs literal matchers. This no longer happens, and structures
   etc are treated as literal matchers.
@@ -819,7 +819,7 @@
   - Implements `IKVReduce` and `Reversible` for structures. This enables `rseq`
     and `reduce-kv` to work with structures.
 
-  - Removes a `reduced` shortcut condition in `sicmutils.generic/*` that was
+  - Removes a `reduced` shortcut condition in `emmy.generic/*` that was
     causing multiplications of the form `(* 0 0 (up 0 0))` to shortcut and
     return `0` instead of the appropriate structural form.
 
@@ -831,14 +831,14 @@
     negative `y` argument.
 
 - #442 fixes #441 by upgrading the implementations of
-  `sicmutils.util.permute/{factorial,number-of-combinations}` to be able to
+  `emmy.util.permute/{factorial,number-of-combinations}` to be able to
   handle large inputs. Thanks to @swapneils for the report.
 
 - #440:
 
   - Modifies `(g/exp 0)` to return an exact 1, vs the previous `1.0`.
 
-  - Fixes a bug in `sicmutils.rules/exp-contract` leftover from the port from
+  - Fixes a bug in `emmy.rules/exp-contract` leftover from the port from
     Scheme. Thanks to @adamhaber for pointing this out!
 
 - #438:
@@ -849,12 +849,12 @@
     sequence. This will save memory!
 
   - adds missing tests from `connection.scm` to
-    `sicmutils.calculus.connection-test`, stressing pages 205 - 213 from MTW,
+    `emmy.calculus.connection-test`, stressing pages 205 - 213 from MTW,
     Gravitation.
 
 - #434: allow pattern matching forms to successfully bind to `nil` or `false`.
 
-- #397: `sicmutils.calculus.manifold/typical-coords` now returns generated
+- #397: `emmy.calculus.manifold/typical-coords` now returns generated
   coordinate symbols that start with the same symbol as the coordinate system's
   prototype, like:
 
@@ -874,10 +874,10 @@
   - fixes a bug in the SCI version of `define-coordinates` which didn't allow
     any rebinding of manifolds.
 
-  - Removes the `bindings` key from `sicmutils.env.sci/context-opts`.
+  - Removes the `bindings` key from `emmy.env.sci/context-opts`.
     https://github.com/babashka/sci/issues/637 is a bug with variable rebinding
     that occurs when `:bindings` is in play. Instead of relying on this key,
-    evaluate `(require '[sicmutils.env :refer :all])` against your SCI
+    evaluate `(require '[emmy.env :refer :all])` against your SCI
     environment to get all bindings.
 
   - bumps the default version of SCI to 0.2.7.
@@ -887,10 +887,10 @@
 - #348:
 
   - Adds a new single arity version of
-    `sicmutils.util.permute/permutation-parity`, which returns the parity of a
+    `emmy.util.permute/permutation-parity`, which returns the parity of a
     permutation relative to its sorted version.
 
-  - `sicmutils.complex/complex` can now take a single string argument in both
+  - `emmy.complex/complex` can now take a single string argument in both
     Clojure and ClojureScript.
 
   - Expands the complex number literal parser to take these forms, in addition
@@ -908,7 +908,7 @@
   `:type` key. We do this for manifold families and manifold points, as two
   examples. Now, instead of recursing into the values, the system will correctly
   throw an error. (You can fix this by using a `defrecord` instead of a map and
-  implementing `sicmutils.differential/IPerturbed`.)
+  implementing `emmy.differential/IPerturbed`.)
 
 - #393:
 
@@ -916,8 +916,8 @@
     `up` is not present in the environment. Previously this syntax was valid,
     but only if `up` had been imported.
 
-  - Adds the `sicmutils.calculus.coordinate/define-coordinates` macro, also
-    aliased into `sicmutils.env`. This macro allows you to write forms like
+  - Adds the `emmy.calculus.coordinate/define-coordinates` macro, also
+    aliased into `emmy.env`. This macro allows you to write forms like
 
 ```clj
 (define-coordinates (up t x y z) spacetime-rect)
@@ -929,66 +929,66 @@
   in Functional Differential Geometry. (You might still prefer `let-coordinates`
   for temporary binding installation.)
 
-  - Converts many of the `sicmutils.fdg` test namespaces to use the new
+  - Converts many of the `emmy.fdg` test namespaces to use the new
     `define-coordinates` macro, making for a presentation closer to the book's.
 
-  - Fixes a ClojureScript warning in `sicmutils.util` warning due to
+  - Fixes a ClojureScript warning in `emmy.util` warning due to
     redefinition of `clojure.core/uuid`
 
 - #386:
 
-  - Aliases `sicmutils.mechanics.hamilton/phase-space-derivative` into
-    `sicmutils.env`, and adds `sicmutils.sr.frames/base-frame-maker`. The latter
+  - Aliases `emmy.mechanics.hamilton/phase-space-derivative` into
+    `emmy.env`, and adds `emmy.sr.frames/base-frame-maker`. The latter
     function makes it easier to write reference frames like `the-ether`, as with
     the `home` variable in chapter 11 of FDG.
 
   - Adds all code listings from chapters 10 and 11 of FDG as
-    `sicmutils.fdg.{ch9,ch10}-test`.
+    `emmy.fdg.{ch9,ch10}-test`.
 
 - #384:
 
-  - Adds `sicmutils.fdg.ch9-test`, with tests for all forms from FDG's 9th
+  - Adds `emmy.fdg.ch9-test`, with tests for all forms from FDG's 9th
     chapter.
 
-  - Tests from `sicmutils.fdg.einstein-test` now all work, and quite fast. The
+  - Tests from `emmy.fdg.einstein-test` now all work, and quite fast. The
     functions in this namespace comprise some of the exercises from FDG chapter
     9. (Einstein's Field Equations hung until this PR... getting these working
     is a huge achievement for me, and, in some sense, the final milestone of the
     Big Port from scmutils.)
 
-  - Adds `sicmutils.function/memoize`, a metadata-and-function-arity preserving
+  - Adds `emmy.function/memoize`, a metadata-and-function-arity preserving
     version of `clojure.core/memoize`.
 
-  - in `sicmutils.calculus.indexed`, `with-argument-types` and
+  - in `emmy.calculus.indexed`, `with-argument-types` and
     `with-index-types` now both correctly set the arity of the returned
     function, in addition to the argument types or indices.
-    `sicmutils.function/arity` will now work correctly with indexed or typed
+    `emmy.function/arity` will now work correctly with indexed or typed
     functions.
 
-  - Adds new `manifold?` and `manifold-family?` functions in `sicmutils.env` and
-    `sicmutils.calculus.manifold`. These are enabled by new `:type
-    :sicmutils.calculus.manifold/{manifold,manifold-family}` keys in the
+  - Adds new `manifold?` and `manifold-family?` functions in `emmy.env` and
+    `emmy.calculus.manifold`. These are enabled by new `:type
+    :emmy.calculus.manifold/{manifold,manifold-family}` keys in the
     appropriate structures in the manifold namespace. Manifolds and manifold
-    families will now respond with these keywords to `sicmutils.value/kind`.
+    families will now respond with these keywords to `emmy.value/kind`.
 
-  - The `sicmutils.calculus.manifold/ICoordinateSystem` now has a `uuid`
+  - The `emmy.calculus.manifold/ICoordinateSystem` now has a `uuid`
     function, for internal comparison of coordinate systems. This is here so
     that points can cache coordinate system representations by UUID. Before this
     change, changing the coordinate prototype, or attaching metadata to a
     coordinate system would break its cache entry in manifold points. (This was
     the killer for the Einstein Field Equations!)
 
-  - `sicmutils.calculus.manifold/{coordinate-prototype,with-coordinate-prototype}`
+  - `emmy.calculus.manifold/{coordinate-prototype,with-coordinate-prototype}`
      now store and retrieve the coordinate prototype from metadata. This plus
      the previous change allows manifold points to correctly cache their
      coordinate representations.
 
-  - `sicmutils.calculus.manifold/manifold` acts as identity on manifolds now.
+  - `emmy.calculus.manifold/manifold` acts as identity on manifolds now.
     Previously it only worked on coordinate systems.
 
 - #382:
 
-  - Makes the `name` argument to `sicmutils.operator/make-operator` optional.
+  - Makes the `name` argument to `emmy.operator/make-operator` optional.
     `name` now defaults to `'???`.
 
   - adds tests for all code forms in Chapter 8 of FDG.
@@ -1003,23 +1003,23 @@
 
 - Features, tests and bugfixes from #381:
 
-  - `sicmutils.calculus.coordinate/generate` moves to
-    `sicmutils.calculus.manifold/c:generate`; this supports a bugfix where
+  - `emmy.calculus.coordinate/generate` moves to
+    `emmy.calculus.manifold/c:generate`; this supports a bugfix where
     1-dimensional manifolds like `R1-rect`, aka `the-real-line`, return a
     coordinate prototype of a single element like `t` instead of a structure
     with a single entry, like `(up t)`. Thanks to @phasetr for the bug report
     that led to this fix, and @gjs for finding and fixing the bug.
 
-  - `same.ish/Approximate` implemented for `sicmutils.structure/Structure`,
+  - `same.ish/Approximate` implemented for `emmy.structure/Structure`,
     allowing `ish?` comparison of `up` and `down` structures with approximate
-    entries. Require `sicmutils.generator` for this feature. (NOTE: because
+    entries. Require `emmy.generator` for this feature. (NOTE: because
     protocols are implemented for the LEFT argument, `(ish? <vector> (down
     ...))` will still return true if the values are approximately equal, even
     though a `<vector>` is technically an `up` and should NOT equal a `down`. Do
-    an explicit conversion to `up` using `sicmutils.structure/vector->up` if
+    an explicit conversion to `up` using `emmy.structure/vector->up` if
     this distinction is important.)
 
-  - `same.ish/Approximate` now defers to `sicmutils.value/=` for equality
+  - `same.ish/Approximate` now defers to `emmy.value/=` for equality
     between `Symbol` and other types. This lets `ish?` handle equality between
     symbols like `'x` and literal expressions that happen to wrap a single
     symbol.
@@ -1028,13 +1028,13 @@
     internal Cartan forms. This fixed a bug in a code listing in section 7.3 of
     FDG.
 
-  - Section 7.3 of FDG implemented as tests in `sicmutils.fdg.ch7-test`.
+  - Section 7.3 of FDG implemented as tests in `emmy.fdg.ch7-test`.
 
   - Many new tests and explorations ported over from `covariant-derivative.scm`.
-    These live in `sicmutils.calculus.covariant-test`.
+    These live in `emmy.calculus.covariant-test`.
 
   - timeout exceptions resulting from full GCD are now caught in tests using
-    `sicmutils.simplify/hermetic-simplify-fixture`. Previously, setting a low
+    `emmy.simplify/hermetic-simplify-fixture`. Previously, setting a low
     timeout where simplification failed would catch and move on in normal work,
     but fail in tests where fixtures were applied.
 
@@ -1068,30 +1068,30 @@ into shape.
 ## 0.19.0
 
 > (If you have any questions about how to use any of the following, please ask us
-> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> at our [Github Discussions](https://github.com/emmy/emmy/discussions)
 > page!)
 
 This release focused on improving the expressiveness and performance of the
-three simplification engines in SICMUtils:
+three simplification engines in Emmy:
 
-  - `sicmutils.polynomial` and `sicmutils.rational-function` are now quite well
+  - `emmy.polynomial` and `emmy.rational-function` are now quite well
     fleshed out, with full polynomial and rational function APIs and many
     generics.
 
   - The polynomial and rational function _simplifiers_ work by round-tripping
     expressions through these types, depending on each namespace to emit
     symbolic expressions in "canonical form". This process is now much faster!
-    On one important Bianchi Identity benchmark in `sicmutils.fdg.bianchi-test`,
+    On one important Bianchi Identity benchmark in `emmy.fdg.bianchi-test`,
     one test that formerly took close to 30 minutes now runs in 30 seconds, and
     all see a 60-fold improvement.
 
   - By default, these simplifiers emit expressions with all terms multiplied
-    out; the new `factor` function in `sicmutils.env` lets you factor
+    out; the new `factor` function in `emmy.env` lets you factor
     expressions, overriding this default.
 
   - The rule-based simplifier is now based on a powerful pattern matching
     engine, implemented in `pattern.match` and `pattern.rule`.
-    `sicmutils.simplify.rules` now contains every rule and possible
+    `emmy.simplify.rules` now contains every rule and possible
     customization from the original scmutils codebase.
 
 There is a _lot_ in this release, all motivated by performance. Please read on
@@ -1101,7 +1101,7 @@ for the detailed notes, and enjoy version 0.19.0!
 
 - #353 introduces a powerful new simplifier, ported from the `new-simplify`
   procedure in `simplify/rules.scm` of the scmutils library. There are now a
-  BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!
+  BUNCH of new rulesets and rule simplifiers in `emmy.simplify.rules`!
 
   The next step with these is to massage them into separate bundles of rules
   that users can mix and match into custom simplifiers for objects like abstract
@@ -1109,7 +1109,7 @@ for the detailed notes, and enjoy version 0.19.0!
   representing equations and inequalities) and so on.
 
 - #349 introduces a new pattern matching system, built out of matcher
-  combinators. All of the rules in `sicmutils.simplify.rules` now use the new
+  combinators. All of the rules in `emmy.simplify.rules` now use the new
   syntax offered by the library. Some notes:
 
   - `pattern.match` defines a number of "matcher combinators"; these are
@@ -1132,9 +1132,9 @@ for the detailed notes, and enjoy version 0.19.0!
   - A combination of a matcher and a "consequence function" is called a "rule".
     A consequence is a function that takes a binding map and either returns a
     new result or fails by returning `nil` or `false`. (Don't worry, you can
-    succeed with these values too by wrapping them in `sicmutils.rule/succeed`.)
+    succeed with these values too by wrapping them in `emmy.rule/succeed`.)
 
-    Rules are the heart of the whole simplification mechanism in sicmutils! To
+    Rules are the heart of the whole simplification mechanism in emmy! To
     learn about how to build these, see the documentation for `pattern*`,
     `pattern`, `consequence`, `template`, `rule*`and `rule`.
 
@@ -1154,19 +1154,19 @@ for the detailed notes, and enjoy version 0.19.0!
     library uses to go from rules => term rewriters.
 
   - If you want ideas about how to use the pattern matching library to rewrite
-    expressions, see `sicmutils.simplify.rules` for many examples.
+    expressions, see `emmy.simplify.rules` for many examples.
 
 - #354 adds SCI support for all macros and functions in the new pattern matching
-  namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
+  namespaces, and adds these to the namespaces exposed via `emmy.env.sci`.
 
 ### Rational Function, Polynomial Simplifiers
 
 - #341 takes on a large rewrite of the rational function and polynomial
   simplfiers. One goal of this project was to improve the performance of the
-  Bianchi Identities in `sicmutils.fdg.bianchi-test`, and I'm happy to say that
+  Bianchi Identities in `emmy.fdg.bianchi-test`, and I'm happy to say that
   they are now a good bit faster than the original scmutils implementation.
 
-  `sicmutils.polynomial` and `sicmutils.rational-function` are now solid data
+  `emmy.polynomial` and `emmy.rational-function` are now solid data
   structures of their own, with many operations installed into the generic
   system. These are now valuable and useful outside of their role in the
   simplifier.
@@ -1188,15 +1188,15 @@ for the detailed notes, and enjoy version 0.19.0!
     floats, etc) either if the denominator is zero, or if the two arguments are
     equal. Else, it throws, just like before.
 
-  - A multi-arity call to `sicmutils.generic/*` now stops if it encounters a
+  - A multi-arity call to `emmy.generic/*` now stops if it encounters a
     0, rather than attempting to multiply all remaining items by 0.
 
-  - The default function for `sicmutils.generic/lcm` protects against overflow
+  - The default function for `emmy.generic/lcm` protects against overflow
     by dividing only a single one of its arguments `a` and `b` by `(gcd a b)`.
 
   - `(g/lcm 0 0)` now properly returns 0.
 
-  - New `sicmutils.util.aggregate/{monoid,group}` functions let you build
+  - New `emmy.util.aggregate/{monoid,group}` functions let you build
     multi-arity aggregations out of binary combination functions, with an option
     to bail early at "annihilator" values, like 0 for multiplication.
 
@@ -1204,53 +1204,53 @@ for the detailed notes, and enjoy version 0.19.0!
     appropriately handle `0` and `1` on either side, as well as the case where
     both arguments are equal.
 
-  - In the `sicmutils.numsymb` namespace, thanks to `monoid` and `group`, the
+  - In the `emmy.numsymb` namespace, thanks to `monoid` and `group`, the
     `'*`, `'/`, `'-`, `'+`, `'or`, `'and`, `'gcd`, `'lcm` and `'=` operations
     now have efficient multi-arity implementations that stop computing when they
     receive an annihilator, like `0` for multiplication or `true` for `or`.
-    Access these via `(sicmutils.numsymb/symbolic-operator <symbol>)`.
+    Access these via `(emmy.numsymb/symbolic-operator <symbol>)`.
 
-  - `sicmutils.series/PowerSeries` gains `arg-scale` and `arg-shift` functions;
-    these are identical to `sicmutils.function/arg-{scale,shift}`, but preserve
+  - `emmy.series/PowerSeries` gains `arg-scale` and `arg-shift` functions;
+    these are identical to `emmy.function/arg-{scale,shift}`, but preserve
     the `PowerSeries` type. (#367 proposes making these functions generic.)
 
-  - New `sicmutils.ratio/IRational` protocol, with `numerator` and `denominator`
+  - New `emmy.ratio/IRational` protocol, with `numerator` and `denominator`
     functions implemented for ratios and for the `RationalFunction` data type.
-    These two are now exposed in `sicmutils.env`.
+    These two are now exposed in `emmy.env`.
 
-  - `sicmutils.simplify.rules/*divide-numbers-through-simplify?*` is now `true`
+  - `emmy.simplify.rules/*divide-numbers-through-simplify?*` is now `true`
     by default; numbers in the denominator will now automatically pull up into
     the numerator. All tests now reflect this setting.
 
-  - Any analyzer generated from `sicmutils.expression.analyze` can now act on
+  - Any analyzer generated from `emmy.expression.analyze` can now act on
     both bare, unwrapped expressions (raw lists etc) and on
-    `sicmutils.expression.Literal` instances. This means that you can now call
-    `sicmutils.simplify/{*rf-simplify*,*poly-simplify*}` as functions and
+    `emmy.expression.Literal` instances. This means that you can now call
+    `emmy.simplify/{*rf-simplify*,*poly-simplify*}` as functions and
     canonicalize some form with either simplifier without triggering a full
     simplification. A small win, but ice.
 
-  - `sicmutils.polynomial.factor` got a major rewrite, and now exposes a few
+  - `emmy.polynomial.factor` got a major rewrite, and now exposes a few
     functions like `poly->factored-expression`, `factor-expression` and
     `factor`.
 
       - `factor` is _tremendously useful_! Call `factor` (it's aliased into
-        `sicmutils.env`) on any expression to factor out all possible terms.
+        `emmy.env`) on any expression to factor out all possible terms.
         This makes it much easier to see where there is some cancellation
         lurking, in, say, some expression you know should equal zero (a
         residual).
 
-  - bugfix: `sicmutils.expression.Literal` instances now compare their contained
-    expression via `sicmutils.value/=`.
+  - bugfix: `emmy.expression.Literal` instances now compare their contained
+    expression via `emmy.value/=`.
 
-  - `sicmutils.rules/constant-elimination` can now eliminate constants from
+  - `emmy.rules/constant-elimination` can now eliminate constants from
     expressions with any arity, not just binary forms.
 
 
-  Now, the three big namespaces... `sicmutils.polynomial`,
-  `sicmutils.rational-function` and `sicmutils.polynomial.gcd` all got a big
+  Now, the three big namespaces... `emmy.polynomial`,
+  `emmy.rational-function` and `emmy.polynomial.gcd` all got a big
   overhaul.
 
-  - `sicmutils.polynomial` notes:
+  - `emmy.polynomial` notes:
 
     - `Polynomial` uses a new sparse representation for its "power product"
       term; this, plus an arithmetic rewrite, makes the whole system much faster
@@ -1260,8 +1260,8 @@ for the detailed notes, and enjoy version 0.19.0!
       can hold metadata; they can be evaluated as functions of their
       indeterminates, and `seq` now returns a sequence of terms.
 
-    - `Polynomial` extends `sicmutils.function/IArity` and
-      `differential/IPerturbed`, so you can use `sicmutils.function/arity`, and
+    - `Polynomial` extends `emmy.function/IArity` and
+      `differential/IPerturbed`, so you can use `emmy.function/arity`, and
       take derivatives of functions that return polynomials.
 
     - In their arithmetic, `Polynomial` instances will drop down to bare
@@ -1301,20 +1301,20 @@ for the detailed notes, and enjoy version 0.19.0!
       - Functions to get in and out of polynomials from other types:
         `univariate->dense`, `->power-series`, `expression->`, `->expression`
 
-  - `sicmutils.polynomial.gcd` also got a rewrite; it's fairly clear to read
+  - `emmy.polynomial.gcd` also got a rewrite; it's fairly clear to read
     now, and prepared for the eventual addition of the sparse multivariate GCD
     routine that scmutils uses. There are some efficiency gains here too that
     let us turn a number of tests back on, or demote them from `:long` markers.
 
-  - `sicmutils.rational-function` notes:
+  - `emmy.rational-function` notes:
 
     - `RationalFunction` instances implement many more Clojure(script)
       protocols. They can hold metadata; they can be evaluated as functions of
       their indeterminates, and `seq` now returns a pair of `numerator`,
       `denominator`.
 
-    - `RationalFunction` extends `sicmutils.function/IArity` and
-      `sicmutils.ratio/IRational`, so our generic `arity`, `numerator` and
+    - `RationalFunction` extends `emmy.function/IArity` and
+      `emmy.ratio/IRational`, so our generic `arity`, `numerator` and
       `denominator` work on these instances.
 
     - Here are some new functions from the `RationalFunction` namespace:
@@ -1343,15 +1343,15 @@ for the detailed notes, and enjoy version 0.19.0!
 - #358:
 
   - Adds a more efficient `literal-derivative` implementation to
-    `sicmutils.abstract.function`, making the Bianchi identity benchmarks run
+    `emmy.abstract.function`, making the Bianchi identity benchmarks run
     40% faster.
 
-  - In ClojureScript, `Range` instances now implement `sicmutils.value.Value`
-    and `sicmutils.differential.IPerturbed`, allowing them to be returned from
+  - In ClojureScript, `Range` instances now implement `emmy.value.Value`
+    and `emmy.differential.IPerturbed`, allowing them to be returned from
     derivative-taking functions
 
   - Major, unexpected performance improvement - it turns out
-    `sicmutils.value/number?` was quite slow in Clojure (less so in
+    `emmy.value/number?` was quite slow in Clojure (less so in
     ClojureScript). Changing this function from an `isa?` check to a series of
     explicit `instance?` checks cut the build time in half. This makes the
     numeric tower less extensible... but it wasn't terribly extensible to start
@@ -1365,7 +1365,7 @@ for the detailed notes, and enjoy version 0.19.0!
     situation.
 
 - #360 introduces a number of performance improvements to the
-  `sicmutils.differential.Differential` implementation, primarily in `terms:+`
+  `emmy.differential.Differential` implementation, primarily in `terms:+`
   and `terms:*`. thanks again to @ptaoussanis and the
   [Tufte](https://github.com/ptaoussanis/tufte) profiling library for helping me
   track these down.
@@ -1374,14 +1374,14 @@ for the detailed notes, and enjoy version 0.19.0!
 
   - Adds the ability to do incremental simplification, every time an operation
     is performed involving a symbolic expression. Bind
-    `sicmutils.numsymb/*incremental-simplifier*` to a function from raw
-    expression -> raw expression, like `sicmutils.simplify/simplify-expression`
-    or any of the rules in `sicmutils.simplify.rules` to enable this behavior.
+    `emmy.numsymb/*incremental-simplifier*` to a function from raw
+    expression -> raw expression, like `emmy.simplify/simplify-expression`
+    or any of the rules in `emmy.simplify.rules` to enable this behavior.
 
-  - Expands the `sicmutils.expression.analyze` API with the functions
+  - Expands the `emmy.expression.analyze` API with the functions
     `default-simplifier`, `expression-simplifier`, `initializer`,
     `expression-analyzer` and `auxiliary-variable-fetcher`. See the [API
-    documentation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.expression.analyze)
+    documentation](https://cljdoc.org/d/emmy/emmy/CURRENT/api/emmy.expression.analyze)
     for detailed notes on how to do interactive expression analysis and
     simplification with these new tools.
 
@@ -1391,7 +1391,7 @@ for the detailed notes, and enjoy version 0.19.0!
 
 - #353:
 
-  - Adds a new `sicmutils.util.logic` namespace with an `assume!` function that
+  - Adds a new `emmy.util.logic` namespace with an `assume!` function that
     allows rules to log assumptions when some simplification like `(sqrt (square
     x))` might have to choose one of multiple possible simplifications
     (`(non-negative? x)`, in this example).
@@ -1400,10 +1400,10 @@ for the detailed notes, and enjoy version 0.19.0!
     checks. now. Turn off assumption logging with the dynamic variable
     `*log-assumptions?*` in that namespace.
 
-  - new `sicmutils.value/almost-integral?` returns true if its argument is VERY
+  - new `emmy.value/almost-integral?` returns true if its argument is VERY
     close to an integral value, false otherwise.
 
-- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set`
+- Efficient `symmetric-difference` implementation in `emmy.util.vector-set`
   (#346)
 
 ### Bug fixes, file moves, misc
@@ -1412,24 +1412,24 @@ for the detailed notes, and enjoy version 0.19.0!
 
   - Removes JVM dependencies on Guava and nrepl.
 
-  - Removes `sicmutils.env/sicmutils-repl-init`; this is only used by `lein
+  - Removes `emmy.env/emmy-repl-init`; this is only used by `lein
     repl`, and we now accomplish the same task with the `:repl-options` entry in
     `project.clj`.
 
-  - Makes `sicmutils.polynomial.{factor,gcd}` available to SCI via the
-    `sicmutils.env.sci` namespace
+  - Makes `emmy.polynomial.{factor,gcd}` available to SCI via the
+    `emmy.env.sci` namespace
 
   - moves a few namespaces to more valid locations, now that the rational
     function and polynomial namespaces are tidied:
 
-    - `sicmutils.numerical.interpolate.polynomial` ->
-      `sicmutils.polynomial.interpolate`
+    - `emmy.numerical.interpolate.polynomial` ->
+      `emmy.polynomial.interpolate`
 
-    - `sicmutils.numerical.interpolate.richardson` ->
-      `sicmutils.polynomial.richardson`
+    - `emmy.numerical.interpolate.richardson` ->
+      `emmy.polynomial.richardson`
 
-    - `sicmutils.numerical.interpolate.rational` ->
-      `sicmutils.rational-function.interpolate`
+    - `emmy.numerical.interpolate.rational` ->
+      `emmy.rational-function.interpolate`
 
 - #358:
 
@@ -1445,14 +1445,14 @@ for the detailed notes, and enjoy version 0.19.0!
 - #353:
 
   - `expression->stream`, `expression->string`, `print-expression`, `pe` move
-    from `sicmutils.simplify` to `sicmutils.expression`, and are now aliased in
-    `sicmutils.env`.
+    from `emmy.simplify` to `emmy.expression`, and are now aliased in
+    `emmy.env`.
 
   - `pattern.rule/guard` now fails if its rule argument fails; previously it
     wrapped the result in `attempt`, and would return its original input on
     failure.
 
-  - fixed a heisenbug in `sicmutils.expression.analyze/make-analyzer` where, in
+  - fixed a heisenbug in `emmy.expression.analyze/make-analyzer` where, in
     ClojureScript, using expressions containing a `js/BigInt` as a hashmap key
     caused certain simplifications to fail. (This is vague, but the bug was
     _really_ subtle.) The fix was to make sure we freeze keys in the symbol
@@ -1461,7 +1461,7 @@ for the detailed notes, and enjoy version 0.19.0!
 ## 0.18.0
 
 > (If you have any questions about how to use any of the following, please ask us
-> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> at our [Github Discussions](https://github.com/emmy/emmy/discussions)
 > page!)
 
 This release focused on porting over all of the material required to run every
@@ -1483,7 +1483,7 @@ Notable changes from the rest of the library:
 
 - `Structure`s can now hold metadata
 
-- We've extended the SICMUtils generics to Clojure's Map and Set data
+- We've extended the Emmy generics to Clojure's Map and Set data
   structures. These can now combine with `+`. Maps are treated as sparse
   infinite-dimensional vector spaces, and can multiply with symbolic or numeric
   scalars.
@@ -1496,7 +1496,7 @@ Notable changes from the rest of the library:
 The next major change will be an overhaul of the simplifier to make it work fast
 enough to solve Einstein's field equations in a reasonable amount of time, maybe
 even in the browser. Polynomial GCD is slow, but
-[#341](https://github.com/sicmutils/sicmutils/pull/341) will make it fast.
+[#341](https://github.com/emmy/emmy/pull/341) will make it fast.
 
 On to the detailed notes!
 
@@ -1504,72 +1504,72 @@ On to the detailed notes!
 
 - From #339:
 
-  - The new `sicmutils.calculus.covariant/Lie-D` can compute the Lie derivative
+  - The new `emmy.calculus.covariant/Lie-D` can compute the Lie derivative
     for coordinates.
 
-  - `sicmutils.calculus.frame` lets us create relativistic reference frames for
+  - `emmy.calculus.frame` lets us create relativistic reference frames for
     investigating special relativity problems. This namespace aliases the
-    following functions into `sicmutils.env`: 'frame?', `make-event`, `event?`,
+    following functions into `emmy.env`: 'frame?', `make-event`, `event?`,
     `claim`, `coords->event`, `event->coords`, `ancestor-frame`, `frame-name`,
     `frame-owner` and `frame-maker`.
 
-  - `sicmutils.calculus.hodge-star` implements the Hodge star operator from
+  - `emmy.calculus.hodge-star` implements the Hodge star operator from
     chapter 10 of Functional Differential Geometry, plus Gram Schmidt
     orthonormalization. This namespace aliases the following functions into
-    `sicmutils.env`: `Gram-Schmidt`, `orthonormalize` and `Hodge-star`.
+    `emmy.env`: `Gram-Schmidt`, `orthonormalize` and `Hodge-star`.
 
-  - `sicmutils.calculus.indexed` ports over the scmutils work on indexed objects
+  - `emmy.calculus.indexed` ports over the scmutils work on indexed objects
     and typed functions. This namespace aliases the following functions into
-    `sicmutils.env`: `argument-types`, `with-argument-types`, `index-types`,
+    `emmy.env`: `argument-types`, `with-argument-types`, `index-types`,
     `with-index-types`, `typed->indexed`, `indexed->typed`, `typed->structure`,
     `structure->typed`, `i:outer-product` and `i:contract`.
 
-  - `sicmutils.calculus.manifold` gains `coordinate-system?`, which
+  - `emmy.calculus.manifold` gains `coordinate-system?`, which
     (predictably) returns true if its argument is a coordinate system, false
     otherwise. `chart` and `point` also take relativistic reference frames in
     addition to coordinate systems; the returned function converts to and from
     coordinates and events, rather than coordinates and manifold points.
 
-  - `Div`, `Grad`, `Curl` and `Lap` move from `sicmutils.calculus.derivative` to
-    `sicmutils.calculus.vector-calculus`. This namespace also contains versions
+  - `Div`, `Grad`, `Curl` and `Lap` move from `emmy.calculus.derivative` to
+    `emmy.calculus.vector-calculus`. This namespace also contains versions
     of these operators from Functional Differential Geometry. This namespace
-    aliases the following functions into `sicmutils.env`: `divergence`, `curl`,
+    aliases the following functions into `emmy.env`: `divergence`, `curl`,
     `gradient` and `Laplacian` (along with the others mentioned).
 
-  - lots of new namespaces available in `sicmutils.env.sci`, soon to be deployed
-    to Nextjournal: `sicmutils.calculus.{hodge-star, indexed, vector-calculus}`,
-    and `sicmutils.sr.{boost,frames}`.
+  - lots of new namespaces available in `emmy.env.sci`, soon to be deployed
+    to Nextjournal: `emmy.calculus.{hodge-star, indexed, vector-calculus}`,
+    and `emmy.sr.{boost,frames}`.
 
-  - `sicmutils.sr.boost` describes boosts from special relativity, covered in
+  - `emmy.sr.boost` describes boosts from special relativity, covered in
     chapter 11 of Functional Differential Geometry. This namespace aliases the
-    following functions into `sicmutils.env`: `make-four-tuple`,
+    following functions into `emmy.env`: `make-four-tuple`,
     `four-tuple->ct`, `four-tuple->space`, `proper-time-interval`,
     `proper-space-interval`, `general-boost`, `general-boost2` and
     `extended-rotation`.
 
-  - `sicmutils.sr.frames` implements relativistic reference frames from special
+  - `emmy.sr.frames` implements relativistic reference frames from special
     relativity, covered in chapter 11 of Functional Differential Geometry. This
-    namespace aliases the following functions into `sicmutils.env`:
+    namespace aliases the following functions into `emmy.env`:
     `make-SR-coordinates`, `SR-coordinates?`, `SR-name`, `make-SR-frame`,
     `the-ether`, `boost-direction`, `v:c`, `coordinate-origin`, `add-v:cs` and
     `add-velocities`.
 
 - From #338:
 
-  - `sicmutils.fdg.bianchi-test` verifies the Bianchi identities; this was a
+  - `emmy.fdg.bianchi-test` verifies the Bianchi identities; this was a
     challenge posed by GJS, and getting it working exposed a few bugs and
     triggered the rest of the work in this PR. Thank you, GJS!
 
   - `covariant-derivative` now properly handles the case of functions with
     argument types attached.
 
-  - added `covariant-differential` to `sicmutils.calculus.covariant`.
+  - added `covariant-differential` to `emmy.calculus.covariant`.
 
-  - aliased all functions from various namespaces in `sicmutils.calculus` into
-    `sicmutils.env`.
+  - aliased all functions from various namespaces in `emmy.calculus` into
+    `emmy.env`.
 
-  - adds `sicmutils.calculus.metric`, with the following functions exposed in
-    `sicmutils.env`:
+  - adds `emmy.calculus.metric`, with the following functions exposed in
+    `emmy.env`:
 
       - `coordinate-system->metric-components`, `coordinate-system->metric`,
         `coordinate-system->inverse-metric`, `literal-metric`,
@@ -1579,11 +1579,11 @@ On to the detailed notes!
         `oneform-field->vector-field`, `raise1`, `drop2`, `raise2`,
         `trace2down`, `trace2up`, `sharpen`, `S2-metric`
 
-      - `sicmutils.calculus.metric/invert` is exposed as `metric:invert` to
+      - `emmy.calculus.metric/invert` is exposed as `metric:invert` to
         match the scmutils naming scheme.
 
-  - adds `sicmutils.calculus.connection`, with the following functions exposed
-    in `sicmutils.env`:
+  - adds `emmy.calculus.connection`, with the following functions exposed
+    in `emmy.env`:
 
     - `make-Christoffel-1`, `metric->Christoffel-1`, `metric->Christoffel-2`,
       `literal-Christoffel-1`, `literal-Christoffel-2`, `metric->connection-1`,
@@ -1591,7 +1591,7 @@ On to the detailed notes!
 
 - #337:
 
-  - adds `sicmutils.calculus.curvature`, with these new functions and many tests
+  - adds `emmy.calculus.curvature`, with these new functions and many tests
     from the classic "Gravitation" book: `Riemann-curvature`, `Riemann`,
     `Ricci`, `torsion-vector`, `torsion` and `curvature-components`
 
@@ -1600,7 +1600,7 @@ On to the detailed notes!
 
 - #328 adds many utilities for "Functional Differential Geometry".
 
-  - vector fields, in `sicmutils.calculus.vector-field`:
+  - vector fields, in `emmy.calculus.vector-field`:
 
     - new functions: `basis-components->vector-field`,
       `vector-field->basis-components`
@@ -1608,7 +1608,7 @@ On to the detailed notes!
     - vector fields now implement `v/zero?` and `v/zero-like` by returning
       proper vector fields.
 
-  - form fields, in `sicmutils.calculus.vector-field`:
+  - form fields, in `emmy.calculus.vector-field`:
 
     - new functions: `nform-field?`, `basis-components->oneform-field`,
     `oneform-field->basis-components` and `function->oneform-field` (aliased as
@@ -1620,51 +1620,51 @@ On to the detailed notes!
       proper form fields that retain their rank.
 
     - form fields now correctly multiply via `*` by using
-      `sicmutils.calculus.form-field/wedge`, instead of composition.
+      `emmy.calculus.form-field/wedge`, instead of composition.
 
-  - maps between manifolds, in `sicmutils.calculus.map`:
+  - maps between manifolds, in `emmy.calculus.map`:
 
     - new function: `pushforward-function`
 
     - `differential` becomes `differential-of-map`, aliased back as `differential`
 
-  - `sicmutils.calculus.covariant` gains new functions: `Cartan?`,
+  - `emmy.calculus.covariant` gains new functions: `Cartan?`,
     `Christoffel?`, `Cartan->Christoffel`, `symmetrize-Christoffel`,
     `symmetrize-Cartan`, `Cartan->Cartan-over-map`, `geodesic-equation`,
     `parallel-transport-equation`.
 
-  - `sicmutils.calculus.covariant/vector-field-Lie-derivative` can now handle
+  - `emmy.calculus.covariant/vector-field-Lie-derivative` can now handle
     structural inputs.
 
 ### New Functions, Functionality
 
 - From #342:
 
-  - Added `sicmutils.calculus.derivative/D-as-matrix` and
-    `sicmutils.matrix/as-matrix`, ported from scmutils.
+  - Added `emmy.calculus.derivative/D-as-matrix` and
+    `emmy.matrix/as-matrix`, ported from scmutils.
 
-  - converted `sicmutils.modint.ModInt` to a `deftype`; this allows `ModInt`
+  - converted `emmy.modint.ModInt` to a `deftype`; this allows `ModInt`
     instances to be `=` to non-`ModInt` numbers on the right, if the right side
     is equal to the residue plus any integer multiple of the modulus. `v/=`
     gives us this behavior with numbers on the LEFT too, and `ModInt` on the
     right.
 
     - This change means that `:i` and `:m` won't return the residue and modulus
-      anymore. `sicmutils.modint` gains new `residue` and `modulus` functions to
+      anymore. `emmy.modint` gains new `residue` and `modulus` functions to
       access these attributes.
 
-  - The JVM version of sicmutils gains more efficient `gcd` implementations
+  - The JVM version of emmy gains more efficient `gcd` implementations
     for `Integer` and `Long` (in addition to the existing native `BigInteger`
     `gcd`), thanks to our existing Apache Commons-Math dependency.
 
-  - `sicmutils.structure/dual-zero` aliases `compatible-zero` to match the
-    scmutils interface. Both are now aliased into `sicmutils.env`.
+  - `emmy.structure/dual-zero` aliases `compatible-zero` to match the
+    scmutils interface. Both are now aliased into `emmy.env`.
 
   - `Structure` instances can now hold metadata (#339).
 
 - From #339:
 
-  - In `sicmutils.mechanics.rotation`:
+  - In `emmy.mechanics.rotation`:
 
     - gains aliases for `R{xyz}` in `rotate-x`, `rotate-y` and `rotate-z`.
 
@@ -1673,13 +1673,13 @@ On to the detailed notes!
     - Added new functions `angle-axis->rotation-matrix` and the mysterious,
       undocumented `wcross->w` from scmutils
 
-    - `rotate-{x,y,z}-tuple` are now aliased into `sicmutils.env`.
+    - `rotate-{x,y,z}-tuple` are now aliased into `emmy.env`.
 
   - `Operator` instances now ignore the right operator in operator-operator
     addition if the left operator passes a `v/zero?` test. Contexts are still
     appropriately merged.
 
-  - in `sicmutils.simplify.rules`, the `sqrt-contract` ruleset now takes a
+  - in `emmy.simplify.rules`, the `sqrt-contract` ruleset now takes a
     simplifier argument and attempts to use it to simplify expressions internal
     to a square root. As an example, if two square roots in a product simplify
     to the same expression, we can drop the wrapping square root; otherwise
@@ -1688,7 +1688,7 @@ On to the detailed notes!
     - Added a missing rule in `simplify-square-roots` that handles roots of
       exponents with odd powers.
 
-  - `sicmutils.matrix` changes:
+  - `emmy.matrix` changes:
 
     - `generate` has a new 2-arity version; if you supply a single dimension the
       returned matrix is square.
@@ -1696,10 +1696,10 @@ On to the detailed notes!
     - `diagonal?` returns true if its argument is a diagonal matrix, false
       otherwise.
 
-  - A new namespace, `sicmutils.util.permute`:
+  - A new namespace, `emmy.util.permute`:
 
-    - `factorial` moved here from `sicmutils.generic`. It's still aliased into
-      `sicmutils.env`.
+    - `factorial` moved here from `emmy.generic`. It's still aliased into
+      `emmy.env`.
 
     - new functions: `permutations`, `combinations`, `cartesian-product`,
       `list-interchanges`, `permutation-parity`, `permutation-interchanges`,
@@ -1742,7 +1742,7 @@ On to the detailed notes!
   `make-polar`is treated as a 0 (rather than an error because the keys don't
   match, as in vectors).
 
-- #334 adds implementations of `g/add` and the `sicmutils.value.Value` protocol
+- #334 adds implementations of `g/add` and the `emmy.value.Value` protocol
   for clojure's Set data structure. Addition is defined as set union, and
   `(zero-like <set>)` returns the empty set.
 
@@ -1754,18 +1754,18 @@ On to the detailed notes!
   Maps can also be multiplied with scalars (commutatively) or divided (scalar on
   the right side only) by scalars. This, plus the commutative group property
   declared above, mean that Clojure's maps are sparse vector spaces over
-  anything that responds true to `sicmutils.value/scalar?`... currently anything
+  anything that responds true to `emmy.value/scalar?`... currently anything
   in the numeric tower up to complex, along with symbolic expressions and
   `Differential` instances.
 
 ## 0.17.0
 
 > (If you have any questions about how to use any of the following, please ask us
-> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> at our [Github Discussions](https://github.com/emmy/emmy/discussions)
 > page!)
 
 This release starts the work of porting all of GJS and JW's "Functional
-Differential Geometry" to SICMUtils. The Differential Geometry section below
+Differential Geometry" to Emmy. The Differential Geometry section below
 describes the many new manifolds, coordinate systems and functions for
 interacting with these that we've gained.
 
@@ -1784,11 +1784,11 @@ Enjoy the release!
 ### New Functions, Functionality
 
 - #330 adds `g/real-part` and `g/imag-part` implementations for
-  `sicmutils.structure.Structure` and `sicmutils.matrix.Matrix` instances. These
+  `emmy.structure.Structure` and `emmy.matrix.Matrix` instances. These
   pass through to the entries in the structure or matrix. #331 adds similar
   implementations for `g/make-rectangular` and `g/make-polar`.
 
-- #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
+- #327 adds `emmy.structure/sumr`, also aliased into `emmy.env` Given
   some function `f` and any number of isomorphic `structures`, `sumr` returns
   the sum of the results of applying `f` to each associated set of entries in
   each `structure`.
@@ -1803,17 +1803,17 @@ Enjoy the release!
   appropriately respond if just one side is a boolean. If both sides are
   symbolic, These return a form like `(= a b)`, `(and a b)` or `(or a b)`.
 
-  The functions currently live in `sicmutils.numsymb` only; access them via
+  The functions currently live in `emmy.numsymb` only; access them via
   `(numsymb/symbolic-operator <sym>)`, where `<sym>` is one of `'=`, `'and`,
   `'or`, `'not` or `'derivative`.
 
-- #304 aliases `sicmutils.operator/anticommutator`, `sicmutils.util/bigint?` and
-  into `sicmutils.env`
+- #304 aliases `emmy.operator/anticommutator`, `emmy.util/bigint?` and
+  into `emmy.env`
 
   - implements `v/=` properly for sequences, `Differential`, `Complex`,
     `Structure` and `Matrix` instances
 
-  - in `sicmutils.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
+  - in `emmy.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
     identically to `clojure.core/=` everywhere; the difference is that its
     behavior is customizable, so we can make `Differential` instances equal to
     numbers, or complex numbers with a 0 imaginary part equal to real numbers
@@ -1824,8 +1824,8 @@ Enjoy the release!
 
   - BIG CHANGE: `Literal` and `Structure` instances now KEEP their type under
     `g/simplify`. If you want to get the expression back out of its `Literal`
-    wrapper, use `sicmutils.expression/expression-of`, also aliased into
-    `sicmutils.env`.
+    wrapper, use `emmy.expression/expression-of`, also aliased into
+    `emmy.env`.
 
     This means that you can no longer make comparisons like this:
 
@@ -1837,7 +1837,7 @@ Enjoy the release!
 ;;=> false
 ```
 
-  Instead, use `v/=` (which is now aliased into `sicmutils.env`):
+  Instead, use `v/=` (which is now aliased into `emmy.env`):
 
 ```clojure
 ;; `v/=` will do the right thing by unwrapping the literal expression on the
@@ -1847,7 +1847,7 @@ Enjoy the release!
 ```
 
 - #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
-  `sicmutils.structure/Structure` instances.
+  `emmy.structure/Structure` instances.
 
 - #207:
 
@@ -1859,27 +1859,27 @@ Enjoy the release!
     `g/solve-linear` (and its alias, `g/solve-linear-left`) returns `x` such
     that `a*x = b`. These functions are implemented for:
 
-    - `sicmutils.series.{Series, PowerSeries}`
+    - `emmy.series.{Series, PowerSeries}`
     - all numeric types
     - functions, operators
-    - `sicmutils.modint.ModInt`
-    - `sicmutils.differential.Differential`, so you can differentiate through
+    - `emmy.modint.ModInt`
+    - `emmy.differential.Differential`, so you can differentiate through
       this operation
 
-- #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
+- #309: `emmy.util/bigint` is aliased as `emmy.env/bigint` in
   ClojureScript only. This is available natively in Clojure.
 
 - #308 and #310 add:
 
-  - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
-    aliased into `sicmutils.env` in ClojureScript. These are available natively
-    in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
+  - `emmy.ratio/{numerator,denominator,ratio?,rationalize}` and are now
+    aliased into `emmy.env` in ClojureScript. These are available natively
+    in Clojure. `emmy.complex/complex?` is aliased into `emmy.env` for
     both platforms.
 
   - Proper superscript support in `->infix` and `->TeX` renderers.
 
 - #306: Added the mathematical constants `phi` and `e` bound to, respectively,
-  `sicmutils.env/{phi,euler}`.
+  `emmy.env/{phi,euler}`.
 
 ### Differential Geometry
 
@@ -1887,23 +1887,23 @@ Enjoy the release!
   implementation of the ideas in "Functional Differential Geometry". Here is the
   full list of changes:
 
-  - `sicmutils.calculus.basis` gains a new `::coordinate-basis` type, along with
+  - `emmy.calculus.basis` gains a new `::coordinate-basis` type, along with
     `coordinate-basis?`, `basis->coordinate-system`, `basis->dimension`,
     `contract` and `make-constant-vector-field` from scmutils. More functions
     moved here.
 
-  - In `sicmutils.calculus.coordinate`, `let-coordinates` and
+  - In `emmy.calculus.coordinate`, `let-coordinates` and
     `using-coordinates` can now handle namespaced coordinate systems like
     `m/R2-rect` in their coordinate system position! Their docstrings are far
     better too.
 
-  - `sicmutils.calculus.vector-field/coordinate-basis-vector-fields` was renamed
+  - `emmy.calculus.vector-field/coordinate-basis-vector-fields` was renamed
     to `coordinate-system->vector-basis`.
 
-  - `sicmutils.calculus.form-field/coordinate-basis-oneform-fields` was renamed
+  - `emmy.calculus.form-field/coordinate-basis-oneform-fields` was renamed
     to `coordinate-system->oneform-basis`.
 
-  - `sicmutils.calculus.manifold` gets a LOT of restructuring, and many new
+  - `emmy.calculus.manifold` gets a LOT of restructuring, and many new
     manifolds out of the box. Here's the full list of new functions:
 
     - `manifold-type`, `patch-names`, `coordinate-system-names`,
@@ -1951,8 +1951,8 @@ Enjoy the release!
   Before this change:
 
 ```clojure
-sicmutils.env> (series/exp-series D)
-#object[sicmutils.series.Series
+emmy.env> (series/exp-series D)
+#object[emmy.series.Series
   "(+ identity
       (* D identity)
       (* (/ 1 2) (* D (* D identity)))
@@ -1962,8 +1962,8 @@ sicmutils.env> (series/exp-series D)
   After:
 
 ```clojure
-sicmutils.env> (series/exp-series D)
-#object[sicmutils.series.Series
+emmy.env> (series/exp-series D)
+#object[emmy.series.Series
   "(+ identity
       D
       (* (/ 1 2) (expt D 2))
@@ -1987,7 +1987,7 @@ sicmutils.env> (series/exp-series D)
   - implements `v/=` properly for sequences, `Differential`, `Complex`,
     `Structure` and `Matrix` instances
 
-  - in `sicmutils.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
+  - in `emmy.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
     identically to `clojure.core/=` everywhere; the difference is that its
     behavior is customizable, so we can make `Differential` instances equal to
     numbers, or complex numbers with a 0 imaginary part equal to real numbers
@@ -1998,8 +1998,8 @@ sicmutils.env> (series/exp-series D)
 
   - BIG CHANGE: `Literal` and `Structure` instances now KEEP their type under
     `g/simplify`. If you want to get the expression back out of its `Literal`
-    wrapper, use `sicmutils.expression/expression-of`, also aliased into
-    `sicmutils.env`.
+    wrapper, use `emmy.expression/expression-of`, also aliased into
+    `emmy.env`.
 
     This means that you can no longer make comparisons like this:
 
@@ -2011,7 +2011,7 @@ sicmutils.env> (series/exp-series D)
 ;;=> false
 ```
 
-  Instead, use `v/=` (which is now aliased into `sicmutils.env`):
+  Instead, use `v/=` (which is now aliased into `emmy.env`):
 
 ```clojure
 ;; `v/=` will do the right thing by unwrapping the literal expression on the
@@ -2020,7 +2020,7 @@ sicmutils.env> (series/exp-series D)
 ;;=> true
 ```
 
-- #207 fixes a bug where `sicmutils.function/compose` would fail when provided
+- #207 fixes a bug where `emmy.function/compose` would fail when provided
   with no arguments. Now it appropriately returns `identity`.
 
 - #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
@@ -2036,11 +2036,11 @@ sicmutils.env> (series/exp-series D)
 ## 0.16.0
 
 > (If you have any questions about how to use any of the following, please ask us
-> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> at our [Github Discussions](https://github.com/emmy/emmy/discussions)
 > page!)
 
 This release contains a few correctness fixes, a number of new
-`sicmutils.generic` function implementations contributed by @pangloss, and a
+`emmy.generic` function implementations contributed by @pangloss, and a
 large expansion of the namespaces available to SCI-hosted environments.
 
 The themes of the release are:
@@ -2050,16 +2050,16 @@ The themes of the release are:
 - Better and better documentation!
 - Easier interop with interactive hosts via SCI
 
-A major goal was to develop SICMUtils into an environment that could host all of
+A major goal was to develop Emmy into an environment that could host all of
 the exercises from the SICM textbook. We have many of those hosted at the
-https://github.com/sicmutils/sicm-exercises repository, and they all work and
+https://github.com/emmy/sicm-exercises repository, and they all work and
 generate correctly rendered TeX!
 
 The goals for the next release roll over from 0.15.0:
 
-we'll focus on getting SICMUtils integrated with 2D and 3D rendering libraries
+we'll focus on getting Emmy integrated with 2D and 3D rendering libraries
 like [three.js](https://threejs.org), [babylon.js](https://www.babylonjs.com)
-and [Quil](https://github.com/quil/quil). The long-term goal is for SICMUtils to
+and [Quil](https://github.com/quil/quil). The long-term goal is for Emmy to
 support the sort of workflow I described in ["The Dynamic
 Notebook"](https://roadtoreality.substack.com/p/the-dynamic-notebook).
 
@@ -2078,7 +2078,7 @@ Detailed release notes:
   - symbolic expression implementations
   - symbolic implementations for `modulo` and `remainder`
   - new support for these four generics plus `modulo` and `remainder` in
-    function compilation via `sicmutils.expression.compile` (#295)
+    function compilation via `emmy.expression.compile` (#295)
   - rendering support by `->infix`, `->TeX`, `->Javascript` (#295)
 
   Thank you to @pangloss for this major contribution!
@@ -2089,52 +2089,52 @@ Detailed release notes:
   to return `a`, resulting in problems with the double pendulum exercise of
   #296.
 
-- #149 adds a `sicmutils.modint/modint?` predicate, and
-  `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
+- #149 adds a `emmy.modint/modint?` predicate, and
+  `emmy.modint/chinese-remainder`. The latter efficiently performs the
   [Chinese Remainder
   algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) for
   solving systems of linear congruences. Available via
-  `sicmutils.env/chinese-remainder`.
+  `emmy.env/chinese-remainder`.
 
-- `clojure.lang.Var` implements the `sicmutils.value/Value` protocol, allowing
+- `clojure.lang.Var` implements the `emmy.value/Value` protocol, allowing
   it to respond appropriately with its name to `v/freeze` (#298).
 
-- Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
-  into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
+- Install `emmy.generic/{quotient,modulo,remainder,partial-derivative}`
+  into `emmy.env` (#273). Thanks to @pangloss for pointing out that these
   were missing!
 
 - #284 added:
 
-  - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
+  - new functions `emmy.mechanics.lagrange/acceleration-tuple` for creating
     the acceleration entry in a local tuple
 
-  - `sicmutils.mechanics.lagrange/acceleration` for extracting the acceleration
+  - `emmy.mechanics.lagrange/acceleration` for extracting the acceleration
     component of a local tuple
 
-  - An upgraded `sicmutils.mechanics.lagrange/F->C` to handle local tuples of
+  - An upgraded `emmy.mechanics.lagrange/F->C` to handle local tuples of
     arbitrary length. This version of `F->C` is more general than the version
     from the textbook that was previously included.
 
-  These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
-  `sicmutils.mechanics.lagrange/Γ-bar`.
+  These are all aliased in `emmy.env`, along with a new `Γ-bar` alias for
+  `emmy.mechanics.lagrange/Γ-bar`.
 
-- #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
+- #282 modifies the `emmy.value/freeze` implementation for Clojure vector
   to freeze vectors into the same representation as an `up` structure. This
   makes rendering these forms much more simple and matches the `scmutils`
   behavior.
 
-- `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
+- `emmy.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
   on the JVM, allowing it to act more like a vector (#282). (The CLJS
   implementation already did this.) `(vec (up 1 2 3))` now works correctly.
 
 - `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
-  to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
-  and `sicmutils.operator/->Operator` all take a new arity for metadata.
+  to `meta` and `with-meta` (#265). `emmy.series/{->Series, ->PowerSeries}`
+  and `emmy.operator/->Operator` all take a new arity for metadata.
 
 ### g/simplify changes
 
 - `g/simplify` called with an argument `x` of type `Series`, `PowerSeries`,
-  `Matrix`, `Operator`, `Complex` and `sicmutils.abstract.function/Function` now
+  `Matrix`, `Operator`, `Complex` and `emmy.abstract.function/Function` now
   return an instance of type `x`, performing appropriate simplifications if
   possible. before #297 and #298, these operation would return bare symbols or
   sequences.
@@ -2144,7 +2144,7 @@ Detailed release notes:
 
 ### Rendering, Docs
 
-- #286 adds a batch of rules to `sicmutils.simplify.rules/canonicalize-partials`
+- #286 adds a batch of rules to `emmy.simplify.rules/canonicalize-partials`
   that act to gather up nested `partial` (derivative) applications into products
   and exponentiated partials. `->TeX` and `->infix` both produce better-looking
   forms with this change.
@@ -2168,17 +2168,17 @@ Detailed release notes:
   or `q''` respectively in `TeX`, rather than the fully-spelled-out
   `\mathsf{qprime}` (#282).
 
-- #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
+- #280 adds a new `:equation` keyword argument to `emmy.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
   entry inside the equation environment.
 
-    - `sicmutils.env/->tex-equation` is identical to `#(sicmutils.render/->TeX
+    - `emmy.env/->tex-equation` is identical to `#(emmy.render/->TeX
       (g/simplify %) :equation true)`; If you pass a `:label` keyword argument
       to `->tex-equation` it will be forwarded to `->TeX`, creating the expected
       label entry.
 
-- #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
+- #279: Function aliases in `emmy.env` now properly mirror over docstrings
   and other `Var` metadata, thanks to
   [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
   doesn't quite work in ClojureScript since we can't use `resolve` inside of a
@@ -2189,15 +2189,15 @@ Detailed release notes:
 
 ### SCI Upgrades
 
-- #289 adds many namespaces to `sicmutils.env.sci`:
+- #289 adds many namespaces to `emmy.env.sci`:
 
-  - `sicmutils.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
-  - `sicmutils.abstract.number`
-  - `sicmutils.expression.analyze`
-  - `sicmutils.numerical.elliptic`
-  - `sicmutils.util.{aggregate,stream}`
+  - `emmy.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
+  - `emmy.abstract.number`
+  - `emmy.expression.analyze`
+  - `emmy.numerical.elliptic`
+  - `emmy.util.{aggregate,stream}`
 
-  - #289 also introduces `sicmutils.function/*strict-arity-checks*` to allow the
+  - #289 also introduces `emmy.function/*strict-arity-checks*` to allow the
     user to toggle whether or not to throw exceptions if the system thinks that
     arities are incompatible. It turns out that inside of an SCI environment,
     the usual tricks for detecting arities fail, causing errors in many
@@ -2206,7 +2206,7 @@ Detailed release notes:
 
 ### Behavior changes, bug fixes
 
-- In JVM Clojure (as of #298), `sicmutils.expression.compile` defaults to
+- In JVM Clojure (as of #298), `emmy.expression.compile` defaults to
   `clojure.core/eval` to compile functions, while ClojureScript defaults to
   [SCI](https://github.com/borkdude/sci). The performance is much faster for
   numerical routines and worth the slightly different default behavior.
@@ -2214,7 +2214,7 @@ Detailed release notes:
   To use to SCI compilation on the JVM, wrap your form in a binding:
 
   ```clojure
-  (require '[sicmutils.expression.compile :as compile])
+  (require '[emmy.expression.compile :as compile])
 
   (binding [compile/*mode* :sci]
     (my-compiler-triggering-function))
@@ -2236,7 +2236,7 @@ Detailed release notes:
   otherwise. #255 is currently blocking pass-through equality with collections
   on the JVM. Thanks to @daslu for the report here!
 
-- `sicmutils.modint/make` now verifies with a precondition that its two
+- `emmy.modint/make` now verifies with a precondition that its two
   arguments are both `v/integral?` (#298). We need this constraint now that
   `g/modulo` is defined for more types.
 
@@ -2247,7 +2247,7 @@ Detailed release notes:
 ## 0.15.0
 
 > (If you have any questions about how to use any of the following, please ask us
-> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> at our [Github Discussions](https://github.com/emmy/emmy/discussions)
 > page!)
 
 This release was focused on a small number of themes:
@@ -2256,12 +2256,12 @@ This release was focused on a small number of themes:
 
 The goal for this cycle's automatic differentiation (AD) work was to expand the
 set of functions and types that can play with AD. AD now works on functions that
-return all Clojure sequences, maps, and vectors, in addition to SICMUtils types
+return all Clojure sequences, maps, and vectors, in addition to Emmy types
 like `Operator`, `Series`, `PowerSeries` and `Structure`. The system is now
 fully extensible, so if you want to differentiate functions that return custom
 records or Java collections, it's now no problem.
 
-SICMUtils can now differentiate functions in ClojureScript that use comparison
+Emmy can now differentiate functions in ClojureScript that use comparison
 operations like `<`, `=`, `<=` and friends. Clojure can't quite do this yet, but
 you can differentiate through `v/compare` and `v/=` calls.
 
@@ -2274,9 +2274,9 @@ New `Div`, `Grad`, `Curl` and `Lap` operators build on this foundation.
 **SCI Integration**
 
 To support safe execution inside of a browser-based Notebook or REPL
-environment, SICMUtils now has full support for @borkdude's
+environment, Emmy now has full support for @borkdude's
 [SCI](https://github.com/borkdude/sci), the Small Clojure Interpreter, via the
-[sicmutils.sci](https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/env/sci.cljc)
+[emmy.sci](https://github.com/emmy/emmy/blob/master/src/emmy/env/sci.cljc)
 namespace. Every function and macro in the library now works in SCI. (Thanks for
 @borkdude and @mk for your help and contributions.
 
@@ -2292,10 +2292,10 @@ look for more details.
 
 **What's coming next?**
 
-The next release will focus on getting SICMUtils integrated with 2D and 3D
+The next release will focus on getting Emmy integrated with 2D and 3D
 rendering libraries like [three.js](https://threejs.org),
 [babylon.js](https://www.babylonjs.com) and
-[Quil](https://github.com/quil/quil). The long-term goal is for SICMUtils to
+[Quil](https://github.com/quil/quil). The long-term goal is for Emmy to
 support the sort of workflow I described in ["The Dynamic
 Notebook"](https://roadtoreality.substack.com/p/the-dynamic-notebook). This will
 require a big push on generic, pluggable representations for the various types
@@ -2309,10 +2309,10 @@ On to the detailed release notes:
 ### Automatic Differentiation
 
 - New, literate `Differential` implementation lives at at
-  `sicmutils.differential` (#221) (see [this
+  `emmy.differential` (#221) (see [this
   page](https://samritchie.io/dual-numbers-and-automatic-differentiation/) for a
   readable version.) Notable changes to the original impl at
-  `sicmutils.calculus.derivative` include:
+  `emmy.calculus.derivative` include:
 
   - We've changed our terminology from GJS's `finite-part`,
     `infinitesimal-part`, `make-x+dx` to the more modern `primal-part`,
@@ -2322,26 +2322,26 @@ On to the detailed release notes:
     safer way is to stick with his terms, but we go boldly forth with the
     masses.
 
-  - A new `sicmutils.differential.IPerturbed` protocol makes it possible to
+  - A new `emmy.differential.IPerturbed` protocol makes it possible to
     extend the Automatic Differentiation (AD) system to be able to handle
     different Functor-shaped return values, like Java or JS lists and objects.
     See the [cljdoc page on Automatic
-    Differentiation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+    Differentiation](https://cljdoc.org/d/emmy/emmy/CURRENT/doc/calculus/automatic-differentiation)
     for more detail.
 
     - #222 implements `d/IPerturbed` for Clojure maps, vectors and sequences;
       all are now valid return types for functions you pass to `D`.
 
-    - #222 also implements `d/IPerturbed` for SICMUtils `Matrix`, `Structure`,
+    - #222 also implements `d/IPerturbed` for Emmy `Matrix`, `Structure`,
       `Series`, `PowerSeries` and `Operator`.
 
     - #223 implements `d/IPerturbed` for Clojure functions and multimethods,
       handling the attendant subtlety that fixes "Alexey's Amazing Bug".
 
-  - `sicmutils.differential/{lift-1,lift-2,lift-n}` allow you to make custom
+  - `emmy.differential/{lift-1,lift-2,lift-n}` allow you to make custom
     operations differentiable, provided you can supply a derivative.
 
-  - `Differential` implements `sicmutils.function/arity`, `IFn`, and can be
+  - `Differential` implements `emmy.function/arity`, `IFn`, and can be
     applied to arguments if its coefficients are function values. `Differential`
     instances also `v/freeze` and `g/simplify` properly (by pushing these
     actions into their coefficients).
@@ -2361,20 +2361,20 @@ On to the detailed release notes:
 
   - The new implementation fixes a subtle bug with nested, higher order
     automatic differentiation - it's too subtle for the CHANGELOG, so please the
-    "amazing" bug sections in `sicmutils.calculus.derivative-test` for proper
+    "amazing" bug sections in `emmy.calculus.derivative-test` for proper
     exposition.
 
-- #223 converts the implementation of `sicmutils.calculus.derivative/D` to use
+- #223 converts the implementation of `emmy.calculus.derivative/D` to use
   the new `Differential` type; this fixes "Alexey's Amazing Bug" and allows `D`
   to operate on higher order functions. For some function `f` that returns
   another function, `((D f) x)` will return a function that keeps `x` "alive"
   for the purposes of differentiation inside its body. See
-  `sicmutils.calculus.derivative-test/amazing-bug` for an extended example.
+  `emmy.calculus.derivative-test/amazing-bug` for an extended example.
 
-- `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
+- `emmy.generic/partial-derivative` gains a `Keyword` extension, so it can
   respond properly to `:name` and `:arity` calls (#221).
 
-- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
+- `D` (or `emmy.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
   (#218)
 
@@ -2382,49 +2382,49 @@ On to the detailed release notes:
   of generic functions. You can access these by calling `(<generic-function>
   :dfdx)` or `(<generic-function> :dfdy)`, depending on whether the generic is
   unary or binary. #253 also changes the name of macro
-  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+  `emmy.generic/def-generic-function` to `emmy.generic/defgeneric`.
 
 ### Rendering
 
-- `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
+- `emmy.expression/Literal` instances now use `pr-str` to generate a string
   representation; this allows this type to wrap lazy-sequence expressions such
   as those returned from `g/simplify` (#259)
 
-- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
+- `emmy.expression.render/->infix` and `emmy.expression.render/->TeX`
   now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
 
-- `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
+- `emmy.expression.render/*TeX-sans-serif-symbols*` binding to control if
   symbols longer than 1 char should have `\mathsf` applied (#258).
 
-- `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
+- `->infix`, `->TeX` and `->JavaScript` in `emmy.expression.render` can now
   accept unfrozen and unsimplified `Expression` instances (#241). This makes it
   a bit more convenient to use `->infix` and `->TeX` at the REPL, or in a
   Notebook environment. Additionally, the return values of renderers are always
   coerced to strings. (Previously, `(->infix 10)` would return a number
   directly.)
 
-- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
+- `up` and `down` tuples from `emmy.structure` gain a proper `print-method`
   implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
   instead of the former more verbose representation (when using `pr`.)
 
-- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
+- `emmy.render/->infix` and `emmy.render/->TeX` will render `Series`
   and `PowerSeries` as an infinite sum (showing the first four terms).
   In the case of unnaplied `PowerSeries`, it will represent the unbound
   variable as `_` (#260).
 
 ### Performance Improvements
 
-- `sicmutils.modint` gains more efficient implementations for `inverse`,
+- `emmy.modint` gains more efficient implementations for `inverse`,
   `quotient`, `exact-divide` and `expt` on the JVM (#251).
 
 ### Comparison / Native Type Integration
 
 - beefed up the Javascript numeric tower to allow objects like
-  `sicmutils.differential/Differential`, `sicmutils.expression/Expression` and
+  `emmy.differential/Differential`, `emmy.expression/Expression` and
   friends that WRAP numbers to compare properly using cljs-native `<`, `<=`,
   `=`, `>=` and `>` (#236)
 
-- new `sicmutils.value/compare` function exposed in `sicmutils.env` returns a
+- new `emmy.value/compare` function exposed in `emmy.env` returns a
   valid comparison bit between native numbers and numbers wrapped in
   `Differential` or `Expression` in both JVM Clojure and ClojureScript (#236).
   The behavior matches `clojure.core/compare` for all reals on the JVM; it
@@ -2437,13 +2437,13 @@ On to the detailed release notes:
 
   - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
     its `:name`, `:arity`, `:context` and `:o` fields have been replaced by,
-    respectively, `o/name`, `sicmutils.function/arity`, `o/context` and
+    respectively, `o/name`, `emmy.function/arity`, `o/context` and
     `o/procedure` functions. This change happened to allow `Operator` to
     implement protocols like `ILookup`.
 
   - Native `get` and `get-in` now act on `Operator`. Given an operator function
     `f`, `get` and `get-in` compose `#(get % k)`, or similar with `f`. This
-    deferred action matches the effect of all sicmutils generics on functions.
+    deferred action matches the effect of all emmy generics on functions.
 
   - Combining an operator and a non-operator via `+` and `-`, the non-operator
     was previously lifted into an operator that multiplied itself by the new
@@ -2451,7 +2451,7 @@ On to the detailed release notes:
     definition of multiplication - meaning, the new operator composes the
     non-operator with its argument. Where does this matter?
 
-    Previously adding the non-operator `sicmutils.function/I` to the identity
+    Previously adding the non-operator `emmy.function/I` to the identity
     operator `I` would act like this:
 
     ```clojure
@@ -2471,8 +2471,8 @@ On to the detailed release notes:
 
     because `f/I` composes with its argument.
 
-  - `sicmutils.operator/identity-operator` has been renamed to
-    `sicmutils.operator/identity`
+  - `emmy.operator/identity-operator` has been renamed to
+    `emmy.operator/identity`
 
   - `o/make-operator` now takes an explicit `context` map, instead of a
     multi-arity implementation with key-value pairs.
@@ -2493,9 +2493,9 @@ On to the detailed release notes:
 ### Additions
 
 - #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
-  `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
+  `emmy.calculus.derivative` and installs them into `emmy.env`. #224
   also removes the `g/transpose` implementation for `Operator` instances, and
-  exposes `sicmutils.calculus.derivative/taylor-series` to `sicmutils.env`.
+  exposes `emmy.calculus.derivative/taylor-series` to `emmy.env`.
 
 - #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
   vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
@@ -2504,59 +2504,59 @@ On to the detailed release notes:
   implementations do already make use of this feature. `g/partial-derivative` on
   a Clojure Map passes through to its values.
 
-- As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
+- As of #232, `emmy.expression.compile/compile-univariate-fn` is now
   `compile-fn` (same change for the non-cached `compile-fn*` in the same
   namespace). The new implementation can compile arguments of any arity, not
   just arity == 1. The new version takes an arity parameter `n` that defaults to
-  `(sicmutils.function/arity f)`.
+  `(emmy.function/arity f)`.
 
-- `sicmutils.function/arity` is now a protocol method, under the
-  `sicmutils.function/IArity` protocol (#218). In addition to functions, `arity`
+- `emmy.function/arity` is now a protocol method, under the
+  `emmy.function/IArity` protocol (#218). In addition to functions, `arity`
   now correctly responds to:
 
-    - `sicmutils.matrix/Matrix`: calling `arity` on a matrix assumes that the
+    - `emmy.matrix/Matrix`: calling `arity` on a matrix assumes that the
       matrix has function elements; the returned arity is the most general arity
       that all functions will respond to.
-    - `sicmutils.operator/Operator`: returns the arity of the operator's wrapped
+    - `emmy.operator/Operator`: returns the arity of the operator's wrapped
       function.
-    - `sicmutils.series/Series`: `arity` on a `Series` assumes that the series
+    - `emmy.series/Series`: `arity` on a `Series` assumes that the series
       contains functions as entries, and returns, conservatively, the arity of
       the first element of the series.
-   - `sicmutils.series/PowerSeries`: `arity` returns `[:exactly 1]`, since
+   - `emmy.series/PowerSeries`: `arity` returns `[:exactly 1]`, since
      `PowerSeries` are currently single variable.
-   - vectors, and `sicmutils.structure/Structure`: `arity` on these collections
+   - vectors, and `emmy.structure/Structure`: `arity` on these collections
      assumes that the collection contains functions as entries, and returns the
      most general arity that is compatible with all of the function elements.
 
-- New single-arity case for `sicmutils.structure/opposite` returns an identical
+- New single-arity case for `emmy.structure/opposite` returns an identical
   structure with flipped orientation (#220). acts as `identity` for
   non-structures.
 
 - Added missing `identity?`, `identity-like` for complex and rational numbers
   (#236)
 
-- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
+- `emmy.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
   as an example, returns a new function `g` that acts like `f` but calls `(ref
   result 0 1)` on the result.
 
-- The slightly more general `sicmutils.env/component` replaces
-  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
+- The slightly more general `emmy.env/component` replaces
+  `emmy.structure/component` in the `emmy.env` namespace (#219).
   `((component 0 1) x) == (ref x 0 1)`.
 
-- New functions `sicmutils.function/{get,get-in}` added that act like the
+- New functions `emmy.function/{get,get-in}` added that act like the
   `clojure.core` versions; but given a function `f`, they compose `#(get % k)`,
-  or similar with `f`. This deferred action matches the effect of all sicmutils
+  or similar with `f`. This deferred action matches the effect of all emmy
   generics on functions. (#218)
 
-- `sicmutils.function/I` aliases `clojure.core/identity` (#218). #219 exposes
-  `I` in `sicmutils.env`.
+- `emmy.function/I` aliases `clojure.core/identity` (#218). #219 exposes
+  `I` in `emmy.env`.
 
-- `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
-  to evaluate all of sicmutils, macros and all, inside of an
+- `emmy.env.sci` contains an SCI context and namespace mapping sufficient
+  to evaluate all of emmy, macros and all, inside of an
   [SCI](https://github.com/borkdude/sci) environment (#216). Huge thanks to
   @borkdude for support and @mk for implementing this!
 
-- `sicmutils.numerical.elliptic` gains a full complement of elliptic integral
+- `emmy.numerical.elliptic` gains a full complement of elliptic integral
   utilities (#211):
 
   - Carlson symmetric forms of the elliptic integrals: `carlson-rd`,
@@ -2572,7 +2572,7 @@ On to the detailed release notes:
 
 ### Fixes / Misc
 
-- The operator returned by `sicmutils.calculus.derivative/partial` now has a
+- The operator returned by `emmy.calculus.derivative/partial` now has a
   proper name field like `(partial 0)`, instead of `:partial-derivative` (#223).
 
 - #223 fixes a problem where `(operator * structure)` would return a structure
@@ -2584,7 +2584,7 @@ On to the detailed release notes:
   functions on the JVM (#240). It now responds properly with `[:between
   min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
 
-- #238 converts `sicmutils.abstract.function/Function` from a `defrecord` to a
+- #238 converts `emmy.abstract.function/Function` from a `defrecord` to a
   `deftype`, fixing a subtle bug where (empty f) was getting called in a nested
   derivative test.
 
@@ -2597,93 +2597,93 @@ On to the detailed release notes:
 
 - After the work below, `v/nullity?` renamed to `v/zero?`, and `v/unity?`
   renamed to `v/one?`
-  ([#180](https://github.com/sicmutils/sicmutils/pull/180)). This
+  ([#180](https://github.com/emmy/emmy/pull/180)). This
   affects the names listed in the CHANGELOG entries below.
 
 ### Miscellaneous
 
 - expose `bootstrap-repl!` to ClojureScript, so that this is available in
-  self-hosted CLJS (https://github.com/sicmutils/sicmutils/pull/157)
+  self-hosted CLJS (https://github.com/emmy/emmy/pull/157)
 
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
   returns inside structures
-  (https://github.com/sicmutils/sicmutils/pull/157)
+  (https://github.com/emmy/emmy/pull/157)
 
-- add `multidimensional-minimize` to the `sicmutils.env` namespace
-  (https://github.com/sicmutils/sicmutils/pull/157)
+- add `multidimensional-minimize` to the `emmy.env` namespace
+  (https://github.com/emmy/emmy/pull/157)
 
 - add more `sqrt` simplification rules to allow square roots to cancel out
   across a division boundary, with or without products in the numerator and
-  denominator (https://github.com/sicmutils/sicmutils/pull/160)
+  denominator (https://github.com/emmy/emmy/pull/160)
 
 - fix NPE bug that appears in nelder-mead, when callback isn't supplied
-  (https://github.com/sicmutils/sicmutils/pull/162)
+  (https://github.com/emmy/emmy/pull/162)
 
 - Add `sqrt-expand` and `sqrt-contract`, to allow simplifications to push inside
-  of square roots (https://github.com/sicmutils/sicmutils/pull/163)
+  of square roots (https://github.com/emmy/emmy/pull/163)
 
 - speed up power series multiplication by skipping work when either head term is
-  zero (https://github.com/sicmutils/sicmutils/pull/166)
+  zero (https://github.com/emmy/emmy/pull/166)
 
 - File moves:
-  - `sicmutils.polynomial-gcd`    => `sicmutils.polynomial.gcd`
-  - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
-  - `sicmutils.rules`             => `sicmutils.simplify.rules`
-  - `sicmutils.analyze`           => `sicmutils.expression.analyze`
-  - `sicmutils.infix`             => `sicmutils.expression.render`
-  - `sicmutils.numerical.compile` => `sicmutils.expression.compile`
+  - `emmy.polynomial-gcd`    => `emmy.polynomial.gcd`
+  - `emmy.polynomial-factor` => `emmy.polynomial.factor`
+  - `emmy.rules`             => `emmy.simplify.rules`
+  - `emmy.analyze`           => `emmy.expression.analyze`
+  - `emmy.infix`             => `emmy.expression.render`
+  - `emmy.numerical.compile` => `emmy.expression.compile`
 
-- `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
-  [#154](https://github.com/sicmutils/sicmutils/pull/154)
+- `emmy.env/one?` now exposes/aliases `emmy.value/unity?`
+  [#154](https://github.com/emmy/emmy/pull/154)
 
-- Fixed [#93](https://github.com/sicmutils/sicmutils/issues/93) by
+- Fixed [#93](https://github.com/emmy/emmy/issues/93) by
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
-  [#169](https://github.com/sicmutils/sicmutils/pull/169).
+  [#169](https://github.com/emmy/emmy/pull/169).
 
-- added `sicmutils.value/sqrt-machine-epsilon`
-  ([#170](https://github.com/sicmutils/sicmutils/pull/170))
+- added `emmy.value/sqrt-machine-epsilon`
+  ([#170](https://github.com/emmy/emmy/pull/170))
 
 - fixed issues in `function.cljc` and `operator.cljc` where the ClojureScript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
-  ([#169](https://github.com/sicmutils/sicmutils/pull/169))
+  ([#169](https://github.com/emmy/emmy/pull/169))
 
 - `g/sqrt` now maintains precision with ClojureScript's rational numbers.
   `(g/sqrt #sicm/ratio 9/4)` for example returns `#sicm/ratio 3/2`.
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
 - `g/determinant` and `g/transpose` now act as identity for everything in the
   numeric tower, plus symbolic expressions
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
-- `sicmutils.expression.Expression` is now `sicmutils.expression.Literal`; it
+- `emmy.expression.Expression` is now `emmy.expression.Literal`; it
   has a new `meta` field, and is a `deftype` instead of a `defrecord`.
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
   - To get the internal expression, use `x/expression-of` instead of
     `:expression`.
   - to access the `type` field, use `x/literal-type` instead of `:type`
 
 - 2-arity `g/atan`, `g/cross-product` and `g/gcd` now work for functions
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
 - `Literal` now responds appropriately to `v/unity?` and `v/nullity?` if it
   wraps a numerical "0" or "1". `v/exact?` now returns true if the literal wraps
-  an exact number ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  an exact number ([#168](https://github.com/emmy/emmy/pull/168))
 
 - `x/variables-in` now works with wrapped expressions; no more need to
   explicitly unwrap
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
 - `x/walk-expression` renamed `x/evaluate`
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
 - The new `x/substitute` performs substitutions on an _unwrapped_ expression
-  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
+  ([#168](https://github.com/emmy/emmy/pull/168))
 
 -  `x/compare` returns a comparator that works with unwrapped symbolic
    expression trees
-   ([#168](https://github.com/sicmutils/sicmutils/pull/168)). The rules
+   ([#168](https://github.com/emmy/emmy/pull/168)). The rules
    are that that types have the following ordering:
   - empty sequence is < anything (except another empty seq)
   - real < symbol < string < sequence
@@ -2699,76 +2699,76 @@ On to the detailed release notes:
 ```
 
 - added `g/determinant` implementation to functions
-  ([#171](https://github.com/sicmutils/sicmutils/pull/171))
+  ([#171](https://github.com/emmy/emmy/pull/171))
 
 - Moved all `literal-function` machinery and definitions to
-  `sicmutils.abstract.function`
-  ([#171](https://github.com/sicmutils/sicmutils/pull/171)).
-  `sicmutils.function` now contains only the generic method implementations for
+  `emmy.abstract.function`
+  ([#171](https://github.com/emmy/emmy/pull/171)).
+  `emmy.function` now contains only the generic method implementations for
   clojure functions and multimethods.
 
 - Switched inheritance order for functions;
-  `:sicmutils.abstract.function/function` (used to be
-  `:sicmutils.function/function`) now inherits from `::v/function` instead of
+  `:emmy.abstract.function/function` (used to be
+  `:emmy.function/function`) now inherits from `::v/function` instead of
   the other way around.
-  ([#171](https://github.com/sicmutils/sicmutils/pull/171))
+  ([#171](https://github.com/emmy/emmy/pull/171))
 
 - Enhanced the `g/simplify` behavior for core functions that overlap with
   generic functions (`+`, `-`, `*`, `/`, `mod`, `quot`, `rem`, `neg?`). These
   now freeze to the same symbols as their generic counterparts.
-  ([#173](https://github.com/sicmutils/sicmutils/pull/173))
+  ([#173](https://github.com/emmy/emmy/pull/173))
 
 - Add support for the hyperbolic trig functions `sinh`, `cosh`, `tanh`, `atanh`,
-  `asinh` and `acosh` to `sicmutils.expression.render/->Javascript`.
-  ([#174](https://github.com/sicmutils/sicmutils/pull/174))
+  `asinh` and `acosh` to `emmy.expression.render/->Javascript`.
+  ([#174](https://github.com/emmy/emmy/pull/174))
 
 - Add support for the hyperbolic trig functions `atanh`, `asinh` and `acosh` to
-  `sicmutils.expression.compile`.
-  ([#175](https://github.com/sicmutils/sicmutils/pull/175))
+  `emmy.expression.compile`.
+  ([#175](https://github.com/emmy/emmy/pull/175))
 
 - `matrix.cljc` gains `m/nth-col` and `m/diagonal`
-  ([#178](https://github.com/sicmutils/sicmutils/pull/178) introduces:)
+  ([#178](https://github.com/emmy/emmy/pull/178) introduces:)
 
-- As of [#178](https://github.com/sicmutils/sicmutils/pull/178)
+- As of [#178](https://github.com/emmy/emmy/pull/178)
   introduces:, we have three new kinds for matrices. Square matrices return
   `::m/square-matrix`, and columns and rows return `::m/column-matrix` and
   `::row-matrix` respectively. These all derive from `::m/matrix`. This makes it
   easier to register methods or test specifically for these cases. We've also
   added `m/column?` and `m/row?` predicates to check for these cases.
 
-- [#185](https://github.com/sicmutils/sicmutils/pull/185) specializes
+- [#185](https://github.com/emmy/emmy/pull/185) specializes
   all matrix operations that return power series (trig operations and `g/exp` to
   `::square-matrix`).
 
-- [#184](https://github.com/sicmutils/sicmutils/pull/184) modifies
+- [#184](https://github.com/emmy/emmy/pull/184) modifies
   `v/exact?` on functions; `((v/exact? f) x) == (v/exact? (f x))` now, instead
   of false as before. `literal-function` forms now have a correct `v/one-like`
   implementation.
 
 - clojure Vars now respond to function algebra
-  ([#184](https://github.com/sicmutils/sicmutils/pull/184)). All
+  ([#184](https://github.com/emmy/emmy/pull/184)). All
   functions implement `g/negative?`, `g/abs`, `g/quotient`, `g/remainder`,
   `g/modulo`, `g/dimension` and `g/exact-divide`, responding to the appropriate
   arities.
 
-- `sicmutils.complex/complex` can now take any real type in its constructor, vs
+- `emmy.complex/complex` can now take any real type in its constructor, vs
   only numbers
-  ([#184](https://github.com/sicmutils/sicmutils/pull/184)).
+  ([#184](https://github.com/emmy/emmy/pull/184)).
 
-- `modint` instances now implement `v/freeze?`: `(sicmutils.modint/make 1 2)`
+- `modint` instances now implement `v/freeze?`: `(emmy.modint/make 1 2)`
   freezes to that `(modint 1 2)`.
-  ([#185](https://github.com/sicmutils/sicmutils/pull/185)).
+  ([#185](https://github.com/emmy/emmy/pull/185)).
 
 - `v/eq` renamed to `v/=`.
-  ([#186](https://github.com/sicmutils/sicmutils/pull/186)).
+  ([#186](https://github.com/emmy/emmy/pull/186)).
 
 - `v/zero-like` on matrices now fills entries with appropriate `v/zero-like`
   versions of their existing types
-  ([#188](https://github.com/sicmutils/sicmutils/pull/188))
+  ([#188](https://github.com/emmy/emmy/pull/188))
 
 - `v/Value` gains `identity-like` and `identity`
-  ([#188](https://github.com/sicmutils/sicmutils/pull/188)). These are
-  aliased into `sicmutils.env`. Implementations are installed on:
+  ([#188](https://github.com/emmy/emmy/pull/188)). These are
+  aliased into `emmy.env`. Implementations are installed on:
 
   - all numeric types, symbolic expressions, `Differential` (they return 1 of the appropriate type)
   - native and abstract functions, vars (they return an identity function)
@@ -2783,12 +2783,12 @@ On to the detailed release notes:
     general infinite sequences and not necessarily interpreted as polynomials.
     This decision follows `scmutils` convention.
 
-- `sicmutils.complex/I` aliases `i`
-  ([#189](https://github.com/sicmutils/sicmutils/pull/189))
+- `emmy.complex/I` aliases `i`
+  ([#189](https://github.com/emmy/emmy/pull/189))
 
 - `matrix.cljc` has a new `by-cols` (analogous to `m/by-rows`), and `row` to
   generate a row matrix (analagous to `column`).
-  [#197](https://github.com/sicmutils/sicmutils/pull/197) Also in
+  [#197](https://github.com/emmy/emmy/pull/197) Also in
   `matrix.cljc`:
 
   - `num-rows`, `num-cols` access the row or column number without inspecting
@@ -2820,26 +2820,26 @@ On to the detailed release notes:
     `v/one?` returns `false` for identity matrices! If it didn't, `(* 2 (I 10))`
     would return `2`, since `one?` signals multiplicative identity.
 
-- `sicmutils.structure/up` and `sicmutils.structure/down` now have analogous
+- `emmy.structure/up` and `emmy.structure/down` now have analogous
   `s/up*` and `s/down*` functions. These behave identically, but are
   non-variadic. If you already have a sequence you'd like to transform, prefer
-  these ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
+  these ([#197](https://github.com/emmy/emmy/pull/197)).
 
-- `sicmutils.value/kind-predicate` takes some item and returns a predicate that
+- `emmy.value/kind-predicate` takes some item and returns a predicate that
   returns true if its argument has the same type (or inherits from it)
-  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
+  ([#197](https://github.com/emmy/emmy/pull/197)).
 
-- `sicmutils.function/arg-shift` and `sicmutils.function/arg-scale` take
+- `emmy.function/arg-shift` and `emmy.function/arg-scale` take
   functions and return new functions that shift and scale their arguments
   (respectively) by the originally supplied shifts
-  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
+  ([#197](https://github.com/emmy/emmy/pull/197)).
 
-- `sicmutils.generic/factorial` computes the factorial of the supplied integer
+- `emmy.generic/factorial` computes the factorial of the supplied integer
   `n`.
-  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
+  ([#197](https://github.com/emmy/emmy/pull/197)).
 
-- Many new functions and constants exposed in `sicmutils.env` via
-  [#197](https://github.com/sicmutils/sicmutils/pull/197):
+- Many new functions and constants exposed in `emmy.env` via
+  [#197](https://github.com/emmy/emmy/pull/197):
 
   - `-pi` joins `pi` as a constant
   - `s:generate`, `m:generate`, `vector:generate` to generate matrices,
@@ -2847,28 +2847,28 @@ On to the detailed release notes:
   - `constant-series`, from `series/constant`
   - `seq:print` and `seq:pprint`
   - `matrix-by-cols`, `row-matrix`, `v:make-basis-unit`
-  - aliases for `sicmutils.function`'s `arity`, `arg-shift`, `arg-scale`
-  - `dimension`, `factorial` aliased from `sicmutils.generic`
-  - `derivative` aliased from `sicmutils.calculus.derivative`
+  - aliases for `emmy.function`'s `arity`, `arg-shift`, `arg-scale`
+  - `dimension`, `factorial` aliased from `emmy.generic`
+  - `derivative` aliased from `emmy.calculus.derivative`
   - `submatrix`, `up->column-matrix`, `down->row-matrix`,
     `row-matrix->{down,vector}`, `column-matrix->{up,vector}` aliased from
-    `sicmutils.matrix`
-  - `D-numeric` from `sicmutils.numerical.derivative`
+    `emmy.matrix`
+  - `D-numeric` from `emmy.numerical.derivative`
   - `brent-min`, `brent-max`, `golden-section-min`, `golden-section-max`
   - `nelder-mead`
-  - `sum` from `sicmutils.util.aggregate
-  - `kind-predicate` from `sicmutils.value`
+  - `sum` from `emmy.util.aggregate
+  - `kind-predicate` from `emmy.value`
 
 - Structures and matrices both gain the ability to do native `get-in`,
   `assoc-in` and `empty`. These work as expected, like a potentially nested
-  vector. ([#193](https://github.com/sicmutils/sicmutils/pull/193))
+  vector. ([#193](https://github.com/emmy/emmy/pull/193))
 
 - `matrix.cljc` gains `up->row-matrix`, `up->column-matrix`, `row-matrix->up`,
   `column-matrix->up`
-  ([#193](https://github.com/sicmutils/sicmutils/pull/193))
+  ([#193](https://github.com/emmy/emmy/pull/193))
 
 - `structure.cljc` gains many features in
-  ([#193](https://github.com/sicmutils/sicmutils/pull/193)):
+  ([#193](https://github.com/emmy/emmy/pull/193)):
 
   - `kronecker` and `basis-unit` for generating potentially infinite basis
     sequences
@@ -2907,7 +2907,7 @@ On to the detailed release notes:
       the left
   - structure multiplication with scalars, etc now respects ordering, just in
     case any multiplication is not commutative.
-  - `sicmutils.generators` now holds generators for `up`, `down`, and
+  - `emmy.generators` now holds generators for `up`, `down`, and
     `structure` generators; these produce potentially deeply nested structures.
     `up1`, `down1` and `structure1` generate only one level deep. Mix and match!
     See `structure_test.cljc` for many examples of how to use these.
@@ -2915,14 +2915,14 @@ On to the detailed release notes:
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
-  (https://github.com/sicmutils/sicmutils/pull/169)
+  (https://github.com/emmy/emmy/pull/169)
 - `literal`, `literal-up` and `literal-down` generate symbolic structures
-  (https://github.com/sicmutils/sicmutils/pull/169)
+  (https://github.com/emmy/emmy/pull/169)
 
 ### Numeric Tower Adjustments
 
 This release (courtesy of
-[#168](https://github.com/sicmutils/sicmutils/pull/168)) brings
+[#168](https://github.com/emmy/emmy/pull/168)) brings
 the numeric tower in line with the scmutils tower. Prior to this release, all
 numbers, including complex, descended from `::x/numerical-expression`. Symbolic
 expressions _also_ derived from this type! The problem this causes is that all
@@ -2948,14 +2948,14 @@ The fix comes from these changes:
 
 I can now make some comments that clear up my former misunderstandings:
 
-- The `sicmutils.abstract.number` (I'll call this `an` here) namespace is
+- The `emmy.abstract.number` (I'll call this `an` here) namespace is
   responsible for installing generic implementations of all numeric methods for
   symbolic expressions and "literal numbers".
 
 - the `an/literal-number` constructor promotes a number, symbol or symbolic
   expression up to `:xx/numeric`, which means that any operation you perform on
   it will pass it through the symbolic expressions defined in
-  `sicmutils.numsymb`. A few notes on these expressions:
+  `emmy.numsymb`. A few notes on these expressions:
 
   - They will try to preserve exactness, but if they can't - ie, if you do
     something like `(cos (an/literal-number 2.2))` - the system will return
@@ -3009,7 +3009,7 @@ matrices, up and down tuples.
 
 This release brings us closer to the interface provided by `scmutils`.
 
-PR [#193](https://github.com/sicmutils/sicmutils/pull/193) brings:
+PR [#193](https://github.com/emmy/emmy/pull/193) brings:
 
 - `g/dot-product`, for scalars, differentials, structures, functions and
   row/column matrices
@@ -3019,22 +3019,22 @@ PR [#193](https://github.com/sicmutils/sicmutils/pull/193) brings:
 - `g/cross-product` now works for row/column matrices in addition to structures
   (and functions that accept these)
 
-PR https://github.com/sicmutils/sicmutils/pull/169 brings:
+PR https://github.com/emmy/emmy/pull/169 brings:
 
 - `g/exp2`, `g/exp10` for exponents with base 2 and 10
 - `g/log2`, for base 2 logarithms
 - `g/log10` for base 10 logs
-- `g/gcd` and `g/lcm` are now exposed in `sicmutils.env`
+- `g/gcd` and `g/lcm` are now exposed in `emmy.env`
 
-[#178](https://github.com/sicmutils/sicmutils/pull/178) introduces:
+[#178](https://github.com/emmy/emmy/pull/178) introduces:
 
 - `g/dimension` for scalars (always 1), structures and matrices (square, column
   and row)
 - `g/trace` returns the trace for square matrices and square structures
 
 We now expose the following additional trigonometric functions in
-`sicmutils.generic` (courtesy of
-https://github.com/sicmutils/sicmutils/pull/154):
+`emmy.generic` (courtesy of
+https://github.com/emmy/emmy/pull/154):
 
 - `cosh`: hyperbolic cosine
 - `sinh`: hyperbolic sine
@@ -3045,7 +3045,7 @@ https://github.com/sicmutils/sicmutils/pull/154):
 - `asinh`: inverse hyperbolic sine, ie, `(= x (sinh (asinh x)))`
 - `atanh`: inverse hyperbolic tangent, ie, `(= x (tanh (atanh x)))`
 
-These three methods existed in `sicmutils.env`, but not as extensible generics.
+These three methods existed in `emmy.env`, but not as extensible generics.
 Now they're fully extensible:
 
 - `cot`: cotangent, ie 1/tan
@@ -3064,7 +3064,7 @@ These all work with:
 - Derivatives and dual numbers! The new functions all work with `D`, the
   forward-mode automatic differentiation operator.
 
-Additionally, four methods that lived in `sicmutils.generic` are now exposed as
+Additionally, four methods that lived in `emmy.generic` are now exposed as
 generics:
 
 - `real-part`
@@ -3079,9 +3079,9 @@ These now work on:
 - structures (only `magnitude` and `conjugate`)
   - `magnitude` formerly didn't handle structures containing complex numbers by
     taking a proper inner product. This is fixed as of
-    [#168](https://github.com/sicmutils/sicmutils/pull/168)
+    [#168](https://github.com/emmy/emmy/pull/168)
 
-- PR [#189](https://github.com/sicmutils/sicmutils/pull/189) introduces:
+- PR [#189](https://github.com/emmy/emmy/pull/189) introduces:
 
   - `g/make-rectangular`, (build a complex number from real and imaginary parts)
   - `g/make-polar` (build a complex number from radius and angle)
@@ -3101,7 +3101,7 @@ this resulted in a few upgrades along the way:
 - a generic numeric tower for ClojureScript
 - Many more tests! The test coverage was great before, and it's stayed high as
   we've added new implementations.
-- added explicit code coverage metrics via Codecov: [![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
+- added explicit code coverage metrics via Codecov: [![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/emmy/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/emmy)
 
 Here are more explicit details on the release.
 
@@ -3120,7 +3120,7 @@ Here are more explicit details on the release.
 
 ### ClojureScript Support
 
-Full conversion of SICMUtils to ClojureScript. All functionality from v0.12.1
+Full conversion of Emmy to ClojureScript. All functionality from v0.12.1
 now works in both Clojure and ClojureScript!
 
 Most of the conversion was straightforward. The major missing piece was a
@@ -3128,7 +3128,7 @@ numeric tower implementation for ClojureScript (complex numbers, ratios) that
 bring it up to parity with Clojure:
 
 - Add the `bigfraction` implementation from
-  [fraction.js](https://www.npmjs.com/package/fraction.js) sicmutils.ratio for
+  [fraction.js](https://www.npmjs.com/package/fraction.js) emmy.ratio for
   cross-platform ratio support (#99)
 - Adds CLJS complex number support through [complex.js](https://github.com/infusion/Complex.js) (#41)
 - `js/BigInt`, `goog.math.Long` and `goog.math.Integer` implementations round
@@ -3136,7 +3136,7 @@ bring it up to parity with Clojure:
 
 ### Numerical Routines
 
-The numerical routines in SICMUtils depend heavily on Apache Commons, which of
+The numerical routines in Emmy depend heavily on Apache Commons, which of
 course only exists in Java. We had to implement much of the numerics code in
 native Clojure. It's fast, efficient and functional. Give it a read if you're
 curious about how these algorithms work.
@@ -3155,31 +3155,31 @@ curious about how these algorithms work.
   computational essays:
 
   - **Basics**:
-    - [Riemann Sums](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/riemann.cljc), all the way up through efficient, incremental, "accelerated" versions of these easy-to-understand methods:
-    - [Midpoint method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/midpoint.cljc), same development but shorter since it reuses functional abstractions. Also incremental, efficient, accelerated
-    - [Trapezoid Method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/trapezoid.cljc), same idea but for closed intervals.
+    - [Riemann Sums](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/riemann.cljc), all the way up through efficient, incremental, "accelerated" versions of these easy-to-understand methods:
+    - [Midpoint method](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/midpoint.cljc), same development but shorter since it reuses functional abstractions. Also incremental, efficient, accelerated
+    - [Trapezoid Method](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/trapezoid.cljc), same idea but for closed intervals.
 
   - **Sequence Acceleration / Extrapolation Methods**
-    - [Polynomial interpolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/interpolate.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
-    - [Rational Function extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/rational_function/interpolate.cljc): used in bulirsch-stoer integration and ODE solving.
-    - "[Richardson extrapolation](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/polynomial/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
+    - [Polynomial interpolation](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/polynomial/interpolate.cljc): the general thing that "richardson extrapolation" is doing below. Historically cool and used to accelerate arbitrary integration sequences
+    - [Rational Function extrapolation](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/rational_function/interpolate.cljc): used in bulirsch-stoer integration and ODE solving.
+    - "[Richardson extrapolation](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/polynomial/richardson.cljc)" is a special case, where we get more efficient by assuming that the x values for the polynomial interpolation go 1, 1/2, 1/4... and that we're extrapolating to 0.
 
   - **Higher-order Calculus:**
-    - [Numerical derivatives](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/derivative.cljc): derivatives using three kinds of central difference formulas... accelerated using Richardson extrapolation, with a nice technique for guarding against underflow.
-    - [Simpson's Method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/simpson.cljc)... fit a parabola to every slice. OR, "accelerate" the trapezoid method with one step of Richarsdson extrapolation!
-    - [Simpson's 3/8 Method](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/simpson38.cljc): Same idea, but accelerate a sequence that triples its slices every iteration.
-    - [Boole's Rule](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/boole.cljc): trapezoid method plus two steps of Richardson extrapolation. (Are you starting to see the pattern??)
-    - [Romberg Integration](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/romberg.cljc): midpoint OR trapezoid, with as many steps of Richardson extrapolation as we can take!
-    - [Milne's Rule](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/milne.cljc), MIDPOINT method, one step of extrapolation!
-    - [Bulirsch-Stoer integration](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/bulirsch_stoer.cljc)... midpoint or trapezoid, with rational function extrapolation, as many steps as we can handle AND some custom step sizes.
+    - [Numerical derivatives](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/derivative.cljc): derivatives using three kinds of central difference formulas... accelerated using Richardson extrapolation, with a nice technique for guarding against underflow.
+    - [Simpson's Method](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/simpson.cljc)... fit a parabola to every slice. OR, "accelerate" the trapezoid method with one step of Richarsdson extrapolation!
+    - [Simpson's 3/8 Method](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/simpson38.cljc): Same idea, but accelerate a sequence that triples its slices every iteration.
+    - [Boole's Rule](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/boole.cljc): trapezoid method plus two steps of Richardson extrapolation. (Are you starting to see the pattern??)
+    - [Romberg Integration](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/romberg.cljc): midpoint OR trapezoid, with as many steps of Richardson extrapolation as we can take!
+    - [Milne's Rule](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/milne.cljc), MIDPOINT method, one step of extrapolation!
+    - [Bulirsch-Stoer integration](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/bulirsch_stoer.cljc)... midpoint or trapezoid, with rational function extrapolation, as many steps as we can handle AND some custom step sizes.
 
   - **Combinators**:
-    - [Variable Substitutions](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/substitute.cljc): implemented as functional wrappers that take an integrator and return a modified integrator.
-    - [Improper Integrals](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/infinite.cljc): a template for a combinator that enables infinite endpoints on any integrator, using variable substitution on an appropriate, tunable range.
-    - [Adaptive Integration](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature/adaptive.cljc): a combinator that turns any of the integrators above into an "adaptive" integrator that's able to focus in on difficult regions.
-  - And finally, "[Numerical Quadrature](https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/quadrature.cljc)", the namespace/essay that ties it all together.
+    - [Variable Substitutions](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/substitute.cljc): implemented as functional wrappers that take an integrator and return a modified integrator.
+    - [Improper Integrals](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/infinite.cljc): a template for a combinator that enables infinite endpoints on any integrator, using variable substitution on an appropriate, tunable range.
+    - [Adaptive Integration](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature/adaptive.cljc): a combinator that turns any of the integrators above into an "adaptive" integrator that's able to focus in on difficult regions.
+  - And finally, "[Numerical Quadrature](https://github.com/littleredcomputer/emmy/blob/master/src/emmy/numerical/quadrature.cljc)", the namespace/essay that ties it all together.
 
-- `sicmutils.numerical.compile` uses [SCI](https://github.com/borkdude/sci), the
+- `emmy.numerical.compile` uses [SCI](https://github.com/borkdude/sci), the
   Small Clojure Interpreter, to generate compiled numerical code (#133)
 
 - Implemented ODE solving using @littleredcomputer's
@@ -3187,7 +3187,7 @@ curious about how these algorithms work.
 
 ### Reader Literals
 
-[data_readers.cljc](https://github.com/littleredcomputer/sicmutils/blob/master/src/data_readers.cljc)
+[data_readers.cljc](https://github.com/littleredcomputer/emmy/blob/master/src/data_readers.cljc)
 provides 3 new data reader literals:
 
 - `#sicm/ratio`

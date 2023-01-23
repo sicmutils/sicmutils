@@ -2,7 +2,7 @@
 
 == Structured Objects
 
-SICMUtils supports a variety of structured object types, such as
+Emmy supports a variety of structured object types, such as
 
 * lists
 * vectors
@@ -55,9 +55,9 @@ Clojure operation that we recommend you prefer):
 ----
 
 NOTE: `ref` is the name of this procedure in the original `scmutils`, so we
-alias it into `sicmutils.env` for compatibility. In Clojure, a `ref` is a
+alias it into `emmy.env` for compatibility. In Clojure, a `ref` is a
 https://clojure.org/reference/refs[transactional reference], used for safe,
-shared mutable state. [[sicmutils.env/ref]] will attempt to act like the native
+shared mutable state. [[emmy.env/ref]] will attempt to act like the native
 Clojure `nth` with one argument, or `get-in` for multiple arguments, and fall
 back to [[clojure.core/ref]] if it's not successful. You should become
 comfortable with [[clojure.core/nth]] and [[clojure.core/get-in]] and switch to
@@ -95,7 +95,7 @@ Other structured objects are more magical:
 
 The magic is due to Clojure's beautiful
 https://clojure.org/reference/sequences[Sequence API]. All native collections
-can be turned into generic sequences. SICMUtils containers all implement this
+can be turned into generic sequences. Emmy containers all implement this
 interface, and respond appropriately to `seq`.
 
 The number of components of a structured object can be found with the `count`
@@ -152,7 +152,7 @@ procedure to the corresponding components of the given structures.
 Thus, vector addition is equivalent to `(vector:elementwise +)`.
 
 CAUTION: These do not yet work! If you need any of these, please feel free to
-file an issue https://github.com/sicmutils/sicmutils/pulls[here].
+file an issue https://github.com/emmy/emmy/pulls[here].
 
 == Clojure Vectors
 
@@ -247,8 +247,8 @@ Makes the `n`-dimensional basis unit vector with zero in all components except
 for the `i`-th component, which is one.
 
 WARNING: The following functions are referenced in the `scmutils` refman, but
-don't yet exist in SICMUtils. Please
-https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
+don't yet exist in Emmy. Please
+https://github.com/emmy/emmy/pulls[file a ticket] if this is
 something you need, or hang on until we get there.
 
 [source, clojure]
@@ -280,7 +280,7 @@ an up structure with two numerical components, and the third is a down structure
 with two numerical components. Such a structure has size (or length) 3, but it
 has five dimensions.
 
-In SICMUtils, Clojure vectors are interpreted as up tuples, and the down tuples
+In Emmy, Clojure vectors are interpreted as up tuples, and the down tuples
 are distinguished. The predicate `structure?` is true of any down or up tuple,
 but the two can be distinguished by the predicates `up?` and `down?`.
 
@@ -299,7 +299,7 @@ The generic `kind` operation distinguishes the types:
 
 [source, clojure]
 ----
-(kind <s>) ;; => :sicmutils.structure/up or :sicmutils.structure/down
+(kind <s>) ;; => :emmy.structure/up or :emmy.structure/down
 ----
 
 We reserve the right to change this implementation to distinguish Clojure

@@ -2,14 +2,14 @@
 
 == Functions
 
-In SICMUtils, functions are data just like other mathematical objects, and the
+In Emmy, functions are data just like other mathematical objects, and the
 generic arithmetic system is extended to include them. If `<f>` is an expression
 denoting a function, then:
 
 [source, clojure]
 ----
 (fn? <any>)         ;;=> <boolean>
-(kind <f>)          ;;=> :sicmutils.value/function
+(kind <f>)          ;;=> :emmy.value/function
 ----
 
 Operations on functions generally construct new functions that are the

@@ -2,7 +2,7 @@
  {:linters {:unresolved-symbol {:level :off}
             :invalid-arity {:level :off}}}
 
- :config-paths ["../resources/clj-kondo.exports/sicmutils/sicmutils"
+ :config-paths ["../resources/clj-kondo.exports/emmy/emmy"
                 "com.gfredericks/test.chuck"]
 
  :output {:exclude-files ["src/data_readers.clj"]}

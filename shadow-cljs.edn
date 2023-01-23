@@ -8,6 +8,6 @@
           :advanced
           {:target    :browser
            :output-to "target/main/advanced.js"
-           :modules {:base {:entries [sicmutils.env]}}
+           :modules {:base {:entries [emmy.env]}}
            :compiler-options {:infer-externs :auto
                               :optimizations :advanced}}}}

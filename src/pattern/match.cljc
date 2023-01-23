@@ -453,7 +453,7 @@
 ;; - the binding map, if successful
 ;; - if failed, a special `failure` singleton object.
 ;;
-;; This interface will become important in `sicmutils.rule`, for building up
+;; This interface will become important in `emmy.rule`, for building up
 ;; groups of rules that can, say, search for the first successful matcher of
 ;; many, or accumulate binding maps from matchers run in sequence until one
 ;; fails.

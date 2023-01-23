@@ -7,7 +7,7 @@ function. The procedure for producing the derivative of a function is named
 "derivative", though we also use the single-letter symbol `D` to denote this
 operator.
 
-NOTE: The differentation offered by SICMUtils uses "forward mode Automatic
+NOTE: The differentation offered by Emmy uses "forward mode Automatic
 Differentation". We plan to implement reverse-mode AD at some point, but it
 doesn't exist here yet.
 
@@ -43,9 +43,9 @@ It is possible to compute the derivative of any composition of functions:
 except that the computation of the value of the function may not require
 evaluating a conditional.
 
-NOTE: This note about conditionals is currently true in SICMUtils, but we're
+NOTE: This note about conditionals is currently true in Emmy, but we're
 working on it. See
-https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
+https://github.com/emmy/emmy/issues/191[this ticket] for
 information on the plan to make generic comparisons in conditionals work in
 automatic differentiation.
 
@@ -151,7 +151,7 @@ is named `partial`.
 
 NOTE: Clojure also has a `partial` function, that returns the partial
 application of some function `f` to whatever arguments you supply. In the
-`sicmutils.env` namespace this is aliased as `core-partial`.
+`emmy.env` namespace this is aliased as `core-partial`.
 
 For example:
 

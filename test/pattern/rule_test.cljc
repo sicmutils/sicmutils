@@ -6,7 +6,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [pattern.match :as m]
             [pattern.rule :as r :refer [=> !=>]]
-            [sicmutils.ratio]))
+            [emmy.ratio]))
 
 (deftest consequence-tests
   (testing "consequence preserves empty containers with correct type"

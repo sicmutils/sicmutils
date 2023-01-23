@@ -8,16 +8,16 @@
   (:require [pattern.consequence :as c]
             [pattern.match :as m]
             [pattern.syntax :as ps]
-            [sicmutils.util :as u]
-            [sicmutils.util.def :refer [import-def]])
+            [emmy.util :as u]
+            [emmy.util.def :refer [import-def]])
   #?(:cljs
      (:require-macros [pattern.rule])))
 
 ;; ## Rules
 ;;
 ;; A 'rule' is a combination of a possibly-failing matcher (see
-;; `sicmutils.match`), an optional matcher predicate that can introduce NEW
-;; bindings, and a consequence function (see `sicmutils.consequence`)
+;; `emmy.match`), an optional matcher predicate that can introduce NEW
+;; bindings, and a consequence function (see `emmy.consequence`)
 ;;
 ;; - the matcher (and its predicate) determine whether or not the rule applies
 ;;   to its data input, and
@@ -53,7 +53,7 @@
 ;; form, [[pattern]], is able to take a pattern with un-quoted forms like `?x`.
 ;; See [[syntax/compile-pattern]] for details.
 ;;
-;; NOTE: These should almost certainly live in `sicmutils.match`. Can we alias a
+;; NOTE: These should almost certainly live in `emmy.match`. Can we alias a
 ;; macro into this namespace with Potemkin?
 
 (defn pattern*

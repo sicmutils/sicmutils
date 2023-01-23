@@ -2,7 +2,7 @@
  [["Introduction" {:file "doc/intro.adoc"}]
   ["Reference Manual" {:file "doc/refman.adoc"}]
   ["Basics" {}
-   ["How to Use SICMUtils" {:file "doc/basics/using_sicmutils.adoc"}]
+   ["How to Use Emmy" {:file "doc/basics/using_emmy.adoc"}]
    ["Generics" {:file "doc/basics/generics.adoc"}]
    ["ClojureScript" {:file "doc/basics/clojurescript.adoc"}]
    ["Data Readers" {:file "doc/basics/data_readers.adoc"}]]

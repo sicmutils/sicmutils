@@ -2,17 +2,17 @@
 
 rm -rf /tmp/cljdoc
 mkdir -p /tmp/cljdoc
-version=$(cat resources/SICMUTILS_VERSION)
+version=$(cat resources/EMMY_VERSION)
 
 echo "---- cljdoc preview: installing jar in local repo"
 lein install
 
-echo "---- cljdoc preview: ingesting sicmutils"
-docker run --rm -v "$PWD:/sicmutils" \
+echo "---- cljdoc preview: ingesting emmy"
+docker run --rm -v "$PWD:/emmy" \
        -v "$HOME/.m2:/root/.m2" -v /tmp/cljdoc:/app/data --entrypoint "clojure" \
-       cljdoc/cljdoc -A:cli ingest -p sicmutils/sicmutils -v "$version" \
-       --git /sicmutils
+       cljdoc/cljdoc -A:cli ingest -p emmy/emmy -v "$version" \
+       --git /emmy
 
 echo "---- cljdoc preview: starting server on port 8000"
-echo "visit to http://localhost:8000/d/sicmutils/sicmutils/$version"
+echo "visit to http://localhost:8000/d/emmy/emmy/$version"
 docker run --rm -p 8000:8000 -v /tmp/cljdoc:/app/data cljdoc/cljdoc
