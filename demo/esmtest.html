@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sicmutils Js demo</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+
+    <script type="module">
+     import { output, eminus, emul, ediv, expt, sin, D, esymbol }
+     from "./out/main.js";
+     var counter = 0;
+     window.compile = (input_code_node, output_code_node) => {
+        document.body.append(document.createElement("p"));
+        let code = document.querySelector(input_code_node).value;
+         if (output_code_node == null) {
+             eval(code);
+         } else {
+             if (window.compile_scheme != undefined) {
+                 let js = compile_scheme(code);
+                 document.querySelector(output_code_node).innerText = js;
+                 eval(js);
+             } else {
+                 document.querySelector(output_code_node).innerText =
+                     "Load the Scheme compiler first!";
+             }
+         }
+      }
+      console.log('done')
+    </script>
+  </head>
+
+  <body>
+      <div>
+          <textarea rows="7" cols="80" id="jsCode">output(eminus(emul(7, ediv(1,2)), 2));
+(output ((7 * (1 / 2)) - 2));
+let f = emul(3, expt.call(null, sin, 2));
+let x = esymbol("x");
+output(f.call(null,x));
+output(D.call(null, f).call(null, x));</textarea>
+      </div>
+      <div>
+          <button onClick="compile('#jsCode', null)">
+              Run Javascript!
+          </button>
+      </div>
+    <p></p>
+
+    <div>
+        <textarea rows="7" cols="80" id="schemeCompiler">window.toJS = (d) => {
+    if (d.constructor == Array) {
+        return toJS(d[0])+ ".call(null," + d.slice(1).map(toJS) + ")";
+    } else if (d.substring(0, 8) == "esymbol_") {
+        return "esymbol(\"" + d.substring(8, d.length) + "\")";
+    } else {
+        return d;
+    }
+};
+
+window.compile_scheme = (exp) => {
+    let s = [[/\(/g,"[ "], [/\)/g," ],"],
+             [/\'(\w+)/g,"esymbol_$1"],
+             [/\*/g,"emul"],[/\-/g,"eminus"],[/\//g,"ediv"],
+             [/(\w+)/g,'"$1",'], [/\,\s\]/g," ]"], [/,$/,""]
+            ].reduce((s,r) => s.replace(r[0],r[1]), exp);
+    return toJS(JSON.parse(s));
+};
+</textarea>
+    </div>
+
+    <div>
+        <button onClick="compile('#schemeCompiler', null)">
+            Load Scheme compiler
+        </button>
+    </div>
+    <p></p>
+
+    <div>
+        <textarea rows="7" cols="80" id="schemeCode">(output ((D (* 3 (expt sin 2))) 'x))</textarea>
+    </div>
+    <div>
+        <pre><code id="compiledCode">Compiled JS code appears here</code></pre>
+    </div>
+    <div>
+        <button onClick="compile('#schemeCode', '#compiledCode')">
+        Compile and run Scheme code!
+      </button>
+    </div>
+    <p></p>
+   </body>
+</html>

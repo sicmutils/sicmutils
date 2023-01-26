@@ -1,11 +1,28 @@
 {:deps true
  :builds {:sicm-browser
           {:asset-path "out"
-          :compiler-options {:optimizations :advanced
+           :compiler-options {:optimizations :advanced
                               :output-wrapper false
-                              :source-map true}                    
+                              :source-map true}
            :devtools {:http-root "."
                       :http-port 9000}
            :modules {:main {:entries [demo.minimal]}}
            :output-dir "out"
-           :target :browser}}}
+           :target :browser}
+          :sicm-esm
+          {:asset-path "out"
+           :compiler-options {:optimizations :advanced
+                              :output-wrapper false
+                              :source-map true}
+           :devtools {:http-root "."
+                      :http-port 9000}
+           :modules {:main {:exports {output demo.minimal/output
+                                      eminus sicmutils.env/-
+                                      emul sicmutils.env/*
+                                      ediv sicmutils.env//
+                                      expt sicmutils.env/expt
+                                      sin sicmutils.env/sin
+                                      D sicmutils.env/D
+                                      esymbol cljs.core/symbol}}}
+           :output-dir "out"
+           :target :esm}}}
