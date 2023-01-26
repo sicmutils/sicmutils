@@ -31,6 +31,13 @@
   </head>
 
   <body>
+      <h2>
+          Sicmutils is a JavaScript library
+      </h2>
+      <p>
+          Press the button below to run the SICM demo calculations youself, in JavaScript, that is:
+      </p>
+
       <div>
           <textarea rows="7" cols="80" id="jsCode">output(eminus(emul(7, ediv(1,2)), 2));
 (output ((7 * (1 / 2)) - 2));
@@ -44,7 +51,13 @@ output(D.call(null, f).call(null, x));</textarea>
               Run Javascript!
           </button>
       </div>
-    <p></p>
+
+      <h2>
+          A small Scheme to JS compiler in 20 lines of code
+      </h2>
+    <p>
+        If you prefer Lisp syntax when doing symbolic calculations, load the following Scheme compiler:
+    </p>
 
     <div>
         <textarea rows="7" cols="80" id="schemeCompiler">window.toJS = (d) => {
@@ -75,6 +88,9 @@ window.compile_scheme = (exp) => {
     </div>
     <p></p>
 
+    <p>
+        Now you can run a Scheme one-liner:
+    </p>
     <div>
         <textarea rows="7" cols="80" id="schemeCode">(output ((D (* 3 (expt sin 2))) 'x))</textarea>
     </div>
