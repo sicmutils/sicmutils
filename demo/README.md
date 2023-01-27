@@ -16,4 +16,4 @@ Follow the [ClojureScript Quick Start](https://clojurescript.org/guides/quick-st
 
 * Run `shadow-cljs watch sicm-browser` to run the demo in the browser using the config in `shadow-cljs.edn`. Open http://localhost:9000 and the page will automatically update as the file changes.
 * Run `shadow-cljs release sicm-browser` to create a release build and open `index.html`.
-* Run `shadow-cljs watch sicm-esm` and open `esmdemo.html` to code the demo in the browser in JavaScript. SICMUtils is a JavaScript library after all. (For good measure, we also provide a little Scheme compiler :-).
+* Run `shadow-cljs watch sicm-esm` and open `esmdemo.html` to code the demo in the browser in JavaScript. SICMUtils is also a JavaScript library after all. (For good measure, we also provide a little Scheme compiler :-).

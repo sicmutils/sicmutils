@@ -77,8 +77,7 @@ window.compile_scheme = (exp) => {
              [/(\w+)/g,'"$1",'], [/\,\s\]/g," ]"], [/,$/,""]
             ].reduce((s,r) => s.replace(r[0],r[1]), exp);
     return toJS(JSON.parse(s));
-};
-</textarea>
+};</textarea>
     </div>
 
     <div>
@@ -88,9 +87,9 @@ window.compile_scheme = (exp) => {
     </div>
     <p></p>
 
-    <p>
-        Now you can run a Scheme one-liner:
-    </p>
+    <h2>
+        Run a Scheme one-liner Sicmutils demo:
+    </h2>
     <div>
         <textarea rows="7" cols="80" id="schemeCode">(output ((D (* 3 (expt sin 2))) 'x))</textarea>
     </div>
