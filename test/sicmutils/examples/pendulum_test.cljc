@@ -2,10 +2,10 @@
 
 (ns sicmutils.examples.pendulum-test
   (:require [clojure.test :refer [is deftest use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
+            [emmy.value :as v]
             [sicmutils.env :refer [up simplify]]
-            [sicmutils.examples.pendulum :as p]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.value :as v]))
+            [sicmutils.examples.pendulum :as p]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

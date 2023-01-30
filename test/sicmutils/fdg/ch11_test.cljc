@@ -3,14 +3,14 @@
 (ns sicmutils.fdg.ch11-test
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
+            [emmy.value :as v]
             [sicmutils.env :as e :refer [+ - * /
                                          compose
                                          zero?
                                          up
                                          rotate-x rotate-y rotate-z
-                                         point chart]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.value :as v]))
+                                         point chart]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

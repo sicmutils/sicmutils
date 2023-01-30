@@ -3,11 +3,11 @@
 (ns sicmutils.examples.rigid-rotation-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [deftest is use-fixtures]]
+            [emmy.mechanics.rigid :as rigid]
+            [emmy.polynomial.gcd :as pg]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.env :as e :refer [up]]
-            [sicmutils.examples.rigid-rotation :as rigid-rotation]
-            [sicmutils.mechanics.rigid :as rigid]
-            [sicmutils.polynomial.gcd :as pg]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.examples.rigid-rotation :as rigid-rotation]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
