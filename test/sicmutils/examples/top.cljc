@@ -2,8 +2,8 @@
 
 (ns sicmutils.examples.top
   (:refer-clojure :exclude [- *])
-  (:require [sicmutils.env :as e :refer [cos up - *]]
-            [sicmutils.mechanics.rigid :as rigid]))
+  (:require [emmy.mechanics.rigid :as rigid]
+            [sicmutils.env :as e :refer [cos up - *]]))
 
 (defn L
   [A B C gMR]

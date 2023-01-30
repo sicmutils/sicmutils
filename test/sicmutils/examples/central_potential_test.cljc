@@ -3,9 +3,9 @@
 (ns sicmutils.examples.central-potential-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [deftest is]]
+            [emmy.value :as v]
             [sicmutils.env :as e :refer [up + - * / partial]]
-            [sicmutils.examples.central-potential :as central]
-            [sicmutils.value :as v]))
+            [sicmutils.examples.central-potential :as central]))
 
 (deftest equations
   (e/with-literal-functions
