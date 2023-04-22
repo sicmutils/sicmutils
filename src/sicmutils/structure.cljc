@@ -806,6 +806,18 @@ structures of the same size, false otherwise."
   [s]
   (mapr (fn [_] (gensym 'x)) s))
 
+(defn substructure
+  "TODO fix:
+
+  Returns a persistent vector of the items in vector from start (inclusive) to
+  end (exclusive). If end is not supplied, defaults to (count vector). This
+  operation is O(1) and very fast, as the resulting vector shares structure with
+  the original and no trimming is done."
+  ([s start]
+   (subvec (structure->vector s) start))
+  ([s start end]
+   (subvec (structure->vector s) start end)))
+
 (defn compatible-zero
   "Returns a structure compatible for multiplication with `s` down to 0."
   [s]
