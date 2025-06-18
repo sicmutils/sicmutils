@@ -1,5 +1,8 @@
 # SICMUtils
 
+> [!NOTE]
+> All development has moved to the [Emmy](https://github.com/mentat-collective/emmy) repository. This repository is no longer maintained.
+
 A Clojure(script) implementation of the
 [scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
 for math and physics investigations in the Clojure and ClojureScript languages.
