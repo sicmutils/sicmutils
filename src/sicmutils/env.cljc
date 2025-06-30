@@ -26,62 +26,62 @@
              infinite? abs
              ref partial =])
   (:require [clojure.core :as core]
-            [sicmutils.abstract.function :as af]
-            [sicmutils.abstract.number]
-            [sicmutils.algebra.fold]
-            [sicmutils.calculus.basis]
-            [sicmutils.calculus.connection]
-            [sicmutils.calculus.coordinate :as cc]
-            [sicmutils.calculus.covariant]
-            [sicmutils.calculus.curvature]
-            [sicmutils.calculus.derivative :as d]
-            [sicmutils.calculus.form-field]
-            [sicmutils.calculus.frame :as cf]
-            [sicmutils.calculus.hodge-star]
-            [sicmutils.calculus.indexed :as ci]
-            [sicmutils.calculus.manifold]
-            [sicmutils.calculus.map]
-            [sicmutils.calculus.metric :as cm]
-            [sicmutils.calculus.vector-calculus]
-            [sicmutils.calculus.vector-field]
-            [sicmutils.complex]
-            [sicmutils.expression]
-            [sicmutils.expression.render :as render]
-            [sicmutils.function :as f]
-            [sicmutils.generic :as g]
-            [sicmutils.matrix :as matrix]
-            [sicmutils.mechanics.hamilton]
-            [sicmutils.mechanics.lagrange]
-            [sicmutils.mechanics.noether]
-            [sicmutils.mechanics.rigid]
-            [sicmutils.mechanics.rotation]
-            [sicmutils.mechanics.routhian]
-            [sicmutils.mechanics.time-evolution]
-            [sicmutils.modint]
-            [sicmutils.numerical.derivative]
-            [sicmutils.numerical.minimize]
-            [sicmutils.numerical.multimin.nelder-mead]
-            [sicmutils.numerical.ode]
-            [sicmutils.numerical.quadrature]
-            [sicmutils.numerical.unimin.brent]
-            [sicmutils.numerical.unimin.golden]
-            [sicmutils.operator :as o]
-            [sicmutils.polynomial.factor]
-            [sicmutils.quaternion]
-            [sicmutils.ratio]
-            [sicmutils.series :as series]
-            [sicmutils.simplify]
-            [sicmutils.special.elliptic]
-            [sicmutils.special.factorial]
-            [sicmutils.sr.boost]
-            [sicmutils.sr.frames]
-            [sicmutils.structure :as structure]
-            [sicmutils.util]
-            [sicmutils.util.aggregate]
-            [sicmutils.util.def :refer [import-def import-vars]]
-            [sicmutils.util.permute]
-            [sicmutils.util.stream :as us]
-            [sicmutils.value :as v])
+            [emmy.abstract.function :as af]
+            [emmy.abstract.number]
+            [emmy.algebra.fold]
+            [emmy.calculus.basis]
+            [emmy.calculus.connection]
+            [emmy.calculus.coordinate :as cc]
+            [emmy.calculus.covariant]
+            [emmy.calculus.curvature]
+            [emmy.calculus.derivative :as d]
+            [emmy.calculus.form-field]
+            [emmy.calculus.frame :as cf]
+            [emmy.calculus.hodge-star]
+            [emmy.calculus.indexed :as ci]
+            [emmy.calculus.manifold]
+            [emmy.calculus.map]
+            [emmy.calculus.metric :as cm]
+            [emmy.calculus.vector-calculus]
+            [emmy.calculus.vector-field]
+            [emmy.complex]
+            [emmy.expression]
+            [emmy.expression.render :as render]
+            [emmy.function :as f]
+            [emmy.generic :as g]
+            [emmy.matrix :as matrix]
+            [emmy.mechanics.hamilton]
+            [emmy.mechanics.lagrange]
+            [emmy.mechanics.noether]
+            [emmy.mechanics.rigid]
+            [emmy.mechanics.rotation]
+            [emmy.mechanics.routhian]
+            [emmy.mechanics.time-evolution]
+            [emmy.modint]
+            [emmy.numerical.derivative]
+            [emmy.numerical.minimize]
+            [emmy.numerical.multimin.nelder-mead]
+            [emmy.numerical.ode]
+            [emmy.numerical.quadrature]
+            [emmy.numerical.unimin.brent]
+            [emmy.numerical.unimin.golden]
+            [emmy.operator :as o]
+            [emmy.polynomial.factor]
+            [emmy.quaternion]
+            [emmy.ratio]
+            [emmy.series :as series]
+            [emmy.simplify]
+            [emmy.special.elliptic]
+            [emmy.special.factorial]
+            [emmy.sr.boost]
+            [emmy.sr.frames]
+            [emmy.structure :as structure]
+            [emmy.util]
+            [emmy.util.aggregate]
+            [emmy.util.def :refer [import-def import-vars]]
+            [emmy.util.permute]
+            [emmy.util.stream :as us]
+            [emmy.value :as v])
   #?(:cljs
      (:require-macros [sicmutils.env])))
 
@@ -230,17 +230,17 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
       (render/->TeX :equation (or label true))))
 
 (import-vars
- [sicmutils.abstract.number literal-number]
- [sicmutils.complex complex complex?]
- [sicmutils.function arity compose arg-shift arg-scale I]
- [sicmutils.modint chinese-remainder]
- [sicmutils.operator commutator anticommutator]
- [sicmutils.polynomial.factor factor]
- [sicmutils.ratio numerator denominator #?@(:cljs [ratio? rationalize])]
- [sicmutils.series binomial-series partial-sums]
- [sicmutils.util bigint? #?@(:cljs [bigint])]
+ [emmy.abstract.number literal-number]
+ [emmy.complex complex complex?]
+ [emmy.function arity compose arg-shift arg-scale I]
+ [emmy.modint chinese-remainder]
+ [emmy.operator commutator anticommutator]
+ [emmy.polynomial.factor factor]
+ [emmy.ratio numerator denominator #?@(:cljs [ratio? rationalize])]
+ [emmy.series binomial-series partial-sums]
+ [emmy.util bigint? #?@(:cljs [bigint])]
 
- [sicmutils.generic
+ [emmy.generic
   * + - / divide
   negate
   negative? infinite?
@@ -271,7 +271,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   partial-derivative Lie-derivative
   solve-linear solve-linear-left solve-linear-right
   simplify]
- [sicmutils.structure
+ [emmy.structure
   compatible-shape
   compatible-zero dual-zero
   down
@@ -283,17 +283,17 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   up?
   vector->down vector->up
   literal-down literal-up]
- [sicmutils.expression
+ [emmy.expression
   expression-of
   expression->stream expression->string print-expression pe]
- [sicmutils.expression.render
+ [emmy.expression.render
   ->infix
   ->TeX
   ->JavaScript]
 
  ;; Calculus Namespaces
 
- [sicmutils.calculus.basis
+ [emmy.calculus.basis
   basis? coordinate-basis? make-basis
   coordinate-system->basis
   basis->coordinate-system
@@ -305,7 +305,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   make-constant-vector-field
   Jacobian]
 
- [sicmutils.calculus.connection
+ [emmy.calculus.connection
   make-Christoffel-1
   metric->Christoffel-1 metric->Christoffel-2
   literal-Christoffel-1 literal-Christoffel-2
@@ -313,7 +313,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   literal-Cartan
   structure-constant]
 
- [sicmutils.calculus.covariant
+ [emmy.calculus.covariant
   covariant-derivative
   covariant-differential
   Lie-D
@@ -328,14 +328,14 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Cartan->Cartan-over-map
   geodesic-equation parallel-transport-equation]
 
- [sicmutils.calculus.curvature
+ [emmy.calculus.curvature
   Riemann-curvature Riemann Ricci torsion-vector torsion
   curvature-components]
 
- [sicmutils.calculus.derivative
+ [emmy.calculus.derivative
   derivative D D-as-matrix taylor-series]
 
- [sicmutils.calculus.form-field
+ [emmy.calculus.form-field
   form-field? nform-field? oneform-field?
   ff:zero
   components->oneform-field
@@ -350,22 +350,22 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Alt alt-wedge
   exterior-derivative d]
 
- [sicmutils.calculus.frame
+ [emmy.calculus.frame
   frame? make-event event? claim
   coords->event event->coords ancestor-frame frame-name
   frame-owner frame-maker]
 
- [sicmutils.calculus.hodge-star
+ [emmy.calculus.hodge-star
   Gram-Schmidt orthonormalize
   Hodge-star]
 
- [sicmutils.calculus.indexed
+ [emmy.calculus.indexed
   argument-types with-argument-types
   index-types with-index-types
   typed->indexed indexed->typed
   typed->structure structure->typed]
 
- [sicmutils.calculus.manifold
+ [emmy.calculus.manifold
   make-manifold coordinate-system-at
   manifold-type
   patch-names coordinate-system-names
@@ -392,7 +392,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   S3 S3-spherical S3-tilted S3-stereographic S3-gnomonic
   SO3-type SO3 Euler-angles alternate-angles]
 
- [sicmutils.calculus.metric
+ [emmy.calculus.metric
   coordinate-system->metric-components
   coordinate-system->metric
   coordinate-system->inverse-metric
@@ -404,7 +404,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   drop2 raise2 trace2down trace2up sharpen
   S2-metric]
 
- [sicmutils.calculus.map
+ [emmy.calculus.map
   pullback-function pushforward-function
   differential-of-map differential
   pushforward-vector
@@ -415,11 +415,11 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   pullback-form pullback-vector-field
   pullback]
 
- [sicmutils.calculus.vector-calculus
+ [emmy.calculus.vector-calculus
   Div Grad Curl Lap
   divergence curl gradient Laplacian]
 
- [sicmutils.calculus.vector-field
+ [emmy.calculus.vector-field
   vector-field?
   components->vector-field
   vector-field->components
@@ -433,13 +433,13 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
  ;; Special Relativity
 
- [sicmutils.sr.boost
+ [emmy.sr.boost
   make-four-tuple
   four-tuple->ct four-tuple->space
   proper-time-interval proper-space-interval
   general-boost general-boost2 extended-rotation]
 
- [sicmutils.sr.frames
+ [emmy.sr.frames
   make-SR-coordinates SR-coordinates? SR-name make-SR-frame
   base-frame-maker
   the-ether boost-direction v:c coordinate-origin
@@ -447,7 +447,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
  ;; Mechanics Namespaces
 
- [sicmutils.mechanics.lagrange
+ [emmy.mechanics.lagrange
   ->L-state ->local ->state
   literal-Lagrangian-state
   Dt
@@ -467,7 +467,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   r->s s->r p->r r->p
   state->t coordinate velocity acceleration
   coordinate-tuple velocity-tuple acceleration-tuple momentum-tuple]
- [sicmutils.matrix
+ [emmy.matrix
   s->m
   m->s
   literal-matrix
@@ -478,7 +478,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   down->row-matrix
   row-matrix->down
   row-matrix->vector]
- [sicmutils.mechanics.hamilton
+ [emmy.mechanics.hamilton
   ->H-state
   F->CT
   Hamilton-equations
@@ -498,28 +498,28 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   symplectic-transform?
   symplectic-unit
   time-independent-canonical?]
- [sicmutils.mechanics.rotation
+ [emmy.mechanics.rotation
   rotate-x-matrix rotate-y-matrix rotate-z-matrix
   angle-axis->rotation-matrix
   rotate-x-tuple rotate-y-tuple rotate-z-tuple
   Rx Ry Rz rotate-x rotate-y rotate-z
   Euler->M wcross->w]
- [sicmutils.numerical.ode
+ [emmy.numerical.ode
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.derivative D-numeric]
- [sicmutils.numerical.quadrature definite-integral]
- [sicmutils.numerical.unimin.brent
+ [emmy.numerical.derivative D-numeric]
+ [emmy.numerical.quadrature definite-integral]
+ [emmy.numerical.unimin.brent
   brent-min brent-max]
- [sicmutils.numerical.multimin.nelder-mead nelder-mead]
- [sicmutils.numerical.unimin.golden
+ [emmy.numerical.multimin.nelder-mead nelder-mead]
+ [emmy.numerical.unimin.golden
   golden-section-min golden-section-max]
- [sicmutils.numerical.minimize minimize multidimensional-minimize]
- [sicmutils.util.aggregate sum]
- [sicmutils.util.stream vector:generate]
- [sicmutils.special.elliptic elliptic-f]
- [sicmutils.special.factorial factorial]
- [sicmutils.value = compare exact? zero? one? identity?
+ [emmy.numerical.minimize minimize multidimensional-minimize]
+ [emmy.util.aggregate sum]
+ [emmy.util.stream vector:generate]
+ [emmy.special.elliptic elliptic-f]
+ [emmy.special.factorial factorial]
+ [emmy.value = compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

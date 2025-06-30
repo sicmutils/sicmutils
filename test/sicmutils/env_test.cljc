@@ -3,8 +3,11 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
+            [emmy.complex :as c]
+            [emmy.matrix :as matrix]
+            [emmy.operator :as o]
+            [emmy.value :as v]
             [same :refer [ish?] :include-macros true]
-            [sicmutils.complex :as c]
             [sicmutils.env :as e :refer [+ * /  partial ref
                                          complex
                                          freeze
@@ -13,10 +16,7 @@
                                          orientation up down
                                          ->infix
                                          cross-product
-                                         cot csc sec]]
-            [sicmutils.matrix :as matrix]
-            [sicmutils.operator :as o]
-            [sicmutils.value :as v]))
+                                         cot csc sec]]))
 
 (deftest constant-tests
   (is (ish? e/euler (e/exp 1))

@@ -3,10 +3,10 @@
 (ns sicmutils.examples.double-pendulum-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
+            [emmy.value :as v]
             [sicmutils.env :as e :refer [up down /]]
-            [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.value :as v]))
+            [sicmutils.examples.double-pendulum :as double]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

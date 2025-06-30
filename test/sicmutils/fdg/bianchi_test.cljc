@@ -3,9 +3,9 @@
 (ns sicmutils.fdg.bianchi-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :as e :refer [+ -]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.value :as v]))
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
+            [emmy.value :as v]
+            [sicmutils.env :as e :refer [+ -]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

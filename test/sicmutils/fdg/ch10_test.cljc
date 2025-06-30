@@ -3,15 +3,15 @@
 (ns sicmutils.fdg.ch10-test
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
+            [emmy.value :as v]
             [sicmutils.env :as e :refer [+ - * /
                                          zero?
                                          square sin expt
                                          wedge
                                          down up
                                          point
-                                         define-coordinates]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.value :as v]))
+                                         define-coordinates]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

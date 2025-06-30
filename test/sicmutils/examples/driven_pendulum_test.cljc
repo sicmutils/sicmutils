@@ -3,9 +3,9 @@
 (ns sicmutils.examples.driven-pendulum-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [deftest is use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.env :as e :refer [up /]]
-            [sicmutils.examples.driven-pendulum :as driven]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.examples.driven-pendulum :as driven]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

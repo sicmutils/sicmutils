@@ -3,9 +3,9 @@
 (ns sicmutils.examples.top-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [deftest is use-fixtures]]
+            [emmy.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.env :as e :refer [up literal-function]]
-            [sicmutils.examples.top :as t]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.examples.top :as t]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 

@@ -1,0 +1,52 @@
+{:linters
+ {:emmy.pattern/binding-sym {:level :error}
+  :emmy.pattern/consequence-restriction {:level :error}
+  :emmy.pattern/ruleset-args {:level :error}
+  :emmy.abstract.function/invalid-binding {:level :error}
+  :emmy.calculus.coordinate/invalid-binding {:level :error}}
+
+ :lint-as
+ {emmy.numerical.quadrature.common/defintegrator clojure.core/def
+  emmy.util.def/import-vars potemkin/import-vars
+  emmy.util.def/defgeneric clojure.core/defmulti}
+
+ :hooks
+ {:analyze-call
+  {emmy.abstract.function/with-literal-functions
+   hooks.emmy.abstract.function/with-literal-functions
+
+   emmy.calculus.coordinate/define-coordinates
+   hooks.emmy.calculus.coordinate/define-coordinates
+
+   emmy.calculus.coordinate/let-coordinates
+   hooks.emmy.calculus.coordinate/let-coordinates
+
+   emmy.calculus.coordinate/using-coordinates
+   hooks.emmy.calculus.coordinate/using-coordinates
+
+   emmy.env/define-coordinates
+   hooks.emmy.calculus.coordinate/define-coordinates
+
+   emmy.env/let-coordinates
+   hooks.emmy.calculus.coordinate/let-coordinates
+
+   emmy.env/using-coordinates
+   hooks.emmy.calculus.coordinate/using-coordinates
+
+   emmy.env/bootstrap-repl!
+   hooks.emmy.env/bootstrap-repl!
+
+   emmy.env/literal-function
+   hooks.emmy.abstract.function/literal-function
+
+   emmy.env/with-literal-functions
+   hooks.emmy.abstract.function/with-literal-functions
+
+   emmy.util.def/import-def hooks.emmy.util.def/import-def
+   emmy.util.def/import-macro hooks.emmy.util.def/import-def
+
+   emmy.pattern.rule/consequence hooks.emmy.pattern.rule/consequence
+   emmy.pattern.rule/pattern hooks.emmy.pattern.rule/pattern
+   emmy.pattern.rule/rule hooks.emmy.pattern.rule/rule
+   emmy.pattern.rule/ruleset hooks.emmy.pattern.rule/ruleset
+   emmy.pattern.rule/template hooks.emmy.pattern.rule/template}}}
