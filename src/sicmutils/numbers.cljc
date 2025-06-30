@@ -32,12 +32,58 @@
 (defmethod g/negate [::v/real] [a] (core/- a))
 (defmethod g/negative? [::v/real] [a] (neg? a))
 
+(defn- expt-int [base pow]
+  (loop [n pow, y (num 1), z base]
+    (let [t (even? n), n (quot n 2)]
+      (cond
+        t (recur n y (*' z z))
+        (zero? n) (*' z y)
+        :else (recur n (*' z y) (*' z z))))))
+
+;; TODO similar condp trick for integer-length.
+
+;; TODO look at for help
+;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj
+
+(defn integer-length
+  "Length of integer in binary"
+  [n]
+  ;; something like this
+  (case (type n)
+    BigDecimal 1M
+    java.math.BigInteger (java.math.BigInteger. "1")
+    clojure.lang.BigInt  (bigint 1)
+    1)
+  )
+
+(defn compute-expt
+  "(expt base pow) is base to the pow power.
+  Returns an exact number if the base is an exact number and the power is an
+  integer, otherwise returns a double."
+  [base pow]
+  (if (and (not (float? base)) (integer? pow))
+    (cond (pos? pow)  (expt-int base pow)
+          (zero? pow) (case (type base)
+                        BigDecimal 1M
+                        java.math.BigInteger (java.math.BigInteger. "1")
+                        clojure.lang.BigInt  (bigint 1)
+                        1)
+          :else (/ 1 (expt-int base (-' pow))))
+    (Math/pow base pow)))
+
 (defmethod g/expt [::v/real ::v/real] [b x]
   (if (and (neg? b)
            (not (core/zero?
                  (g/fractional-part x))))
     (g/exp (g/mul x (g/log b)))
     (u/compute-expt b x)))
+
+(defn abs "(abs n) is the absolute value of n" [n]
+  (cond
+    (not (number? n)) (throw (IllegalArgumentException.
+			                        "abs requires a number"))
+    (neg? n) (-' n)
+    :else n))
 
 (defmethod g/abs [::v/real] [a] (u/compute-abs a))
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
@@ -188,6 +234,76 @@
 (defmethod g/fractional-part [::v/integral] [_] 0)
 (defmethod g/floor [::v/integral] [a] a)
 (defmethod g/ceiling [::v/integral] [a] a)
+
+;; TODO
+
+;; Produces the largest integer less than or equal to the square root of n
+;; Input n must be a non-negative integer
+
+(declare integer-length)
+
+#?(:cljs (def inc' clojure.core/inc))
+#?(:cljs (def +' clojure.core/+))
+#?(:cljs (def -' clojure.core/-))
+#?(:cljs (def *' clojure.core/*))
+
+(defn- integer-sqrt [n]
+  (cond
+    (> n 24)
+    (let [n-len (integer-length n)]
+      (loop [init-value (if (even? n-len)
+			                    (g/expt 2 (quot n-len 2))
+			                    (g/expt 2 (inc' (quot n-len 2))))]
+        (let [iterated-value (quot (+' init-value (quot n init-value)) 2)]
+	        (if (>= iterated-value init-value)
+	          init-value
+	          (recur iterated-value)))))
+    (> n 15) 4
+    (> n  8) 3
+    (> n  3) 2
+    (> n  0) 1
+    (> n -1) 0))
+
+(defn exact-integer-sqrt "(exact-integer-sqrt n) expects a non-negative integer n, and returns [s r] where n = s^2+r and n < (s+1)^2.  In other words, it returns the floor of the square root and the 'remainder'.
+  For example, (exact-integer-sqrt 15) is [3 6] because 15 = 3^2+6."
+  [n]
+  (if (or (not (integer? n)) (neg? n))
+    (throw (IllegalArgumentException. "exact-integer-sqrt requires a non-negative integer"))
+    (let [isqrt (integer-sqrt n),
+	        error (-' n (*' isqrt isqrt))]
+      [isqrt error])))
+
+(defmethod g/sqrt [::v/integral] [n]
+  (if (neg? n) Double/NaN
+      (let [isqrt (integer-sqrt n),
+	          error (-' n (*' isqrt isqrt))]
+	      (if (clojure.core/zero? error) isqrt
+	          (Math/sqrt n)))))
+
+(defn- sqrt-ratio [^clojure.lang.Ratio n]
+  (if (neg? n) Double/NaN
+      (let [numerator (.numerator n),
+	          denominator (.denominator n),
+	          sqrtnum (sqrt numerator)]
+	      (if (float? sqrtnum)
+	        (Math/sqrt n)
+	        (let [sqrtden (sqrt denominator)]
+	          (if (float? sqrtden)
+	            (Math/sqrt n)
+	            (/ sqrtnum sqrtden)))))))
+
+(defn- sqrt-decimal [n]
+  (if (neg? n) Double/NaN
+      (let [frac (rationalize n),
+	          sqrtfrac (sqrt frac)]
+	      (if (ratio? sqrtfrac)
+	        (/ (BigDecimal. (.numerator ^clojure.lang.Ratio sqrtfrac))
+	           (BigDecimal. (.denominator ^clojure.lang.Ratio sqrtfrac)))
+	        sqrtfrac))))
+
+;; TODO install Math/sqrt for float, double, then sqrt-integer for others!!
+;;
+;; TODO floor, ceil for bigint, bigdecimal, ratio, double, float
 
 ;; All JVM and JS types that respond to ::native-integral behave correctly with
 ;; Clojure's native `quot`, `rem`, `mod`.
