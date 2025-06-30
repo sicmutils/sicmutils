@@ -74,7 +74,8 @@
                (Math/sqrt ave))))))))
 
 (defn carlson-rd
-  "Comment from Press, section 6.11, page 257:
+  "Comment from Press, [section
+  6.11](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf) page 257:
 
   'Computes Carlson’s elliptic integral of the second kind, RD(x, y, z). x and y must be
   nonnegative, and at most one can be zero. z must be positive. TINY must be at least twice
@@ -82,57 +83,58 @@
   times the negative 2/3 power of the machine underflow limit.'
 
   This is called `Carlson-elliptic-2` in scmutils."
-  [x y z]
-  (let [eps 0.0015
-        tiny 1.0e-25
-        big  4.5e21
-        C1   (/ 3.0 14.0)
-        C2   (/ 1.0 6.0)
-        C3   (/ 9.0 22.0)
-        C4   (/ 3.0 26.0)
-        C5   (* 0.25 C3)
-        C6   (* 1.5 C4)]
-    (when (or (< (min x y) 0)
-              (< (min (+ x y) z) tiny)
-              (> (max x y z) big))
-      (u/illegal "Carlson R_D"))
-    (loop [x x
-           y y
-           z z
-           sum 0.0
-           fac 1.0]
-      (let [sqrtx (Math/sqrt x)
-            sqrty (Math/sqrt y)
-            sqrtz (Math/sqrt z)
-            alamb (+ (* sqrtx (+ sqrty sqrtz))
-                     (* sqrty sqrtz))
-            sump  (+ sum (/ fac (* sqrtz (+ z alamb))))
-            facp  (* 0.25 fac)
-            xp    (* 0.25 (+ x alamb))
-            yp    (* 0.25 (+ y alamb))
-            zp    (* 0.25 (+ z alamb))
-            ave   (* 0.2 (+ xp yp (* 3.0 zp)))
-            delx  (/ (- ave xp) ave)
-            dely  (/ (- ave yp) ave)
-            delz  (/ (- ave zp) ave)]
-        (if (> (max (Math/abs delx)
-                    (Math/abs dely)
-                    (Math/abs delz))
-               eps)
-          (recur xp yp zp sump facp)
-          (let [ea (* delx dely)
-                eb (* delz delz)
-                ec (- ea eb)
-                ed (- ea (* 6.0 eb))
-                ee (+ ed ec ec)]
-            (+ (* 3.0 sump)
-               (/ (* facp
-                     (+ 1.0
-                        (* ed (- (* C5 ed) (* C6 delz ee) C1))
-                        (* delz (+ (* C2 ee)
-                                   (* delz (- (* C3 ec)
-                                              (* delz C4 ea)))))))
-                  (* ave (Math/sqrt ave))))))))))
+  ([x y z] (carlson-rd x y z {}))
+  ([x y z {:keys [eps tiny big]
+           :or {eps 0.0015
+                tiny 1.0e-100
+                big 4.5e21}}]
+   (when (or (< (min x y) 0)
+             (< (min (+ x y) z) tiny)
+             (> (max x y z) big))
+     (u/illegal "Carlson R_D"))
+   (let [C1   (/ 3.0 14.0)
+         C2   (/ 1.0 6.0)
+         C3   (/ 9.0 22.0)
+         C4   (/ 3.0 26.0)
+         C5   (* 0.25 C3)
+         C6   (* 1.5 C4)]
+     (loop [x x
+            y y
+            z z
+            sum 0.0
+            fac 1.0]
+       (let [sqrtx (Math/sqrt x)
+             sqrty (Math/sqrt y)
+             sqrtz (Math/sqrt z)
+             alamb (+ (* sqrtx (+ sqrty sqrtz))
+                      (* sqrty sqrtz))
+             sump  (+ sum (/ fac (* sqrtz (+ z alamb))))
+             facp  (* 0.25 fac)
+             xp    (* 0.25 (+ x alamb))
+             yp    (* 0.25 (+ y alamb))
+             zp    (* 0.25 (+ z alamb))
+             ave   (* 0.2 (+ xp yp (* 3.0 zp)))
+             delx  (/ (- ave xp) ave)
+             dely  (/ (- ave yp) ave)
+             delz  (/ (- ave zp) ave)]
+         (if (> (max (Math/abs delx)
+                     (Math/abs dely)
+                     (Math/abs delz))
+                eps)
+           (recur xp yp zp sump facp)
+           (let [ea (* delx dely)
+                 eb (* delz delz)
+                 ec (- ea eb)
+                 ed (- ea (* 6.0 eb))
+                 ee (+ ed ec ec)]
+             (+ (* 3.0 sump)
+                (/ (* facp
+                      (+ 1.0
+                         (* ed (- (* C5 ed) (* C6 delz ee) C1))
+                         (* delz (+ (* C2 ee)
+                                    (* delz (- (* C3 ec)
+                                               (* delz C4 ea)))))))
+                   (* ave (Math/sqrt ave)))))))))))
 
 (defn carlson-rc
   "Computes Carlson’s degenerate elliptic integral, $R_C(x, y)$. `x` must be

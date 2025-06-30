@@ -104,6 +104,9 @@
                                           (+ t z))))))
                           0.0 ##Inf {:tolerance 1e-10})))))
 
+  (is (= 1 (e/carlson-rf 0 0 1))
+      "unit test from scmutils.")
+
   (checking "carlson-rf can permute all arguments" 100
             [x gen-double
              y gen-double
@@ -267,6 +270,9 @@
             [k gen-k]
             (is (ish? (e/elliptic-e (/ Math/PI 2) k)
                       (e/elliptic-e k))))
+
+  (is (= 1.0 (e/elliptic-e (/ Math/PI 2) 1.0))
+      "unit test against scmutils")
 
   (checking "complete elliptic-pi as a special case of elliptic-pi" 100
             [k gen-k
